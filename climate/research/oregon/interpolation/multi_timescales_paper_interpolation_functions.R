@@ -5,8 +5,8 @@
 #Functions used in the production of figures and data for the multi timescale paper are recorded.
 #AUTHOR: Benoit Parmentier                                                                      #
 #DATE CREATED: 11/25/2013            
-#DATE MODIFIED: 12/25/2013            
-#Version: 2
+#DATE MODIFIED: 03/06/2014            
+#Version: 3
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
 
@@ -30,7 +30,7 @@ library(plyr)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper <-"multi_timescales_paper_interpolation_functions_12092013.R"
+function_analyses_paper <-"multi_timescales_paper_interpolation_functions_03062014.R"
 
 calc_stat_by_month_tb <-function(names_mod,tb,month_holdout=F){
   #function
@@ -322,6 +322,7 @@ stat_moran_std_raster_fun<-function(i,list_param){
 plot_accuracy_by_holdout_fun <-function(list_tb,ac_metric,plot_names,names_mod){
   #
   list_plots <- vector("list",length=length(list_tb))
+  list_avg_tb <- vector("list",length=length(list_tb))
   for (i in 1:length(list_tb)){
     #i <- i+1
     tb <-list_tb[[i]]
@@ -340,7 +341,8 @@ plot_accuracy_by_holdout_fun <-function(list_tb,ac_metric,plot_names,names_mod){
 
     prop_obj <- calc_stat_prop_tb_diagnostic(names_mod,names_id,tb)
     avg_tb <- prop_obj$avg_tb
-    
+    #Adding method name to avg_tb data.frame
+    avg_tb$method_interp <- rep(unique(tb$method_interp),nrow(avg_tb))
     avg_tb <- subset(avg_tb,pred_mod!="mod_kr") #removes mod_kr
     layout_m<-c(1,1) #one row two columns
     par(mfrow=layout_m)
@@ -365,9 +367,14 @@ plot_accuracy_by_holdout_fun <-function(list_tb,ac_metric,plot_names,names_mod){
     
     dev.off()
     list_plots[[i]] <- p
+    list_avg_tb[[i]] <- avg_tb
   }
   names(list_plots) <- names(list_tb)
-  return(list_plots)
+  names(list_avg_tb) <- names(list_tb)
+  
+  tb_obj <- list(list_plots,list_avg_tb)
+  names(tb_obj) <- c("list_plots","list_avg_tb")
+  return(tb_obj)
   #end of function
 }
 
