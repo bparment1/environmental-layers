@@ -5,8 +5,8 @@
 #Functions used in the production of figures and data for the multi timescale paper are recorded.
 #AUTHOR: Benoit Parmentier                                                                      #
 #DATE CREATED: 11/25/2013            
-#DATE MODIFIED: 03/06/2014            
-#Version: 3
+#DATE MODIFIED: 03/18/2014            
+#Version: 4
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
 
@@ -273,16 +273,16 @@ plot_moranI_profile_fun <- function(i,list_param){
       height=480*layout_m[1],width=480*layout_m[2])
   par(mfrow=layout_m)
   p<-xyplot(data ~ lag | which , data=dd_combined,group=method_v,type="b", as.table=TRUE,
-            pch=1:3,auto.key=list(columns=3,cex=1.5,font=2),
+            pch=1:3,,pch.cex=3,auto.key=list(columns=1,space="right",title="Method",cex=2.5,font=2), #Legend information
             main=title_plot,
             par.settings = list(
-              superpose.symbol = list(pch=1:3,col=1:3,pch.cex=1.4),
-              axis.text = list(font = 2, cex = 1.3),layout=layout_m,
-              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
-            par.strip.text=list(font=2,cex=1.5),
+              superpose.symbol = list(lty=1,pch=1:3,col=1:3,cex=2.3),
+              axis.text = list(font = 2, cex = 2),layout=layout_m,
+              par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),
+            par.strip.text=list(font=2,cex=2),
             strip=strip.custom(factor.levels=names_panel_plot),
-            xlab=list(label="Spatial lag neighbor", cex=2,font=2),
-            ylab=list(label="Moran's I", cex=2, font=2))
+            xlab=list(label="Spatial lag neighbor", cex=2.5,font=2),
+            ylab=list(label="Moran's I", cex=2.5, font=2))
   
   print(p)
   
