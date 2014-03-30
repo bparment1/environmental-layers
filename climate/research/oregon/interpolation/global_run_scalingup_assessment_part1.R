@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/23/2014            
+#MODIFIED ON: 03/29/2014            
 #Version: 1
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -49,29 +49,107 @@ load_obj <- function(f)
   env[[nm]]
 }
 
+extract_list_from_list_obj<-function(obj_list,list_name){
+  #Create a list of an object from a given list of object using a name prodived as input
+  
+  list_tmp<-vector("list",length(obj_list))
+  for (i in 1:length(obj_list)){
+    tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
+    list_tmp[[i]]<-tmp
+  }
+  return(list_tmp) #this is  a data.frame
+}
+
+#This extract a data.frame object from raster prediction obj and combine them in one data.frame 
+extract_from_list_obj<-function(obj_list,list_name){
+  #extract object from list of list. This useful for raster_prediction_obj
+  library(plyr)
+  
+  list_tmp<-vector("list",length(obj_list))
+  for (i in 1:length(obj_list)){
+    tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
+    list_tmp[[i]]<- as.data.frame(tmp) #if spdf
+  }
+  tb_list_tmp<-do.call(rbind.fill,list_tmp) #long rownames
+  #tb_list_tmp<-do.call(rbind,list_tmp) #long rownames
+  
+  return(tb_list_tmp) #this is  a data.frame
+}
+
+
+## Function to mosaic modis or other raster images
+
+mosaic_m_raster_list<-function(j,list_param){
+  #This functions returns a subset of tiles from the modis grid.
+  #Arguments: modies grid tile,list of tiles
+  #Output: spatial grid data frame of the subset of tiles
+  #Note that rasters are assumed to be in the same projection system!!
+  
+  #rast_list<-vector("list",length(mosaic_list))
+  #for (i in 1:length(mosaic_list)){  
+  # read the individual rasters into a list of RasterLayer objects
+  # this may be changed so that it is not read in the memory!!!
+  
+  #parse output...
+  
+  #j<-list_param$j
+  mosaic_list<-list_param$mosaic_list
+  out_path<-list_param$out_path
+  out_names<-list_param$out_rastnames
+  file_format <- list_param$file_format
+  NA_flag_val <- list_param$NA_flag_val
+  out_suffix <- list_param$out_suffix
+  ## Start
+  
+  input.rasters <- lapply(as.character(mosaic_list[[j]]), raster)
+  mosaiced_rast<-input.rasters[[1]]
+  
+  for (k in 2:length(input.rasters)){
+    mosaiced_rast<-mosaic(mosaiced_rast,input.rasters[[k]], fun=mean)
+    #mosaiced_rast<-mosaic(mosaiced_rast,raster(input.rasters[[k]]), fun=mean)
+  }
+  
+  data_name<-paste("mosaiced_",sep="") #can add more later...
+  #raster_name<-paste(data_name,out_names[j],".tif", sep="")
+  raster_name<-paste(data_name,out_names[j],file_format, sep="")
+  
+  writeRaster(mosaiced_rast, NAflag=NA_flag_val,filename=file.path(out_path,raster_name),overwrite=TRUE)  
+  #Writing the data in a raster file format...  
+  rast_list<-file.path(out_path,raster_name)
+  
+  ## The Raster and rgdal packages write temporary files on the disk when memory is an issue. This can potential build up
+  ## in long  loops and can fill up hard drives resulting in errors. The following  sections removes these files 
+  ## as they are created in the loop. This code section  can be transformed into a "clean-up function later on
+  ## Start remove
+  #tempfiles<-list.files(tempdir(),full.names=T) #GDAL transient files are not removed
+  #files_to_remove<-grep(out_suffix,tempfiles,value=T) #list files to remove
+  #if(length(files_to_remove)>0){
+  #  file.remove(files_to_remove)
+  #}
+  #now remove temp files from raster package located in rasterTmpDir
+  removeTmpFiles(h=0) #did not work if h is not set to 0
+  ## end of remove section
+  
+  return(rast_list)
+}
+
+
 ##############################
 #### Parameters and constants  
 
-script_path<-"/home/parmentier/Data/IPLANT_project/env_layers_scripts/" #path to script
-source(file.path(script_path,function_analyses_paper1)) #source all functions used in this script 1.
-source(file.path(script_path,function_analyses_paper2)) #source all functions used in this script 2.
-
-
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
+
 in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output" #On NEX
 in_dir_list <- list.dirs(path=in_dir1) #get the list of directories with resutls by 10x10 degree tiles
 #in_dir_list <- as.list(in_dir_list[-1])
-in_dir_list <- in_dir_list[-1] #the first one is the in_dir1
-in_dir_list <- in_dir_list[-25] # the last directory contains shapefiles #]in_dir_list[-1]
+in_dir_list <- in_dir_list[grep("output",basename(in_dir_list),invert=TRUE)] #the first one is the in_dir1
+in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 
-
-##raster_prediction object : contains testing and training stations with RMSE and model object
-
-list_raster_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
-
-names(list_raster_obj_files)<- paste("tile",1:length(list_raster_obj_files),sep="_")
-                                     
+in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)] 
+#the first one is the in_dir1
+# the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
+interpolation_method <- c("gam_fusion")
 out_prefix<-"run1_NA_analyses_03232013"
 #out_dir<-"/data/project/layers/commons/NEX_data/"
 out_dir <- "/nobackup/bparmen1/"
@@ -84,10 +162,22 @@ if (!file.exists(out_dir)){
   #} else{
   #  out_path <-paste(out_path..)
 }
+
 setwd(out_dir)
                                    
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-                                     
+
+##raster_prediction object : contains testing and training stations with RMSE and model object
+
+list_raster_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
+basename(dirname(list_raster_obj_files[[1]]))
+list_names_tile_coord <- lapply(list_raster_obj_files,FUN=function(x){basename(dirname(x))})
+list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
+#names(list_raster_obj_files)<- 
+                                                                                                             
+names(list_raster_obj_files)<- list_names_tile_coord
+
+
 ###################### PART I: Generate tables to collect information over all tiles in North America ##########
 #Table 1: Average accuracy metrics
 #Table 2: daily accuracy metrics for all tiles
@@ -95,6 +185,9 @@ CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #S
 ##Quick exploration of raster object
 robj1 <- load_obj(list_raster_obj_files[[1]])
 names(robj1)
+names(robj1$method_mod_obj[[1]]) #for January 1, 2010
+names(robj1$method_mod_obj[[1]]$dailyTmax) #for January
+
 names(robj1$clim_method_mod_obj[[1]]$data_month) #for January
 names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
 
@@ -106,20 +199,79 @@ robj1$summary_metrics_v #first 10 rows of accuarcy metrics per day and model (fo
 #summary_metrics_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg$rmse})                           
 summary_metrics_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg})                           
 #summary_metrics_v_NA <- do.call(rbind,summary_metrics_v_list) #create a df for NA tiles with all accuracy metrics
+names(summary_metrics_v_list) <- list_names_tile_coord
 summary_metrics_v_NA <- do.call(rbind.fill,summary_metrics_v_list) #create a df for NA tiles with all accuracy metrics
-tile_id <- lapply(1:length(summary_metrics_v_list),FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=summary_metrics_v_list)
+list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
+tile_coord <- lapply(1:length(summary_metrics_v_list),FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=summary_metrics_v_list)
+tile_id <- lapply(1:length(summary_metrics_v_list),
+                     FUN=function(i,x,y){rep(y[i],nrow(x[[i]]))},x=summary_metrics_v_list,y=list_names_tile_id)
+
 summary_metrics_v_NA$tile_id <-unlist(tile_id)
+summary_metrics_v_NA$tile_coord <-unlist(tile_coord)
+
 summary_metrics_v_NA$n <- as.integer(summary_metrics_v_NA$n)
-write.table(as.data.frame(summary_metrics_v_NA),file=paste("summary_metrics_v_NA_",out_prefix,".txt",sep=""),sep=",")
+write.table(as.data.frame(summary_metrics_v_NA),
+            file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 #Function to collect all the tables from tiles into a table
 
 tb_diagnostic_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
 names(tb_diagnostic_v_list)
 
 tb_diagnostic_v_NA <- do.call(rbind.fill,tb_diagnostic_v_list) #create a df for NA tiles with all accuracy metrics
-tile_id <- lapply(1:length(tb_diagnostic_v_list),FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=tb_diagnostic_v_list)
+
+tile_coord <- lapply(1:length(tb_diagnostic_v_list),
+                     FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=tb_diagnostic_v_list)
+tile_id <- lapply(1:length(tb_diagnostic_v_list),
+                     FUN=function(i,x,y){rep(y[i],nrow(x[[i]]))},x=tb_diagnostic_v_list,y=list_names_tile_id)
+
 tb_diagnostic_v_NA$tile_id <- unlist(tile_id) #adding identifier for tile
-write.table((tb_diagnostic_v_NA),file=paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep=""),sep=",")
+tb_diagnostic_v_NA$tile_coord <- unlist(tile_coord) #adding identifier for tile
+
+write.table((tb_diagnostic_v_NA),
+            file=file.path(out_dir,paste("tb_diagnostic_v2_NA","_",out_prefix,".txt",sep="")),sep=",")
+
+####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY ###
+
+tb <- tb_diagnostic_v_NA
+
+#list.files(path=in_dir_list[[1]],pattern=".*predicted.*20100101.*.tif")
+
+#some files are
+#"/nobackupp4/aguzman4/climateLayers/output/30.0_-115.0/gam_fusion_dailyTmax_predicted_mod_kr_0_1_20100901_30_130.0_-115.0.tif"
+#"/nobackupp4/aguzman4/climateLayers/output/30.0_-115.0/gam_fusion_dailyTmax_predicted_mod_kr_20100901_30_130.0_-115.0.tif"
+#list_tif_files_dates <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=".*month.*.tif",full.names=T)})
+#list_tif_files_dates <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=".*predicted.*20100101.*.tif",full.names=T)})
+
+list_tif_files_dates <- lapply(in_dir_list,
+                               FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100101.*.tif",full.names=T)})
+list_tif_files_dates <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100901.*.tif",full.names=T)})
+
+#list_tif_files_dates <- lapply(in_dir1,FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100101.*.tif",full.names=T)})
+#list_tif_files_dates <- lapply(in_dir1,FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100901.*.tif",full.names=T)})
+
+
+#mosaic_list_var <- vector(list,length=1)
+#mosaic_list_var[[1]] <- unlist(list_tif_files_dates)
+mosaic_list_var <- list_tif_files_dates
+
+file_format <- ".tif"
+NA_flag_val <- -9999
+#mosaic_list_var<-lapply(seq_len(nrow(x)), function(i) x[i,]) #list of tiles by batch to mosaic
+#Prepare list of output names without extension
+#out_rastnames_var <- (basename(gsub(list_tiles_modis[1],"",list_m_var[[1]])))
+#out_rastnames_var <- gsub(extension(out_rastnames_var),"",out_rastnames_var)
+out_rastnames_var <- "gam_fusion_dailyTmax_predicted_mod1_0_01_20100101"
+out_rastnames_var <- "gam_fusion_dailyTmax_predicted_mod1_0_01_20100901"
+
+j<-1
+list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
+names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
+#undebug(mosaic_m_raster_list)
+list_var_mosaiced <- mosaic_m_raster_list(1,list_param_mosaic)
+#Parallelization,this works on MAC laptop too
+#list_var_mosaiced <-mclapply(1:length(mosaic_list_var), list_param=list_param_mosaic, mosaic_m_raster_list,mc.preschedule=FALSE,mc.cores = 2) #This is the end bracket from mclapply(...) statement
+
+#list_var_mosaiced <- lapply(1:length(mosaic_list_var), list_param=list_param_mosaic, mosaic_m_raster_list) #This is the end bracket from mclapply(...) statement
 
 ### Create a combined shape file for all region?
 
@@ -136,3 +288,48 @@ tb <- read.table("/data/project/layers/commons/NEX_data/test_run1_03232014/tb_di
 
 boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod=="mod1"))
 bwplot(rmse~as.factor(tile_id), data=subset(tb,tb$pred_mod=="mod1"))
+
+### COMBINED SHAPEFILES AND EXAMING CENTROID
+
+#usa_map <- getData('GADM', country='USA', level=1) #Get US map
+usa_map <- getData('GADM', country='USA',level=1) #Get US map, this is not working right now
+
+usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
+usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
+
+##Get the list of shapefiles
+in_dir_list_NEX <- read.table("/data/project/layers/commons/NEX_data/test_run1_03232014/output/in_dir_list.txt",sep=" ")
+
+list.files(path=in_dir_shp,pattern=paste("*.",as.character(in_dir_list_NEX[1,1]),".*.shp",sep=""))
+list_shp_reg_files <- list.files(path=in_dir_shp,pattern="*.shp")
+list_shp_reg_files2 <- list_shp_reg_files[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
+
+tx<-strsplit(as.character(in_dir_list_NEX[,1]),"_")
+lat_shp<- lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx)
+long_shp<- lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx)
+
+#print.numeric<-function(x, digits = 2) formatC(x, digits = digits, format = "f")
+#print.numeric(long_shp[[1]])
+
+pattern_str<-lapply(1:length(long_shp),function(i,y,x){paste(y[[i]],"0_",x[[i]],"0",sep="")},y=lat_shp,x=long_shp)
+
+list_shp_reg_files <- lapply(pattern_str,FUN=function(x){list.files(path=in_dir_shp,
+                                                                        pattern=paste("*.",x,".*.shp$",sep=""),full.names=T)})
+###
+#OK now get the shapefiles merged
+#ghcn_dat <- readOGR(dsn=dirname(met_stations_obj$monthly_covar_ghcn_data),
+#        sub(".shp","",basename(met_stations_obj$monthly_covar_ghcn_data)))
+
+plot(r44)
+plot(usa_map_2)
+centroids_pts <- vector("list",length(list_shp_reg_files))
+for(i in 1:length(list_shp_reg_files)){
+  shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
+  plot(shp1,add=T,border="blue")
+  pt <- gCentroid(shp1)
+  plot(pt,add=T,cex=2,pch=5)
+  centroids_pts[[i]] <-pt
+}
+
+#union(list_shp_reg_files[[1]],list_shp_reg_files[[2]])
+
