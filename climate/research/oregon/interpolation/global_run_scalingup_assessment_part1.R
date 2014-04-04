@@ -5,8 +5,8 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/29/2014            
-#Version: 1
+#MODIFIED ON: 05/01/2014            
+#Version: 2
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
 
@@ -101,7 +101,10 @@ mosaic_m_raster_list<-function(j,list_param){
   out_suffix <- list_param$out_suffix
   ## Start
   
-  input.rasters <- lapply(as.character(mosaic_list[[j]]), raster)
+  if(class(mosaic_list[[j]])=="list"){
+    m_list <- unlist(mosaic_list[[j]])
+  }
+  input.rasters <- lapply(m_list, raster)
   mosaiced_rast<-input.rasters[[1]]
   
   for (k in 2:length(input.rasters)){
@@ -230,9 +233,38 @@ tb_diagnostic_v_NA$tile_coord <- unlist(tile_coord) #adding identifier for tile
 write.table((tb_diagnostic_v_NA),
             file=file.path(out_dir,paste("tb_diagnostic_v2_NA","_",out_prefix,".txt",sep="")),sep=",")
 
-####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY ###
+#load data_month for specific tiles
+data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
 
-tb <- tb_diagnostic_v_NA
+names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
+
+#problem with tile 12...the raster ojbect has missing sub object
+#data_month_list <- lapply(1:length(list_raster_obj_files),x=list_raster_obj_files,
+#                          FUN=function(i,x){x<-load_obj(x[[i]]);
+#                                            extract_from_list_obj(x$validation_mod_month_obj,"data_s")})                           
+
+data_month_list <- lapply(1:length(list_raster_obj_files),x=list_raster_obj_files,
+                          FUN=function(i,x){x<-load_obj(x[[i]]);
+                                            extract_from_list_obj(x$clim_method_mod_obj,"data_month")})                           
+
+names(data_month_list) <- paste("tile","_",1:length(data_month_list),sep="")
+
+
+#names(data_month_list) <- basename(in_dir_list) #use folder id instead
+
+tile_id <- lapply(1:length(data_month_list),
+                  FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_list)
+data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
+data_month_NAM$tile_id <- unlist(tile_id)
+
+#plot(mm_01 ~ elev_s,data=data_month_NAM) #Jan across all tiles
+#plot(mm_06 ~ elev_s,data=data_month_NAM) #June across all tiles
+#plot(TMax ~ mm_01,data=data_month_NAM) #monthly tmax averages and LST across all tiles
+
+#copy back to atlas
+system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/_run1_NA_analyses_03232013")
+
+####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY ###
 
 #list.files(path=in_dir_list[[1]],pattern=".*predicted.*20100101.*.tif")
 
@@ -242,36 +274,73 @@ tb <- tb_diagnostic_v_NA
 #list_tif_files_dates <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=".*month.*.tif",full.names=T)})
 #list_tif_files_dates <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=".*predicted.*20100101.*.tif",full.names=T)})
 
-list_tif_files_dates <- lapply(in_dir_list,
-                               FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100101.*.tif",full.names=T)})
-list_tif_files_dates <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100901.*.tif",full.names=T)})
+#".*predicted_mod1_0_1.*20100101.*.tif"
 
-#list_tif_files_dates <- lapply(in_dir1,FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100101.*.tif",full.names=T)})
-#list_tif_files_dates <- lapply(in_dir1,FUN=function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*20100901.*.tif",full.names=T)})
+tb <- tb_diagnostic_v_NA
+#get specific dates from tb
+dates_l <- unique(tb$date)
+
+list_tif_fun <- function(i,in_dir_list,pattern_str){
+  #list.files(path=x,pattern=".*predicted_mod1_0_1.*20100101.*.tif",full.names=T)})
+  pat_str<- pattern_str[i]
+  list_tif_files_dates <-lapply(in_dir_list,
+         FUN=function(x,pat_str){list.files(path=x,pattern=pat_str,full.names=T)},pat_str=pat_str)
+  return(list_tif_files_dates)
+} 
+
+#First mosaic mod1
+
+## make this a function? report on number of tiles used for mosaic...
+
+#inputs
+l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*"),
+                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
+out_prefix_s <- paste(c("gam_fusion_dailyTmax_"),c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01"),sep="")
+dates_l #list of predicted dates
+                      
+for (i in 1:lenth(l_pattern_models)){
+  
+  l_pattern_mod <- l_pattern_models[[i]]
+  out_prefix_s <-    
+    
+  l_out_rastnames_var <- paste("gam_fusion_dailyTmax_","predicted_mod1_0_01_",dates_l,sep="")
+
+  #list_tif_files_dates <- list_tif_fun(1,in_dir_list,l_pattern_mod)
+
+  ##List of predicted tif ...
+  list_tif_files_dates <-lapply(1:length(l_pattern_mod1),FUN=list_tif_fun, 
+                              in_dir_list=in_dir_list,pattern_str=l_pattern_mod)
+  #save(list_tif_files_dates, file=paste("list_tif_files_dates","_",out_prefix,".RData",sep=""))
 
 
-#mosaic_list_var <- vector(list,length=1)
-#mosaic_list_var[[1]] <- unlist(list_tif_files_dates)
-mosaic_list_var <- list_tif_files_dates
+  mosaic_list_var <- list_tif_files_dates
+  out_rastnames_var <- l_out_rastnames_var  
 
-file_format <- ".tif"
-NA_flag_val <- -9999
-#mosaic_list_var<-lapply(seq_len(nrow(x)), function(i) x[i,]) #list of tiles by batch to mosaic
-#Prepare list of output names without extension
-#out_rastnames_var <- (basename(gsub(list_tiles_modis[1],"",list_m_var[[1]])))
-#out_rastnames_var <- gsub(extension(out_rastnames_var),"",out_rastnames_var)
-out_rastnames_var <- "gam_fusion_dailyTmax_predicted_mod1_0_01_20100101"
-out_rastnames_var <- "gam_fusion_dailyTmax_predicted_mod1_0_01_20100901"
+  file_format <- ".tif"
+  NA_flag_val <- -9999
 
-j<-1
-list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
-names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
-#undebug(mosaic_m_raster_list)
-list_var_mosaiced <- mosaic_m_raster_list(1,list_param_mosaic)
-#Parallelization,this works on MAC laptop too
-#list_var_mosaiced <-mclapply(1:length(mosaic_list_var), list_param=list_param_mosaic, mosaic_m_raster_list,mc.preschedule=FALSE,mc.cores = 2) #This is the end bracket from mclapply(...) statement
+  j<-1
+  list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
+  names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
+  list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
 
-#list_var_mosaiced <- lapply(1:length(mosaic_list_var), list_param=list_param_mosaic, mosaic_m_raster_list) #This is the end bracket from mclapply(...) statement
+}
+
+
+
+
+
+### Now find out how many files were predicted
+
+l_pattern_mod1<-paste(".*predicted_mod1_0_1.*",dates_l,".*.tif",sep="")
+
+l_f_t12 <- list.files(path=in_dir_list[12],".*predicted_mod1_0_1.*")
+
+
+l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
+
+
+unlist(lapply(l_f_bytiles,length))
 
 ### Create a combined shape file for all region?
 
@@ -284,18 +353,43 @@ list_var_mosaiced <- mosaic_m_raster_list(1,list_param_mosaic)
 #mean predicitons
 #mean of kriging error?
                     
-tb <- read.table("/data/project/layers/commons/NEX_data/test_run1_03232014/tb_diagnostic_v_NA_run1_NA_analyses_03232013.txt",sep=",")
+tb <- read.table(file.path(out_dir,"tb_diagnostic_v2_NA_run1_NA_analyses_03232013.txt"),sep=",")
+summary_metrics_v <- read.table(file.path(out_dir,"summary_metrics_v2_NA_run1_NA_analyses_03232013.txt"),sep=",")
 
-boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod=="mod1"))
-bwplot(rmse~as.factor(tile_id), data=subset(tb,tb$pred_mod=="mod1"))
+strsplit(unique(tb$tile_id),"_")
+tb$tile_id <- factor(tb$tile_id, levels=unique(tb$tile_id))
+#tb$tile_id <- as.character(tb$tile_id)
+boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod=="mod1"),
+        names=1:24)
+title("RMSE per tile")
+#bwplot(rmse~as.factor(tile_id), data=subset(tb,tb$pred_mod=="mod1"))
 
+#Boxplot of RMSE by model
+boxplot(rmse~pred_mod,data=tb)#,names=tb$pred_mod)
+title("RMSE per model over 24 tiles")
+
+#Turn summary table to a point shp
+
+tx<-strsplit(as.character(summary_metrics_v$tile_coord),"_")
+lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
+long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
+summary_metrics_v$lat <- lat
+summary_metrics_v$lon <- long
+
+coordinates(summary_metrics_v) <- cbind(long,lat) 
+ 
+ac_mod1 <- summary_metrics_v[summary_metrics_v$pred_mod=="mod1",]
+  
+plot(r2)  
+#plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
+plot(ac_mod1,cex=(ac_mod1$rmse^2)/10,pch=1,add=T)
+plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
+
+df <-arrange(as.data.frame(ac_mod1),desc(rmse))[,c("rmse","mae","tile_id")]
+#View(df)
+#quick kriging...
+autokrige(rmse~1,r2,)
 ### COMBINED SHAPEFILES AND EXAMING CENTROID
-
-#usa_map <- getData('GADM', country='USA', level=1) #Get US map
-usa_map <- getData('GADM', country='USA',level=1) #Get US map, this is not working right now
-
-usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
-usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
 
 ##Get the list of shapefiles
 in_dir_list_NEX <- read.table("/data/project/layers/commons/NEX_data/test_run1_03232014/output/in_dir_list.txt",sep=" ")
@@ -308,11 +402,12 @@ tx<-strsplit(as.character(in_dir_list_NEX[,1]),"_")
 lat_shp<- lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx)
 long_shp<- lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx)
 
+summary_metrics
 #print.numeric<-function(x, digits = 2) formatC(x, digits = digits, format = "f")
 #print.numeric(long_shp[[1]])
 
 pattern_str<-lapply(1:length(long_shp),function(i,y,x){paste(y[[i]],"0_",x[[i]],"0",sep="")},y=lat_shp,x=long_shp)
-
+#Select the 24 tiles that were used in the predictions based on lat, long
 list_shp_reg_files <- lapply(pattern_str,FUN=function(x){list.files(path=in_dir_shp,
                                                                         pattern=paste("*.",x,".*.shp$",sep=""),full.names=T)})
 ###
@@ -320,16 +415,52 @@ list_shp_reg_files <- lapply(pattern_str,FUN=function(x){list.files(path=in_dir_
 #ghcn_dat <- readOGR(dsn=dirname(met_stations_obj$monthly_covar_ghcn_data),
 #        sub(".shp","",basename(met_stations_obj$monthly_covar_ghcn_data)))
 
-plot(r44)
-plot(usa_map_2)
+#plot(r44)
+
+#usa_map <- getData('GADM', country='USA', level=1) #Get US map
+usa_map <- getData('GADM', country='USA',level=1) #Get US map, this is not working right now
+usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
+usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
+
 centroids_pts <- vector("list",length(list_shp_reg_files))
+shps_tiles <- vector("list",length(list_shp_reg_files))
+#collect info
 for(i in 1:length(list_shp_reg_files)){
   shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
-  plot(shp1,add=T,border="blue")
   pt <- gCentroid(shp1)
-  plot(pt,add=T,cex=2,pch=5)
   centroids_pts[[i]] <-pt
+  shps_tiles[[i]] <- shp1
 }
+#plot info: with labels
+plot(usa_map_2)
+for(i in 1:length(list_shp_reg_files)){
+  shp1 <- shps_tiles[[i]]
+  pt <- centroids_pts[[i]]
+  plot(shp1,add=T,border="blue")
+  #plot(pt,add=T,cex=2,pch=5)
+  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
+}
+title("Tiles location 10x10 degrees for NAM")
 
+## Now plot RMSE: with labels
+plot(usa_map_2)
+for(i in 1:length(list_shp_reg_files)){
+  shp1 <- shps_tiles[[i]]
+  pt <- centroids_pts[[i]]
+  plot(shp1,add=T,border="blue")
+  #plot(pt,add=T,cex=2,pch=5)
+  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
+}
+title("Tiles location 10x10 degrees for NAM")
+
+
+#unique(summaty_metrics$tile_id)
+#text(lat-shp,)
 #union(list_shp_reg_files[[1]],list_shp_reg_files[[2]])
 
+l_m_tif <- list.files(pattern="*mosaiced.*.tif")
+r1 <- raster("mosaiced_gam_fusion_dailyTmax_predicted_mod1_0_01_20100101.tif")
+r2 <- raster("mosaiced_gam_fusion_dailyTmax_predicted_mod1_0_01_20100901.tif")
+
+pred_s <- stack(l_m_tif[2:5])
+levelplot(pred_s)
