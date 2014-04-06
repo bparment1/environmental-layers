@@ -7,8 +7,8 @@
 #Analyses, figures, tables and data for the  paper are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2013  
-#MODIFIED ON: 03/18/2014            
-#Version: 3
+#MODIFIED ON: 04/06/2014            
+#Version: 4
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
 
@@ -111,7 +111,7 @@ names(list_raster_obj_files)<- c("gam_daily","kriging_daily","gwr_daily_a","gwr_
                                  "gam_fss","kriging_fss","gwr_fss")
 
 y_var_name <- "dailyTmax"
-out_prefix<-"analyses_03142013"
+out_prefix<-"analyses_04062014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_multitime_scale__analyses_tables"
 out_dir <-paste(out_dir,"_",out_prefix,sep="")
 
@@ -210,6 +210,30 @@ print(table4_paper) #show resulting table
 file_name<-paste("table4_multi_timescale_paper","_",out_prefix,".txt",sep="")
 write.table(table4_paper,file=file_name,sep=",")
 
+################ Table 6 ################
+#### Test for monthly hold out  
+
+#names(tb_v_list) <- paste("tb_v_",names(tb_v_list),sep="")
+tb_v <- do.call(rbind.fill,tb_v_list)
+#Create a table...
+list_interp_method <- c("gam_CAI","kriging_CAI","gwr_CAI")
+#loop through and extract p val and estimates...make this a function!!! to get a table
+#tb_mv contains everything!!
+list_param_extract_term <- list(list_interp_method,tb_v)
+names(list_param_extract_term) <- c("list_interp_method","tb_mv")
+
+#debug(extract_table_term_factor)
+#test1 <- extract_table_term_factor(1,list_param=list_param_extract_term)
+
+list_table_method_holdout_obj <-lapply(1:length(list_interp_method),FUN=extract_table_term_factor,list_param=list_param_extract_term)
+list_table_method_holdout<- lapply(list_table_method_holdout_obj,
+       FUN=function(x){x$table_method})
+table6 <- do.call(rbind,list_table_method_holdout)
+table6_paper <- table6[,c(9,1,2,3,4,5,6,7,8)]
+
+file_name<-paste("table6_multi_timescale_paper","_",out_prefix,".txt",sep="")
+write.table(table6_paper,file=file_name,sep=",")
+
 ################ Table 5 ################
 #### Monthly RMSE for GAM CAI Climatology, GAM CAI daily and Single  time scale
 ## This is a table of accuracy  
@@ -282,7 +306,7 @@ interp_area <- readOGR(dsn=dirname(infile_reg_outline),sub(".shp","",basename(in
 interp_area_WGS84 <-spTransform(interp_area,CRS_locs_WGS84)         # Project from WGS84 to new coord. system
 
 #usa_map <- getData('GADM', country='USA', level=1) #Get US map
-usa_map <- getData('GADM', country='USA') #Get US map, this is not working right now
+usa_map <- getData('GADM', country='USA',level=1) #Get US map, this is not working right now
 
 usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
 usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
@@ -391,6 +415,85 @@ p <- xyplot(rmse~prop_month|method_interp, # |set up pannels using method_interp
 print(p)
 
 dev.off()
+
+##Do analyses using density of stations per holdout
+##DO lm modeling with factor  variable being hold out proportion
+
+tb_mv <- do.call(rbind.fill,tb_mv_list) #[c("gam_CAI","kriging_CAI","gwr_CAI")])
+tb_mv <- subset(tb_mv,tb_mv$method_interp %in%c("gam_CAI","kriging_CAI","gwr_CAI") )
+
+#names(tb_mv)
+#reg_area_r <- rasterize(interp_area,elev,field=1,fun=mean)
+#tot_area <-freq(reg_area_r)[1,2]*prod(res(reg_area_r)/1000)
+
+#table(tb_mv$pred_mod)
+#unique(tb_mv$n) #note that
+#station_density_prop <- unique(tb_mv$n)/tot_area
+#station_density_prop[1:7]*1000
+
+
+extract_table_term_factor <- function(i,list_param){
+  #This function generate a linear model for proportion of hold out effect on accuracy
+  #Add option to choose MAE later
+  
+  #First parse arguments
+  interpolation_method <- list_param$list_interp_method[[i]]
+  tb_mv <- list_param$tb_mv
+  
+  #Begin script:
+  
+  list_pred_mod_name <- unique(tb_mv$pred_mod)
+  list_prop_cat <- unique(tb_mv$prop_month)  
+  list_pred_mod_name <- grep(c("mod_kr"),list_pred_mod_name,value=TRUE,invert=TRUE)
+  list_mod_table <- vector("list",length=length(list_pred_mod_name))
+  tb_dat<- subset(tb_mv,tb_mv$method_interp==interpolation_method) 
+  
+  for(j in 1:length(list_mod_table)){
+      mod <-lm(rmse~ as.factor(prop_month),
+               data=subset(tb_dat,tb_dat$pred_mod==list_pred_mod_name[[j]]))      
+      term_table <- summary(mod)$coefficients
+      list_mod_table[[j]] <- term_table  
+  }
+  names(list_mod_table) <- list_pred_mod_name
+  
+  tx <- lapply(list_mod_table,function(x){x[,c(1,4)]})
+  tx <-lapply(tx, round,digit=3)
+  
+  #tx <- format(tx,digits=3)
+  
+  #column_tab <- paste(format(tx[[1]][,1],digits=3)," ",
+  #             "(",format(tx[[1]][,2],digits=3),")",sep="")
+  #column_tab <-lapply(tx,function(x){paste(format(x[,1],digits=3)," ",
+  #             "(",format(x[,2],digits=3),")",sep="")})
+  column_tab <-lapply(tx,function(x){as.data.frame(paste(format(x[,1],digits=3)," ",
+               "(",format(x[,2],digits=3),")",sep=""))})
+
+  table_method <- as.data.frame(do.call(cbindX,column_tab))
+  names(table_method) <- list_pred_mod_name
+  table_method$method_interp <- rep(interpolation_method,nrow(table_method))
+  table_method$prop <- list_prop_cat
+  
+  mod_table_obj<- list(list_mod_table,table_method)
+  names(mod_table_obj) <- c("list_mod_table","table_method")
+  return(mod_table_obj)
+}  
+
+
+  table4_paper <- as.data.frame(do.call(rbind,list(table_gam,table_kriging,table_gwr)))    
+table4_paper <- round(table4_paper,digit=3) #roundto three digits teh differences
+table4_paper$Methods <- c(rep("gam",7),
+                          rep("kriging",7),
+                          rep("gwr",7))    
+                             
+
+}
+
+#(res(reg_area_r))
+         
+#### DATA MONTH: correlation between Tmax and LST comparison...
+
+         
+#Correlation tmax elev and LST...
 
 ################################################
 ######### Figure 3. RMSE multi-timescale mulitple hold out Overtraining tendency
@@ -865,6 +968,7 @@ legend("topleft",legend=c("TMax","LST","LST_forest","LST_grass"), cex=1.5,
        lty=1:4,pch=1:4,bty="n")
 title("Monthly average tmax for stations in Oregon ",cex=2.4)
 
+         
 ########################################
 ####### Figure 8c: LST, TMax and RMSE for GAM_CAI (monthly averages)
 
@@ -916,6 +1020,45 @@ legend("topleft",legend=c("Correlation LST-Elevation","Correlation LST-Forest"),
 title("Correlation between LST-elevation and LST-Forest",cex=2.4)
 #closing file for figure 8
 dev.off()
+
+         
+### NOW EXMAINE LST-TMAx and elev cor
+         
+plot(TMax~mm_01,data=subset(data_month_all,data_month_all$month==1))
+plot(TMax~mm_02,data=subset(data_month_all,data_month_all$month==1))
+plot(TMax~mm_06,data=subset(data_month_all,data_month_all$month==6))
+plot(TMax~mm_07,data=subset(data_month_all,data_month_all$month==7))
+
+cor(data_month)
+
+names_tmp<-c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_08",
+             "mm_09","mm_10","mm_11","mm_12")#,"LST","elev_s")
+
+list_cor_x <- vector("list",length=12)
+for(i in 1:12){
+  data_month<-list_data_month_s[[i]]
+  data_x <- data_month[,c("TMax","elev_s",names_tmp[i],"LC1","LC6","LC9")]
+  data_x <- as.data.frame(data_x)[,1:3]
+  cor_x<- cor(data_x,use="complete.obs")
+  list_cor_x[[i]] <- cor_x
+}
+
+cor_tab<-lapply(list_cor_x,function(x){x[1,2:5]})
+cor_tab<-lapply(list_cor_x,function(x){x[1,2:4]})
+         
+cor_tab<-do.call(rbind,cor_tab)
+#cor()
+data
+#plot(TMax~mm_01,data_month_all)
+
+         
+#         for(i in 1:12){
+#  data_month<-list_data_month_s[[i]]
+#  data_x <- data_month[,c("TMax","elev_s",names_tmp[i],"LC1","LC6","LC9")]
+#  data_x <- as.data.frame(data_x)[,1:3]
+#  cor_x<- cor(data_x,use="complete.obs")
+#  list_cor_x[[i]] <- cor_x
+#}
 
 ################################################
 ############ GENERATE ANNEX FIGURES 
@@ -1023,6 +1166,11 @@ m_layers_sc<-c(4) #elevation in the third layer
 #debug(plot_transect_m2)
 trans_data2 <- plot_transect_m2(list_transect2,rast_pred2,title_plot2,disp=FALSE,m_layers_sc)
 trans_data3 <- plot_transect_m2(list_transect3,rast_pred3,title_plot2,disp=FALSE,m_layers_sc)
+
+         
+         
+#### DATA MONTH
+         
 
 ###################### END OF SCRIPT #######################
 
