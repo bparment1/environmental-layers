@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data for the  paper are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2013  
-#MODIFIED ON: 04/06/2014            
+#MODIFIED ON: 04/07/2014            
 #Version: 4
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -42,7 +42,7 @@ library(colorRamps)
 #### FUNCTION USED IN SCRIPT
 
 function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_10222013.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_03182014.R"
+function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_04072014.R"
 
 ##############################
 #### Parameters and constants  
@@ -153,16 +153,18 @@ names(s_raster)<-covar_names
 
 ###################### PART I: Generate tables for paper ##########
 #Table 1: Covariates used (not produced in R)
-#Table 2: Covariates models and functional form (not produced in R)
-#Table 3: Combinations of models tested (not produced in R)
-#Table 4. Average RMSE for all models acroos year 2010 wiht 30% daily hold out
+#Table 2: Combinations of models tested (not produced in R)
+#Table 3. Average RMSE for all models across year 2010 wiht 30% daily hold out
+#Table 4. RMSE and monthly holdout using linear model with cat var
 #Table 5: Average monhtly RMSE for CAI model 7, climatology surfaces,  CAI and single time scale methods 
+#Table 6: Monthly correlations TMax-elev and TMax-LST  
 
-##### Table 4: Contribution of covariates using validation accuracy metrics
+##### Table 3: Contribution of covariates using validation accuracy metrics
 ## This is a table of accuracy  
 
 summary_metrics_v_list<-lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg$rmse})                           
 names(summary_metrics_v_list)
+
 
 #for gam models
 table_gam<- summary_metrics_v_list[grep("gam",names(summary_metrics_v_list))]
@@ -180,37 +182,77 @@ table_gwr <- table_gwr[c(5,3,4)] #reorder list and drop first two objects
 table_gwr <- do.call(cbind,table_gwr)
 table_gwr <- table_gwr[1:7,]                         
 
-table4_paper <- as.data.frame(do.call(rbind,list(table_gam,table_kriging,table_gwr)))    
-table4_paper <- round(table4_paper,digit=3) #roundto three digits teh differences
-table4_paper$Methods <- c(rep("gam",7),
+table3_paper <- as.data.frame(do.call(rbind,list(table_gam,table_kriging,table_gwr)))    
+table3_paper <- round(table3_paper,digit=3) #roundto three digits teh differences
+table3_paper$Methods <- c(rep("gam",7),
                           rep("kriging",7),
                           rep("gwr",7))    
-                             
+#Drop fss
+#grep("gam_fss",names(table3_paper),invert=T,value=F)
+table3_paper <- subset(table3_paper,
+                       select=grep("gam_fss",names(table3_paper),invert=T,value=T))
+
+list_tb <-lapply(list_raster_oj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
+
+stat<-"sd"
+training <- "FALSE"
+
+list_param_calc_stat <- list(list_tb,stat,training)
+names(list_param_calc_stat) <- c("list_tb","stat","training")
+
+#Calculate standard deviation for each metric
+#undebug(calc_stat_from_tb_list)
+#sd1 <- calc_stat_from_tb_list(1,list_param=list_param_calc_stat) # see function script
+
+list_sd<- lapply(1:length(list_tb),FUN=calc_stat_from_tb_list,list_param=list_param_calc_stat)
+names(list_sd) <- names(list_tb) #now select all the daily in one column and CAI in antoehr
+#table_sd <- do.call(rbind,list_sd)
+tab_sd <- do.call(rbind,list_sd)
+tab_sd <- subset(tab_sd,pred_mod!="mod_kr")
+
+table_sd <- as.data.frame(tab_sd[grep("daily",rownames(tab_sd),value=F),c("rmse")])
+names(table_sd) <- c("rmse_s")
+rmse_m <- (tab_sd[grep("CAI",rownames(tab_sd),value=F),c("rmse")])
+table_sd$rmse_m <- rmse_m
+
+#Combined sd in one table for mod1 (baseline 2)
+#table_sd <- do.call(rbind,list(sd1[1,],sd3[1,],sd4[1,])) #table containing the sd for the three mdethods for baseline 2
+table_sd <- round(table_sd,digit=3) #round to three digits the differences
+
+#combined tables with accuracy metrics and their standard deviations
+table_ac <- table3_paper[,1:2] #only use the rmse values
+table_ac_combined <-table_combined_symbol(table_ac,table_sd,"±")
+#lapply(lapply(table_ac,FUN=paste,table_sd,FUN=paste,sep="±"),FUN=paste)
+
+table_ac_combined$Methods <- table3_paper$Methods
+table3_paper <- table_ac_combined
+
+
 #Check input covariates and model formula:
 #list_formulas <-raster_prediction_obj_2$method_mod_obj[[1]]$formulas #formulas for models run comb5
 list_formulas <-unlist(lapply(list_raster_obj_files[[1]],FUN=function(x){x<-load_obj(x);x$method_mod_obj[[1]]$formulas}))
 #strsplit(list_formulas,"~")
                              
-table4_paper$Formulas<-rep(list_formulas,3)                             
-table4_paper<-table4_paper[(c(5,4,1,2,3))]  #reordering columns                           
+table3_paper$Formulas<-rep(list_formulas,3)                             
+table3_paper<-table3_paper[(c(4,3,1,2))]  #reordering columns                           
 
 #Testing siginificance between models                    
 #mod_compk1 <-kruskal.test(tb1$rmse ~ as.factor(tb1$pred_mod)) #Kruskal Wallis test
 #mod_compk2 <-kruskal.test(tb2$rmse ~ as.factor(tb2$pred_mod))
 #print(mod_compk1) #not significant
 
-###Table 4, writeout
-names_table_col <-c("Models","Method","Single time scale","Multiple time scale CAI","Multiple time scale FSS") # 
+###Table 3, writeout
+names_table_col <-c("Models","Method","Single time scale","Multiple time scale CAI") # 
 
-names(table4_paper)<- names_table_col
-print(table4_paper) #show resulting table
+names(table3_paper)<- names_table_col
+print(table3_paper) #show resulting table
 
-#Now write out table 4
+#Now write out table 3
 
-file_name<-paste("table4_multi_timescale_paper","_",out_prefix,".txt",sep="")
-write.table(table4_paper,file=file_name,sep=",")
+file_name<-paste("table3_multi_timescale_paper","_",out_prefix,".txt",sep="")
+write.table(table3_paper,file=file_name,sep=",")
 
-################ Table 6 ################
+################ Table 4 ################
 #### Test for monthly hold out  
 
 #names(tb_v_list) <- paste("tb_v_",names(tb_v_list),sep="")
@@ -228,11 +270,11 @@ names(list_param_extract_term) <- c("list_interp_method","tb_mv")
 list_table_method_holdout_obj <-lapply(1:length(list_interp_method),FUN=extract_table_term_factor,list_param=list_param_extract_term)
 list_table_method_holdout<- lapply(list_table_method_holdout_obj,
        FUN=function(x){x$table_method})
-table6 <- do.call(rbind,list_table_method_holdout)
-table6_paper <- table6[,c(9,1,2,3,4,5,6,7,8)]
+table4 <- do.call(rbind,list_table_method_holdout)
+table4_paper <- table4[,c(9,1,2,3,4,5,6,7,8)]
 
-file_name<-paste("table6_multi_timescale_paper","_",out_prefix,".txt",sep="")
-write.table(table6_paper,file=file_name,sep=",")
+file_name<-paste("table4_multi_timescale_paper","_",out_prefix,".txt",sep="")
+write.table(table4_paper,file=file_name,sep=",")
 
 ################ Table 5 ################
 #### Monthly RMSE for GAM CAI Climatology, GAM CAI daily and Single  time scale
@@ -249,10 +291,15 @@ list_stat_tb_gam_CAI <-calc_stat_by_month_tb(names_mod,tb_gam_CAI,month_holdout=
 list_stat_tb_gam_daily <-calc_stat_by_month_tb(names_mod,tb_gam_daily,month_holdout=F)
 
 list_stat_tb_gam_CAI$avg
+list_stat_tb_gam_CAI$sd
 
 clim_rmse <- subset(tb_m_gam_CAI,prop==30 & pred_mod== "mod7",select="rmse")
 CAI_rmse <- subset(list_stat_tb_gam_CAI$avg,prop_month==30 & pred_mod== "mod7",select="rmse")
 daily_rmse <- subset(list_stat_tb_gam_daily$avg, pred_mod== "mod7",select="rmse")
+#now get sd: no sd for clim
+#clim_rmse_sd <- subset(tb_m_gam_CAI,prop==30 & pred_mod== "mod7",select="rmse")
+#CAI_rmse_sd <- subset(list_stat_tb_gam_CAI$avg,prop_month==30 & pred_mod== "mod7",select="rmse")
+#daily_rmse_sd <- subset(list_stat_tb_gam_daily$avg, pred_mod== "mod7",select="rmse")
 
 table5 <- data.frame(clim=clim_rmse,CAI_month=CAI_rmse,daily_month=daily_rmse)
 table5 <- round(table5,digit=3) #roundto three digits teh differences
@@ -272,6 +319,54 @@ print(table5) #show resulting table
 
 file_name<-paste("table5_multi_timescale_paper","_",out_prefix,".txt",sep="")
 write.table(table5,file=file_name,sep=",")
+
+################ Table 6 ################
+
+### NOW EXMAINE LST-TMAx and elev cor
+         
+#Use data from accuracy with no monthly hold out
+raster_obj <- load_obj(list_raster_obj_files$gam_CAI)
+data_month <- (raster_obj$method_mod_obj[[1]]$data_month_s)
+dates<-unique(raster_obj$tb_diagnostic_v$date)
+#Extract monthly data frame used in fitting 
+list_data_month_s <-extract_list_from_list_obj(raster_obj$validation_mod_month_obj,"data_s") 
+year_nbs <- sapply(list_data_month_s,FUN=length) #number of observations per month
+#Convert sp data.frame and combined them in one unique df, see function define earlier
+data_month_all <-convert_spdf_to_df_from_list(list_data_month_s) #long rownames
+
+names_tmp<-c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_08",
+             "mm_09","mm_10","mm_11","mm_12")#,"LST","elev_s")
+
+list_cor_x <- vector("list",length=12)
+for(i in 1:12){
+  data_month<-list_data_month_s[[i]]
+  data_x <- data_month[,c("TMax","elev_s",names_tmp[i])] #,"LC1","LC6","LC9")]
+  data_x <- as.data.frame(data_x)[,1:3]
+  cor_x<- cor(data_x,use="complete.obs")
+  list_cor_x[[i]] <- cor_x
+}
+
+cor_tab<-lapply(list_cor_x,function(x){x[1,2:3]})
+#cor_tab<-lapply(list_cor_x,function(x){x[1,2:4]})
+         
+cor_tab<-do.call(rbind,cor_tab)
+table6 <- as.data.frame(cor_tab)
+table6 <- round(table6,digit=3) #roundto three digits teh differences
+
+table6$month <- month.abb
+table6 <- table6[,c(3,1,2)]
+
+###Table 6, writeout
+names_table_col <-c("Month","Elevation-TMax",
+                    "LST-TMax")
+                
+names(table6)<- names_table_col
+print(table6) #show resulting table
+
+#Now write out table 6
+
+file_name<-paste("table6_correlation_multi_timescale_paper","_",out_prefix,".txt",sep="")
+write.table(table6,file=file_name,sep=",")
 
 #######################################################
 ####### PART 2: generate figures for paper #############
@@ -402,7 +497,7 @@ png(paste("Figure2_paper_accuracy_",ac_metric,"_prop_month","_",out_prefix,".png
 
 p <- xyplot(rmse~prop_month|method_interp, # |set up pannels using method_interp
             group=pred_mod,data=avg_tb_ac, #group by model (covariates)
-            main="RME by monthly hold-out proportions and  interpolation methods",
+            main="RMSE by monthly hold-out proportions and  interpolation methods",
             type="b",as.table=TRUE,
             index.cond=list(c(1,3,2)),    #this provides the order of the panels)
             pch=1:length(avg_tb_ac$pred_mod),
@@ -416,83 +511,7 @@ print(p)
 
 dev.off()
 
-##Do analyses using density of stations per holdout
-##DO lm modeling with factor  variable being hold out proportion
-
-tb_mv <- do.call(rbind.fill,tb_mv_list) #[c("gam_CAI","kriging_CAI","gwr_CAI")])
-tb_mv <- subset(tb_mv,tb_mv$method_interp %in%c("gam_CAI","kriging_CAI","gwr_CAI") )
-
-#names(tb_mv)
-#reg_area_r <- rasterize(interp_area,elev,field=1,fun=mean)
-#tot_area <-freq(reg_area_r)[1,2]*prod(res(reg_area_r)/1000)
-
-#table(tb_mv$pred_mod)
-#unique(tb_mv$n) #note that
-#station_density_prop <- unique(tb_mv$n)/tot_area
-#station_density_prop[1:7]*1000
-
-
-extract_table_term_factor <- function(i,list_param){
-  #This function generate a linear model for proportion of hold out effect on accuracy
-  #Add option to choose MAE later
-  
-  #First parse arguments
-  interpolation_method <- list_param$list_interp_method[[i]]
-  tb_mv <- list_param$tb_mv
-  
-  #Begin script:
-  
-  list_pred_mod_name <- unique(tb_mv$pred_mod)
-  list_prop_cat <- unique(tb_mv$prop_month)  
-  list_pred_mod_name <- grep(c("mod_kr"),list_pred_mod_name,value=TRUE,invert=TRUE)
-  list_mod_table <- vector("list",length=length(list_pred_mod_name))
-  tb_dat<- subset(tb_mv,tb_mv$method_interp==interpolation_method) 
-  
-  for(j in 1:length(list_mod_table)){
-      mod <-lm(rmse~ as.factor(prop_month),
-               data=subset(tb_dat,tb_dat$pred_mod==list_pred_mod_name[[j]]))      
-      term_table <- summary(mod)$coefficients
-      list_mod_table[[j]] <- term_table  
-  }
-  names(list_mod_table) <- list_pred_mod_name
-  
-  tx <- lapply(list_mod_table,function(x){x[,c(1,4)]})
-  tx <-lapply(tx, round,digit=3)
-  
-  #tx <- format(tx,digits=3)
-  
-  #column_tab <- paste(format(tx[[1]][,1],digits=3)," ",
-  #             "(",format(tx[[1]][,2],digits=3),")",sep="")
-  #column_tab <-lapply(tx,function(x){paste(format(x[,1],digits=3)," ",
-  #             "(",format(x[,2],digits=3),")",sep="")})
-  column_tab <-lapply(tx,function(x){as.data.frame(paste(format(x[,1],digits=3)," ",
-               "(",format(x[,2],digits=3),")",sep=""))})
-
-  table_method <- as.data.frame(do.call(cbindX,column_tab))
-  names(table_method) <- list_pred_mod_name
-  table_method$method_interp <- rep(interpolation_method,nrow(table_method))
-  table_method$prop <- list_prop_cat
-  
-  mod_table_obj<- list(list_mod_table,table_method)
-  names(mod_table_obj) <- c("list_mod_table","table_method")
-  return(mod_table_obj)
-}  
-
-
-  table4_paper <- as.data.frame(do.call(rbind,list(table_gam,table_kriging,table_gwr)))    
-table4_paper <- round(table4_paper,digit=3) #roundto three digits teh differences
-table4_paper$Methods <- c(rep("gam",7),
-                          rep("kriging",7),
-                          rep("gwr",7))    
-                             
-
-}
-
-#(res(reg_area_r))
-         
-#### DATA MONTH: correlation between Tmax and LST comparison...
-
-         
+       
 #Correlation tmax elev and LST...
 
 ################################################
@@ -967,8 +986,7 @@ legend("topleft",legend=c("TMax","LST","LST_forest","LST_grass"), cex=1.5,
        col=c("red","green","black","black","black"),
        lty=1:4,pch=1:4,bty="n")
 title("Monthly average tmax for stations in Oregon ",cex=2.4)
-
-         
+       
 ########################################
 ####### Figure 8c: LST, TMax and RMSE for GAM_CAI (monthly averages)
 
@@ -1008,7 +1026,7 @@ names(r_tmp2) <- c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_0
 x_cor_tmp2 <-layerStats(r_tmp2,stat="pearson",na.rm=T)
 
 ##Now plot Figure 8d
-plot(1:12,x_cor_tmp1[[1]][1:12,13],ylim=c(-0.8,0.5),
+plot(1:12,x_cor_tmp1[[1]][1:12,13],ylim=c(-0.9,0.9),
      type="b",lty="solid",pch=1,
      ylab="Pearson corelation",xlab="month",
      cex=2,cex.lab=1.5)#,cex.axis=1.8)
@@ -1020,46 +1038,7 @@ legend("topleft",legend=c("Correlation LST-Elevation","Correlation LST-Forest"),
 title("Correlation between LST-elevation and LST-Forest",cex=2.4)
 #closing file for figure 8
 dev.off()
-
          
-### NOW EXMAINE LST-TMAx and elev cor
-         
-plot(TMax~mm_01,data=subset(data_month_all,data_month_all$month==1))
-plot(TMax~mm_02,data=subset(data_month_all,data_month_all$month==1))
-plot(TMax~mm_06,data=subset(data_month_all,data_month_all$month==6))
-plot(TMax~mm_07,data=subset(data_month_all,data_month_all$month==7))
-
-cor(data_month)
-
-names_tmp<-c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_08",
-             "mm_09","mm_10","mm_11","mm_12")#,"LST","elev_s")
-
-list_cor_x <- vector("list",length=12)
-for(i in 1:12){
-  data_month<-list_data_month_s[[i]]
-  data_x <- data_month[,c("TMax","elev_s",names_tmp[i],"LC1","LC6","LC9")]
-  data_x <- as.data.frame(data_x)[,1:3]
-  cor_x<- cor(data_x,use="complete.obs")
-  list_cor_x[[i]] <- cor_x
-}
-
-cor_tab<-lapply(list_cor_x,function(x){x[1,2:5]})
-cor_tab<-lapply(list_cor_x,function(x){x[1,2:4]})
-         
-cor_tab<-do.call(rbind,cor_tab)
-#cor()
-data
-#plot(TMax~mm_01,data_month_all)
-
-         
-#         for(i in 1:12){
-#  data_month<-list_data_month_s[[i]]
-#  data_x <- data_month[,c("TMax","elev_s",names_tmp[i],"LC1","LC6","LC9")]
-#  data_x <- as.data.frame(data_x)[,1:3]
-#  cor_x<- cor(data_x,use="complete.obs")
-#  list_cor_x[[i]] <- cor_x
-#}
-
 ################################################
 ############ GENERATE ANNEX FIGURES 
 
