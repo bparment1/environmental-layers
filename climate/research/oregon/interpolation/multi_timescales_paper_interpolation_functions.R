@@ -5,7 +5,7 @@
 #Functions used in the production of figures and data for the multi timescale paper are recorded.
 #AUTHOR: Benoit Parmentier                                                                      #
 #DATE CREATED: 11/25/2013            
-#DATE MODIFIED: 03/18/2014            
+#DATE MODIFIED: 04/07/2014            
 #Version: 4
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
@@ -527,6 +527,78 @@ plot_mean_nobs_r_stack_by_month <-function(var_s,var_nobs,y_range_nobs,y_range_a
   return(list_obj)
 
 }
+
+extract_table_term_factor <- function(i,list_param){
+  #This function generate a linear model for proportion of hold out effect on accuracy
+  #Add option to choose MAE later
+  
+  #First parse arguments
+  interpolation_method <- list_param$list_interp_method[[i]]
+  tb_mv <- list_param$tb_mv
+  
+  #Begin script:
+  
+  list_pred_mod_name <- unique(tb_mv$pred_mod)
+  list_prop_cat <- unique(tb_mv$prop_month)  
+  list_pred_mod_name <- grep(c("mod_kr"),list_pred_mod_name,value=TRUE,invert=TRUE)
+  list_mod_table <- vector("list",length=length(list_pred_mod_name))
+  tb_dat<- subset(tb_mv,tb_mv$method_interp==interpolation_method) 
+  
+  for(j in 1:length(list_mod_table)){
+      mod <-lm(rmse~ as.factor(prop_month),
+               data=subset(tb_dat,tb_dat$pred_mod==list_pred_mod_name[[j]]))      
+      term_table <- summary(mod)$coefficients
+      list_mod_table[[j]] <- term_table  
+  }
+  names(list_mod_table) <- list_pred_mod_name
+  
+  tx <- lapply(list_mod_table,function(x){x[,c(1,4)]})
+  tx <-lapply(tx, round,digit=3)
+  
+  #tx <- format(tx,digits=3)
+  
+  #column_tab <- paste(format(tx[[1]][,1],digits=3)," ",
+  #             "(",format(tx[[1]][,2],digits=3),")",sep="")
+  #column_tab <-lapply(tx,function(x){paste(format(x[,1],digits=3)," ",
+  #             "(",format(x[,2],digits=3),")",sep="")})
+  column_tab <-lapply(tx,function(x){as.data.frame(paste(format(x[,1],digits=3)," ",
+               "(",format(x[,2],digits=3),")",sep=""))})
+
+  table_method <- as.data.frame(do.call(cbindX,column_tab))
+  names(table_method) <- list_pred_mod_name
+  table_method$method_interp <- rep(interpolation_method,nrow(table_method))
+  table_method$prop <- list_prop_cat
+  
+  mod_table_obj<- list(list_mod_table,table_method)
+  names(mod_table_obj) <- c("list_mod_table","table_method")
+  return(mod_table_obj)
+}  
+
+
+calc_stat_from_tb_list <-function(i,list_param){
+  #Calculate statistics from validation and training out of raster_prediction_obj
+  #If training is TRUE, then using training dataset
+  
+  tb <- list_param$list_tb[[i]] #raster prediction object to use
+  stat <- list_param$stat
+  training <- list_param$training
+
+  #extract relevant information
+  if(training==TRUE){
+    rownames(tb)<-NULL #remove row names
+  }
+  
+  #Now summarize
+  
+  t<-melt(tb,
+          measure=c("mae","rmse","r","me","m50"), 
+          id=c("pred_mod"),
+          na.rm=T)
+  
+  stat_tb<-cast(t,pred_mod~variable,stat)
+  return(stat_tb)
+}
+
 
 ################### END OF SCRIPT ###################
 
