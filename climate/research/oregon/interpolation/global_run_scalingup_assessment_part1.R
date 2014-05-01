@@ -49,13 +49,27 @@ load_obj <- function(f)
   env[[nm]]
 }
 
+create_dir_fun <- function(out_dir,out_suffix){
+  if(!is.null(out_suffix)){
+    out_name <- paste("output_",out_suffix,sep="")
+    out_dir <- file.path(out_dir,out_name)
+  }
+  #create if does not exists
+  if(!file.exists(out_dir)){
+    dir.create(out_dir)
+  }
+  return(out_dir)
+}
+
 extract_list_from_list_obj<-function(obj_list,list_name){
+  library(plyr)
+  
   #Create a list of an object from a given list of object using a name prodived as input
   
   list_tmp<-vector("list",length(obj_list))
   for (i in 1:length(obj_list)){
-    tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
-    list_tmp[[i]]<-tmp
+    tmp <- obj_list[[i]][[list_name]] #double bracket to return data.frame
+    list_tmp[[i]] <- as.data.frame(tmp) #deal with spdf...
   }
   return(list_tmp) #this is  a data.frame
 }
@@ -75,7 +89,6 @@ extract_from_list_obj<-function(obj_list,list_name){
   
   return(tb_list_tmp) #this is  a data.frame
 }
-
 
 ## Function to mosaic modis or other raster images
 
@@ -136,13 +149,139 @@ mosaic_m_raster_list<-function(j,list_param){
   return(rast_list)
 }
 
+extract_daily_training_testing_info<- function(i,list_param){
+  #This function extracts training and testing information from the raster object produced for each tile
+  #This is looping through tiles...
+  
+  ### Function:
+  pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
+    
+    data <- list_data[[k]]
+    sampling_dat <- sampling_dat_info[[k]]
+    if(data_day!="try-error"){
+      n <- nrow(data)
+      n_mod <- vector("numeric",length(pred_mod))
+      for(j in 1:length(pred_mod)){
+        n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
+      }
+      n <- rep(n,length(pred_mod))
+      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+      row.names(sampling_dat) <- NULL
+      df_n <- data.frame(n,n_mod,pred_mod)
+      df_n <- cbind(df_n,sampling_dat)
+    }else{        
+      n <- rep(NA,length(pred_mod))
+      n_mod <- vector("numeric",length(pred_mod))
+      n_mod <- rep(NA,length(pred_mod))
+      df_n <- data.frame(n,n_mod,pred_mod)
+      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+      row.names(sampling_dat) <- NULL
+      df_n <- data.frame(n,n_mod,pred_mod)
+      df_n <- cbind(df_n,sampling_dat)
+
+    }
+    return(df_n)
+  }
+
+  ##### Parse parameters and arguments ####
+  
+  raster_obj_file <- list_param$list_raster_obj_files[i]
+  use_month <- list_param$use_month
+  use_day <- list_param$use_day
+  tile_id <- list_param$list_names_tile_id[i]
+  
+  ### Start script ##
+  
+  raster_obj <- load_obj(unlist(raster_obj_file)) #may not need unlist
+  nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
+  pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
+  #we are assuming no monthly hold out...
+  #we are assuming only one specific daily prop?
+  nb_models <- length(pred_mod)
+  #names(raster_obj$method_mod_obj[[1]])
+  var_interp <- unique(raster_obj$tb_diagnostic_s$var_interp)
+  method_interp <- unique(raster_obj$tb_diagnostic_s$method_interp)
+  
+  if(use_day==TRUE){
+    
+    list_data_day_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_v"))
+    list_data_day_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_s"))
+    sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
+    list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+           list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+    list_pred_data_day_v_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+           list_data=list_data_day_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+    pred_data_day_s_info <- do.call(rbind,list_pred_data_day_s_info)
+    pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
+    pred_data_day_s_info$training <- rep(1,nrow(pred_data_day_s_info)) 
+    pred_data_day_v_info$training <- rep(0,nrow(pred_data_day_v_info)) 
+    pred_data_day_info <-rbind(pred_data_day_v_info,pred_data_day_s_info)
+    
+    pred_data_day_info$method_interp <- rep(method_interp,nrow(pred_data_day_info)) 
+    pred_data_day_info$var_interp <- rep(var_interp,nrow(pred_data_day_info)) 
+    pred_data_day_info$tile_id <- rep(tile_id,nrow(pred_data_day_info)) 
+
+    #pred_data_day_s_info$method_interp <- rep(method_interp,nrow(pred_data_day_s_info)) 
+    #pred_data_day_s_info$var_interp <- rep(var_interp,nrow(pred_data_day_s_info)) 
+    #pred_data_day_s_info$tile_id <- rep(tile_id,nrow(pred_data_day_s_info)) 
+    #pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
+    #pred_data_day_v_info$method_interp <- rep(method_interp,nrow(pred_data_day_v_info)) 
+    #pred_data_day_v_info$var_interp <- rep(var_interp,nrow(pred_data_day_v_info)) 
+    #pred_data_day_v_info$tile_id <- rep(tile_id,nrow(pred_data_day_v_info)) 
+                                      
+  }
+  if(use_month==TRUE){
+    
+    list_data_month_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_month_obj,"data_s"))
+    list_data_month_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_month_obj,"data_v"))
+    sampling_dat_month <- extract_list_from_list_obj(raster_obj$clim_method_mod_obj,"sampling_month_dat")
+    list_pred_data_month_s_info <- lapply(1:length(sampling_dat_month),FUN=pred_data_info_fun,
+           list_data=list_data_month_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_month)
+    list_pred_data_month_v_info <- lapply(1:length(sampling_dat_month),FUN=pred_data_info_fun,
+           list_data=list_data_month_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_month)
+    
+    #combine training and testing later? also combined with accuracy
+    pred_data_month_s_info <- do.call(rbind,list_pred_data_month_s_info)
+    pred_data_month_v_info <- do.call(rbind,list_pred_data_month_v_info)
+    
+    pred_data_month_v_info$training <- rep(0,nrow(pred_data_month_v_info))
+    pred_data_month_s_info$training <- rep(1,nrow(pred_data_month_v_info))
+    pred_data_month_info <- rbind(pred_data_month_v_info,pred_data_month_s_info)
+    
+    pred_data_month_info$method_interp <- rep(method_interp,nrow(pred_data_month_info)) 
+    pred_data_month_info$var_interp <- rep(var_interp,nrow(pred_data_month_info)) 
+    pred_data_month_info$tile_id <- rep(tile_id,nrow(pred_data_month_info)) 
+
+    #pred_data_month_s_info$method_interp <- rep(method_interp,nrow(pred_data_month_s_info)) 
+    #pred_data_month_s_info$var_interp <- rep(var_interp,nrow(pred_data_month_s_info)) 
+    #pred_data_month_s_info$tile_id <- rep(tile_id,nrow(pred_data_month_s_info)) 
+    #pred_data_month_v_info$method_interp <- rep(method_interp,nrow(pred_data_month_v_info)) 
+    #pred_data_month_v_info$var_interp <- rep(var_interp,nrow(pred_data_month_v_info)) 
+    #pred_data_month_v_info$tile_id <- rep(tile_id,nrow(pred_data_month_v_info)) 
+
+  }    
+    
+  if(use_month==FALSE){
+    pred_data_month_info <- NULL
+  }
+  if(use_day==FALSE){
+    pred_data_day_info <- NULL
+  }
+  
+  #prepare object to return
+  pred_data_info_obj <- list(pred_data_month_info,pred_data_day_info)
+  names(pred_data_info_obj) <- c("pred_data_month_info","pred_data_day_info")
+  #could add data.frame data_s and data_v later...
+
+  return(pred_data_info_obj)
+}
 
 ##############################
 #### Parameters and constants  
 
-#in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
+in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 
-in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output" #On NEX
+#in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output" #On NEX
 in_dir_list <- list.dirs(path=in_dir1) #get the list of directories with resutls by 10x10 degree tiles
 #in_dir_list <- as.list(in_dir_list[-1])
 in_dir_list <- in_dir_list[grep("output",basename(in_dir_list),invert=TRUE)] #the first one is the in_dir1
@@ -153,17 +292,19 @@ in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)]
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_fusion")
-out_prefix<-"run1_NA_analyses_03232013"
-#out_dir<-"/data/project/layers/commons/NEX_data/"
-out_dir <- "/nobackup/bparmen1/"
-out_dir <-paste(out_dir,"_",out_prefix,sep="")
+out_prefix<-"run1_NA_analyses_05012014"
+out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
+#out_dir <- "/nobackup/bparmen1/" #on NEX
+#out_dir <-paste(out_dir,"_",out_prefix,sep="")
+create_out_dir_param <- TRUE
 
 #system("ls /nobackup/bparmen1")
 
-if (!file.exists(out_dir)){
-  dir.create(out_dir)
-  #} else{
-  #  out_path <-paste(out_path..)
+if(create_out_dir_param==TRUE){
+  out_dir <- create_dir_fun(out_dir,out_prefix)
+  setwd(out_dir)
+}else{
+  setwd(out_dir) #use previoulsy defined directory
 }
 
 setwd(out_dir)
@@ -179,7 +320,6 @@ list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
 #names(list_raster_obj_files)<- 
                                                                                                              
 names(list_raster_obj_files)<- list_names_tile_coord
-
 
 ###################### PART I: Generate tables to collect information over all tiles in North America ##########
 #Table 1: Average accuracy metrics
@@ -264,6 +404,7 @@ data_month_NAM$tile_id <- unlist(tile_id)
 #copy back to atlas
 system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/_run1_NA_analyses_03232013")
 
+######################################################
 ####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY ###
 
 #list.files(path=in_dir_list[[1]],pattern=".*predicted.*20100101.*.tif")
@@ -325,10 +466,6 @@ for (i in 1:lenth(l_pattern_models)){
   list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
 
 }
-
-
-
-
 
 ### Now find out how many files were predicted
 
@@ -464,3 +601,191 @@ r2 <- raster("mosaiced_gam_fusion_dailyTmax_predicted_mod1_0_01_20100901.tif")
 
 pred_s <- stack(l_m_tif[2:5])
 levelplot(pred_s)
+
+######################################################
+####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
+
+### Stations and model fitting ###
+#summarize location and number of training and testing used by tiles
+
+names(robj1$clim_method_mod_obj[[1]]$data_month) # monthly data for January
+#names(robj1$validation_mod_month_obj[[1]]$data_s) # daily for January with predictions
+#note that there is no holdout in the current run at the monthly time scale:
+
+robj1$clim_method_mod_obj[[1]]$data_month_v #zero rows for testing stations at monthly timescale
+#load data_month for specific tiles
+data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
+
+names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
+
+#problem with tile 12...the raster ojbect has missing sub object
+#data_month_list <- lapply(1:length(list_raster_obj_files),x=list_raster_obj_files,
+#                          FUN=function(i,x){x<-load_obj(x[[i]]);
+#                                            extract_from_list_obj(x$validation_mod_month_obj,"data_s")})                           
+
+### make this part a function:
+
+#create a table for every month, day and tiles...
+data_month_list <- lapply(1:length(list_raster_obj_files),x=list_raster_obj_files,
+                          FUN=function(i,x){x<-load_obj(x[[i]]);
+                                            extract_from_list_obj(x$clim_method_mod_obj,"data_month")})                           
+
+names(data_month_list) <- paste("tile","_",1:length(data_month_list),sep="")
+
+#names(data_month_list) <- basename(in_dir_list) #use folder id instead
+
+list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
+
+#tile_id <- lapply(1:length(data_month_list),
+#                  FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_list)
+
+data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
+data_month_NAM$tile_id <- unlist(tile_id)
+
+names(robj1$validation_mod_day_obj[[1]]$data_s) # daily for January with predictions
+dim(robj1$validation_mod_month_obj[[1]]$data_s) # daily for January with predictions
+
+#data_day_s_list <- lapply(1:length(list_raster_obj_files),x=list_raster_obj_files,
+#                          FUN=function(i,x){x<-load_obj(x[[i]]);
+#      _                                      extract_from_list_obj(x$validation_mod_month_obj,"data_s")})                           
+
+use_day=TRUE
+use_month=TRUE
+
+list_param_training_testing_info <- list(list_raster_obj_files,use_month,use_day,list_names_tile_id)
+names(list_param_training_testing_info) <- c("list_raster_obj_files","use_month","use_day","list_names_tile_id")
+
+list_param <- list_param_training_testing_info
+
+pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
+
+pred_data_month_info <- do.call(rbind,lapply(pred_data_info,function(x){x$pred_data_month_info}))
+pred_data_day_info <- do.call(rbind,lapply(pred_data_info,function(x){x$pred_data_day_info}))
+
+
+extract_daily_training_testing_info<- function(i,list_param){
+  #This function extracts training and testing information from the raster object produced for each tile
+  #This is looping through tiles...
+  
+  ### Function:
+  pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
+    
+    data <- list_data[[k]]
+    sampling_dat <- sampling_dat_info[[k]]
+    if(data_day!="try-error"){
+      n <- nrow(data)
+      n_mod <- vector("numeric",length(pred_mod))
+      for(j in 1:length(pred_mod)){
+        n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
+      }
+      n <- rep(n,length(pred_mod))
+      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+      row.names(sampling_dat) <- NULL
+      df_n <- data.frame(n,n_mod,pred_mod)
+      df_n <- cbind(df_n,sampling_dat)
+    }else{        
+      n <- rep(NA,length(pred_mod))
+      n_mod <- vector("numeric",length(pred_mod))
+      n_mod <- rep(NA,length(pred_mod))
+      df_n <- data.frame(n,n_mod,pred_mod)
+      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+      row.names(sampling_dat) <- NULL
+      df_n <- data.frame(n,n_mod,pred_mod)
+      df_n <- cbind(df_n,sampling_dat)
+
+    }
+    return(df_n)
+  }
+
+  ##### Parse parameters and arguments ####
+  
+  raster_obj_file <- list_param$list_raster_obj_files[i]
+  use_month <- list_param$use_month
+  use_day <- list_param$use_day
+  tile_id <- list_param$list_names_tile_id[i]
+  
+  ### Start script ##
+  
+  raster_obj <- load_obj(unlist(raster_obj_file)) #may not need unlist
+  nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
+  pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
+  #we are assuming no monthly hold out...
+  #we are assuming only one specific daily prop?
+  nb_models <- length(pred_mod)
+  #names(raster_obj$method_mod_obj[[1]])
+  var_interp <- unique(raster_obj$tb_diagnostic_s$var_interp)
+  method_interp <- unique(raster_obj$tb_diagnostic_s$method_interp)
+  
+  if(use_day==TRUE){
+    
+    list_data_day_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_v"))
+    list_data_day_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_s"))
+    sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
+    list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+           list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+    list_pred_data_day_v_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+           list_data=list_data_day_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+    pred_data_day_s_info <- do.call(rbind,list_pred_data_day_s_info)
+    pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
+    pred_data_day_s_info$training <- rep(1,nrow(pred_data_day_s_info)) 
+    pred_data_day_v_info$training <- rep(0,nrow(pred_data_day_v_info)) 
+    pred_data_day_info <-rbind(pred_data_day_v_info,pred_data_day_s_info)
+    
+    pred_data_day_info$method_interp <- rep(method_interp,nrow(pred_data_day_info)) 
+    pred_data_day_info$var_interp <- rep(var_interp,nrow(pred_data_day_info)) 
+    pred_data_day_info$tile_id <- rep(tile_id,nrow(pred_data_day_info)) 
+
+    #pred_data_day_s_info$method_interp <- rep(method_interp,nrow(pred_data_day_s_info)) 
+    #pred_data_day_s_info$var_interp <- rep(var_interp,nrow(pred_data_day_s_info)) 
+    #pred_data_day_s_info$tile_id <- rep(tile_id,nrow(pred_data_day_s_info)) 
+    #pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
+    #pred_data_day_v_info$method_interp <- rep(method_interp,nrow(pred_data_day_v_info)) 
+    #pred_data_day_v_info$var_interp <- rep(var_interp,nrow(pred_data_day_v_info)) 
+    #pred_data_day_v_info$tile_id <- rep(tile_id,nrow(pred_data_day_v_info)) 
+                                      
+  }
+  if(use_month==TRUE){
+    
+    list_data_month_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_month_obj,"data_s"))
+    list_data_month_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_month_obj,"data_v"))
+    sampling_dat_month <- extract_list_from_list_obj(raster_obj$clim_method_mod_obj,"sampling_month_dat")
+    list_pred_data_month_s_info <- lapply(1:length(sampling_dat_month),FUN=pred_data_info_fun,
+           list_data=list_data_month_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_month)
+    list_pred_data_month_v_info <- lapply(1:length(sampling_dat_month),FUN=pred_data_info_fun,
+           list_data=list_data_month_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_month)
+    
+    #combine training and testing later? also combined with accuracy
+    pred_data_month_s_info <- do.call(rbind,list_pred_data_month_s_info)
+    pred_data_month_v_info <- do.call(rbind,list_pred_data_month_v_info)
+    
+    pred_data_month_v_info$training <- rep(0,nrow(pred_data_month_v_info))
+    pred_data_month_s_info$training <- rep(1,nrow(pred_data_month_v_info))
+    pred_data_month_info <- rbind(pred_data_month_v_info,pred_data_month_s_info)
+    
+    pred_data_month_info$method_interp <- rep(method_interp,nrow(pred_data_month_info)) 
+    pred_data_month_info$var_interp <- rep(var_interp,nrow(pred_data_month_info)) 
+    pred_data_month_info$tile_id <- rep(tile_id,nrow(pred_data_month_info)) 
+
+    #pred_data_month_s_info$method_interp <- rep(method_interp,nrow(pred_data_month_s_info)) 
+    #pred_data_month_s_info$var_interp <- rep(var_interp,nrow(pred_data_month_s_info)) 
+    #pred_data_month_s_info$tile_id <- rep(tile_id,nrow(pred_data_month_s_info)) 
+    #pred_data_month_v_info$method_interp <- rep(method_interp,nrow(pred_data_month_v_info)) 
+    #pred_data_month_v_info$var_interp <- rep(var_interp,nrow(pred_data_month_v_info)) 
+    #pred_data_month_v_info$tile_id <- rep(tile_id,nrow(pred_data_month_v_info)) 
+
+  }    
+    
+  if(use_month==FALSE){
+    pred_data_month_info <- NULL
+  }
+  if(use_day==FALSE){
+    pred_data_day_info <- NULL
+  }
+  
+  #prepare object to return
+  pred_data_info_obj <- list(pred_data_month_info,pred_data_day_info)
+  names(pred_data_info_obj) <- c("pred_data_month_info","pred_data_day_info")
+  #could add data.frame data_s and data_v later...
+
+  return(pred_data_info_obj)
+}
