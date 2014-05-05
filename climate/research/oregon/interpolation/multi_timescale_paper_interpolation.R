@@ -7,8 +7,8 @@
 #Analyses, figures, tables and data for the  paper are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2013  
-#MODIFIED ON: 04/07/2014            
-#Version: 4
+#MODIFIED ON: 05/05/2014            
+#Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
 
@@ -42,7 +42,7 @@ library(colorRamps)
 #### FUNCTION USED IN SCRIPT
 
 function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_10222013.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_04072014.R"
+function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_05052014.R"
 
 ##############################
 #### Parameters and constants  
@@ -111,16 +111,18 @@ names(list_raster_obj_files)<- c("gam_daily","kriging_daily","gwr_daily_a","gwr_
                                  "gam_fss","kriging_fss","gwr_fss")
 
 y_var_name <- "dailyTmax"
-out_prefix<-"analyses_04062014"
+out_prefix<-"analyses_05062014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_multitime_scale__analyses_tables"
-out_dir <-paste(out_dir,"_",out_prefix,sep="")
+create_out_dir_param = TRUE
 
-if (!file.exists(out_dir)){
-  dir.create(out_dir)
-  #} else{
-  #  out_path <-paste(out_path..)
+#Create output directory
+
+if(create_out_dir_param==TRUE){
+  out_dir <- create_dir_fun(out_dir,out_prefix)
+  setwd(out_dir)
+}else{
+  setwd(out_dir) #use previoulsy defined directory
 }
-setwd(out_dir)
 
 infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
@@ -162,7 +164,7 @@ names(s_raster)<-covar_names
 ##### Table 3: Contribution of covariates using validation accuracy metrics
 ## This is a table of accuracy  
 
-summary_metrics_v_list<-lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg$rmse})                           
+summary_metrics_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg$rmse})                           
 names(summary_metrics_v_list)
 
 
@@ -204,7 +206,7 @@ names(list_param_calc_stat) <- c("list_tb","stat","training")
 #undebug(calc_stat_from_tb_list)
 #sd1 <- calc_stat_from_tb_list(1,list_param=list_param_calc_stat) # see function script
 
-list_sd<- lapply(1:length(list_tb),FUN=calc_stat_from_tb_list,list_param=list_param_calc_stat)
+list_sd <- lapply(1:length(list_tb),FUN=calc_stat_from_tb_list,list_param=list_param_calc_stat)
 names(list_sd) <- names(list_tb) #now select all the daily in one column and CAI in antoehr
 #table_sd <- do.call(rbind,list_sd)
 tab_sd <- do.call(rbind,list_sd)
@@ -380,11 +382,12 @@ write.table(table6,file=file_name,sep=",")
 #Figure 7: Daily deviation and long term surfaces
 #Figure 8: LST and air temperature, elevation and land cover across OR
 
-#ANNEX FIGURES: (end of script)
+#ANNEX : (end of script)
 
-#Figure annex 1: LST averages daily and monthly for January 1 and January
-#Figure annex 2: Transect location (transect map)
-#Figure annex 3: Transect profiles for one day 
+# Annex 1: LST averages daily and monthly for January 1 and January
+# Annex 2: monthly holdout model
+# Annex 3: Transect location (transect map)
+# Annex 4: Transect profiles for one day 
 
 ################################################
 ######### Figure 1: Oregon study area, add labeling names to  Willamette Valley an Mountain Ranges?
@@ -419,13 +422,22 @@ png(filename=paste("Figure1_paper_study_area_",out_prefix,".png",sep=""),
 par(mfrow=c(1,1))
 
 #plot(elev_WGS84,cex.axis=2.1,cex.z=2.1)
-plot(elev_WGS84,cex.axis=1.4,axis.args=list(at=seq(0,3500,500),
+plot(elev_WGS84,cex.axis=1.4,ylab="Latitude (degree)",xlab="Longitude (degree)",
+     cex.lab=1.4,
+     axis.args=list(at=seq(0,3500,500),
                labels=seq(0, 3500, 500), 
                cex.axis=1.4))
 plot(interp_area_WGS84,add=T)
 plot(ghcn_dat_WGS84,add=T)
 title_text <-c("Elevation (m) and meteorological"," stations in Oregon")
 legend("topleft",legend=title_text,cex=2.1,bty="n")
+
+#this work on non sp plot too
+arrow_position<-c(-118,41)
+SpatialPolygonsRescale(layout.north.arrow(), offset = arrow_position, 
+                       scale = 0.5, fill=c("transparent","black"),plot.grid=FALSE)
+#note that scale in SpatialPolygonRescale sets the size of the north arrow!!
+
 #Add region label
 par(mar = c(0,0,0,0)) # remove margin
 #opar <- par(fig=c(0.9,0.95,0.8, 0.85), new=TRUE)
@@ -438,7 +450,6 @@ plot(usa_map_2,border="black") #border and lwd are options of graphics package p
 plot(usa_map_OR,col="dark grey",add=T)
 box()
 dev.off()
-
 
 ################################################
 ######### Figure 3. RMSE multi-timescale mulitple hold out for FSS and CAI
@@ -490,24 +501,29 @@ avg_tb_ac <- subset(avg_tb_ac, method_interp %in% c("gam_CAI","kriging_CAI","gwr
 
 #avg_tb_ac <- avg_tb_ac[, avg_tb_ac$method_interp %in% c("gam_CAI","kriging_CAI","gwr_CAI")]
 
-layout_m<-c(1,2.5) #one row two columns
+layout_m <-c(1.25,2.5) #one row two columns
 
 png(paste("Figure2_paper_accuracy_",ac_metric,"_prop_month","_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
 
 p <- xyplot(rmse~prop_month|method_interp, # |set up pannels using method_interp
             group=pred_mod,data=avg_tb_ac, #group by model (covariates)
-            main="RMSE by monthly hold-out proportions and  interpolation methods",
+            main="",
             type="b",as.table=TRUE,
             index.cond=list(c(1,3,2)),    #this provides the order of the panels)
             pch=1:length(avg_tb_ac$pred_mod),
             par.settings=list(superpose.symbol = list(
-            pch=1:length(avg_tb_ac$pred_mod))),
-            auto.key=list(columns=1,space="right",title="Model",cex=1),
+            pch=1:length(avg_tb_ac$pred_mod),cex=2.3),
+            axis.text = list(font = 2, cex = 2),
+            par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),
+            par.strip.text=list(font=2,cex=2),
+            #auto.key=list(columns=1,space="right",title="Model",cex=1.5),
+            auto.key=list(columns=5,space="top",cex=2.5,font=2),
             #auto.key=list(columns=5),
-            xlab="Monthly Hold out proportion",
-            ylab="RMSE (°C)")
-print(p)
+            xlab=list(label="Monthly Hold out proportion",cex=2.5,font=2),
+            ylab=list(label="RMSE (°C)",cex=2.5, font=2))
+
+print(p) #need to use print to plot...
 
 dev.off()
 
@@ -572,7 +588,7 @@ legend("topleft",legend=c("a"),bty="n") #bty="n", don't put box around legend
 #        main="Difference between training and testing for monhtly rmse")
 #legend("topleft",legend=c("c"),bty="n")
 
-#daily CAI
+#daily CAIdras
 boxplot(list_diff$kriging_CAI$rmse,list_diff$gam_CAI$rmse,list_diff$gwr_CAI$rmse,
         ylim=c(-6,1.5),outline=TRUE,
         names=c("kriging_CAI","gam_CAI","gwr_CAI"),ylab="RMSE (°C)",xlab="Interpolation Method",
@@ -622,13 +638,18 @@ for (i in 1:length(lf)){
   #s.range <- s.range+c(5,-5)
   #col.breaks <- pretty(s.range, n=200)
   #lab.breaks <- pretty(s.range, n=100)
-  temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
+  
   #max_val<-s.range[2]
   #min_val <-s.range[1]
   max_val <- 40
   min_val <- -10
-  layout_m<-c(2,4) #one row two columns
+  layout_m <- c(2,4) #one row two columns
   no_brks <- length(seq(min_val,max_val,by=0.1))-1
+  #temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
+  #temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+  #temp.colors <- matlab.like(no_brks)
+  temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
+  
   png(paste("Figure_",nb_fig[i],"_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
 
@@ -636,14 +657,15 @@ for (i in 1:length(lf)){
                  ylab=NULL,xlab=NULL,
           par.settings = list(axis.text = list(font = 2, cex = 2),layout=layout_m,
                               par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),par.strip.text=list(font=2,cex=2),
-          names.attr=names_layers,col.regions=temp.colors(no_brks),at=seq(min_val,max_val,by=0.1))
+          names.attr=names_layers,
+                 col.regions=temp.colors(no_brks),at=seq(min_val,max_val,by=0.1))
   #col.regions=temp.colors(25))
   print(p)
   dev.off()
   list_plots_spt[[i]] <- p
 }
 
-layout_m<-c(2,4) # works if set to this?? ok set the resolution...
+layout_m <- c(2,4) # works if set to this?? ok set the resolution...
 #layout_m<-c(2*3,4) # works if set to this?? ok set the resolution...
 
 png(paste("Figure4_paper_","_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
@@ -659,16 +681,15 @@ grid.arrange(p1,p2,ncol=1)
 
 dev.off()
 
-
 ################################################
 #### Figure 5: Spatial lag profiles  
 #This figure is generated to show the spatial Moran'I for 10 spatial 
 #for Jan 1 and Sept 1 in 2010 for all models (1 to 7) and methods
 
-index<-1 #index corresponding to Jan 1 #For now create Moran's I for only one date...
+index <- 1 #index corresponding to Jan 1 #For now create Moran's I for only one date...
 lf_moran_list_date1 <-lapply(list_raster_obj_files[c("gam_daily","gam_CAI","gam_fss")],
                                FUN=function(x){x<-load_obj(x);x$method_mod_obj[[index]][[y_var_name]]})                           
-index<-244 #index corresponding to Sept 1 #For now create Moran's I for only one date...
+index <- 244 #index corresponding to Sept 1 #For now create Moran's I for only one date...
 lf_moran_list_date2 <-lapply(list_raster_obj_files[c("gam_daily","gam_CAI","gam_fss")],
                                FUN=function(x){x<-load_obj(x);x$method_mod_obj[[index]][[y_var_name]]})                           
 
@@ -722,7 +743,7 @@ list_moranI_plots <- lapply(1:2,FUN=plot_moranI_profile_fun,list_param=list_para
 #layout_m<-c(2,4) # works if set to this?? ok set the resolution...
 #layout_m<-c(2*3,4) # works if set to this?? ok set the resolution...
 
-png(paste("Figure11_paper_spatial_correlogram_prediction_models_levelplot_",out_prefix,".png", sep=""),
+png(paste("Figure5_paper_spatial_correlogram_prediction_models_levelplot_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
     #height=3*480*layout_m[1],width=2*480*layout_m[2])
     #height=480*6,width=480*4)
@@ -751,9 +772,9 @@ list_filters<-lapply(1:nb_lag,FUN=autocor_filter_fun,f_type="queen") #generate l
 list_param_stat_moran_CAI <- list(filter=list_filters[[10]],lf_list=list_lf_gam_CAI)
 list_param_stat_moran_gam_daily <- list(filter=list_filters[[10]],lf_list=list_lf_gam_daily)
 #tt <- stat_moran_std_raster_fun(1,list_param=list_param_stat_moran)
-tt <- mclapply(1:11, list_param=list_param_stat_moran_CAI, FUN=stat_moran_std_raster_fun,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
+#tt <- mclapply(1:11, list_param=list_param_stat_moran_CAI, FUN=stat_moran_std_raster_fun,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
 tt_gam_daily <- mclapply(1:365, list_param=list_param_stat_moran_gam_daily, FUN=stat_moran_std_raster_fun,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
-#save(tt_gam_daily,file=file.path(out_dir,"moran_std_tt_gam_daily.RData"))
+save(tt_gam_daily,file=file.path(out_dir,"moran_std_tt_gam_daily.RData"))
 
 #Takes 1 hour to get the average moran's I for the whole year so load moran_std_tt_fss2.RData
 #list_param_stat_moran <- list(filter=list_filters[[10]],lf_list=list_lf_gam_fss)
@@ -762,64 +783,73 @@ tt_gam_daily <- mclapply(1:365, list_param=list_param_stat_moran_gam_daily, FUN=
 
 #save(tt_fss,file=file.path(out_dir,"moran_std_tt_fss.RData"))
 #list_param_stat_moran <- list(filter=list_filters[[10]],lf_list=list_lf_gam_CAI)
-tt_CAI <- mclapply(1:365, list_param=list_param_stat_moran_CAI, FUN=stat_moran_std_raster_fun,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
-#save(tt_CAI,file=file.path(out_dir,"moran_std_tt_CAI.RData"))
+tt_gam_CAI <- mclapply(1:365, list_param=list_param_stat_moran_CAI, FUN=stat_moran_std_raster_fun,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
+save(tt_gam_CAI,file=file.path(out_dir,"moran_std_tt_gam_CAI.RData"))
 
-tx2<- do.call(rbind,tt_CAI)
+tx1 <- do.call(rbind,tt_gam_daily)
+tx2 <- do.call(rbind,tt_gam_CAI)
 #tt_fss2 <- load_obj("moran_std_tt_fss2.RData")
 #tx<- do.call(rbind,tt_fss2)
+list_tb_std_moran <- list(tx1,tx2)
+list_plot_std_moranI <- vector("list",length=2)
 
-dates<-unique(raster_obj$tb_diagnostic_v$date)
-dates_proc<-strptime(dates, "%Y%m%d")   # interpolation date being processed
-dates_proc <- as.data.frame(dates_proc)
-dates_proc$index <- 1:365
-tx <- merge(tx2,dates_proc,by="index")
-tx$month <- as.integer(strftime(tx$dates_proc, "%m"))          # current month of the date being processed
-names(tx) <- c("index","moranI","std","pred_mod","date","month")
-t<-melt(tx,
-          #measure=mod_var, 
-          id=c("pred_mod","month"),
-          na.rm=F)
-#t$value<-as.numeric(t$value) #problem with char!!!
-tb_mod_m_avg2 <-cast(t,pred_mod+month~variable,mean) #monthly mean for every model
-
-#mo<-as.integer(strftime(date_proc, "%m"))          # current month of the date being processed
-#day<-as.integer(strftime(date_proc, "%d"))
-#year<-as.integer(strftime(date_proc, "%Y"))
-# end of pasted
-
-tb_mod_m_avg <- subset(tb_mod_m_avg2,pred_mod!=c("mod_kr"))
-
-p_moranI <- xyplot(moranI~month, # |set up pannels using method_interp
-            group=pred_mod,data=tb_mod_m_avg, #group by model (covariates)
-            main="Moran's I in daily predictions average by model and month",
-            type="b",as.table=TRUE,
-            #index.cond=list(c(1,3,2)),    #this provides the order of the panels)
-            pch=1:length(tb_mod_m_avg$pred_mod),
-            par.settings=list(superpose.symbol = list(
-            pch=1:length(tb_mod_m_avg$pred_mod))),
-            auto.key=list(columns=1,space="right",title="Model",cex=1),
-            #auto.key=list(columns=5),
-            xlab="Month",
-            ylab="Moran I")
-#print(p)
-
-p_std <- xyplot(std~month, # |set up pannels using method_interp
-            group=pred_mod,data=tb_mod_m_avg, #group by model (covariates)
-            main="Standard devation in daily predictions average by model and month",
-            type="b",as.table=TRUE,
-            #index.cond=list(c(1,3,2)),    #this provides the order of the panels)
-            pch=1:length(tb_mod_m_avg$pred_mod),
-            par.settings=list(superpose.symbol = list(
-            pch=1:length(tb_mod_m_avg$pred_mod))),
-            auto.key=list(columns=1,space="right",title="Model",cex=1),
-            #auto.key=list(columns=5),
-            xlab="Month",
-            ylab="Standard Deviation")
+for(j in 1:length(list_tb_std_moran)){
+  tb_std_moran <- list_tb_std_moran[[j]]
+  dates <- unique(raster_obj$tb_diagnostic_v$date)
+  dates_proc <- strptime(dates, "%Y%m%d")   # interpolation date being processed
+  dates_proc <- as.data.frame(dates_proc)
+  dates_proc$index <- 1:365
+  tx <- merge(tb_std_moran,dates_proc,by="index")
+  tx$month <- as.integer(strftime(tx$dates_proc, "%m"))          # current month of the date being processed
+  names(tx) <- c("index","moranI","std","pred_mod","date","month")
+  t <- melt(tx,
+            #measure=mod_var, 
+            id=c("pred_mod","month"),
+            na.rm=F)
+  #t$value<-as.numeric(t$value) #problem with char!!!
+  tb_mod_m_avg2 <-cast(t,pred_mod+month~variable,mean) #monthly mean for every model
+  
+  #mo<-as.integer(strftime(date_proc, "%m"))          # current month of the date being processed
+  #day<-as.integer(strftime(date_proc, "%d"))
+  #year<-as.integer(strftime(date_proc, "%Y"))
+  # end of pasted
+  
+  tb_mod_m_avg <- subset(tb_mod_m_avg2,pred_mod!=c("mod_kr"))
+  
+  p_moranI <- xyplot(moranI~month, # |set up pannels using method_interp
+                     group=pred_mod,data=tb_mod_m_avg, #group by model (covariates)
+                     main="Moran's I in daily predictions average by model and month",
+                     type="b",as.table=TRUE,
+                     #index.cond=list(c(1,3,2)),    #this provides the order of the panels)
+                     pch=1:length(tb_mod_m_avg$pred_mod),
+                     par.settings=list(superpose.symbol = list(
+                       pch=1:length(tb_mod_m_avg$pred_mod))),
+                     auto.key=list(columns=1,space="right",title="Model",cex=1),
+                     #auto.key=list(columns=5),
+                     xlab="Month",
+                     ylab="Moran I")
+  #print(p)
+  
+  p_std <- xyplot(std~month, # |set up pannels using method_interp
+                  group=pred_mod,data=tb_mod_m_avg, #group by model (covariates)
+                  main="Standard devation in daily predictions average by model and month",
+                  type="b",as.table=TRUE,
+                  #index.cond=list(c(1,3,2)),    #this provides the order of the panels)
+                  pch=1:length(tb_mod_m_avg$pred_mod),
+                  par.settings=list(superpose.symbol = list(
+                    pch=1:length(tb_mod_m_avg$pred_mod))),
+                  auto.key=list(columns=1,space="right",title="Model",cex=1),
+                  #auto.key=list(columns=5),
+                  xlab="Month",
+                  ylab="Standard Deviation")
+  list_plot_std_moranI[[j]] <- list(p_moranI,p_std)  
+  
+}
 
 #xyplot(moranI~month,data=tb_mod_m_avg,groups=pred_mod,type="b")
 #title("Spatial variation in FSS surfaces")
-layout_m <- c(1,2)
+#layout_m <- c(1,2)
+layout_m <- c(2,2)
 png(paste("Figure6_paper_moranI_std__predictions_models_levelplot_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
     #height=3*480*layout_m[1],width=2*480*layout_m[2])
@@ -827,41 +857,30 @@ png(paste("Figure6_paper_moranI_std__predictions_models_levelplot_",out_prefix,"
 #png(paste("Figure11_paper_spatial_correlogram_prediction_models_levelplot_",out_prefix,".png", sep=""),
 #    height=480,width=480)
     #height=480*6,width=480*4)
+p3 <- list_plot_std_moranI[[1]][[1]] #moran I for gam daily
+p4 <- list_plot_std_moranI[[1]][[2]] #std for gam daily
+p1 <- list_plot_std_moranI[[2]][[1]] #moran I for gam CAI
+p2 <- list_plot_std_moranI[[2]][[2]] #std for gam CAI
 
+p1$main <- "Moran I in daily predictions averaged by month"
+p2$main <- "Standard devation in daily predictions averaged by month"
+p3$main <- "Moran I devation in daily predictions average by month"
+p4$main <- "Standard devation in daily predictions average by month"
+
+p1$legend$right$args$title <- "gam_CAI"
+p2$legend$right$args$title <- "gam_CAI"
+p3$legend$right$args$title <- "gam_s"
+p4$legend$right$args$title <- "gam_s"
 #p1 <- list_moranI_plots[[1]]
 #p2 <- list_moranI_plots[[2]]
+#grid.arrange(p_moranI,p_std,ncol=2)
 
-grid.arrange(p_moranI,p_std,ncol=2)
+grid.arrange(p1,p2,p3,p4,ncol=2)
+
 dev.off()
-
-#x<-subset(tb_mod_m_avg,pred_mod=="mod7")
-#x2<-subset(tb_mod_m_avg,pred_mod=="mod2")
-#x3<-subset(tb_mod_m_avg,pred_mod=="mod3")
-
-##Now plot Figure 13c
-# plot(x$month,x$moranI,ylim=c(0.72,1),ylab="Lag 10 Moran's I autocorrelation",
-#      xlab="Month",
-#      type="b",col="black",lty="solid",pch=1)
-# lines(x2$month,x2$moranI,col="red",type="b")
-# lines(x3$month,x3$moranI,col="blue",type="b")
-# 
-# par(new=TRUE)              # key: ask for new plot without erasing old
-# plot(x$month,x$std,type="b",col="black",lty="dashed",pch=2,axes=F,
-#      xlab="",ylab="")
-#   #axis(4,xlab="",ylab="elevation(m)")  
-# axis(4,cex=1.2)
-# legend("topleft",legend=c("Moran's I","Stand Dev."), cex=0.8, col=c("black","black"),
-#        lty=1:2,pch=1:2,bty="n")
-
-
 
 ################################################
 #Figure 7: Monthly climatology, Daily deviation 
-
-#The list of files for 365 days in 2010...
-lf_delta_gam_fss <-extract_list_from_list_obj(load_obj(list_raster_obj_files[["gam_fss"]])$method_mod_obj,"delta") #getting objet
-lf_daily_gam_fss <-extract_list_from_list_obj(load_obj(list_raster_obj_files[["gam_fss"]])$method_mod_obj,"daily") #getting objet
-lf_clim_gam_fss <-extract_list_from_list_obj(load_obj(list_raster_obj_files[["gam_fss"]])$method_mod_obj,"clim") #getting objet
 
 #The list of files for 365 days in 2010...
 #y_var_name <- dailyTmax
@@ -873,25 +892,39 @@ index <- 289
 temp_day_s <- stack(lf_clim_gam_CAI[[index]]$mod7,lf_delta_gam_CAI[[index]]$mod7,lf_daily_gam_CAI[[index]]$mod7)
 names(temp_day_s) <- c("Monhtly Climatology","Daily Devation","Daily Prediction")
 
-layout_m <- c(1,3)
+
+no_brks=25
+temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
+
+names_layers <- c("Monthly Climatology","Daily deviation","Daily prediction")
+fig_nb <- c("7a","7b","7c")
+list_p <- vector("list",length=length(names_layers))
+
+for(i in 1:length(names_layers)){
+  p <- levelplot(temp_day_s,layer=i, margin=FALSE,
+                 ylab=NULL,xlab=NULL,
+                 par.settings = list(axis.text = list(font = 2, cex = 1.5),
+                              par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),par.strip.text=list(font=2,cex=2),
+                 main=names_layers[i],col.regions=temp.colors(no_brks))
+  
+  png(paste("Figure",fig_nb[i],"_paper_climatology_daily_deviation_daily_prediction_model7_levelplot_",out_prefix,".png", sep=""),
+    height=480*1,width=480*1)
+  print(p) #to plot in a loop!!  
+  dev.off()
+  
+  list_p[[i]] <- p
+
+}
+
+layout_m <- c(1.4,3.2)
 png(paste("Figure7_paper_climatology_daily_deviation_daily_prediction_model7_levelplot_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
     #height=3*480*layout_m[1],width=2*480*layout_m[2])
     #height=480*6,width=480*4)
 
-no_brks=25
-names_layers <- c("Monthly Climatology","Daily deviation","Daily prediction")
-list_p <- vector("list",length=length(names_layers))
-for(i in 1:length(names_layers)){
-  list_p[[i]] <- levelplot(temp_day_s,layer=i, margin=FALSE,
-                 ylab=NULL,xlab=NULL,
-                 par.settings = list(axis.text = list(font = 2, cex = 1.5),
-                              par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),par.strip.text=list(font=2,cex=2),
-                 main=names_layers[i],col.regions=temp.colors(no_brks))
-
-}
 #,legend.shrink=2)
 grid.arrange(list_p[[1]],list_p[[2]] ,list_p[[3]] ,ncol=3)
+
 dev.off()
 
 ######################################
@@ -915,8 +948,7 @@ var_name <- "LST"
 #It works for any variable with stack of monthly values...!!
 LST_stat <- plot_mean_nobs_r_stack_by_month(var_s=LST_s,var_nobs=LST_nobs,y_range_nobs,y_range_avg,var_name,out_prefix)
 
-
-## open device for plottging
+## open device for plotting
 layout_m<-c(2,2) # works if set to this?? ok set the resolution...
 
 png(paste("Figure8_paper_TMax_and_LST_relationship_",out_prefix,".png", sep=""),
@@ -959,7 +991,10 @@ lines(1:12,LST_avgm_max$LST,type="b",col="black",lty="dashed",pch=4,cex=2)
 legend("topleft",legend=c("TMax","LST","LST min","LST max"), cex=1.5, 
        col=c("red","green","black","black"),
               lty=c("solid","dashed","dashed","dashed"),pch=1:4,bty="n")
-title("Monthly mean tmax and LST at stations in Oregon",cex=2.4)           
+#legend("topright",legend=c("TMax","LST","LST min","LST max"), cex=1.5, 
+#       col=c("red","green","black","black"),
+#              lty=c("solid","dashed","dashed","dashed"),pch=1:4,bty="n")
+title("Monthly average LST and tmax at stations in Oregon",cex=2.4)           
 
 ##############################
 ####### Figure 8b: spatial variation -MoranI and  std  
@@ -985,31 +1020,10 @@ lines(LST_avgm_grass,type="b",col="black",lty="dotdash",pch=4,cex=2)
 legend("topleft",legend=c("TMax","LST","LST_forest","LST_grass"), cex=1.5, 
        col=c("red","green","black","black","black"),
        lty=1:4,pch=1:4,bty="n")
-title("Monthly average tmax for stations in Oregon ",cex=2.4)
+title("Monthly average LST and land cover types for stations ",cex=2.4)
        
 ########################################
-####### Figure 8c: LST, TMax and RMSE for GAM_CAI (monthly averages)
-
-##Now plot Figure 8c
-plot(TMax_avgm,type="b",ylim=c(-7,40),col="red",xlab="month",
-     ylab="tmax (degree C)",cex=2,cex.lab=1.5)#,cex.axis=1.8)
-lines(1:12,LST_avgm$LST,type="b",col="green",lty="dashed",pch=2,cex=2)
-par(new=TRUE)              # key: ask for new plot without erasing old
-plot(1:12,table5[,2],type="b",pch=3,col="black",xlab="",ylab="",lty="dotted",
-     ,ylim=c(0.5,2),axes=F) #plotting fusion profile
-     #axis(4,xlab="",ylab="elevation(m)")  
-     axis(4,cex=2)
-
-#lines(LST_avgm_grass,type="b",col="black",lty="dotdash",pch=4)
-#lines(LST_avgm_urban,type="b",col="black",lty="longdash",pch=4)
-legend("topleft",legend=c("TMax","LST","RMSE Clim"), cex=1.5, 
-       col=c("red","green","black"),
-       lty=1:3,pch=1:3,bty="n")
-title("Predictions error for GAM_CAI Climatology in relation to LST and TMax",
-      cex=2.4)
-
-########################################
-####### Figure 8d: correlation between elevation and LST
+####### Figure 8c: correlation between elevation and LST
 
 LST_s <- subset(s_raster,c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12"))
 elev <- subset(s_raster,"elev_s")
@@ -1036,9 +1050,31 @@ legend("topleft",legend=c("Correlation LST-Elevation","Correlation LST-Forest"),
        cex=1.5, col=c("black","black"),
        lty=1:2,pch=1:2,bty="n")
 title("Correlation between LST-elevation and LST-Forest",cex=2.4)
+       
+########################################
+####### Figure 8d: LST, TMax and RMSE for GAM_CAI (monthly averages)
+
+##Now plot Figure 8d
+plot(TMax_avgm,type="b",ylim=c(-7,40),col="red",xlab="month",
+     ylab="tmax (degree C)",cex=2,cex.lab=1.5)#,cex.axis=1.8)
+lines(1:12,LST_avgm$LST,type="b",col="green",lty="dashed",pch=2,cex=2)
+par(new=TRUE)              # key: ask for new plot without erasing old
+plot(1:12,table5[,2],type="b",pch=3,col="black",xlab="",ylab="",lty="dotted",
+     ,ylim=c(0.5,2),axes=F) #plotting fusion profile
+     #axis(4,xlab="",ylab="elevation(m)")  
+     axis(4,cex=2)
+
+#lines(LST_avgm_grass,type="b",col="black",lty="dotdash",pch=4)
+#lines(LST_avgm_urban,type="b",col="black",lty="longdash",pch=4)
+legend("topleft",legend=c("TMax","LST","RMSE Clim"), cex=1.5, 
+       col=c("red","green","black"),
+       lty=1:3,pch=1:3,bty="n")
+title("RMSE for GAM_CAI Climatology in relation to LST and TMax",
+      cex=2.4)
+
 #closing file for figure 8
 dev.off()
-         
+
 ################################################
 ############ GENERATE ANNEX FIGURES 
 
@@ -1096,6 +1132,20 @@ list_transect4<-vector("list",nb_transect)
 
 #names_layers <-c("mod1 = lat*long","mod2 = lat*long + LST","mod3 = lat*long + elev","mod4 = lat*long + N_w*E_w",
 #                 "mod5 = lat*long + elev + DISTOC","mod6 = lat*long + elev + LST","mod7 = lat*long + elev + LST*FOREST")
+y_var_name <-"dailyTmax"
+index<-244 #index corresponding to Sept 1
+
+lf_list<-lapply(list_raster_obj_files[c("gam_daily","gam_CAI","gam_fss")],
+                               FUN=function(x){x<-load_obj(x);x$method_mod_obj[[index]][[y_var_name]]})                           
+
+date_selected <- "20109101"
+#methods_names <-c("gam","kriging","gwr")
+methods_names <-c("gam_daily","gam_CAI","gam_FSS")
+
+names_layers<-methods_names[1:2]
+#lf <- (list(lf1,lf4[1:7],lf7[1:7]))
+#lf<-list(lf_list[[1]],lf_list[[2]][1:7],lf_list[[3]][1:7])
+lf<-list(lf_list[[1]],lf_list[[2]][1:7])
 
 rast_pred<-stack(lf[[2]]) #GAM_CAI
 rast_pred_selected2<-subset(rast_pred,c(1,2,6)) #3 is referring to FSS, plot it first because it has the
@@ -1127,6 +1177,8 @@ names(list_transect2)<-c("Oregon Transect 1","Oregon Transect 2","Oregon Transec
 names(list_transect3)<-c("Oregon Transect 1","Oregon Transect 2","Oregon Transect 3")
 
 names(rast_pred2)<-layers_names2
+
+
 names(rast_pred3)<-layers_names3
 
 title_plot2<-paste(names(list_transect2),"on",date_selected,sep=" ")

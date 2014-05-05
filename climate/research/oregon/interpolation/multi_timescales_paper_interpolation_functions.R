@@ -5,8 +5,8 @@
 #Functions used in the production of figures and data for the multi timescale paper are recorded.
 #AUTHOR: Benoit Parmentier                                                                      #
 #DATE CREATED: 11/25/2013            
-#DATE MODIFIED: 04/07/2014            
-#Version: 4
+#DATE MODIFIED: 05/05/2014            
+#Version: 5
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
 
@@ -30,7 +30,19 @@ library(plyr)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper <-"multi_timescales_paper_interpolation_functions_03062014.R"
+function_analyses_paper <-"multi_timescales_paper_interpolation_functions_05052014.R"
+
+create_dir_fun <- function(out_dir,out_suffix){
+  if(!is.null(out_suffix)){
+    out_dir <- paste(out_dir,"_",out_suffix,sep="")
+    #out_dir <- file.path(out_dir,out_name)
+  }
+  #create if does not exists
+  if(!file.exists(out_dir)){
+    dir.create(out_dir)
+  }
+  return(out_dir)
+}
 
 calc_stat_by_month_tb <-function(names_mod,tb,month_holdout=F){
   #function
