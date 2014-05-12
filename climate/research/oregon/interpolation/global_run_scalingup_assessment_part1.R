@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/02/2014            
+#MODIFIED ON: 05/12/2014            
 #Version: 3
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -40,7 +40,7 @@ library(colorRamps)
 #### FUNCTION USED IN SCRIPT
 
 function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_10222013.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_03182014.R"
+function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_05052014.R"
 
 load_obj <- function(f)
 {
@@ -279,22 +279,26 @@ extract_daily_training_testing_info<- function(i,list_param){
 ##############################
 #### Parameters and constants  
 
-in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
+#in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
+in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output4" #On NEX
 
-#in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output" #On NEX
-in_dir_list <- list.dirs(path=in_dir1) #get the list of directories with resutls by 10x10 degree tiles
+#in_dir_list <- list.dirs(path=in_dir1) #get the list of directories with resutls by 10x10 degree tiles
+#use subset for now:
+
+in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 #in_dir_list <- as.list(in_dir_list[-1])
-in_dir_list <- in_dir_list[grep("output",basename(in_dir_list),invert=TRUE)] #the first one is the in_dir1
-in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
-
-in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)] 
+#in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
+#in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
+in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
+#in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)] 
 #the first one is the in_dir1
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
-interpolation_method <- c("gam_fusion")
-out_prefix<-"run1_NA_analyses_05012014"
-out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
-#out_dir <- "/nobackup/bparmen1/" #on NEX
+interpolation_method <- c("gam_CAI")
+out_prefix<-"run2_global_analyses_05122014"
+
+#out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
+out_dir <- "/nobackup/bparmen1/" #on NEX
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE
 
@@ -313,6 +317,9 @@ CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #S
 
 ##raster_prediction object : contains testing and training stations with RMSE and model object
 
+#pattern_raster_obj <- gam
+#list.files(path=in_dir_list[1],pattern="gam_CAI_mod.*.RData")
+#list_raster_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="gam_CAI_mod.*.RData",full.names=T)})
 list_raster_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
 basename(dirname(list_raster_obj_files[[1]]))
 list_names_tile_coord <- lapply(list_raster_obj_files,FUN=function(x){basename(dirname(x))})
@@ -334,30 +341,54 @@ names(robj1$method_mod_obj[[1]]$dailyTmax) #for January
 names(robj1$clim_method_mod_obj[[1]]$data_month) #for January
 names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
 
-data_month_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg})                           
+#data_month_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg})                           
 
-robj1$tb_diagnostic_v[1:10,] #first 10 rows of accuarcy metrics per day and model (for specific tile)
-robj1$summary_metrics_v #first 10 rows of accuarcy metrics per day and model (for specific tile)
+#robj1$tb_diagnostic_v[1:10,] #first 10 rows of accuarcy metrics per day and model (for specific tile)
+#robj1$summary_metrics_v #first 10 rows of accuarcy metrics per day and model (for specific tile)
 
 #summary_metrics_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg$rmse})                           
-summary_metrics_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["summary_metrics_v"]]$avg})                           
-#summary_metrics_v_NA <- do.call(rbind,summary_metrics_v_list) #create a df for NA tiles with all accuracy metrics
-names(summary_metrics_v_list) <- list_names_tile_coord
-summary_metrics_v_NA <- do.call(rbind.fill,summary_metrics_v_list) #create a df for NA tiles with all accuracy metrics
+#summary_metrics_v_list <- lapply(list_raster_obj_files,FUN=function(x){try(x<- load_obj(x);x[["summary_metrics_v"]]$avg)})     
+#can use a maximum of 6 cores on the NEX Bridge
+summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 5)                           
 list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
-tile_coord <- lapply(1:length(summary_metrics_v_list),FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=summary_metrics_v_list)
+names(summary_metrics_v_list) <- list_names_tile_id
+#names(summary_metrics_v_list) <- list_names_tile_coord
+
+remove_from_list_fun <- function(l_x,condition_class ="try-error"){
+  index <- vector("list",length(l_x))
+  for (i in 1:length(l_x)){
+    if (inherits(l_x[[i]],condition_class)){
+      index[[i]] <- FALSE #remove from list
+    }else{
+      index[[i]] <- TRUE
+    }
+  }
+  l_x<-l_x[unlist(index)] #remove from list all elements using subset
+  return(l_x)
+}
+
+summary_metrics_v_list <- remove_from_list_fun(summary_metrics_v_list)
+
+#summary_metrics_v_NA <- do.call(rbind,summary_metrics_v_list) #create a df for NA tiles with all accuracy metrics
+#Now remove "try-error" from list of accuracy)
+
+summary_metrics_v_NA <- do.call(rbind.fill,summary_metrics_v_list) #create a df for NA tiles with all accuracy metrics
+#tile_coord <- lapply(1:length(summary_metrics_v_list),FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=summary_metrics_v_list)
+
 tile_id <- lapply(1:length(summary_metrics_v_list),
                      FUN=function(i,x,y){rep(y[i],nrow(x[[i]]))},x=summary_metrics_v_list,y=list_names_tile_id)
 
 summary_metrics_v_NA$tile_id <-unlist(tile_id)
-summary_metrics_v_NA$tile_coord <-unlist(tile_coord)
+#summary_metrics_v_NA$tile_coord <-unlist(tile_coord)
 
 summary_metrics_v_NA$n <- as.integer(summary_metrics_v_NA$n)
 write.table(as.data.frame(summary_metrics_v_NA),
             file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 #Function to collect all the tables from tiles into a table
 
-tb_diagnostic_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
+#tb_diagnostic_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
+tb_diagnostic_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_v"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+
 names(tb_diagnostic_v_list)
 
 tb_diagnostic_v_NA <- do.call(rbind.fill,tb_diagnostic_v_list) #create a df for NA tiles with all accuracy metrics
@@ -402,7 +433,7 @@ data_month_NAM$tile_id <- unlist(tile_id)
 #plot(TMax ~ mm_01,data=data_month_NAM) #monthly tmax averages and LST across all tiles
 
 #copy back to atlas
-system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/_run1_NA_analyses_03232013")
+system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
 ######################################################
 ####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY ###
@@ -417,10 +448,12 @@ system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/lay
 
 #".*predicted_mod1_0_1.*20100101.*.tif"
 
-tb <- tb_diagnostic_v_NA
+#tb <- tb_diagnostic_v_NA
 #get specific dates from tb
-dates_l <- unique(tb$date)
+#dates_l <- unique(tb$date)
+dates_l <- unique(robj1$tb_diagnostic_s$date) #list of dates to query tif
 
+##Function to list predicted tif
 list_tif_fun <- function(i,in_dir_list,pattern_str){
   #list.files(path=x,pattern=".*predicted_mod1_0_1.*20100101.*.tif",full.names=T)})
   pat_str<- pattern_str[i]
@@ -433,23 +466,26 @@ list_tif_fun <- function(i,in_dir_list,pattern_str){
 
 ## make this a function? report on number of tiles used for mosaic...
 
-#inputs
+#inputs: build a pattern to find files
+y_var_name <- "dailyTmax"
+interpolation_method <- c("gam_CAI")
+name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
 l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*"),
                            FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-out_prefix_s <- paste(c("gam_fusion_dailyTmax_"),c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01"),sep="")
+out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01"),sep="")
 dates_l #list of predicted dates
                       
 for (i in 1:lenth(l_pattern_models)){
   
   l_pattern_mod <- l_pattern_models[[i]]
-  out_prefix_s <-    
+  #out_prefix_s <-    
     
-  l_out_rastnames_var <- paste("gam_fusion_dailyTmax_","predicted_mod1_0_01_",dates_l,sep="")
+  l_out_rastnames_var <- paste("gam_CAI_dailyTmax_","predicted_mod1_0_01_",dates_l,sep="")
 
   #list_tif_files_dates <- list_tif_fun(1,in_dir_list,l_pattern_mod)
 
   ##List of predicted tif ...
-  list_tif_files_dates <-lapply(1:length(l_pattern_mod1),FUN=list_tif_fun, 
+  list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
                               in_dir_list=in_dir_list,pattern_str=l_pattern_mod)
   #save(list_tif_files_dates, file=paste("list_tif_files_dates","_",out_prefix,".RData",sep=""))
 
@@ -463,7 +499,8 @@ for (i in 1:lenth(l_pattern_models)){
   j<-1
   list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
   names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
-  list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+  list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
+  #list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
 
 }
 
@@ -535,7 +572,7 @@ list.files(path=in_dir_shp,pattern=paste("*.",as.character(in_dir_list_NEX[1,1])
 list_shp_reg_files <- list.files(path=in_dir_shp,pattern="*.shp")
 list_shp_reg_files2 <- list_shp_reg_files[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 
-tx<-strsplit(as.character(in_dir_list_NEX[,1]),"_")
+tx <- strsplit(as.character(in_dir_list_NEX[,1]),"_")
 lat_shp<- lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx)
 long_shp<- lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx)
 
@@ -657,5 +694,6 @@ pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_train
 
 pred_data_month_info <- do.call(rbind,lapply(pred_data_info,function(x){x$pred_data_month_info}))
 pred_data_day_info <- do.call(rbind,lapply(pred_data_info,function(x){x$pred_data_day_info}))
+
 
 ##################### END OF SCRIPT ######################
