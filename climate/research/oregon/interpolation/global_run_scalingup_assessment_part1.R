@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/14/2014            
+#MODIFIED ON: 05/15/2014            
 #Version: 3
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -379,7 +379,7 @@ summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<
 names(summary_metrics_v_list) <- list_names_tile_id
 
 summary_metrics_v_tmp <- remove_from_list_fun(summary_metrics_v_list)$list
-df_tile_processed$metrics_v <- remove_from_list_fun(summary_metrics_v_list)$valid
+df_tile_processed$metrics_v <- as.integer(remove_from_list_fun(summary_metrics_v_list)$valid)
 #Now remove "try-error" from list of accuracy)
 
 summary_metrics_v_NA <- do.call(rbind.fill,summary_metrics_v_tmp) #create a df for NA tiles with all accuracy metrics
@@ -390,6 +390,15 @@ tile_id_tmp <- lapply(1:length(summary_metrics_v_tmp),
 #adding tile id summary data.frame
 summary_metrics_v_NA$tile_id <-unlist(tile_id_tmp)
 summary_metrics_v_NA$n <- as.integer(summary_metrics_v_NA$n)
+
+summary_metrics_v_NA <- merge(summary_metrics_v_NA,df_tile_processed[,1:2],by="tile_id")
+
+tx<-strsplit(as.character(summary_metrics_v_NA$tile_coord),"_")
+lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
+long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
+summary_metrics_v_NA$lat <- lat
+summary_metrics_v_NA$lon <- long
+
 write.table(as.data.frame(summary_metrics_v_NA),
             file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 
@@ -439,16 +448,11 @@ write.table((tb_diagnostic_v_NA),
 ##### Table 4: Add later on: daily info
 ### with also data_s and data_v saved!!!
 
-#Copy back to atlas
-system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
-#system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
 ######################################################
 ####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY ###
 
 dates_l <- unique(robj1$tb_diagnostic_s$date) #list of dates to query tif
-
-#First mosaic mod1
 
 ## make this a function? report on number of tiles used for mosaic...
 
@@ -460,14 +464,15 @@ l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*","
                            FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
 out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01"),sep="")
 dates_l #list of predicted dates
-                      
+#l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
+l_out_rastnames_var <- lapply(out_prefix_s,
+                              FUN=function(x){paste(x,"_",dates_l,sep="")})
+                     
 for (i in 1:lenth(l_pattern_models)){
   
   l_pattern_mod <- l_pattern_models[[i]]
   #out_prefix_s <-    
     
-  l_out_rastnames_var <- paste("gam_CAI_dailyTmax_","predicted_mod1_0_01_",dates_l,sep="")
-
   #list_tif_files_dates <- list_tif_fun(1,in_dir_list,l_pattern_mod)
 
   ##List of predicted tif ...
@@ -477,6 +482,10 @@ for (i in 1:lenth(l_pattern_models)){
 
 
   mosaic_list_var <- list_tif_files_dates
+#  l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
+#  out_rastnames_var <- l_out_rastnames_var[i]  
+  #l_out_rastnames_var <- paste(name_method,"predicted_mod2_0_01_",dates_l,sep="")
+  l_out_rastnames_var <- paste(name_method,"predicted_mod3_0_01_",dates_l,sep="")
   out_rastnames_var <- l_out_rastnames_var  
 
   file_format <- ".tif"
@@ -485,7 +494,7 @@ for (i in 1:lenth(l_pattern_models)){
   j<-1
   list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
   names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
-  list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
+  list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
   #list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
 
 }
@@ -496,13 +505,10 @@ l_pattern_mod1<-paste(".*predicted_mod1_0_1.*",dates_l,".*.tif",sep="")
 
 l_f_t12 <- list.files(path=in_dir_list[12],".*predicted_mod1_0_1.*")
 
-
 l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
 
 
-unlist(lapply(l_f_bytiles,length))
-
-system("scp -p ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
+#system("scp -p ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
 ######################################################
 ####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
@@ -561,132 +567,31 @@ names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and
 # pred_data_day_info <- do.call(rbind,lapply(pred_data_info,function(x){x$pred_data_day_info}))
 
 ######################################################
-####### PART 4: GENERATE DIAGNOSTIC plots for the area analyzed ###
+####### PART 4: Get shapefile tiling with centroids ###
 
-### Create a combined shape file for all region?
+system("scp -p /nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/* parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/shapefiles")
+#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
 
-#get centroid
-#plot the average RMSE at the centroid??
-#quick kriging for every tile?
-                    
-### Create a combined boxplot for every tile (can also do that in pannel)
-### Create a quick mosaic (mean method...)
-#mean predicitons
-#mean of kriging error?
-#plot(mm_01 ~ elev_s,data=data_month_NAM) #Jan across all tiles
-#plot(mm_06 ~ elev_s,data=data_month_NAM) #June across all tiles
-#plot(TMax ~ mm_01,data=data_month_NAM) #monthly tmax averages and LST across all tiles
-              
-tb <- read.table(file.path(out_dir,"tb_diagnostic_v2_NA_run1_NA_analyses_03232013.txt"),sep=",")
-summary_metrics_v <- read.table(file.path(out_dir,"summary_metrics_v2_NA_run1_NA_analyses_03232013.txt"),sep=",")
+#get shape files for the region being assessed:
+list_shp_global_tiles_files <- list.files(path=in_dir_shp,pattern="*.shp")
+pattern_str <- basename(in_dir_list)
+list_shp_reg_files <- lapply(pattern_str,function(x){list_shp_global_tiles_files[grep(x,invert=FALSE,list_shp_global_tiles_files)]}) #select directory with shapefiles...
+df_tile_processed$shp_files <- unlist(list_shp_reg_files)
 
-strsplit(unique(tb$tile_id),"_")
-tb$tile_id <- factor(tb$tile_id, levels=unique(tb$tile_id))
-#tb$tile_id <- as.character(tb$tile_id)
-boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod=="mod1"),
-        names=1:24)
-title("RMSE per tile")
-#bwplot(rmse~as.factor(tile_id), data=subset(tb,tb$pred_mod=="mod1"))
-
-#Boxplot of RMSE by model
-boxplot(rmse~pred_mod,data=tb)#,names=tb$pred_mod)
-title("RMSE per model over 24 tiles")
-
-#Turn summary table to a point shp
-
-tx<-strsplit(as.character(summary_metrics_v$tile_coord),"_")
+tx<-strsplit(as.character(df_tile_processed$tile_coord),"_")
 lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
 long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
-summary_metrics_v$lat <- lat
-summary_metrics_v$lon <- long
+df_tile_processed$lat <- lat
+df_tile_processed$lon <- long
 
-coordinates(summary_metrics_v) <- cbind(long,lat) 
- 
-ac_mod1 <- summary_metrics_v[summary_metrics_v$pred_mod=="mod1",]
-  
-plot(r2)  
-#plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
-plot(ac_mod1,cex=(ac_mod1$rmse^2)/10,pch=1,add=T)
-plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
+#put that list in the df_processed and also the centroids!!
+write.table(df_tile_processed,
+            file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 
-df <-arrange(as.data.frame(ac_mod1),desc(rmse))[,c("rmse","mae","tile_id")]
-#View(df)
-#quick kriging...
-autokrige(rmse~1,r2,)
-### COMBINED SHAPEFILES AND EXAMING CENTROID
+########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
 
-##Get the list of shapefiles
-in_dir_list_NEX <- read.table("/data/project/layers/commons/NEX_data/test_run1_03232014/output/in_dir_list.txt",sep=" ")
-
-list.files(path=in_dir_shp,pattern=paste("*.",as.character(in_dir_list_NEX[1,1]),".*.shp",sep=""))
-list_shp_reg_files <- list.files(path=in_dir_shp,pattern="*.shp")
-list_shp_reg_files2 <- list_shp_reg_files[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
-
-tx <- strsplit(as.character(in_dir_list_NEX[,1]),"_")
-lat_shp<- lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx)
-long_shp<- lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx)
-
-summary_metrics
-#print.numeric<-function(x, digits = 2) formatC(x, digits = digits, format = "f")
-#print.numeric(long_shp[[1]])
-
-pattern_str<-lapply(1:length(long_shp),function(i,y,x){paste(y[[i]],"0_",x[[i]],"0",sep="")},y=lat_shp,x=long_shp)
-#Select the 24 tiles that were used in the predictions based on lat, long
-list_shp_reg_files <- lapply(pattern_str,FUN=function(x){list.files(path=in_dir_shp,
-                                                                        pattern=paste("*.",x,".*.shp$",sep=""),full.names=T)})
-###
-#OK now get the shapefiles merged
-#ghcn_dat <- readOGR(dsn=dirname(met_stations_obj$monthly_covar_ghcn_data),
-#        sub(".shp","",basename(met_stations_obj$monthly_covar_ghcn_data)))
-
-#plot(r44)
-
-#usa_map <- getData('GADM', country='USA', level=1) #Get US map
-usa_map <- getData('GADM', country='USA',level=1) #Get US map, this is not working right now
-usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
-usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
-
-centroids_pts <- vector("list",length(list_shp_reg_files))
-shps_tiles <- vector("list",length(list_shp_reg_files))
-#collect info
-for(i in 1:length(list_shp_reg_files)){
-  shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
-  pt <- gCentroid(shp1)
-  centroids_pts[[i]] <-pt
-  shps_tiles[[i]] <- shp1
-}
-#plot info: with labels
-plot(usa_map_2)
-for(i in 1:length(list_shp_reg_files)){
-  shp1 <- shps_tiles[[i]]
-  pt <- centroids_pts[[i]]
-  plot(shp1,add=T,border="blue")
-  #plot(pt,add=T,cex=2,pch=5)
-  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
-}
-title("Tiles location 10x10 degrees for NAM")
-
-## Now plot RMSE: with labels
-plot(usa_map_2)
-for(i in 1:length(list_shp_reg_files)){
-  shp1 <- shps_tiles[[i]]
-  pt <- centroids_pts[[i]]
-  plot(shp1,add=T,border="blue")
-  #plot(pt,add=T,cex=2,pch=5)
-  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
-}
-title("Tiles location 10x10 degrees for NAM")
-
-
-#unique(summaty_metrics$tile_id)
-#text(lat-shp,)
-#union(list_shp_reg_files[[1]],list_shp_reg_files[[2]])
-
-l_m_tif <- list.files(pattern="*mosaiced.*.tif")
-r1 <- raster("mosaiced_gam_fusion_dailyTmax_predicted_mod1_0_01_20100101.tif")
-r2 <- raster("mosaiced_gam_fusion_dailyTmax_predicted_mod1_0_01_20100901.tif")
-
-pred_s <- stack(l_m_tif[2:5])
-levelplot(pred_s)
+#Copy back to atlas
+system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
+system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
 ##################### END OF SCRIPT ######################
