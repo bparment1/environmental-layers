@@ -39,7 +39,7 @@ library(colorRamps)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_10222013.R" #first interp paper
+function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_05212014.R" #first interp paper
 function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_05052014.R"
 
 load_obj <- function(f)
@@ -348,6 +348,9 @@ list_names_tile_coord <- lapply(list_raster_obj_files,FUN=function(x){basename(d
 list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
 names(list_raster_obj_files)<- list_names_tile_id
 
+lf_covar_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar_obj.*.RData",full.names=T)})
+lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
+
 ########################## START SCRIPT ##############################
 
 ################################################################
@@ -361,7 +364,8 @@ names(list_raster_obj_files)<- list_names_tile_id
 #First create table of tiles under analysis and their coord
 df_tile_processed <- data.frame(tile_coord=basename(in_dir_list))
 df_tile_processed$tile_id <- unlist(list_names_tile_id)
-
+df_tile_processed$path_NEX <- in_dir_list
+  
 ##Quick exploration of raster object
 robj1 <- load_obj(list_raster_obj_files[[1]])
 names(robj1)
@@ -460,26 +464,56 @@ dates_l <- unique(robj1$tb_diagnostic_s$date) #list of dates to query tif
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
 name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
-l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*"),
+l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*"),
                            FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01"),sep="")
+#gam_CAI_dailyTmax_predicted_mod_kr_0_1_20101231_30_145.0_-120.0.tif
+out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01","predicted_mod_kr_0_1"),sep="")
 dates_l #list of predicted dates
 #l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
 l_out_rastnames_var <- lapply(out_prefix_s,
                               FUN=function(x){paste(x,"_",dates_l,sep="")})
-                     
-for (i in 1:lenth(l_pattern_models)){
-  
+#gam_CAI_dailyTmax_predicted_mod_kr_0_1_20101231_30_145.0_-120.0.tif                    
+
+##Get list of predicted tif across all tiles, models and dates...
+#this takes time, use mclapply!!
+lf_pred_tif <- vector("list",length=length(l_pattern_models)) #number of models is 3
+for (i in 1:length(l_pattern_models)){
   l_pattern_mod <- l_pattern_models[[i]]
+  list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
+  lf_pred_tif[[i]] <- list_tif_files_dates
+}
+
+#Now get the clim surfaces:
+month_l <- paste("clim_month_",1:12,sep="")
+l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod3_0_1.*","_mod_kr_0_1.*"),
+                           FUN=function(x){paste("*.",month_l,x,".*.tif",sep="")})
+#"CAI_TMAX_clim_month_11_mod2_0_145.0_-120.0.tif"
+lf_clim_tif <- vector("list",length=nb_mod) #number of models is 3
+for (i in 1:length(l_pattern_models)){
+  l_pattern_mod <- l_pattern_models[[i]]
+  list_tif_files_dates <- lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
+  lf_clim_tif[[i]] <- list_tif_files_dates
+}
+
+
+
+#### NOW create mosaic images
+nb_mod <- 4
+
+for (i in 1:nb_mod){
+  
+  #l_pattern_mod <- l_pattern_models[[i]]
   #out_prefix_s <-    
     
   #list_tif_files_dates <- list_tif_fun(1,in_dir_list,l_pattern_mod)
 
   ##List of predicted tif ...
-  list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-                              in_dir_list=in_dir_list,pattern_str=l_pattern_mod)
+  #list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+  #                            in_dir_list=in_dir_list,pattern_str=l_pattern_mod)
+  list_tif_files_dates <- lf_pred_tif[[i]] 
   #save(list_tif_files_dates, file=paste("list_tif_files_dates","_",out_prefix,".RData",sep=""))
-
 
   mosaic_list_var <- list_tif_files_dates
 #  l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
@@ -497,6 +531,7 @@ for (i in 1:lenth(l_pattern_models)){
   list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
   #list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
 
+  
 }
 
 ### Now find out how many files were predicted
@@ -505,6 +540,9 @@ l_pattern_mod1<-paste(".*predicted_mod1_0_1.*",dates_l,".*.tif",sep="")
 
 l_f_t12 <- list.files(path=in_dir_list[12],".*predicted_mod1_0_1.*")
 
+
+l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
+l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
 l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
 
 
@@ -590,8 +628,51 @@ write.table(df_tile_processed,
 
 ########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
 
-#Copy back to atlas
+#Copy summary and mosaic back to atlas
 system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
+
+#Copy specific tiles info back...
+#tile_6: Oregon (45.0_-120.0)
+system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_05122014/output/45.0_-120.0")
+#tile_8: Californi-Arizona
+system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_05122014/output/45.0_-120.0")
+df_tile_processed$path_NEX
+list_raster_obj_files[6]
+list_raster_obj_files[8]
+Atlas_dir <- "/data/project/layers/commons/NEX_data/output_run2_05122014/output/45.0_-120.0"
+Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+
+#Oregon tile
+filenames_NEX <- list_raster_obj_files[6] #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+#Now copy back tif for specific dates and tile (date 1 and date 244)
+date_selected <- c("20100101","20100901")
+date_index <- c(1,244)
+tile_nb <- 6
+nb_mod <- 3+1
+lf_cp <- vector("list",length=length(date_selected))
+for(i in 1:length(date_selected)){
+  index <- date_index[i]  
+  #get all predicted tmax files for all models and specific date, tile
+  lf_cp[[i]] <- unlist(lapply(1:nb_mod,FUN=function(x){lf_pred_tif[[x]][[index]][[tile_nb]]}))
+}
+
+lf_clim_tiff[[]]
+
+filenames_NEX <- paste(list_tif_files_dates[[1]][[6]],list_tif_files_dates[[244]][[6]],lf_covar_tif[6]) #to get first date and tile 6 prediction mod1
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+
+#California-Arizona tile
+Atlas_dir <- "/data/project/layers/commons/NEX_data/output_run2_05122014/output/35.0_-115.0"
+filenames_NEX <- paste(list_raster_obj_files[8],lf_covar_obj[8]) #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+#Now copy back tif for specific dates and tile (date 1 and date 244)
+filenames_NEX <- paste(list_tif_files_dates[[1]][[8]],list_tif_files_dates[[244]][[8]],lf_covar_tif[8]) #to get first date and tile 6 prediction mod1
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
 
 ##################### END OF SCRIPT ######################
