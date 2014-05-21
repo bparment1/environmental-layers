@@ -4,8 +4,8 @@
 #different covariates using two baselines. Accuracy methods are added in the the function script to evaluate results.
 #Figures, tables and data for the contribution of covariate paper are also produced in the script.
 #AUTHOR: Benoit Parmentier                                                                      
-#MMODIFIED ON: 10/15/2013            
-#Version: 4
+#MODIFIED ON: 05/21/2014            
+#Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
 
@@ -37,7 +37,7 @@ library(pgirmess)                            # Krusall Wallis test with mulitple
 library(ncf)
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper <-"contribution_of_covariates_paper_interpolation_functions_10152013.R"
+function_analyses_paper <-"contribution_of_covariates_paper_interpolation_functions_05212014.R"
 
 ##############################
 #### Parameters and constants  
@@ -60,14 +60,26 @@ in_dir5 <-"/data/project/layers/commons/Oregon_interpolation/output_data_365d_ga
 in_dir6 <- "/data/project/layers/commons/Oregon_interpolation/output_data_365d_kriging_daily_mults1_lst_comb3_10112013"
 in_dir7 <-"/data/project/layers/commons/Oregon_interpolation/output_data_365d_gwr_daily_mults1_lst_comb3_10132013"
 
-out_dir<-"/home/parmentier/Data/IPLANT_project/paper_analyses_tables_fig_08032013"
-setwd(out_dir)
 
 infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 y_var_name <- "dailyTmax"
-out_prefix<-"analyses_10152013"
+out_prefix<-"_05252014"
+out_dir<-"/home/parmentier/Data/IPLANT_project/paper_contribution_covar_analyses_tables_fig"
+setwd(out_dir)
+
+#out_dir<-"/home/parmentier/Data/IPLANT_project/paper_multitime_scale__analyses_tables"
+create_out_dir_param = TRUE
+
+#Create output directory
+
+if(create_out_dir_param==TRUE){
+  out_dir <- create_dir_fun(out_dir,out_prefix)
+  setwd(out_dir)
+}else{
+  setwd(out_dir) #use previoulsy defined directory
+}
 
 #method_interpolation <- "gam_daily"
 covar_obj_file_1 <- "covar_obj__365d_gam_day_lst_comb3_08132013.RData"
@@ -99,6 +111,8 @@ covar_names<- covar_obj$covar_names
 #####
 s_raster <- brick(infile_covariates)
 names(s_raster)<-covar_names
+ref_rast_name <-"/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/mean_day244_rescaled.rst"  #local raster name defining resolution, exent: oregon
+ref_rast_d001 <-"/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/mean_day001_rescaled.rst"
 
 raster_prediction_obj_1 <-load_obj(file.path(in_dir1,raster_obj_file_1)) #comb3 (baseline 2)
 raster_prediction_obj_2 <-load_obj(file.path(in_dir2,raster_obj_file_2)) #comb4 (baseline 1)
@@ -223,11 +237,15 @@ write.table(as.data.frame(table4_paper),file=file_name,sep=",")
 ####### Now create figures #############
 
 #figure 1: study area
-#figure 2: methodological worklfow
-#figure 3:Figure 3. MAE/RMSE and distance to closest fitting station.
-#Figure 4. RMSE and MAE, mulitisampling and hold out for FSS and GAM.
-#Figure 5. Overtraining tendency
-#Figure 6: Spatial pattern of prediction for one day
+#figure 2: methodological worklfow (generated outside R)
+#figure 3: LST daily and monthly climatology
+#figure 4: MAE/RMSE and distance to closest fitting station.
+#Figure 5. RMSE and MAE, mulitisampling and hold out for FSS and GAM.
+#Figure 6. Overtraining tendency
+#Figure 7a: Spatial pattern of prediction for one day
+#figure 7b: Spatial autocorrelation profile : Moran's vs lag distance
+#Figure 8: Figure 8. (a) Monthly MAE averages for the three interpolation methods: GAM, GWR and Kriging.(b) Monthly MAE boxplot for GAM.
+#Figure 9: difference image
 
 ### Figure 1: Oregon study area
 #3 parameters from output
@@ -286,12 +304,42 @@ plot(usa_map_OR,col="dark grey",add=T)
 box()
 dev.off()
 
+#########################
 ### Figure 2:  Method comparison workflow 
 
 # Workflow figure is not generated in R
 
+##########################
+### Figure 3: LST averaging: daily mean compared to monthly mean
+
+#interp_area <- readOGR(dsn=dirname(infile_reg_outline),sub(".shp","",basename(infile_reg_outline)))
+
+lst_md <- raster(ref_rast_name)
+projection(lst_md)<-projection(s_raster)
+lst_mm_09<-subset(s_raster,"mm_09")
+
+lst_md<-raster(ref_rast_d001)
+lst_md<- lst_md - 273.16
+lst_mm_01<-subset(s_raster,"mm_01")
+
+no_brks <- length(seq(min_val,max_val,by=0.1))-1
+#temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
+#temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
+#temp.colors <- matlab.like(no_brks)
+temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
+
+png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=960,height=480)
+par(mfrow=c(1,2))
+plot(lst_md,col=temp.colors(25))
+plot(interp_area,add=TRUE)
+title("Mean for January 1")
+plot(lst_mm_01,col=temp.colors(25))
+plot(interp_area,add=TRUE)
+title("Mean for month of January")
+dev.off()
+
 ################################################
-################### Figure 3. MAE/RMSE and distance to closest fitting station.
+################### Figure 4. MAE/RMSE and distance to closest fitting station.
 
 #Analysis accuracy in term of distance to closest station
 #Assign model's names

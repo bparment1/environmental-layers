@@ -4,7 +4,7 @@
 # interpolation code.
 #Figures and data for the contribution of covariate paper are also produced.
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 10/15/2013            
+#DATE: 05/21/2014            
 #Version: 2
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
@@ -29,13 +29,25 @@ library(plyr)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper <-"contribution_of_covariates_paper_interpolation_functions_08152013.R"
+function_analyses_paper <-"contribution_of_covariates_paper_interpolation_functions_05252014.R"
 
 load_obj <- function(f)
 {
   env <- new.env()
   nm <- load(f, env)[1]
   env[[nm]]
+}
+
+create_dir_fun <- function(out_dir,out_suffix){
+  if(!is.null(out_suffix)){
+    out_dir <- paste(out_dir,"_",out_suffix,sep="")
+    #out_dir <- file.path(out_dir,out_name)
+  }
+  #create if does not exists
+  if(!file.exists(out_dir)){
+    dir.create(out_dir)
+  }
+  return(out_dir)
 }
 
 extract_list_from_list_obj<-function(obj_list,list_name){
@@ -57,7 +69,7 @@ extract_from_list_obj<-function(obj_list,list_name){
   list_tmp<-vector("list",length(obj_list))
   for (i in 1:length(obj_list)){
     tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
-    list_tmp[[i]]<-tmp
+    list_tmp[[i]]<- as.data.frame(tmp) #deal with spdf cases
   }
   tb_list_tmp<-do.call(rbind.fill,list_tmp) #long rownames
   #tb_list_tmp<-do.call(rbind,list_tmp) #long rownames
