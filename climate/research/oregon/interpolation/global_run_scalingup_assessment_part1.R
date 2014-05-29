@@ -1,13 +1,20 @@
 ####################################  INTERPOLATION OF TEMPERATURES  #######################################
-############################  Script for assessment of scaling up on NEX ##############################
+############################  Script for assessment of scaling up on NEX: part 1 ##############################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
-#Accuracy methods are added in the the function scripts to evaluate results.
-#Analyses, figures, tables and data are also produced in the script.
+#The purpose is to create as set of functions to diagnose and assess quickly a set of predictd tiles.
+#Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/15/2014            
+#MODIFIED ON: 05/29/2014            
 #Version: 3
-#PROJECT: Environmental Layers project                                     
+#PROJECT: Environmental Layers project  
+#TO DO:
+# - generate delta and clim mosaic
+# - generate monthly inputs data_month
+# - generate table of number of observations per tile for use in map part 2
+# - generate data_s and data_v inputs as giant table
+# - generate accuracy for mosaic (part 2 and part3)
+# - clean up
 #################################################################################################
 
 ### Loading R library and packages        
@@ -149,40 +156,46 @@ mosaic_m_raster_list<-function(j,list_param){
   return(rast_list)
 }
 
+### Function:
+pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
+  #Summarizing input info
+    
+  data <- list_data[[k]]
+  sampling_dat <- sampling_dat_info[[k]]
+  if(data_day!="try-error"){
+    n <- nrow(data)
+    n_mod <- vector("numeric",length(pred_mod))
+    for(j in 1:length(pred_mod)){
+      n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
+    }
+    n <- rep(n,length(pred_mod))
+    sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+    row.names(sampling_dat) <- NULL
+    df_n <- data.frame(n,n_mod,pred_mod)
+    df_n <- cbind(df_n,sampling_dat)
+  }else{        
+    n <- rep(NA,length(pred_mod))
+    n_mod <- vector("numeric",length(pred_mod))
+    n_mod <- rep(NA,length(pred_mod))
+    df_n <- data.frame(n,n_mod,pred_mod)
+    sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+    row.names(sampling_dat) <- NULL
+    df_n <- data.frame(n,n_mod,pred_mod)
+    df_n <- cbind(df_n,sampling_dat)
+
+  }
+  
+  return(df_n)
+}
+
 extract_daily_training_testing_info<- function(i,list_param){
   #This function extracts training and testing information from the raster object produced for each tile
   #This is looping through tiles...
   
-  ### Function:
-  pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
-    
-    data <- list_data[[k]]
-    sampling_dat <- sampling_dat_info[[k]]
-    if(data_day!="try-error"){
-      n <- nrow(data)
-      n_mod <- vector("numeric",length(pred_mod))
-      for(j in 1:length(pred_mod)){
-        n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
-      }
-      n <- rep(n,length(pred_mod))
-      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
-      row.names(sampling_dat) <- NULL
-      df_n <- data.frame(n,n_mod,pred_mod)
-      df_n <- cbind(df_n,sampling_dat)
-    }else{        
-      n <- rep(NA,length(pred_mod))
-      n_mod <- vector("numeric",length(pred_mod))
-      n_mod <- rep(NA,length(pred_mod))
-      df_n <- data.frame(n,n_mod,pred_mod)
-      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
-      row.names(sampling_dat) <- NULL
-      df_n <- data.frame(n,n_mod,pred_mod)
-      df_n <- cbind(df_n,sampling_dat)
-
-    }
-    return(df_n)
-  }
-
+  ##Functions used
+  #Defined outside this script:
+  #pred_data_info_fun
+  
   ##### Parse parameters and arguments ####
   
   raster_obj_file <- list_param$list_raster_obj_files[i]
@@ -230,6 +243,7 @@ extract_daily_training_testing_info<- function(i,list_param){
     #pred_data_day_v_info$tile_id <- rep(tile_id,nrow(pred_data_day_v_info)) 
                                       
   }
+  
   if(use_month==TRUE){
     
     list_data_month_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_month_obj,"data_s"))
@@ -305,22 +319,26 @@ list_tif_fun <- function(i,in_dir_list,pattern_str){
 #### Parameters and constants  
 
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
-in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output4" #On NEX
+in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/" #On NEX
 
 #in_dir_list <- list.dirs(path=in_dir1) #get the list of directories with resutls by 10x10 degree tiles
 #use subset for now:
 
-in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
+in_dir_list <- c(
+"/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/40.0_-120.0/",
+"/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/35.0_-115.0/")
+  
+#in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 #in_dir_list <- as.list(in_dir_list[-1])
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 #in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
-in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
+in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/subset/shapefiles/"
 #in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)] 
 #the first one is the in_dir1
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run2_global_analyses_05122014"
+out_prefix<-"run3_global_analyses_05292014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -339,6 +357,12 @@ if(create_out_dir_param==TRUE){
 setwd(out_dir)
                                    
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+
+day_to_mosaic <- c("20100101","20100901")
+file_format <- ".tif" #format for mosaiced files
+NA_flag_val <- -9999  #No data value
+
+#day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates
 
 ##raster_prediction object : contains testing and training stations with RMSE and model object
 
@@ -363,17 +387,20 @@ lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="co
 
 #First create table of tiles under analysis and their coord
 df_tile_processed <- data.frame(tile_coord=basename(in_dir_list))
-df_tile_processed$tile_id <- unlist(list_names_tile_id)
+df_tile_processed$tile_id <- unlist(list_names_tile_id) #Arbitrary tiling number!!
 df_tile_processed$path_NEX <- in_dir_list
   
 ##Quick exploration of raster object
-robj1 <- load_obj(list_raster_obj_files[[1]])
+robj1 <- load_obj(list_raster_obj_files[[2]]) #This is tile corresponding to Oregon
+
 names(robj1)
 names(robj1$method_mod_obj[[1]]) #for January 1, 2010
 names(robj1$method_mod_obj[[1]]$dailyTmax) #for January
 
 names(robj1$clim_method_mod_obj[[1]]$data_month) #for January
 names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
+#Get the number of models predicted
+nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))
 
 ################
 #### Table 1: Average accuracy metrics
@@ -452,33 +479,37 @@ write.table((tb_diagnostic_v_NA),
 ##### Table 4: Add later on: daily info
 ### with also data_s and data_v saved!!!
 
+#Insert here...compute input and predicted ranges to spot potential errors?
 
 ######################################################
-####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY ###
+####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY, Delta surfaces and clim ###
 
 dates_l <- unique(robj1$tb_diagnostic_s$date) #list of dates to query tif
 
 ## make this a function? report on number of tiles used for mosaic...
 
 #inputs: build a pattern to find files
-y_var_name <- "dailyTmax"
-interpolation_method <- c("gam_CAI")
+y_var_name <- "dailyTmax" #set up in parameters of this script
+interpolation_method <- c("gam_CAI") #set up in parameters of the script
 name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
-l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*"),
+#make it general using nb_mod!!
+#could be set up at the begining?
+
+mod_id <- c(1:(nb_mod-1),"_kr")
+pred_pattern_str <- paste(".*predicted_mod",mod_id,"_0_1.*",sep="")
+#,".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*")
+#l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*"),
+                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
+l_pattern_models <- lapply(pred_pattern_str,
                            FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
 #gam_CAI_dailyTmax_predicted_mod_kr_0_1_20101231_30_145.0_-120.0.tif
-out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01","predicted_mod_kr_0_1"),sep="")
-dates_l #list of predicted dates
-#l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
-l_out_rastnames_var <- lapply(out_prefix_s,
-                              FUN=function(x){paste(x,"_",dates_l,sep="")})
 #gam_CAI_dailyTmax_predicted_mod_kr_0_1_20101231_30_145.0_-120.0.tif                    
 
 ##Get list of predicted tif across all tiles, models and dates...
 #this takes time, use mclapply!!
 lf_pred_tif <- vector("list",length=length(l_pattern_models)) #number of models is 3
 for (i in 1:length(l_pattern_models)){
-  l_pattern_mod <- l_pattern_models[[i]]
+  l_pattern_mod <- l_pattern_models[[i]] #365 dates
   list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
                               in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
   lf_pred_tif[[i]] <- list_tif_files_dates
@@ -491,62 +522,140 @@ l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod3_0_1.*","_mod_kr_
 #"CAI_TMAX_clim_month_11_mod2_0_145.0_-120.0.tif"
 lf_clim_tif <- vector("list",length=nb_mod) #number of models is 3
 for (i in 1:length(l_pattern_models)){
-  l_pattern_mod <- l_pattern_models[[i]]
+  l_pattern_mod <- l_pattern_models[[i]] #12 dates
   list_tif_files_dates <- lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
                               in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
   lf_clim_tif[[i]] <- list_tif_files_dates
 }
 
+#Now get delta surfaces:
+date_l# <- paste("clim_month_",1:12,sep="")
+#l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod3_0_1.*","_mod_kr_0_1.*"),
+#                           FUN=function(x){paste("*.",month_l,x,".*.tif",sep="")})
+l_pattern_models <- lapply(c(".*delta_dailyTmax_mod1_del_0_1.*",".*delta_dailyTmax_mod2_del_0_1.*",".*delta_dailyTmax_mod3_del_0_1.*",".*delta_dailyTmax_mod_kr_del_0_1.*"),
+                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
+
+lf_delta_tif <- vector("list",length=nb_mod) #number of models is 3
+for (i in 1:length(l_pattern_models)){
+  l_pattern_mod <- l_pattern_models[[i]]
+  list_tif_files_dates <- lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
+  lf_delta_tif[[i]] <- list_tif_files_dates
+}
 
 
-#### NOW create mosaic images
-nb_mod <- 4
+#### NOW create mosaic images for daily prediction
 
+out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01","predicted_mod_kr_0_1"),sep="")
+dates_l #list of predicted dates
+#l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
+l_out_rastnames_var <- lapply(out_prefix_s,
+                              FUN=function(x){paste(x,"_",dates_l,sep="")})
+
+#nb_mod <- 4 #this is set up earlier
+##Add option to specify wich dates to mosaic??
+day_to_mosaic <- c("20100101","20100901")
+if (!is.null(day_to_mosaic)){
+  list_days <-match(day_to_mosaic,dates_l)
+}else{
+  list_days <- 1:365 #should check for year in case it has 366, add later!!
+}
+###Make this a function later??
 for (i in 1:nb_mod){
   
-  #l_pattern_mod <- l_pattern_models[[i]]
-  #out_prefix_s <-    
-    
-  #list_tif_files_dates <- list_tif_fun(1,in_dir_list,l_pattern_mod)
-
-  ##List of predicted tif ...
-  #list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-  #                            in_dir_list=in_dir_list,pattern_str=l_pattern_mod)
   list_tif_files_dates <- lf_pred_tif[[i]] 
-  #save(list_tif_files_dates, file=paste("list_tif_files_dates","_",out_prefix,".RData",sep=""))
 
-  mosaic_list_var <- list_tif_files_dates
-#  l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
-#  out_rastnames_var <- l_out_rastnames_var[i]  
-  #l_out_rastnames_var <- paste(name_method,"predicted_mod2_0_01_",dates_l,sep="")
-  l_out_rastnames_var <- paste(name_method,"predicted_mod3_0_01_",dates_l,sep="")
-  out_rastnames_var <- l_out_rastnames_var  
+  mosaic_list_var <- list_tif_files_dates  
+  out_rastnames_var <- l_out_rastnames_var[[i]]
 
   file_format <- ".tif"
   NA_flag_val <- -9999
 
-  j<-1
+  j<-1 #date index for loop
   list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
   names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
-  list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+  #list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+  list_var_mosaiced <- mclapply(list_days,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+  #list_var_mosaiced <- mclapply(1:1,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
   #list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
-
   
+  #mosaic for delt sufaces?
+  #mosoaic for clim months?
+  
+}
+
+######################
+### mosaic clim monthly data...this will be a function later...
+
+#Now get the clim surfaces:
+month_l <- paste("clim_month_",1:12,sep="")
+#l_pattern_models <- lapply(c("_mod1_0_1","_mod2_0_1","_mod3_0_1","_mod_kr_0_1"),
+#                           FUN=function(x){paste(x,"_",month_l,sep="")})
+
+out_prefix_s <- paste(name_method,c("_mod1_0_01","_mod2_0_01","_mod3_0_01","_mod_kr_0_1"),sep="")
+dates_l #list of predicted dates
+#l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
+l_out_rastnames_var <- lapply(out_prefix_s,
+                              FUN=function(x){paste(x,"_",month_l,sep="")})
+
+for (i in 1:nb_mod){
+  
+  #this should be the input param for the new function generated automatically...
+  list_tif_files_dates <- lf_clim_tif[[i]] 
+  mosaic_list_var <- list_tif_files_dates  
+  out_rastnames_var <- l_out_rastnames_var[[i]]
+  #file_format <- ".tif"
+  #NA_flag_val <- -9999
+
+  j<-1 #date index for loop
+  list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
+  names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
+  #list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+  list_var_mosaiced <- mclapply(1:12,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 4)
+}
+
+######################
+#### NOW create mosaic images for daily delta prediction
+#This should be a function!!!
+date_l# <- paste("clim_month_",1:12,sep="")
+#l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod3_0_1.*","_mod_kr_0_1.*"),
+#                           FUN=function(x){paste("*.",month_l,x,".*.tif",sep="")})
+#l_pattern_models <- lapply(c(".*delta_dailyTmax_mod1_del_0_1.*",".*delta_dailyTmax_mod2_del_0_1.*",".*delta_dailyTmax_mod3_del_0_1.*",".*delta_dailyTmax_mod_kr_del_0_1.*"),
+#                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
+
+out_prefix_s <- paste(name_method,c("delta_mod1_0_01","delta_mod2_0_01","delta_mod3_0_01","delta_mod_kr_0_1"),sep="")
+dates_l #list of predicted dates
+#l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
+l_out_rastnames_var <- lapply(out_prefix_s,
+                              FUN=function(x){paste(x,"_",dates_l,sep="")})
+
+#nb_mod <- 4 #this is set up earlier
+##Add option to specify wich dates to mosaic??
+day_to_mosaic <- c("20100101","20100901")
+if (!is.null(day_to_mosaic)){
+  list_days <-match(day_to_mosaic,dates_l)
+}else{
+  list_days <- 1:365 #should check for year in case it has 366, add later!!
+}
+###Make this a function later??
+for (i in 1:nb_mod){
+  
+  list_tif_files_dates <- lf_pred_tif[[i]] 
+  mosaic_list_var <- list_tif_files_dates  
+  out_rastnames_var <- l_out_rastnames_var[[i]]
+  #this is be set up earlier...
+  #file_format <- ".tif"
+  #NA_flag_val <- -9999
+
+  j<-1 #date index for loop
+  list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
+  names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
+  #list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+  list_var_mosaiced <- mclapply(list_days,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
 }
 
 ### Now find out how many files were predicted
 
-l_pattern_mod1<-paste(".*predicted_mod1_0_1.*",dates_l,".*.tif",sep="")
-
-l_f_t12 <- list.files(path=in_dir_list[12],".*predicted_mod1_0_1.*")
-
-
-l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
-l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
-l_f_bytiles<-lapply(in_dir_list,function(x){list.files(path=x,pattern=".*predicted_mod1_0_1.*")})
-
-
-#system("scp -p ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
 ######################################################
 ####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
@@ -607,7 +716,6 @@ names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and
 ######################################################
 ####### PART 4: Get shapefile tiling with centroids ###
 
-system("scp -p /nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/* parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/shapefiles")
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
 
 #get shape files for the region being assessed:
@@ -628,51 +736,84 @@ write.table(df_tile_processed,
 
 ########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
 
-#Copy summary and mosaic back to atlas
+#### FIRST COPY DATA FOR SPECIFIC TILES #####
+#Copy specific tiles info back...This assumes that the tree structre 
+#has been created on ATLAS:
+#../$out_dir/ouput/tile_coord
+
+list_tile_scp <- c(1,2)
+
+for (i in 1:length(list_tile_scp)){
+  tile_nb <- list_tile_scp[i]
+  #nb_mod <- 3+1 #set up earlier
+  date_selected <- c("20100101","20100901") #should be set up earlier
+  date_index <- c(1,244) #list_day??
+  #tile_nb <- 1
+
+  in_dir_tile <- basename(df_tile_processed$path_NEX[tile_nb])
+  #/data/project/layers/commons/NEX_data/output_run2_05122014/output
+  Atlas_dir <- file.path(file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output"),in_dir_tile)
+  Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+  #filenames_NEX <- list_raster_obj_files[tile_nb] #copy raster prediction object
+  #cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+  #system(cmd_str)
+
+  #Now copy back tif for specific dates and tile (date 1 and date 244)
+  #nb_mod <- 3+1
+  lf_cp_day <- vector("list",length=length(date_selected))
+  #Get relevant daily info
+  for(i in 1:length(date_selected)){
+    #d
+    index <- date_index[i]  
+    #get all predicted tmax files for all models and specific date, tile
+    lf_cp_pred_tif  <- unlist(lapply(1:nb_mod,FUN=function(x){lf_pred_tif[[x]][[index]][[tile_nb]]}))
+    lf_cp_delta_tif <- unlist(lapply(1:nb_mod,FUN=function(x){lf_delta_tif[[x]][[index]][[tile_nb]]}))
+    lf_cp_day[[i]] <- unlist(c(unlist(lf_cp_pred_tif),unlist(lf_cp_delta_tif)))
+  }
+  #get the monthly info...
+  month_index <- 1:12 #can subset
+  #month_index <- c(1,9) #can subset
+  lf_cp_month <- vector("list",length=length(month_index))
+
+  for(i in 1:length(month_index)){
+    #d
+    index <- month_index[i]  
+    #get all predicted tmax files for all models and specific date, tile
+    lf_cp_month[[i]]  <- unlist(lapply(1:nb_mod,FUN=function(x){lf_clim_tif[[x]][[index]][[tile_nb]]}))
+  }
+  ##Add RData object for specified tile...
+  lf_cp_RData_tif <- c(lf_covar_obj[tile_nb],lf_covar_tif[tile_nb],list_raster_obj_files[[tile_nb]])
+  #unlist(lf_cp_RData_tif)
+  lf_cp <- unlist(c(lf_cp_day,lf_cp_month,lf_cp_RData_tif))
+  #lf_cp <- c(unlist(c(lf_cp_day,lf_cp_month)),list_raster_obj_files[tile_nb])
+  filenames_NEX <- paste(lf_cp,collapse=" ")
+  #filenames_NEX <- paste(list_tif_files_dates[[1]][[6]],list_tif_files_dates[[244]][[6]],lf_covar_tif[6]) #to get first date and tile 6 prediction mod1
+  cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+  system(cmd_str)
+}
+
+#### COPY SHAPEFILES, TIF MOSAIC, COMBINED TEXT FILES etc...
+
+#copy shapefiles defining regions
+Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output/subset/shapefiles")
+Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+lf_cp_shp <- list.files(in_dir_shp, ".shp",full.names=T)
+filenames_NEX <- paste(lf_cp_shp,collapse=" ")  #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+
+#Copy summary textfiles and mosaic back to atlas
+
+Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir))#,"output/subset/shapefiles")
+Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+lf_cp_f <- list.files(out_dir,full.names=T)#copy all files can filter later
+filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+
 system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
-#Copy specific tiles info back...
-#tile_6: Oregon (45.0_-120.0)
-system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_05122014/output/45.0_-120.0")
-#tile_8: Californi-Arizona
-system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_05122014/output/45.0_-120.0")
-df_tile_processed$path_NEX
-list_raster_obj_files[6]
-list_raster_obj_files[8]
-Atlas_dir <- "/data/project/layers/commons/NEX_data/output_run2_05122014/output/45.0_-120.0"
-Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-
-#Oregon tile
-filenames_NEX <- list_raster_obj_files[6] #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-system(cmd_str)
-#Now copy back tif for specific dates and tile (date 1 and date 244)
-date_selected <- c("20100101","20100901")
-date_index <- c(1,244)
-tile_nb <- 6
-nb_mod <- 3+1
-lf_cp <- vector("list",length=length(date_selected))
-for(i in 1:length(date_selected)){
-  index <- date_index[i]  
-  #get all predicted tmax files for all models and specific date, tile
-  lf_cp[[i]] <- unlist(lapply(1:nb_mod,FUN=function(x){lf_pred_tif[[x]][[index]][[tile_nb]]}))
-}
-
-lf_clim_tiff[[]]
-
-filenames_NEX <- paste(list_tif_files_dates[[1]][[6]],list_tif_files_dates[[244]][[6]],lf_covar_tif[6]) #to get first date and tile 6 prediction mod1
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-system(cmd_str)
-
-#California-Arizona tile
-Atlas_dir <- "/data/project/layers/commons/NEX_data/output_run2_05122014/output/35.0_-115.0"
-filenames_NEX <- paste(list_raster_obj_files[8],lf_covar_obj[8]) #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-system(cmd_str)
-#Now copy back tif for specific dates and tile (date 1 and date 244)
-filenames_NEX <- paste(list_tif_files_dates[[1]][[8]],list_tif_files_dates[[244]][[8]],lf_covar_tif[8]) #to get first date and tile 6 prediction mod1
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-system(cmd_str)
+system("scp -p /nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/* parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/shapefiles")
 
 ##################### END OF SCRIPT ######################
