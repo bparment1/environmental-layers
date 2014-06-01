@@ -5,9 +5,10 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/15/2014            
+#MODIFIED ON: 06/01/2014            
 #Version: 3
-#PROJECT: Environmental Layers project                                     
+#PROJECT: Environmental Layers project     
+#COMMENTS: analyses for run 3 global using 2 specific tiles
 #################################################################################################
 
 ### Loading R library and packages        
@@ -68,11 +69,12 @@ create_dir_fun <- function(out_dir,out_suffix){
 #on ATLAS
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #parent output dir : contains subset of the data produced on NEX
-in_dir1 <- "/data/project/layers/commons/NEX_data/output_run2_05122014/output/"
+in_dir1 <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/output"
 # parent output dir for the curent script analyes
-out_dir <-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
+out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/" #On NCEAS Atlas
+out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/"
 # input dir containing shapefiles defining tiles
-in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run2_05122014/output/subset/shapefiles"
+in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/output/subset/shapefiles"
 
 #On NEX
 #contains all data from the run by Alberto
@@ -85,10 +87,10 @@ df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_
 in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run2_global_analyses_05122014"
+out_prefix<-"run3_global_analyses_05292014"
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
-create_out_dir_param <- TRUE
+create_out_dir_param <- FALSE
 
 if(create_out_dir_param==TRUE){
   out_dir <- create_dir_fun(out_dir,out_prefix)
@@ -105,10 +107,10 @@ region_name <- "USA"
 
 ###Table 1: Average accuracy metrics
 ###Table 2: daily accuracy metrics for all tiles
-
+#lf_tables <- list.files(out_dir,)
 summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
-#df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
+df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 
 ########################## START SCRIPT ##############################
 
@@ -128,6 +130,9 @@ centroids_pts <- vector("list",length(list_shp_reg_files))
 shps_tiles <- vector("list",length(list_shp_reg_files))
 #collect info: read in all shapfiles
 for(i in 1:length(list_shp_reg_files)){
+  path_to_shp <- dirname(list_shp_reg_files[[i]])
+  layer_name <- basename(list_shp_reg_files[[i]])
+  shp1 <- readOGR(path_to_shp, layer_name)
   shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
   pt <- gCentroid(shp1)
   centroids_pts[[i]] <-pt
@@ -235,12 +240,12 @@ index  <- 1 #index corresponding to Jan 1
 date_selected <- "20100101"
 name_method_var <- paste(interpolation_method,"_",y_var_name,"_",sep="")
 
-pattern_str <- paste("mosaiced","_",name_method_var,".*.",date_selected,".*.tif",sep="")
-lf_list <- list.files(pattern=pattern_str)
+pattern_str <- paste("mosaiced","_",name_method_var,"predicted",".*.",date_selected,".*.tif",sep="")
+lf_pred_list <- list.files(pattern=pattern_str)
 
-for(i in 1:length(lf_list)){
+for(i in 1:length(lf_pred_list)){
   
-  r_pred <- raster(lf_list[i])
+  r_pred <- raster(lf_pred_list[i])
   
   res_pix <- 480
   col_mfrow <- 1
@@ -254,6 +259,8 @@ for(i in 1:length(lf_list)){
   dev.off()
   
 }
+
+## plotting of delta and clim for later scripts...
 
 #### Now combined plot...
 
@@ -291,8 +298,10 @@ for(i in 1:length(lf_list)){
 ### Figure 5: plot map of average RMSE per tile at centroids
 
 #Turn summary table to a point shp
-coordinates(summary_metrics_v) <- cbind(long,lat)  
-list_df_ac_mod <- vector("list",length=length(lf_list))
+
+coordinates(summary_metrics_v) <- cbind(summary_metrics_v$lon,summary_metrics_v$lat)
+proj4string(summary_metrics_v) <- CRS_WGS84
+list_df_ac_mod <- vector("list",length=length(lf_pred_list))
 for (i in 1:length(lf_list)){
   
   ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
