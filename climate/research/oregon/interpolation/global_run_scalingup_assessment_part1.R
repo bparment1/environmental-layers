@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/29/2014            
+#MODIFIED ON: 06/19/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -232,16 +232,7 @@ extract_daily_training_testing_info<- function(i,list_param){
     
     pred_data_day_info$method_interp <- rep(method_interp,nrow(pred_data_day_info)) 
     pred_data_day_info$var_interp <- rep(var_interp,nrow(pred_data_day_info)) 
-    pred_data_day_info$tile_id <- rep(tile_id,nrow(pred_data_day_info)) 
-
-    #pred_data_day_s_info$method_interp <- rep(method_interp,nrow(pred_data_day_s_info)) 
-    #pred_data_day_s_info$var_interp <- rep(var_interp,nrow(pred_data_day_s_info)) 
-    #pred_data_day_s_info$tile_id <- rep(tile_id,nrow(pred_data_day_s_info)) 
-    #pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
-    #pred_data_day_v_info$method_interp <- rep(method_interp,nrow(pred_data_day_v_info)) 
-    #pred_data_day_v_info$var_interp <- rep(var_interp,nrow(pred_data_day_v_info)) 
-    #pred_data_day_v_info$tile_id <- rep(tile_id,nrow(pred_data_day_v_info)) 
-                                      
+    pred_data_day_info$tile_id <- rep(tile_id,nrow(pred_data_day_info))                                       
   }
   
   if(use_month==TRUE){
@@ -265,14 +256,6 @@ extract_daily_training_testing_info<- function(i,list_param){
     pred_data_month_info$method_interp <- rep(method_interp,nrow(pred_data_month_info)) 
     pred_data_month_info$var_interp <- rep(var_interp,nrow(pred_data_month_info)) 
     pred_data_month_info$tile_id <- rep(tile_id,nrow(pred_data_month_info)) 
-
-    #pred_data_month_s_info$method_interp <- rep(method_interp,nrow(pred_data_month_s_info)) 
-    #pred_data_month_s_info$var_interp <- rep(var_interp,nrow(pred_data_month_s_info)) 
-    #pred_data_month_s_info$tile_id <- rep(tile_id,nrow(pred_data_month_s_info)) 
-    #pred_data_month_v_info$method_interp <- rep(method_interp,nrow(pred_data_month_v_info)) 
-    #pred_data_month_v_info$var_interp <- rep(var_interp,nrow(pred_data_month_v_info)) 
-    #pred_data_month_v_info$tile_id <- rep(tile_id,nrow(pred_data_month_v_info)) 
-
   }    
     
   if(use_month==FALSE){
@@ -320,25 +303,27 @@ list_tif_fun <- function(i,in_dir_list,pattern_str){
 
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/" #On NEX
-
-#in_dir_list <- list.dirs(path=in_dir1) #get the list of directories with resutls by 10x10 degree tiles
+#/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
+in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list of directories with resutls by 10x10 degree tiles
 #use subset for now:
 
-in_dir_list <- c(
-"/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/40.0_-120.0/",
-"/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/35.0_-115.0/")
+#in_dir_list <- c(
+#"/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/40.0_-120.0/",
+#"/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/35.0_-115.0/")
   
 #in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 #in_dir_list <- as.list(in_dir_list[-1])
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 #in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/subset/shapefiles/"
+in_dir_shp_list <- list.files(in_dir_shp,".shp")
+
 #in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)] 
 #the first one is the in_dir1
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run3_global_analyses_05292014"
+out_prefix<-"run3_global_analyses_06192014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -365,6 +350,10 @@ NA_flag_val <- -9999  #No data value
 #day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates
 
 ##raster_prediction object : contains testing and training stations with RMSE and model object
+
+#l_shp <- lapply(1:length(in_dir_shp_list),FUN=function(i){paste(strsplit(in_dir_shp_list[i],"_")[[1]][2:3],collapse="_")})
+#match(l_shp,in_dir_list)
+#in_dir_list[match(in_dir_list,l_shp]
 
 list_raster_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
 basename(dirname(list_raster_obj_files[[1]]))
@@ -406,6 +395,8 @@ nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))
 #### Table 1: Average accuracy metrics
 
 #can use a maximum of 6 cores on the NEX Bridge
+#summary_metrics_v_list <- mclapply(list_raster_obj_files[5:6],FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 2)                           
+
 summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 6)                           
 names(summary_metrics_v_list) <- list_names_tile_id
 
@@ -499,7 +490,7 @@ mod_id <- c(1:(nb_mod-1),"_kr")
 pred_pattern_str <- paste(".*predicted_mod",mod_id,"_0_1.*",sep="")
 #,".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*")
 #l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*"),
-                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
+#                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
 l_pattern_models <- lapply(pred_pattern_str,
                            FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
 #gam_CAI_dailyTmax_predicted_mod_kr_0_1_20101231_30_145.0_-120.0.tif
@@ -510,8 +501,11 @@ l_pattern_models <- lapply(pred_pattern_str,
 lf_pred_tif <- vector("list",length=length(l_pattern_models)) #number of models is 3
 for (i in 1:length(l_pattern_models)){
   l_pattern_mod <- l_pattern_models[[i]] #365 dates
-  list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
+  #list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+  #                            in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
+  list_tif_files_dates <-mclapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]],mc.preschedule=FALSE,mc.cores = 6)
+  
   lf_pred_tif[[i]] <- list_tif_files_dates
 }
 
@@ -523,8 +517,8 @@ l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod3_0_1.*","_mod_kr_
 lf_clim_tif <- vector("list",length=nb_mod) #number of models is 3
 for (i in 1:length(l_pattern_models)){
   l_pattern_mod <- l_pattern_models[[i]] #12 dates
-  list_tif_files_dates <- lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
+  list_tif_files_dates <- mclapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]],mc.preschedule=FALSE,mc.cores = 6)
   lf_clim_tif[[i]] <- list_tif_files_dates
 }
 
@@ -538,8 +532,8 @@ l_pattern_models <- lapply(c(".*delta_dailyTmax_mod1_del_0_1.*",".*delta_dailyTm
 lf_delta_tif <- vector("list",length=nb_mod) #number of models is 3
 for (i in 1:length(l_pattern_models)){
   l_pattern_mod <- l_pattern_models[[i]]
-  list_tif_files_dates <- lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
+  list_tif_files_dates <- mclapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
+                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]],mc.preschedule=FALSE,mc.cores = 6)
   lf_delta_tif[[i]] <- list_tif_files_dates
 }
 
@@ -703,6 +697,7 @@ names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and
 # use_day=TRUE
 # use_month=TRUE
 # 
+
 # list_param_training_testing_info <- list(list_raster_obj_files,use_month,use_day,list_names_tile_id)
 # names(list_param_training_testing_info) <- c("list_raster_obj_files","use_month","use_day","list_names_tile_id")
 # 
@@ -719,8 +714,11 @@ names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
 
 #get shape files for the region being assessed:
-list_shp_global_tiles_files <- list.files(path=in_dir_shp,pattern="*.shp")
+#list_shp_global_tiles_files <- list.files(path=in_dir_shp,pattern="*.shp")
+#l_shp<-lapply(1:length(in_dir_shp_list),FUN=function(i){paste(strsplit(in_dir_shp_list[i],"_")[[1]][2:3],collapse="_")})
+list_shp_global_tiles_files <- l_shp
 pattern_str <- basename(in_dir_list)
+#list_shp_global_tiles_files
 list_shp_reg_files <- lapply(pattern_str,function(x){list_shp_global_tiles_files[grep(x,invert=FALSE,list_shp_global_tiles_files)]}) #select directory with shapefiles...
 df_tile_processed$shp_files <- unlist(list_shp_reg_files)
 
@@ -797,7 +795,9 @@ for (i in 1:length(list_tile_scp)){
 #copy shapefiles defining regions
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output/subset/shapefiles")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-lf_cp_shp <- list.files(in_dir_shp, ".shp",full.names=T)
+lf_cp_shp <- list.files(in_dir_shp,full.names=T) #get all the files...
+#lf_cp_shp <- list.files(in_dir_shp, ".shp",full.names=T)
+
 filenames_NEX <- paste(lf_cp_shp,collapse=" ")  #copy raster prediction object
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
@@ -811,8 +811,8 @@ filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
 
-system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
-system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
+#system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
+#system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
 system("scp -p /nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/* parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/shapefiles")
 
