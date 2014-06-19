@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 06/01/2014            
+#MODIFIED ON: 06/19/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 3 global using 2 specific tiles
@@ -69,12 +69,12 @@ create_dir_fun <- function(out_dir,out_suffix){
 #on ATLAS
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #parent output dir : contains subset of the data produced on NEX
-in_dir1 <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/output"
+in_dir1 <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output"
 # parent output dir for the curent script analyes
-out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/"
+#out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
+out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/"
 # input dir containing shapefiles defining tiles
-in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/output/subset/shapefiles"
+in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output/subset/shapefiles"
 
 #On NEX
 #contains all data from the run by Alberto
@@ -87,7 +87,7 @@ df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_
 in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run3_global_analyses_05292014"
+out_prefix<-"run3_global_analyses_06192014"
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- FALSE
@@ -102,8 +102,9 @@ if(create_out_dir_param==TRUE){
 setwd(out_dir)
                                    
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+CRS_WGS84<-c("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
-region_name <- "USA"
+region_name <- "world"
 
 ###Table 1: Average accuracy metrics
 ###Table 2: daily accuracy metrics for all tiles
@@ -116,24 +117,46 @@ df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_
 
 ###############
 ### Figure 1: plot location of the study area with tiles processed
+list_shp_world <- list.files(in_dir_shp,".shp")
+l_shp <- unlist(lapply(1:length(list_shp_world),FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][2:3],collapse="_")}))
+list_shp_reg_files <- as.character(df_tile_processed$tile_coord)
+#matching_index <- match(l_shp,list_shp_reg_files)
+matching_index <- match(list_shp_reg_files,l_shp)
+df_tile_processed$shp_files <-list_shp_world[matching_index]
 
-list_shp_reg_files <- file.path(in_dir_shp,df_tile_processed$shp_files)
-                                                                    
+df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
+list_shp_reg_files <- df_tiled_processed$shp_files
+list_shp_reg_files<- file.path(in_dir_shp,list_shp_reg_files)
+
 ### First get background map to display where study area is located
-#can make this more general later on..                                                                    
-#usa_map <- getData('GADM', country='USA', level=1) #Get US map
-usa_map <- getData('GADM', country=region_name,level=1) #Get US map, this is not working right now
-usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
-usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
+#can make this more general later on..       
+if region_name=="USA"{
+  usa_map <- getData('GADM', country='USA', level=1) #Get US map
+  #usa_map <- getData('GADM', country=region_name,level=1) #Get US map, this is not working right now
+  #usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
+  reg_layer <- usa_map[usa_map$NAME_1!="Hawaii",] #remove Hawai 
+}
+
+if region_name=="world"{
+  #http://www.diva-gis.org/Data
+  countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp"
+  path_to_shp <- dirname(countries_shp)
+  layer_name <- sub(".shp","",basename(countries_shp))
+  reg_layer <- readOGR(path_to_shp, layer_name)
+  proj4string(reg_layer) <- CRS_locs_WGS84
+  #reg_shp<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
+
+}
 
 centroids_pts <- vector("list",length(list_shp_reg_files))
 shps_tiles <- vector("list",length(list_shp_reg_files))
 #collect info: read in all shapfiles
+#This is slow...make a function and use mclapply??
 for(i in 1:length(list_shp_reg_files)){
   path_to_shp <- dirname(list_shp_reg_files[[i]])
-  layer_name <- basename(list_shp_reg_files[[i]])
+  layer_name <- sub(".shp","",basename(list_shp_reg_files[[i]]))
   shp1 <- readOGR(path_to_shp, layer_name)
-  shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
+  #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
   pt <- gCentroid(shp1)
   centroids_pts[[i]] <-pt
   shps_tiles[[i]] <- shp1
@@ -144,10 +167,10 @@ res_pix <- 480
 col_mfrow <- 1
 row_mfrow <- 1
 
-png(filename=paste("Figure1_tile_processed_region_",out_prefix,".png",sep=""),
+png(filename=paste("Figure1_tile_processed_region_",region_name,"_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(usa_map_2)
+plot(reg_layer)
 #Add polygon tiles...
 for(i in 1:length(list_shp_reg_files)){
   shp1 <- shps_tiles[[i]]
@@ -237,7 +260,7 @@ dev.off()
 #y_var_name <-"dailyTmax"
 #index <-244 #index corresponding to Sept 1
 index  <- 1 #index corresponding to Jan 1
-date_selected <- "20100101"
+date_selected <- "20100901"
 name_method_var <- paste(interpolation_method,"_",y_var_name,"_",sep="")
 
 pattern_str <- paste("mosaiced","_",name_method_var,"predicted",".*.",date_selected,".*.tif",sep="")
@@ -251,7 +274,7 @@ for(i in 1:length(lf_pred_list)){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png(filename=paste("Figure4_models_predicted_surfaces_",model_name[i],"_",name_method_var,out_prefix,".png",sep=""),
+  png(filename=paste("Figure4_models_predicted_surfaces_",model_name[i],"_",name_method_var,"_",data_selected,"_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   plot(r_pred)
@@ -260,9 +283,37 @@ for(i in 1:length(lf_pred_list)){
   
 }
 
-## plotting of delta and clim for later scripts...
+####### Figure 5...
+### Adding tiles do a plot of mod1 with tiles
+
+r_pred <- raster(lf_pred_list[i])
+  
+res_pix <- 480
+col_mfrow <- 1
+row_mfrow <- 1
+  
+png(filename=paste("Figure5_tiles_with_models_predicted_surfaces_",model_name[i],"_",name_method_var,out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+plot(r_pred)
+title(paste("Mosaiced",model_name[i],name_method_var,date_selected,"with tiles",sep=" "))
+
+#Add polygon tiles...
+for(i in 1:length(list_shp_reg_files)){
+  shp1 <- shps_tiles[[i]]
+  pt <- centroids_pts[[i]]
+  plot(shp1,add=T,border="blue")
+  #plot(pt,add=T,cex=2,pch=5)
+  label_id <- df_tile_processed$tile_id[i]
+  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
+}
+#title(paste("Prediction with tiles location 10x10 degrees for ", region_name,sep=""))
+dev.off()
+
+### 
 
 #### Now combined plot...
+#Use the function to match extent...
 
 #pred_s <- stack(lf_list) #problem different extent!!
 #methods_names <-c("gam","kriging","gwr")
@@ -295,12 +346,13 @@ for(i in 1:length(lf_pred_list)){
 #dev.off()
 
 ######################
-### Figure 5: plot map of average RMSE per tile at centroids
+### Figure 6: plot map of average RMSE per tile at centroids
 
 #Turn summary table to a point shp
 
 coordinates(summary_metrics_v) <- cbind(summary_metrics_v$lon,summary_metrics_v$lat)
 proj4string(summary_metrics_v) <- CRS_WGS84
+lf_list <- lf_pred_list
 list_df_ac_mod <- vector("list",length=length(lf_pred_list))
 for (i in 1:length(lf_list)){
   
@@ -311,7 +363,7 @@ for (i in 1:length(lf_list)){
   col_mfrow <- 1
   row_mfrow <- 1
 
-  png(filename=paste("Figure5_ac_metrics_map_centroids_tile_",model_name[i],"_",out_prefix,".png",sep=""),
+  png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_pred)  
@@ -332,7 +384,12 @@ for (i in 1:length(lf_list)){
 #autokrige(rmse~1,r2,)
 
 ######################
-### Figure 6: Histograms...
+### Figure 7: Delta and clim...
+
+## plotting of delta and clim for later scripts...
+
+######################
+### Figure 8: Histograms...
 
 
 ##################### END OF SCRIPT ######################
