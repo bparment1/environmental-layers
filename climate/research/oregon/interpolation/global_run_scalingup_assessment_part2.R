@@ -84,7 +84,7 @@ in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
 
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
-in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
+#in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
 out_prefix<-"run3_global_analyses_06192014"
@@ -111,7 +111,9 @@ region_name <- "world"
 #lf_tables <- list.files(out_dir,)
 summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
-df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
+df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=","),paste("pred_data_month_info_",out_prefix,".txt",sep="")) <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
+pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
+pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 
 ########################## START SCRIPT ##############################
 
@@ -123,9 +125,10 @@ list_shp_reg_files <- as.character(df_tile_processed$tile_coord)
 #matching_index <- match(l_shp,list_shp_reg_files)
 matching_index <- match(list_shp_reg_files,l_shp)
 df_tile_processed$shp_files <-list_shp_world[matching_index]
+list_shp_reg_files <- df_tile_processed$shp_files
 
-df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
-list_shp_reg_files <- df_tiled_processed$shp_files
+#df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
+#list_shp_reg_files <- df_tiled_processed$shp_files
 list_shp_reg_files<- file.path(in_dir_shp,list_shp_reg_files)
 
 ### First get background map to display where study area is located
@@ -133,7 +136,7 @@ list_shp_reg_files<- file.path(in_dir_shp,list_shp_reg_files)
 if region_name=="USA"{
   usa_map <- getData('GADM', country='USA', level=1) #Get US map
   #usa_map <- getData('GADM', country=region_name,level=1) #Get US map, this is not working right now
-  #usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
+  usa_map <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
   reg_layer <- usa_map[usa_map$NAME_1!="Hawaii",] #remove Hawai 
 }
 
@@ -161,6 +164,7 @@ for(i in 1:length(list_shp_reg_files)){
   centroids_pts[[i]] <-pt
   shps_tiles[[i]] <- shp1
 }
+
 
 #plot info: with labels
 res_pix <- 480
@@ -389,7 +393,60 @@ for (i in 1:length(lf_list)){
 ## plotting of delta and clim for later scripts...
 
 ######################
-### Figure 8: Histograms...
+### Figure 9: Plot the number of stations in a processing tile
 
+dd <- merge(df_tile_processed,pred_data_month_info,"tile_id")
+coordinates(dd) <- c(dd$x,dd$y)
+
+## Make this a function later...
+list_shp_tmp <- vector("list",length(shps_tiles))
+for(i in 1:length(shps_tiles)){
+  #test=spRbind(shps_tiles[[1]],shps_tiles[[2]])
+  shp1 <- shps_tiles[[i]]
+
+  ID_str <- unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]
+  shp1$FID <- ID_str
+  shp1<- spChFIDs(shp1, as.character(shp1$FID)) #assign ID
+  list_shp_tmp[[i]]  <-shp1
+}
+
+combined_shp <- list_shp_tmp[[1]]
+for(i in 2:length(list_shp_tmp)){
+  combined_shp <- rbind(combined_shp,list_shp_tmp[[i]])
+  #sapply(slot(shps_tiles[[2]], "polygons"), function(x) slot(x, "ID"))
+  #rownames(as(alaska.tract, "data.frame"))
+}
+
+combined_shp$tile_id <- df_tile_processed$tile_id
+ 
+test <- combined_shp
+test2 <- merge(test,pred_data_month_info, by="tile_id")
+
+r <- raster(lf_pred_list[i])
+
+plot(combined_shp)
+# polygons
+plot(combined_shp, col = fillColour, border = outlineColour)
+
+p0 <- spplot(combined_shp, "Stations",col.regions=matlab.like(100))
+p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+p0 +p1
+
+### Now plot number of training for monthly data
+
+df_dat <- subset(pred_data_month_info, pred_mod == "mod1" & date =="20100115")
+#shp_dat <-merge(combined_shp,df_dat,by="tile_id")
+shp_dat <-merge(x=combined_shp,y=df_dat,by="tile_id",all.x=T) #if tile is missing then add rows with NA
+#shp_dat <- merge(shp_dat,df_tile_processed,by="tile_id")
+#coordinates(shp_dat) <- cbind(shp_dat$lon,shp_dat$lat) 
+#proj4string(shp_dat) <- CRS_WGS84
+  
+#test <- overlay(combined_shp,shp_dat)
+pol <- SpatialPolygons(combined_shp@polygons,proj4string=CRS(CRS_WGS84))
+spp <- SpatialPolygonsDataFrame(pol,data=shp_dat)
+
+p0 <- spplot(spp, "n_mod",col.regions=matlab.like(100))
+p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+p0 +p1
 
 ##################### END OF SCRIPT ######################
