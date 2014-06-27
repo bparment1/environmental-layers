@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 06/19/2014            
+#MODIFIED ON: 06/27/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -61,7 +61,7 @@ create_dir_fun <- function(out_dir,out_suffix){
     out_name <- paste("output_",out_suffix,sep="")
     out_dir <- file.path(out_dir,out_name)
   }
-  #create if does not exists
+  #create if does not exists: create the output dir as defined 
   if(!file.exists(out_dir)){
     dir.create(out_dir)
   }
@@ -158,11 +158,11 @@ mosaic_m_raster_list<-function(j,list_param){
 
 ### Function:
 pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
-  #Summarizing input info
+  #Summarizing input info from sampling and df used in training/testing
     
   data <- list_data[[k]]
   sampling_dat <- sampling_dat_info[[k]]
-  if(data_day!="try-error"){
+  if(data!="try-error"){
     n <- nrow(data)
     n_mod <- vector("numeric",length(pred_mod))
     for(j in 1:length(pred_mod)){
@@ -188,10 +188,9 @@ pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
   return(df_n)
 }
 
-extract_daily_training_testing_info<- function(i,list_param){
+extract_daily_training_testing_info <- function(i,list_param){
   #This function extracts training and testing information from the raster object produced for each tile
   #This is looping through tiles...
-  
   ##Functions used
   #Defined outside this script:
   #pred_data_info_fun
@@ -220,6 +219,8 @@ extract_daily_training_testing_info<- function(i,list_param){
     list_data_day_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_v"))
     list_data_day_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_s"))
     sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
+    #debug(pred_data_info_fun)
+    #list_pred_data_day_s_info <- pred_data_info_fun(1,list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
     list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
            list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
     list_pred_data_day_v_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
@@ -242,16 +243,24 @@ extract_daily_training_testing_info<- function(i,list_param){
     sampling_dat_month <- extract_list_from_list_obj(raster_obj$clim_method_mod_obj,"sampling_month_dat")
     list_pred_data_month_s_info <- lapply(1:length(sampling_dat_month),FUN=pred_data_info_fun,
            list_data=list_data_month_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_month)
-    list_pred_data_month_v_info <- lapply(1:length(sampling_dat_month),FUN=pred_data_info_fun,
-           list_data=list_data_month_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_month)
-    
+    list_pred_data_month_v_info <- mclapply(1:length(sampling_dat_month),FUN=pred_data_info_fun,
+           list_data=list_data_month_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_month,mc.preschedule=FALSE,mc.cores = 1)
+    #Note for list_pred_data_month_v_info it will be try-error when there is no holdout.
     #combine training and testing later? also combined with accuracy
     pred_data_month_s_info <- do.call(rbind,list_pred_data_month_s_info)
-    pred_data_month_v_info <- do.call(rbind,list_pred_data_month_v_info)
-    
-    pred_data_month_v_info$training <- rep(0,nrow(pred_data_month_v_info))
-    pred_data_month_s_info$training <- rep(1,nrow(pred_data_month_v_info))
-    pred_data_month_info <- rbind(pred_data_month_v_info,pred_data_month_s_info)
+    #Adding a column for training: if data item used as training then it is 1
+    pred_data_month_s_info$training <- try(rep(1,nrow(pred_data_month_s_info)))
+
+    #Remove try-error??
+    list_pred_data_month_v_info_tmp <- remove_from_list_fun(list_pred_data_month_v_info)
+    list_pred_data_month_v_info <- list_pred_data_month_v_info_tmp$list
+    if (length(list_pred_data_month_v_info)>0){
+      pred_data_month_v_info <- do.call(rbind,list_pred_data_month_v_info)
+      pred_data_month_v_info$training <- try(rep(0,nrow(pred_data_month_v_info)))
+      pred_data_month_info <- rbind(pred_data_month_v_info,pred_data_month_s_info)
+    }else{
+      pred_data_month_info <- pred_data_month_s_info
+    }
     
     pred_data_month_info$method_interp <- rep(method_interp,nrow(pred_data_month_info)) 
     pred_data_month_info$var_interp <- rep(var_interp,nrow(pred_data_month_info)) 
@@ -263,13 +272,12 @@ extract_daily_training_testing_info<- function(i,list_param){
   }
   if(use_day==FALSE){
     pred_data_day_info <- NULL
-  }
-  
+  }  
   #prepare object to return
   pred_data_info_obj <- list(pred_data_month_info,pred_data_day_info)
   names(pred_data_info_obj) <- c("pred_data_month_info","pred_data_day_info")
   #could add data.frame data_s and data_v later...
-
+  ###
   return(pred_data_info_obj)
 }
 
@@ -341,7 +349,7 @@ if(create_out_dir_param==TRUE){
 
 setwd(out_dir)
                                    
-CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
 day_to_mosaic <- c("20100101","20100901")
 file_format <- ".tif" #format for mosaiced files
@@ -471,6 +479,41 @@ write.table((tb_diagnostic_v_NA),
 ### with also data_s and data_v saved!!!
 
 #Insert here...compute input and predicted ranges to spot potential errors?
+
+######################################################
+####### PART 4: Get shapefile tiling with centroids ###
+
+#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
+
+#get shape files for the region being assessed:
+list_shp_global_tiles_files <- list.files(path=in_dir_shp,pattern="*.shp")
+l_shp<-lapply(1:length(in_dir_shp_list),FUN=function(i){paste(strsplit(in_dir_shp_list[i],"_")[[1]][2:3],collapse="_")})
+list_shp_global_tiles_files <- l_shp
+pattern_str <- basename(in_dir_list)
+list_shp_global_tiles_files
+list_shp_reg_files <- lapply(pattern_str,function(x){list_shp_global_tiles_files[grep(x,invert=FALSE,list_shp_global_tiles_files)]}) #select directory with shapefiles...
+df_tile_processed$shp_files <- unlist(list_shp_reg_files)
+
+tx<-strsplit(as.character(df_tile_processed$tile_coord),"_")
+lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
+long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
+df_tile_processed$lat <- lat
+df_tile_processed$lon <- long
+
+list_shp_world <- list.files(in_dir_shp,".shp")
+l_shp <- unlist(lapply(1:length(list_shp_world),FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][2:3],collapse="_")}))
+list_shp_reg_files <- as.character(df_tile_processed$tile_coord)
+#matching_index <- match(l_shp,list_shp_reg_files)
+matching_index <- match(list_shp_reg_files,l_shp)
+df_tile_processed$shp_files <-list_shp_world[matching_index]
+
+df_tile_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
+list_shp_reg_files <- df_tile_processed$shp_files
+list_shp_reg_files<- file.path(in_dir_shp,list_shp_reg_files)
+
+#put that list in the df_processed and also the centroids!!
+write.table(df_tile_processed,
+            file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 
 ######################################################
 ####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY, Delta surfaces and clim ###
@@ -694,45 +737,47 @@ names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and
 # names(robj1$validation_mod_day_obj[[1]]$data_s) # daily for January with predictions
 # dim(robj1$validation_mod_month_obj[[1]]$data_s) # daily for January with predictions
 # 
-# use_day=TRUE
-# use_month=TRUE
-# 
 
-# list_param_training_testing_info <- list(list_raster_obj_files,use_month,use_day,list_names_tile_id)
-# names(list_param_training_testing_info) <- c("list_raster_obj_files","use_month","use_day","list_names_tile_id")
-# 
-# list_param <- list_param_training_testing_info
-# 
-# pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
-# 
-# pred_data_month_info <- do.call(rbind,lapply(pred_data_info,function(x){x$pred_data_month_info}))
-# pred_data_day_info <- do.call(rbind,lapply(pred_data_info,function(x){x$pred_data_day_info}))
+use_day=TRUE
+use_month=TRUE
+ 
+#list_raster_obj_files <- c("/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-100.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-100.0.RData",
+#                    "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-105.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-105.0.RData")
 
-######################################################
-####### PART 4: Get shapefile tiling with centroids ###
+list_names_tile_id <- df_tile_processed$tile_id
+list_raster_obj_files[list_names_tile_id]
+#list_names_tile_id <- c("tile_1","tile_2")
+list_param_training_testing_info <- list(list_raster_obj_files[list_names_tile_id],use_month,use_day,list_names_tile_id)
+names(list_param_training_testing_info) <- c("list_raster_obj_files","use_month","use_day","list_names_tile_id")
+ 
+list_param <- list_param_training_testing_info
+#debug(extract_daily_training_testing_info)
+#pred_data_info <- extract_daily_training_testing_info(1,list_param=list_param_training_testing_info)
+pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = 6)
+#pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id][1:6]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = 6)
+#pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
+#pred_data_info <- lapply(1:length(list_raster_obj_files[1]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
 
-#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
+pred_data_info_tmp <- remove_from_list_fun(pred_data_info)$list #remove data not predicted
+##Add tile nanmes?? it is alreaready there
+#names(pred_data_info)<-list_names_tile_id
+pred_data_month_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_month_info}))
+pred_data_day_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_day_info}))
 
-#get shape files for the region being assessed:
-#list_shp_global_tiles_files <- list.files(path=in_dir_shp,pattern="*.shp")
-#l_shp<-lapply(1:length(in_dir_shp_list),FUN=function(i){paste(strsplit(in_dir_shp_list[i],"_")[[1]][2:3],collapse="_")})
-list_shp_global_tiles_files <- l_shp
-pattern_str <- basename(in_dir_list)
-#list_shp_global_tiles_files
-list_shp_reg_files <- lapply(pattern_str,function(x){list_shp_global_tiles_files[grep(x,invert=FALSE,list_shp_global_tiles_files)]}) #select directory with shapefiles...
-df_tile_processed$shp_files <- unlist(list_shp_reg_files)
-
-tx<-strsplit(as.character(df_tile_processed$tile_coord),"_")
-lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
-long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
-df_tile_processed$lat <- lat
-df_tile_processed$lon <- long
-
-#put that list in the df_processed and also the centroids!!
-write.table(df_tile_processed,
-            file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
+#putput inforamtion in csv !!
+write.table(pred_data_month_info,
+            file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
+write.table(pred_data_day_info,
+            file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 
 ########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
+
+### This assumes the tree structure has been replicated on Atlas:
+#for i in 1:length(df_tiled_processed$tile_coord)
+output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
+#for (i in 1:length(df_tiled_processed$tile_coord)){
+#  create_dir_fun(file.path(output_atlas_dir,as.character(df_tiled_processed$tile_coord[i])),out_suffix=NULL)
+#}  
 
 #### FIRST COPY DATA FOR SPECIFIC TILES #####
 #Copy specific tiles info back...This assumes that the tree structre 
@@ -741,8 +786,8 @@ write.table(df_tile_processed,
 
 list_tile_scp <- c(1,2)
 
-for (i in 1:length(list_tile_scp)){
-  tile_nb <- list_tile_scp[i]
+for (j in 1:length(list_tile_scp)){
+  tile_nb <- list_tile_scp[j]
   #nb_mod <- 3+1 #set up earlier
   date_selected <- c("20100101","20100901") #should be set up earlier
   date_index <- c(1,244) #list_day??
@@ -750,7 +795,9 @@ for (i in 1:length(list_tile_scp)){
 
   in_dir_tile <- basename(df_tile_processed$path_NEX[tile_nb])
   #/data/project/layers/commons/NEX_data/output_run2_05122014/output
-  Atlas_dir <- file.path(file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output"),in_dir_tile)
+  #output_atlas_dir
+  #Atlas_dir <- file.path(file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output"),in_dir_tile)
+  Atlas_dir <- file.path(output_atlas_dir,in_dir_tile)
   Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
   #filenames_NEX <- list_raster_obj_files[tile_nb] #copy raster prediction object
   #cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
