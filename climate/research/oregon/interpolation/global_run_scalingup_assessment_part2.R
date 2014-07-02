@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 06/19/2014            
+#MODIFIED ON: 07/02/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 3 global using 2 specific tiles
@@ -133,11 +133,15 @@ list_shp_reg_files<- file.path(in_dir_shp,list_shp_reg_files)
 
 ### First get background map to display where study area is located
 #can make this more general later on..       
-if region_name=="USA"{
-  usa_map <- getData('GADM', country='USA', level=1) #Get US map
+if region_name=="reg1"{
+  usa_map <- getData('GADM', country=c('USA'), level=1) #Get US map
+  can_map <- getData('GADM', country=c('CAN'), level=1) #Get Canada map
+  mex_map <- getData('GADM', country=c('MEX'), level=1) #Get Mexico map
+  
   #usa_map <- getData('GADM', country=region_name,level=1) #Get US map, this is not working right now
   usa_map <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
-  reg_layer <- usa_map[usa_map$NAME_1!="Hawaii",] #remove Hawai 
+  usa_map <- usa_map[usa_map$NAME_1!="Hawaii",] #remove Hawai 
+  #reg_layer <- combine all three?
 }
 
 if region_name=="world"{
@@ -375,7 +379,7 @@ for (i in 1:length(lf_list)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,add=T)
   #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
-  title(paste("Averrage RMSE per tile and by ",model_name[i]))
+  title(paste("Average RMSE per tile and by ",model_name[i]))
 
   dev.off()
   
@@ -395,42 +399,58 @@ for (i in 1:length(lf_list)){
 ######################
 ### Figure 9: Plot the number of stations in a processing tile
 
-dd <- merge(df_tile_processed,pred_data_month_info,"tile_id")
-coordinates(dd) <- c(dd$x,dd$y)
+## Get ID from tile number...
+ID_str <- unlist(lapply(1:nrow(df_tile_processed),function(i){unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]}))
 
-## Make this a function later...
-list_shp_tmp <- vector("list",length(shps_tiles))
-for(i in 1:length(shps_tiles)){
-  #test=spRbind(shps_tiles[[1]],shps_tiles[[2]])
-  shp1 <- shps_tiles[[i]]
-
-  ID_str <- unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]
-  shp1$FID <- ID_str
-  shp1<- spChFIDs(shp1, as.character(shp1$FID)) #assign ID
-  list_shp_tmp[[i]]  <-shp1
+assign_FID_spatial_polygons_df <-function(list_spdf,ID_str=NULL){
+  list_spdf_tmp <- vector("list",length(list_spdf))
+  if(is.null(ID_str)){
+    nf <- 0 #number of features
+    #for(i in 1:length(spdf)){
+    #    shp1 <- list_spdf[[i]]
+    #    f <- nrow(shp1)
+    #    nf <- nf + f
+    #}
+    #This assumes that the list has one feature per item list
+    nf <- length(list_spdf)
+    ID_str <- as.character(1:nf)
+  }
+  for(i in 1:length(list_spdf)){
+    #test=spRbind(shps_tiles[[1]],shps_tiles[[2]])
+    shp1 <- list_spdf[[i]]
+    shp1$FID <- ID_str
+    shp1<- spChFIDs(shp1, as.character(shp1$FID)) #assign ID
+    list_spdf_tmp[[i]]  <-shp1
+  }
+  return(list_spdf_tmp)
 }
 
-combined_shp <- list_shp_tmp[[1]]
-for(i in 2:length(list_shp_tmp)){
-  combined_shp <- rbind(combined_shp,list_shp_tmp[[i]])
-  #sapply(slot(shps_tiles[[2]], "polygons"), function(x) slot(x, "ID"))
-  #rownames(as(alaska.tract, "data.frame"))
+combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
+  if(is.null(ID_str)){
+    #call function
+    list_spdf_tmp <- assign_FID_spatial_polygons_df
+  }
+  combined_spdf <- list_spdf_tmp[[1]]
+  for(i in 2:length(list_spdf_tmp)){
+    combined_spdf <- rbind(combined_spdf,list_spdf_tmp[[i]])
+    #sapply(slot(shps_tiles[[2]], "polygons"), function(x) slot(x, "ID"))
+    #rownames(as(alaska.tract, "data.frame"))
+  }
+  return(combined_spdf)
 }
 
 combined_shp$tile_id <- df_tile_processed$tile_id
  
-test <- combined_shp
-test2 <- merge(test,pred_data_month_info, by="tile_id")
-
 r <- raster(lf_pred_list[i])
 
 plot(combined_shp)
-# polygons
-plot(combined_shp, col = fillColour, border = outlineColour)
 
 p0 <- spplot(combined_shp, "Stations",col.regions=matlab.like(100))
-p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-p0 +p1
+p1 <- spplot(usa_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+p2 <- spplot(can_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+p3 <- spplot(mex_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+
+p0 +p1+p2+p3
 
 ### Now plot number of training for monthly data
 
@@ -446,7 +466,13 @@ pol <- SpatialPolygons(combined_shp@polygons,proj4string=CRS(CRS_WGS84))
 spp <- SpatialPolygonsDataFrame(pol,data=shp_dat)
 
 p0 <- spplot(spp, "n_mod",col.regions=matlab.like(100))
-p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-p0 +p1
+#p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+p0 + p1 + p2 + p3
+
+######################
+### Figure 10: Plot the number of stations in a processing tile
+
+boxplot(n_mod~tile_id,pred_data_month_info)
+boxplot(n_mod~date,pred_data_month_info)
 
 ##################### END OF SCRIPT ######################
