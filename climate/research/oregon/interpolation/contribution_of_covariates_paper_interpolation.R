@@ -4,7 +4,7 @@
 #different covariates using two baselines. Accuracy methods are added in the the function script to evaluate results.
 #Figures, tables and data for the contribution of covariate paper are also produced in the script.
 #AUTHOR: Benoit Parmentier                                                                      
-#MODIFIED ON: 05/21/2014            
+#MODIFIED ON: 07/03/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -65,7 +65,7 @@ infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 y_var_name <- "dailyTmax"
-out_prefix<-"_05252014"
+out_prefix<-"_07032014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_contribution_covar_analyses_tables_fig"
 setwd(out_dir)
 
@@ -1190,6 +1190,104 @@ write.table(corr_mat,file=file_name,sep=",")
 #stat_loc<-readOGR(dsn=in_dir1,layer=sub(".shp","",basename(met_obj$loc_stations)))
 #dim(stat_loc)      
 
+############################
+#### Figure 9: variograms for 2 dates  and model 1 ###
+      
+#Make a function to extract and plot variogram models...one per day and model
+#plot.gstatVariogram
+#Plot a sample variogram, and possibly a fitted model
+#model 1 lat,lon and elev
+layout_m<-c(1,1) # works if set to this?? ok set the resolution...
+      
+date_selected <- c("20100101","20100901")
+png(paste("Figure9_paper_","_variogram_",date_selected[1],"_",date_selected[2],"_",out_prefix,".png", sep=""),
+    height=960*layout_m[1],width=960*layout_m[2])
+    #height=480*6,width=480*4)
+
+#p3 <- list_plots_spt[[3]]
+p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$var_model)
+#plot(p1)
+p241<-plot(raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$var_model)
+#plot(p241)
+
+#grid.arrange(p1,p2,p3,ncol=1)
+grid.arrange(p1,p241,ncol=1)
+
+dev.off()
+#Combine both plot?     + plot info on sill, nugget and range? and most frequent model selected
+
+      
+###########################################
+### Figure 10: map of residuals...for a specific date...
+index <- 244
+names_mod <- names(raster_prediction_obj_2$method_mod_obj[[index]][[y_var_name]]) #names of models to plot
+#in_dir2 <-"/home/parmentier/Data/IPLANT_project/Oregon_interpolation/Oregon_03142013/output_data_365d_gam_day_lst_comb4_08152013"
+#date_selected <-  c("20100101")
+date_selected <-  c("20100901")
+
+data_v <-raster_prediction_obj_2$validation_mod_obj[[index]]$data_v #testing with residuals
+#data_s<-validation_mod_obj[[index]]$data_s
+date_proc<-strptime(date_selected, "%Y%m%d")   # interpolation date being processed
+mo<-as.integer(strftime(date_proc, "%m"))          # current month of the date being processed
+day<-as.integer(strftime(date_proc, "%d"))
+year<-as.integer(strftime(date_proc, "%Y"))
+datelabel=format(ISOdate(year,mo,day),"%b %d, %Y")
+
+    #height=480*6,width=480*4)
+list_p <- vector("list", length(names_mod))
+for (k in 1:length(names_mod)){
+  model_name <- names_mod[k]
+  #fig_name <- file.path(out_path,paste("Figure_residuals_map_",y_var_name,"_",model_name,"_",sampling_dat$date,"_",sampling_dat$prop,"_",
+  #                             sampling_dat$run_samp,out_prefix,".png", sep=""))
+    
+  png(file.path(out_dir,paste("Figure_residuals_map_",y_var_name,"_",model_name,"_",date_selected,out_prefix,".png", sep="")))
+  res_model_name <- paste("res",model_name,sep="_")
+  elev <- subset(s_raster,"elev_s")
+  #p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,col.regions=rev(terrain.colors(255)),contour=T)
+  #add legend..par.settings = GrTheme
+  cx <- ((data_v[[res_model_name]])*2)
+  #p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
+
+  #p2 <- spplot(data_v,res_model_name, cex=1 * cx,main=paste("Residuals for ",res_model_name," ",datelabel,sep=""),
+  #             col.regions=matlab.like(25))
+  p2 <- bubble(data_v,res_model_name, main=paste("Residuals for ",res_model_name," ",datelabel,sep=""),
+               col.regions=matlab.like(25))  
+  p3 <- p2 + p1 + p2 #to force legend...
+  #p1 <- spplot(interp_area)
+  #p3 <- p1+p2 #to force legend...
+  #p + layer(sp.lines(mapaSHP, lwd=0.8, col='darkgray'))
+
+  #p2
+  print(p3)
+
+  dev.off()
+  list_p[[k]] <- p3
+}
+
+layout_m<-c(2,5) # works if set to this?? ok set the resolution...
+png(paste("Figure10_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+
+grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],list_p[[4]],list_p[[5]],
+             list_p[[6]],list_p[[7]],list_p[[8]],list_p[[9]],list_p[[10]],ncol=5)
+      
+dev.off()   
+
+      
+list_data_v <- lapply(1:365,function(i){raster_prediction_obj_2$validation_mod_obj[[i]]$data_v} #testing with residuals
+
+test <- do.call(rbind,list_data_v)        
+                
+plot(res_mod1~elev,data=test)                    
+plot(res_mod2~elev,data=test)                    
+cor(test$res_mod1,test$elev)
+cor(test$res_mod2,test$elev,use="complete.obs") #decrease in corellation when using elev
+cor(test$res_mod1,test$LST,,use="complete.obs")
+cor(test$res_mod5,test$LST,use="complete.obs") #decrease in correlation when using LST
+
+plot(res_mod1~LST,data=test)                    
+plot(res_mod9~LST,data=test)                    
+                     
 ###################### END OF SCRIPT #######################
 
 
