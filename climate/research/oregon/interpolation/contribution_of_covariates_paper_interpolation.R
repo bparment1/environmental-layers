@@ -973,110 +973,6 @@ plot(diff,col=temp.colors(100),main=names_layers)
 #          names.attr=names_layers,col.regions=temp.colors)
 dev.off
 
-######## NOW GET A ACCURACY BY STATIONS
-
-list_data_s <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_s")
-list_data_v <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_v")
-
-#number of observations per day
-year_nbv <- sapply(list_data_v,FUN=length)
-year_nbs <- sapply(list_data_s,FUN=length)
-nb_df <- data.frame(nv=year_nbv,ns=year_nbs)
-nb_df$n_tot <- year_nbv + year_nbs
-range(nb_df$n_tot)
-
-data_v_test <- list_data_v[[1]]
-
-#Convert sp data.frame and combined them in one unique df, see function define earlier
-data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
-names_var<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7","res_mod8")
-
-limit_val<- c(-30,-2.57,0,2.57,30)
-data_v_combined$res_mod1_rc1 <- cut(data_v_combined$res_mod1,include.lowest=TRUE,breaks=limit_val)
-data_v_combined$res_mod1_rc1
-
-t<-melt(data_v_combined,
-        measure=names_var, 
-        id=c("res_mod1_rc1","id"),
-        na.rm=T)
-
-n_tb<-cast(t,res_mod1_rc1+id~variable,length)
-n_tb_tot <-cast(t,id~variable,length) #number of times the stations was used for validation
-
-merge(n_tb$id
-dim(n_tb)
-#mae_tb <-cast(t,dst_cat1~variable,mae_fun)
-#rmse_tb <-cast(t,dst_cat1~variable,rmse_fun)
-#sd_abs_tb<-cast(t,dst_cat1~variable,sd_abs_fun)
-
-#avg_tb<-cast(t,dst_cat1~variable,mean)
-#sd_tb<-cast(t,dst_cat1~variable,sd)
-
-t<-melt(data_v_combined,
-        measure=names_var, 
-        id=c("id"),
-        na.rm=T)
-
-hist(data_v_combined)
-names(data_v_combined)
-
-mae_fun<-function(x){mean(abs(x))} #Mean Absolute Error give a residuals vector
-sd_abs_fun<-function(x){sd(abs(x))} #sd Absolute Error give a residuals vector
-
-mae_tb<-cast(t,id~variable,mae_fun) #join to station location...
-
-sd_abs_tb<-cast(t,dst_cat1~variable,sd_abs_fun)
-
-#avg_tb<-cast(t,dst_cat1~variable,mean)
-#sd_tb<-cast(t,dst_cat1~variable,sd)
-#n_tb<-cast(t,dst_cat1~variable,length)
-
-met_obj <-load_obj(file.path(in_dir1,met_obj_file_1))
-stat_loc<-readOGR(dsn=in_dir1,layer=sub(".shp","",basename(met_obj$loc_stations)))
-
-data_v_mae <-merge(mae_tb,stat_loc,by.x=c("id"),by.y=c("STAT_ID"))
-hist(data_v_mae$res_mod1)
-mean(data_v_mae$res_mod1)
-
-coords<- data_v_mae[c('longitude','latitude')]              #Define coordinates in a data frame
-CRS_interp<-proj4string(data_v_test)
-coordinates(data_v_mae)<-coords                      #Assign coordinates to the data frame
-proj4string(data_v_mae)<- proj4string(stat_loc)                #Assign coordinates reference system in PROJ4 format
-data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to new coord. system
-
-p<-bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE)
-#p<-bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE,key.entries=c(1,1.5,2,2.5,3,3.5,4,4.5))
-
-p
-
-infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
-reg_outline <- readOGR(dsn=dirname(infile_reg_outline),layer=sub(".shp","",basename(infile_reg_outline)))
-
-p + layer(sp.polygons(reg_outline,lwd=0.9,col="darkgray"))
-
-p4<-bubble(data_v_mae,"res_mod4",maxsize=4,col=c("red"),fill=FALSE)
-p4 + layer(sp.polygons(reg_outline,lwd=0.9,col="darkgray"))
-
-col_t <- colorRampPalette(c('blue', 'white', 'red'))
-
-p_elev <-levelplot(subset(s_raster,"elev_s"),margin=FALSE)
-p4 <-bubble(data_v_mae[data_v_mae$res_mod4>2.134,],"res_mod4",maxsize=4,col=c("blue"),fill=FALSE)
-p_elev + p4 + layer(sp.polygons(reg_outline,lwd=0.9,col="green"))
-title("mod4")
-
-p_elev <-levelplot(subset(s_raster,"elev_s"))
-p1 <-bubble(data_v_mae[data_v_mae$res_mod1>2.109,],"res_mod1",maxsize=4,col=c("blue"),fill=FALSE)
-p_elev + p1 + layer(sp.polygons(reg_outline,lwd=0.9,col="green"))
-#bubble(data_v_mae,"res_mod1")
-#p<-spplot(data_v_mae,"res_mod1",maxsize=4,col=c("red"))
-#p
-#stations that are outliers in one but not the other...
-id_setdiff<-setdiff(data_v_mae[data_v_mae$res_mod1>2.109,]$id,data_v_mae[data_v_mae$res_mod4>2.134,]$id)
-
-data_id_setdiff <- data_v_mae[data_v_mae$id %in% id_setdiff,]
-
-p_elev +layer(sp.polygons(reg_outline,lwd=0.9,col="green")) + layer(sp.points(data_id_setdiff,pch=4,cex=2,col="pink"))
-
 ###############################
 ########## Prepare table 6
 # Now get p values and other things...
@@ -1205,7 +1101,7 @@ png(paste("Figure9_paper_","_variogram_",date_selected[1],"_",date_selected[2],"
     #height=480*6,width=480*4)
 
 #p3 <- list_plots_spt[[3]]
-p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$var_model)
+p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$var_model,justPosition=F)
 #plot(p1)
 p241<-plot(raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$var_model)
 #plot(p241)
@@ -1216,6 +1112,33 @@ grid.arrange(p1,p241,ncol=1)
 dev.off()
 #Combine both plot?     + plot info on sill, nugget and range? and most frequent model selected
 
+list_kg_var_model <- lapply(1:365,function(i){raster_prediction_obj_3$method_mod_obj[[i]]$mod[[1]]$var_model})
+list_kg_var_model <- lapply(1:365,function(i){raster_prediction_obj_3$method_mod_obj[[i]]$mod[[1]]$var_model})
+
+list_kg_var_model
+   
+test <- do.call(rbind,list_kg_var_model)
+tb_variogram <- subset(test,model!="Nug")      
+tt2 <- subset(test,model=="Nug")      
+tb_variogram["Nug"] <- (tt2$psill)
+
+add_month_tag<-function(tb){
+  date<-strptime(tb$date, "%Y%m%d")   # interpolation date being processed
+  month<-strftime(date, "%m")          # current month of the date being processed
+}
+
+dates<-(extract_from_list_obj(raster_prediction_obj_1$method_mod_obj,"sampling_dat"))$date #get vector of dates
+tb_variogram["date"] <- dates
+tb_variogram$month <- add_month_tag(tb_variogram)
+#add dates and month??
+histogram(tt1$model)      
+#hist(tt1$range)
+#hist(tt1$psill)
+#hist(tt1$Nug)
+boxplot(tb_variogram$range~tb_variogram$month,outline=F)
+boxplot(tb_variogram$Nug~tb_variogram$month,outline=F)
+boxplot(tb_variogram$psill~tb_variogram$month,outline=F)
+#boxplot(tb_variogram$model~tb_variogram$month,outline=F)
       
 ###########################################
 ### Figure 10: map of residuals...for a specific date...
@@ -1273,11 +1196,118 @@ grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],list_p[[4]],list_p[[5]],
       
 dev.off()   
 
-      
+
+######## NOW GET A ACCURACY BY STATIONS
+
+list_data_s <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_s")
+list_data_v <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_v")
+
+#number of observations per day
+year_nbv <- sapply(list_data_v,FUN=length)
+year_nbs <- sapply(list_data_s,FUN=length)
+nb_df <- data.frame(nv=year_nbv,ns=year_nbs)
+nb_df$n_tot <- year_nbv + year_nbs
+range(nb_df$n_tot)
+
+data_v_test <- list_data_v[[1]]
+
+#Convert sp data.frame and combined them in one unique df, see function define earlier
+data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
+names_var<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7","res_mod8")
+
+limit_val<- c(-30,-2.57,0,2.57,30)
+data_v_combined$res_mod1_rc1 <- cut(data_v_combined$res_mod1,include.lowest=TRUE,breaks=limit_val)
+data_v_combined$res_mod1_rc1
+
+t<-melt(data_v_combined,
+        measure=names_var, 
+        id=c("res_mod1_rc1","id"),
+        na.rm=T)
+
+n_tb<-cast(t,res_mod1_rc1+id~variable,length)
+n_tb_tot <-cast(t,id~variable,length) #number of times the stations was used for validation
+
+merge(n_tb$id
+dim(n_tb)
+#mae_tb <-cast(t,dst_cat1~variable,mae_fun)
+#rmse_tb <-cast(t,dst_cat1~variable,rmse_fun)
+#sd_abs_tb<-cast(t,dst_cat1~variable,sd_abs_fun)
+
+#avg_tb<-cast(t,dst_cat1~variable,mean)
+#sd_tb<-cast(t,dst_cat1~variable,sd)
+
+t<-melt(data_v_combined,
+        measure=names_var, 
+        id=c("id"),
+        na.rm=T)
+
+#hist(data_v_combined)
+names(data_v_combined)
+
+mae_fun<-function(x){mean(abs(x))} #Mean Absolute Error give a residuals vector
+sd_abs_fun<-function(x){sd(abs(x))} #sd Absolute Error give a residuals vector
+
+mae_tb<-cast(t,id~variable,mae_fun) #join to station location...
+
+sd_abs_tb<-cast(t,dst_cat1~variable,sd_abs_fun)
+
+#avg_tb<-cast(t,dst_cat1~variable,mean)
+#sd_tb<-cast(t,dst_cat1~variable,sd)
+#n_tb<-cast(t,dst_cat1~variable,length)
+
+met_obj <-load_obj(file.path(in_dir1,met_obj_file_1))
+stat_loc<-readOGR(dsn=in_dir1,layer=sub(".shp","",basename(met_obj$loc_stations)))
+
+data_v_mae <-merge(mae_tb,stat_loc,by.x=c("id"),by.y=c("STAT_ID"))
+hist(data_v_mae$res_mod1)
+mean(data_v_mae$res_mod1)
+
+coords<- data_v_mae[c('longitude','latitude')]              #Define coordinates in a data frame
+CRS_interp<-proj4string(data_v_test)
+coordinates(data_v_mae)<-coords                      #Assign coordinates to the data frame
+proj4string(data_v_mae)<- proj4string(stat_loc)                #Assign coordinates reference system in PROJ4 format
+data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to new coord. system
+
+p<-bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE)
+#p<-bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE,key.entries=c(1,1.5,2,2.5,3,3.5,4,4.5))
+
+p
+
+infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
+reg_outline <- readOGR(dsn=dirname(infile_reg_outline),layer=sub(".shp","",basename(infile_reg_outline)))
+
+p + layer(sp.polygons(reg_outline,lwd=0.9,col="darkgray"))
+
+p4<-bubble(data_v_mae,"res_mod4",maxsize=4,col=c("red"),fill=FALSE)
+p4 + layer(sp.polygons(reg_outline,lwd=0.9,col="darkgray"))
+
+col_t <- colorRampPalette(c('blue', 'white', 'red'))
+
+p_elev <-levelplot(subset(s_raster,"elev_s"),margin=FALSE)
+p4 <-bubble(data_v_mae[data_v_mae$res_mod4>2.134,],"res_mod4",maxsize=4,col=c("blue"),fill=FALSE)
+p_elev + p4 + layer(sp.polygons(reg_outline,lwd=0.9,col="green"))
+title("mod4")
+
+p_elev <-levelplot(subset(s_raster,"elev_s"))
+p1 <-bubble(data_v_mae[data_v_mae$res_mod1>2.109,],"res_mod1",maxsize=4,col=c("blue"),fill=FALSE)
+p_elev + p1 + layer(sp.polygons(reg_outline,lwd=0.9,col="green"))
+#bubble(data_v_mae,"res_mod1")
+#p<-spplot(data_v_mae,"res_mod1",maxsize=4,col=c("red"))
+#p
+#stations that are outliers in one but not the other...
+id_setdiff<-setdiff(data_v_mae[data_v_mae$res_mod1>2.109,]$id,data_v_mae[data_v_mae$res_mod4>2.134,]$id)
+
+data_id_setdiff <- data_v_mae[data_v_mae$id %in% id_setdiff,]
+
+p_elev +layer(sp.polygons(reg_outline,lwd=0.9,col="green")) + layer(sp.points(data_id_setdiff,pch=4,cex=2,col="pink"))
+
+
+#raster_prediciton object for baseline 1 () s(lat,lon) + s(elev)) and baseline 2 (slat,lon))      
 list_data_v <- lapply(1:365,function(i){raster_prediction_obj_2$validation_mod_obj[[i]]$data_v} #testing with residuals
+l_formulas<-(extract_from_list_obj(raster_prediction_obj_2$method_mod_obj,"formulas")) #get vector of dates
 
 test <- do.call(rbind,list_data_v)        
-                
+data_v_ag <-test                
 plot(res_mod1~elev,data=test)                    
 plot(res_mod2~elev,data=test)                    
 cor(test$res_mod1,test$elev)
@@ -1286,8 +1316,61 @@ cor(test$res_mod1,test$LST,,use="complete.obs")
 cor(test$res_mod5,test$LST,use="complete.obs") #decrease in correlation when using LST
 
 plot(res_mod1~LST,data=test)                    
-plot(res_mod9~LST,data=test)                    
+plot(res_mod5~LST,data=test)                    
                      
+
+brks<-c(0,500,1000,1500,2000,2500,4000)
+lab_brks<-1:6
+brks<-c(0,500,1000,1500,2000,2500)
+lab_brks<-1:5
+elev_rcstat<-cut(data_v_ag$elev,breaks=brks,labels=lab_brks,right=F)
+boxplot(data_v_ag$res_mod2~elev_rcstat,ylim=c(-15,15))           
+boxplot(data_v_ag$res_mod1~elev_rcstat,ylim=c(-15,15))                      
+boxplot(data_v_ag$res_mod5~elev_rcstat,ylim=c(-15,15))                      
+                
+brks<-c(-20,-10,0,10,20,30,40)
+lab_brks<-1:6
+rcstat<-cut(data_v_ag$LST,breaks=brks,labels=lab_brks,right=F)
+boxplot(data_v_ag$res_mod4 ~ rcstat,ylim=c(-15,15))           
+                    
+y_range<-range(c(diff_fc))
+x_range<-range(c(elev_rcstat))
+plot(elev_rcstat,res_mod, ylab="diff_cf", xlab="ELEV_SRTM (m) ",
+       ylim=y_range, xlim=x_range)
+text(elev_rcstat,diff_cf,labels=data_vf$idx,pos=3)
+grid(lwd=0.5,col="black")
+title(paste("Testing stations residuals fusion vs Elevation",date_selected,sep=" "))
+
+lat<- aggregate(lat~id,data=data_v_ag,FUN=mean)
+lon<- aggregate(lon~id,data=data_v_ag,FUN=mean)                     
+
+data_v_mae <- data.frame(lon=lon$lon,lat=lat$lat)
+coordinates(data_v_mae)<- cbind(lon$lon,lat$lat)
+
+mae_fun<-function(x){mean(abs(x))}                      
+test<- aggregate(res_mod1~id,data=data_v_ag,FUN=mae_fun)
+data_v_mae$mod1 <- test$res_mod1  
+test<- aggregate(res_mod2~id,data=data_v_ag,FUN=mae_fun)
+data_v_mae$mod2 <- test$res_mod2   
+p<- bubble(data_v_mae,"mod1")
+print(p)                    
+p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
+hist(data_v_mae$mod1)
+p<- bubble(data_v_mae,"mod1")
+spplot()
+                     
+p_elev <- levelplot(elev)
+pc <-p+p1 + p
+print(pc)
+
+t<-melt(data_v_ag,
+        measure=names_var, 
+        id=c("res_mod1","res_mod2,"id"),
+        na.rm=T)
+
+n_tb<-cast(t,res_mod1_rc1+id~variable,mae_fun)
+n_tb_tot <-cast(t,id~variable,length) #number of times the stations was used for validation
+
 ###################### END OF SCRIPT #######################
 
 
