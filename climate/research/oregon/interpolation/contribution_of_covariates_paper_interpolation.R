@@ -4,7 +4,7 @@
 #different covariates using two baselines. Accuracy methods are added in the the function script to evaluate results.
 #Figures, tables and data for the contribution of covariate paper are also produced in the script.
 #AUTHOR: Benoit Parmentier                                                                      
-#MODIFIED ON: 07/03/2014            
+#MODIFIED ON: 07/09/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -31,7 +31,8 @@ library(spgwr)                               # GWR method
 library(automap)                             # Kriging automatic fitting of variogram using gstat
 library(rgeos)                               # Geometric, topologic library of functions
 #RPostgreSQL                                 # Interface R and Postgres, not used in this script
-
+library(gridExtra)
+library(colorRamps)
 #Additional libraries not used in workflow
 library(pgirmess)                            # Krusall Wallis test with mulitple options, Kruskalmc {pgirmess}  
 library(ncf)
@@ -264,6 +265,7 @@ ghcn_dat <- readOGR(dsn=dirname(met_stations_obj$monthly_covar_ghcn_data),
         sub(".shp","",basename(met_stations_obj$monthly_covar_ghcn_data)))
 ghcn_dat_WGS84 <-spTransform(ghcn_dat,CRS_locs_WGS84)         # Project from WGS84 to new coord. system
 
+
 interp_area <- readOGR(dsn=dirname(infile_reg_outline),sub(".shp","",basename(infile_reg_outline)))
 interp_area_WGS84 <-spTransform(interp_area,CRS_locs_WGS84)         # Project from WGS84 to new coord. system
 
@@ -322,7 +324,7 @@ lst_md<-raster(ref_rast_d001)
 lst_md<- lst_md - 273.16
 lst_mm_01<-subset(s_raster,"mm_01")
 
-no_brks <- length(seq(min_val,max_val,by=0.1))-1
+#no_brks <- length(seq(min_val,max_val,by=0.1))-1
 #temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
 #temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
 #temp.colors <- matlab.like(no_brks)
@@ -330,13 +332,19 @@ temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
 
 png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=960,height=480)
 par(mfrow=c(1,2))
-plot(lst_md,col=temp.colors(25))
+plot(lst_md,col=temp.colors(25),axes=F) #use axes=F to remove lat and lon or coordinates
 plot(interp_area,add=TRUE)
 title("Mean for January 1")
-plot(lst_mm_01,col=temp.colors(25))
+plot(lst_mm_01,col=temp.colors(25),axes=F)
 plot(interp_area,add=TRUE)
 title("Mean for month of January")
 dev.off()
+
+path_in_tmp <- "/home/parmentier/Data/IPLANT_project/region_outlines_ref_files"
+interp_area_tmp <- readOGR(dsn=path_in_tmp,"OR83M_state_outline")
+proj4string(interp_area_tmp ) <- proj4string(interp_area)
+projection(lst_md) <- proj4string(interp_area)
+r_region_ref <- rasterize(x=interp_area_tmp,y=lst_md,field="State_ID_s",fun=max)
 
 ################################################
 ################### Figure 4. MAE/RMSE and distance to closest fitting station.
@@ -1093,7 +1101,7 @@ write.table(corr_mat,file=file_name,sep=",")
 #plot.gstatVariogram
 #Plot a sample variogram, and possibly a fitted model
 #model 1 lat,lon and elev
-layout_m<-c(1,1) # works if set to this?? ok set the resolution...
+layout_m <- c(1,2) # works if set to this?? ok set the resolution...
       
 date_selected <- c("20100101","20100901")
 png(paste("Figure9_paper_","_variogram_",date_selected[1],"_",date_selected[2],"_",out_prefix,".png", sep=""),
@@ -1101,13 +1109,21 @@ png(paste("Figure9_paper_","_variogram_",date_selected[1],"_",date_selected[2],"
     #height=480*6,width=480*4)
 
 #p3 <- list_plots_spt[[3]]
-p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$var_model,justPosition=F)
+p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$var_model,
+         ylim=c(0,9),
+         ylab=list(label="Semivariance",cex=1.5),
+         xlab=list(label="Distance (meter)",cex=1.5),
+         main=list(label="Mod1 January 1, 2010",cex=1.8))
 #plot(p1)
-p241<-plot(raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$var_model)
+p241<-plot(raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$var_model,
+         ylim=c(0,9),
+         ylab=list(label="Semivariance",cex=1.5),
+         xlab=list(label="Distance (meter)",cex=1.5),
+         main=list(label="Mod1 September 1, 2010",cex=1.8))
 #plot(p241)
 
 #grid.arrange(p1,p2,p3,ncol=1)
-grid.arrange(p1,p241,ncol=1)
+grid.arrange(p1,p241,ncol=2)
 
 dev.off()
 #Combine both plot?     + plot info on sill, nugget and range? and most frequent model selected
@@ -1131,7 +1147,29 @@ dates<-(extract_from_list_obj(raster_prediction_obj_1$method_mod_obj,"sampling_d
 tb_variogram["date"] <- dates
 tb_variogram$month <- add_month_tag(tb_variogram)
 #add dates and month??
-histogram(tt1$model)      
+
+
+#layout_m <- c(2,2) # works if set to this?? ok set the resolution...
+res_pix<-480
+col_mfrow<-2
+#row_mfrow<-2
+row_mfrow<-2
+
+png_file_name<- paste("Figure_14_paper_variogram_statistics_",out_prefix,".png", sep="")
+png(filename=file.path(out_dir,png_file_name),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+par(mfrow=c(row_mfrow,col_mfrow))
+     
+#date_selected <- c("20100101","20100901")
+#png(paste("Figure14_paper_","_variogram_statistics","_",out_prefix,".png", sep=""),
+#    height=960*layout_m[1],width=960*layout_m[2])
+    #height=480*6,width=480*4)
+#mfrow(2,2)
+p_hist<-histogram(tb_variogram$model,col="grey",
+          main=list(label="Variogram model type",cex=1.8),
+          ylab=list(label="Percent of total",cex=1.5),
+          xlab=list(label="Variogram model",cex=1.5))      
+print(p_hist)
 #hist(tt1$range)
 #hist(tt1$psill)
 #hist(tt1$Nug)
@@ -1139,7 +1177,9 @@ boxplot(tb_variogram$range~tb_variogram$month,outline=F)
 boxplot(tb_variogram$Nug~tb_variogram$month,outline=F)
 boxplot(tb_variogram$psill~tb_variogram$month,outline=F)
 #boxplot(tb_variogram$model~tb_variogram$month,outline=F)
-      
+
+dev.off()
+
 ###########################################
 ### Figure 10: map of residuals...for a specific date...
 index <- 244
@@ -1148,7 +1188,7 @@ names_mod <- names(raster_prediction_obj_2$method_mod_obj[[index]][[y_var_name]]
 #date_selected <-  c("20100101")
 date_selected <-  c("20100901")
 
-data_v <-raster_prediction_obj_2$validation_mod_obj[[index]]$data_v #testing with residuals
+data_v <- raster_prediction_obj_2$validation_mod_obj[[index]]$data_v #testing with residuals
 #data_s<-validation_mod_obj[[index]]$data_s
 date_proc<-strptime(date_selected, "%Y%m%d")   # interpolation date being processed
 mo<-as.integer(strftime(date_proc, "%m"))          # current month of the date being processed
@@ -1156,7 +1196,7 @@ day<-as.integer(strftime(date_proc, "%d"))
 year<-as.integer(strftime(date_proc, "%Y"))
 datelabel=format(ISOdate(year,mo,day),"%b %d, %Y")
 
-    #height=480*6,width=480*4)
+#height=480*6,width=480*4)
 list_p <- vector("list", length(names_mod))
 for (k in 1:length(names_mod)){
   model_name <- names_mod[k]
@@ -1169,12 +1209,12 @@ for (k in 1:length(names_mod)){
   #p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,col.regions=rev(terrain.colors(255)),contour=T)
   #add legend..par.settings = GrTheme
   cx <- ((data_v[[res_model_name]])*2)
-  #p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
+  p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
 
   #p2 <- spplot(data_v,res_model_name, cex=1 * cx,main=paste("Residuals for ",res_model_name," ",datelabel,sep=""),
   #             col.regions=matlab.like(25))
   p2 <- bubble(data_v,res_model_name, main=paste("Residuals for ",res_model_name," ",datelabel,sep=""),
-               col.regions=matlab.like(25))  
+               col=matlab.like(25))  
   p3 <- p2 + p1 + p2 #to force legend...
   #p1 <- spplot(interp_area)
   #p3 <- p1+p2 #to force legend...
@@ -1187,20 +1227,29 @@ for (k in 1:length(names_mod)){
   list_p[[k]] <- p3
 }
 
-layout_m<-c(2,5) # works if set to this?? ok set the resolution...
-png(paste("Figure10_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure13_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
 
-grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],list_p[[4]],list_p[[5]],
-             list_p[[6]],list_p[[7]],list_p[[8]],list_p[[9]],list_p[[10]],ncol=5)
+grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],ncol=3)
       
 dev.off()   
 
-
 ######## NOW GET A ACCURACY BY STATIONS
-
-list_data_s <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_s")
-list_data_v <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_v")
+l_formulas<-(extract_from_list_obj(raster_prediction_obj_2$method_mod_obj,"formulas")) #get vector of dates
+#                            y_var ~ s(lat,lon)
+#                y_var ~ s(lat,lon) + s(elev_s)
+#                   y_var ~ s(lat,lon) + s(N_w)
+#                   y_var ~ s(lat,lon) + s(E_w)
+#                   y_var ~ s(lat,lon) + s(LST)
+#                y_var ~ s(lat,lon) + s(DISTOC)
+#                   y_var ~ s(lat,lon) + s(LC1)
+#               y_var ~ s(lat,lon) + s(CANHGHT)
+#     y_var ~ s(lat,lon) + s(LST) + ti(LST,LC1)
+# y_var ~ s(lat,lon) + s(LST) + ti(LST,CANHGHT)
+list_data_s <-extract_list_from_list_obj(raster_prediction_obj_2$validation_mod_obj,"data_s")
+list_data_v <-extract_list_from_list_obj(raster_prediction_obj_2$validation_mod_obj,"data_v")
+names_mod <- names(raster_prediction_obj_2$method_mod_obj[[1]][[y_var_name]]) #names of models to plot
 
 #number of observations per day
 year_nbv <- sapply(list_data_v,FUN=length)
@@ -1213,28 +1262,7 @@ data_v_test <- list_data_v[[1]]
 
 #Convert sp data.frame and combined them in one unique df, see function define earlier
 data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
-names_var<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7","res_mod8")
-
-limit_val<- c(-30,-2.57,0,2.57,30)
-data_v_combined$res_mod1_rc1 <- cut(data_v_combined$res_mod1,include.lowest=TRUE,breaks=limit_val)
-data_v_combined$res_mod1_rc1
-
-t<-melt(data_v_combined,
-        measure=names_var, 
-        id=c("res_mod1_rc1","id"),
-        na.rm=T)
-
-n_tb<-cast(t,res_mod1_rc1+id~variable,length)
-n_tb_tot <-cast(t,id~variable,length) #number of times the stations was used for validation
-
-merge(n_tb$id
-dim(n_tb)
-#mae_tb <-cast(t,dst_cat1~variable,mae_fun)
-#rmse_tb <-cast(t,dst_cat1~variable,rmse_fun)
-#sd_abs_tb<-cast(t,dst_cat1~variable,sd_abs_fun)
-
-#avg_tb<-cast(t,dst_cat1~variable,mean)
-#sd_tb<-cast(t,dst_cat1~variable,sd)
+names_var<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7","res_mod8","res_mod9","res_mod10")
 
 t<-melt(data_v_combined,
         measure=names_var, 
@@ -1249,12 +1277,6 @@ sd_abs_fun<-function(x){sd(abs(x))} #sd Absolute Error give a residuals vector
 
 mae_tb<-cast(t,id~variable,mae_fun) #join to station location...
 
-sd_abs_tb<-cast(t,dst_cat1~variable,sd_abs_fun)
-
-#avg_tb<-cast(t,dst_cat1~variable,mean)
-#sd_tb<-cast(t,dst_cat1~variable,sd)
-#n_tb<-cast(t,dst_cat1~variable,length)
-
 met_obj <-load_obj(file.path(in_dir1,met_obj_file_1))
 stat_loc<-readOGR(dsn=in_dir1,layer=sub(".shp","",basename(met_obj$loc_stations)))
 
@@ -1267,18 +1289,40 @@ CRS_interp<-proj4string(data_v_test)
 coordinates(data_v_mae)<-coords                      #Assign coordinates to the data frame
 proj4string(data_v_mae)<- proj4string(stat_loc)                #Assign coordinates reference system in PROJ4 format
 data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to new coord. system
+elev <- subset(s_raster,"elev_s")
+list_p_mae <- vector("list", length(names_mod))
+    
+for (k in 1:length(names_mod)){
+  
+  model_name <- names_mod[k]
+  res_model_name <- paste("res",model_name,sep="_")
+  #res_model_name <- "res_mod1"
+  p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
+  tt <- na.omit(data_v_mae)
+  tt <- data_v_mae[data_v_mae[res_model_name],]
+  p2 <- bubble(data_v_mae,res_model_name, main=paste("MAE per station for ",model_name,sep=""),
+               col=matlab.like(25),na.rm=TRUE)
+  p3 <- p2 + p1 + p2 #to force legend...
+  print(p3)
+  #p <- bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE)
+  #p<-bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE,key.entries=c(1,1.5,2,2.5,3,3.5,4,4.5))
+  list_p_mae[[k]] <- p3
+}
 
-p<-bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE)
-#p<-bubble(data_v_mae,"res_mod1",maxsize=4,col=c("red"),fill=FALSE,key.entries=c(1,1.5,2,2.5,3,3.5,4,4.5))
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure13_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
 
-p
+grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[5]],ncol=3)
+      
+dev.off()   
 
 infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
 reg_outline <- readOGR(dsn=dirname(infile_reg_outline),layer=sub(".shp","",basename(infile_reg_outline)))
 
 p + layer(sp.polygons(reg_outline,lwd=0.9,col="darkgray"))
 
-p4<-bubble(data_v_mae,"res_mod4",maxsize=4,col=c("red"),fill=FALSE)
+p4 <- bubble(data_v_mae,"res_mod4",maxsize=4,col=c("red"),fill=FALSE)
 p4 + layer(sp.polygons(reg_outline,lwd=0.9,col="darkgray"))
 
 col_t <- colorRampPalette(c('blue', 'white', 'red'))
@@ -1318,16 +1362,21 @@ cor(test$res_mod5,test$LST,use="complete.obs") #decrease in correlation when usi
 plot(res_mod1~LST,data=test)                    
 plot(res_mod5~LST,data=test)                    
                      
-
 brks<-c(0,500,1000,1500,2000,2500,4000)
 lab_brks<-1:6
-brks<-c(0,500,1000,1500,2000,2500)
-lab_brks<-1:5
+brks<-c(0,500,1000,1500,2000)
+lab_brks<-1:4
 elev_rcstat<-cut(data_v_ag$elev,breaks=brks,labels=lab_brks,right=F)
 boxplot(data_v_ag$res_mod2~elev_rcstat,ylim=c(-15,15))           
 boxplot(data_v_ag$res_mod1~elev_rcstat,ylim=c(-15,15))                      
 boxplot(data_v_ag$res_mod5~elev_rcstat,ylim=c(-15,15))                      
-                
+
+#brks<-c(0,20,40,60,80,100)
+#lab_brks<-1:5
+#rcstat<-cut(data_v_ag$LC1,breaks=brks,labels=lab_brks,right=F)
+#plot(data_v_ag$res_mod5~rcstat,ylim=c(-5,5))                      
+#plot(data_v_ag$res_mod5~rcstat,ylim=c(-5,5))
+                      
 brks<-c(-20,-10,0,10,20,30,40)
 lab_brks<-1:6
 rcstat<-cut(data_v_ag$LST,breaks=brks,labels=lab_brks,right=F)
