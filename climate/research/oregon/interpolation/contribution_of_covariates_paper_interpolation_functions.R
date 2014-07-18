@@ -4,7 +4,7 @@
 # interpolation code.
 #Figures and data for the contribution of covariate paper are also produced.
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 05/21/2014            
+#DATE: 07/18/2014            
 #Version: 2
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
@@ -64,6 +64,7 @@ extract_list_from_list_obj<-function(obj_list,list_name){
 #This extract a data.frame object from raster prediction obj and combine them in one data.frame 
 extract_from_list_obj<-function(obj_list,list_name){
   #extract object from list of list. This useful for raster_prediction_obj
+  #the output is a data.frame
   library(plyr)
   
   list_tmp<-vector("list",length(obj_list))
@@ -71,12 +72,38 @@ extract_from_list_obj<-function(obj_list,list_name){
     tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
     list_tmp[[i]]<- as.data.frame(tmp) #deal with spdf cases
   }
+  
   tb_list_tmp<-do.call(rbind.fill,list_tmp) #long rownames
   #tb_list_tmp<-do.call(rbind,list_tmp) #long rownames
   
   return(tb_list_tmp) #this is  a data.frame
 }
 
+add_rownames_list_df <-function(obj_list){
+  #extract object from list of list. This useful for raster_prediction_obj
+  #rownames are loaded in a column called rownames
+  #the output is a data.frame
+  library(plyr)
+  
+  list_tmp<-vector("list",length(obj_list))
+  for (i in 1:length(obj_list)){
+    tmp <- obj_list[[i]] #double bracket to return data.frame
+    rownames_char <- names(obj_list)[i]   
+    rownames_col <- rep(rownames_char,nrow(tmp))
+    tmp$rownames <- rownames_col
+    list_tmp[[i]]<- as.data.frame(tmp) #deal with spdf cases
+  }
+  #tb_list_tmp<-do.call(rbind.fill,list_tmp) #long rownames
+  #tb_list_tmp<-do.call(rbind,list_tmp) #long rownames
+  return(list_tmp) #this is  a data.frame
+}
+
+#df must have a specific format: "%Y%m%d
+add_month_tag<-function(tb,date_col){
+  date<-strptime(tb[[date_col]], "%Y%m%d")   # interpolation date being processed
+  month<-strftime(date, "%m")          # current month of the date being processed
+}
+  
 calc_stat_from_raster_prediction_obj <-function(raster_prediction_obj,stat,training=FALSE){
   #Calculate statistics from validation and training out of raster_prediction_obj
   #If training is TRUE, then using training dataset
