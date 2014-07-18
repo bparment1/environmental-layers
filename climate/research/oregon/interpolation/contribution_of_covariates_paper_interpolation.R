@@ -4,7 +4,7 @@
 #different covariates using two baselines. Accuracy methods are added in the the function script to evaluate results.
 #Figures, tables and data for the contribution of covariate paper are also produced in the script.
 #AUTHOR: Benoit Parmentier                                                                      
-#MODIFIED ON: 07/09/2014            
+#MODIFIED ON: 07/18/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -31,11 +31,12 @@ library(spgwr)                               # GWR method
 library(automap)                             # Kriging automatic fitting of variogram using gstat
 library(rgeos)                               # Geometric, topologic library of functions
 #RPostgreSQL                                 # Interface R and Postgres, not used in this script
-library(gridExtra)
-library(colorRamps)
+library(gridExtra)                           # Combining lattice plots
+library(colorRamps)                          # Palette/color ramps for symbology
 #Additional libraries not used in workflow
 library(pgirmess)                            # Krusall Wallis test with mulitple options, Kruskalmc {pgirmess}  
-library(ncf)
+library(ncf)                                 # No paramtric covariance function
+
 #### FUNCTION USED IN SCRIPT
 
 function_analyses_paper <-"contribution_of_covariates_paper_interpolation_functions_05212014.R"
@@ -66,7 +67,7 @@ infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 y_var_name <- "dailyTmax"
-out_prefix<-"_07032014"
+out_prefix<-"_07182014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_contribution_covar_analyses_tables_fig"
 setwd(out_dir)
 
@@ -219,7 +220,7 @@ table_data4 <-summary_metrics_v4$avg[1,c("mae","rmse","me","r")] #first line mod
 table_data1 <- table_data1[1,]
 
 table_ac <-do.call(rbind, list(table_data1,table_data3,table_data4))
-table_ac <- round(table_ac,digit=3) #roundto three digits teh differences
+table_ac <- round(table_ac,digit=3) #roundto three digits the differences
 
 #combined tables with accuracy metrics and their standard deviations
 table4_paper <-table_combined_symbol(table_ac,table_sd,"±")
@@ -231,7 +232,7 @@ names_table_col<-c("MAE","RMSE","ME","R","Model")
 table4_paper$Model <-model_col
 names(table4_paper)<- names_table_col
 
-file_name<-paste("table4_compariaons_interpolation_methods_avg_paper","_",out_prefix,".txt",sep="")
+file_name<-paste("table4_comparisons_interpolation_methods_avg_paper","_",out_prefix,".txt",sep="")
 write.table(as.data.frame(table4_paper),file=file_name,sep=",")
 
 ####################################
@@ -990,8 +991,10 @@ l_obj<-vector("list",length=2)
 l_obj[[1]]<-raster_prediction_obj_1
 l_obj[[2]]<-raster_prediction_obj_2
 l_table <- vector("list",length=length(l_obj))   
+l_s_table_term_tb <- vector("list",length(l_obj))
 for (k in 1:length(l_obj)){
   raster_prediction_obj<- l_obj[[k]]
+  #extract models for every day
   list_myModels <- extract_list_from_list_obj(raster_prediction_obj$method_mod_obj,"mod")
     
   list_models_info <-lapply(1:length(list_myModels),FUN=create_s_and_p_table_term_models,list_myModels)
@@ -999,14 +1002,24 @@ for (k in 1:length(l_obj)){
   names(list_models_info)<-dates #adding names to the list
     
   #Prepare and process p. value information regarding models: count number of times values were above a threshold.
-  s.table_term_tb <-extract_from_list_obj(list_models_info,"s.table_term")
-    
+  #s.table_term_tb <-extract_from_list_obj(list_models_info,"s.table_term")
+  s.table_term_list <- extract_list_from_list_obj(list_models_info,"s.table_term")
+  names(s.table_term_list) <- dates #adding names to the list
+  #Adding dates to df
+  s.table_term_list <- add_rownames_list_df(s.table_term_list)  
+  s.table_term_tb <- do.call(rbind.fill,s.table_term_list) 
+  #Adding month to df
+  #s.table_term_tb <- add_month_tag(s.table_term_tb)
+  s.table_term_tb$month <- add_month_tag(s.table_term_tb,"rownames")
+  
   threshold_val<-c(0.01,0.05,0.1)
   s.table_term_tb$p_val_rec1 <- s.table_term_tb[["p-value"]] < threshold_val[1]
   s.table_term_tb$p_val_rec2 <- s.table_term_tb[["p-value"]] < threshold_val[2]
   s.table_term_tb$p_val_rec3 <- s.table_term_tb[["p-value"]] < threshold_val[3]
   
   names_var <- c("p_val_rec1","p_val_rec2","p_val_rec3")
+  
+  
   t2<-melt(s.table_term_tb,
            measure=names_var, 
            id=c("mod_name","term_name"),
@@ -1038,6 +1051,7 @@ for (k in 1:length(l_obj)){
   tables_AIC_ac_p_val <-list(table,summary_s.table_term2)
   names(tables_AIC_ac_p_val) <-c("table","s.table_p_val_term")
   l_table[[k]] <- tables_AIC_ac_p_val
+  l_s_table_term_tb[[k]] <- s.table_term_tb
 }
 
 ## Now prepare table
@@ -1070,6 +1084,63 @@ write.table(table6a,file=file_name,sep=",")
 
 file_name<-paste("table6b_paper","_",out_prefix,".txt",sep="")
 write.table(table6b,file=file_name,sep=",")
+
+##Add new figure:
+
+s.table_term_tb <- l_s_table_term_tb[[2]] #baseline 2 (lat*lon)
+s.table_term_tb <- l_s_table_term_tb[[1]] #baseline 1 (lat*lon+elev_s)
+tt <- aggregate(s.table_term_tb$p_val_rec2~s.table_term_tb$month,FUN=mean)
+tt <- aggregate(s.table_term_tb$p_val_rec2~s.table_term_tb$month,FUN=mean)
+plot(tt)
+test <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(LST)")
+tt<-aggregate(test$p_val_rec3~test$month,FUN=mean)
+plot(tt,type="l",ylim=c(0.2,1))
+test2 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(elev_s)")
+tt2<-aggregate(test2$p_val_rec2~test2$month,FUN=mean)
+plot(tt2)
+lines(tt2)
+test1 <- subset(s.table_term_tb,mod_name=="mod1" & term_name=="s(elev_s)")
+tt1<-aggregate(test1$p_val_rec2~test1$month,FUN=mean)
+plot(tt1)
+#model with LST and elev
+tb1_mod4_month <- raster_prediction_obj_1$summary_month_metrics_v[[4]] #note that this is for model1
+#model with lev only
+b1_mod1_month <- raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
+
+tb1_mod1_month<-raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
+plot((tb1_mod4_month$rme) - tb1_mod1_month$rmse)
+
+#now get correlation with LST and elev
+list_data_s <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_s")
+list_data_v <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_v")
+
+data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
+
+
+#LSTD_bias_avgm<-aggregate(LSTD_bias~month,data=data_month_all,mean)
+#LSTD_bias_sdm<-aggregate(LSTD_bias~month,data=data_month_all,sd)
+data_v_combined
+LST_avgm <- aggregate(LST~month+id,data=data_v_combined,mean)
+#test <- aggregate(LST+dailyTmax~month+id,data=data_v_combined,mean)
+TMax_avgm <- aggregate(dailyTmax~month+id,data=data_v_combined,mean)
+
+elev_id <- aggregate(elev~id,data=data_v_combined,mean)
+l_df_cor<- vector("list",length=12)
+for(i in 1:12){
+  df_LST <- subset(LST_avgm,month==i)
+  df_TMax <- subset(TMax_avgm,month==i)
+  df <-merge(df_LST,df_TMax,by="id",all=F)
+  df_tmp <- merge(df,elev_id,by="id",all=F)
+  cor_LST_dailyTmax <- cor(df_tmp$LST,df_tmp$dailyTmax)
+  cor_elev_dailyTmax <- cor(df_tmp$elev,df_tmp$dailyTmax)
+  df_cor <- data.frame(LST_tmax=cor_LST_dailyTmax,elev_tmax=cor_elev_dailyTmax)
+  l_df_cor[[i]] <- df_cor
+}
+#cor elev~ tmax by month
+#cor LST tmax by month
+df_cor <- do.call(rbind,l_df_cor)
+plot(df_cor$LST_tmax,ylim=c(-1,1),col="red",type="l")
+lines(df_cor$elev_tmax,ylim=c(-1,1),col="blue")
 
 ########################
 ### Prepare table 7: correlation matrix between covariates      
