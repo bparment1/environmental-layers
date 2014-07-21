@@ -1085,30 +1085,32 @@ write.table(table6a,file=file_name,sep=",")
 file_name<-paste("table6b_paper","_",out_prefix,".txt",sep="")
 write.table(table6b,file=file_name,sep=",")
 
-##Add new figure:
+###############################
+##Add new figure and analyses
 
-s.table_term_tb <- l_s_table_term_tb[[2]] #baseline 2 (lat*lon)
+#s.table_term_tb <- l_s_table_term_tb[[2]] #baseline 2 (lat*lon)
 s.table_term_tb <- l_s_table_term_tb[[1]] #baseline 1 (lat*lon+elev_s)
-tt <- aggregate(s.table_term_tb$p_val_rec2~s.table_term_tb$month,FUN=mean)
-tt <- aggregate(s.table_term_tb$p_val_rec2~s.table_term_tb$month,FUN=mean)
-plot(tt)
-test <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(LST)")
-tt<-aggregate(test$p_val_rec3~test$month,FUN=mean)
-plot(tt,type="l",ylim=c(0.2,1))
-test2 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(elev_s)")
-tt2<-aggregate(test2$p_val_rec2~test2$month,FUN=mean)
-plot(tt2)
-lines(tt2)
+tb_sig_p_val_rec2 <- aggregate(s.table_term_tb$p_val_rec2~s.table_term_tb$month,FUN=mean)
+plot(tb_sig_p_val_rec2)
+#Now prepare 
+s_table_LST_mod4 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(LST)")
+tb_mod4_LST_rec3 <- aggregate(s_table_LST_mod4$p_val_rec3~s_table_term_mod4$month,FUN=mean)
+plot(tb_mod4_LST_rec3,type="l",ylim=c(0.2,1))
+s_table_elev_mod4 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(elev_s)")
+tb_mod4_elev_rec3 <- aggregate(tb_mod4_elev_rec3$p_val_rec2 ~ tb_mod4_elev_rec3$month,FUN=mean)
+plot(tb_mod4_elev_rec3)
+lines(tb_mod4_elev_rec3)
 test1 <- subset(s.table_term_tb,mod_name=="mod1" & term_name=="s(elev_s)")
 tt1<-aggregate(test1$p_val_rec2~test1$month,FUN=mean)
 plot(tt1)
 #model with LST and elev
 tb1_mod4_month <- raster_prediction_obj_1$summary_month_metrics_v[[4]] #note that this is for model1
 #model with lev only
-b1_mod1_month <- raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
+tb1_mod1_month <- raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
 
 tb1_mod1_month<-raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
-plot((tb1_mod4_month$rme) - tb1_mod1_month$rmse)
+rmse_dif <- (tb1_mod4_month$rmse) - tb1_mod1_month$rmse
+plot(rmse_dif)
 
 #now get correlation with LST and elev
 list_data_s <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_obj,"data_s")
@@ -1116,9 +1118,6 @@ list_data_v <-extract_list_from_list_obj(raster_prediction_obj_1$validation_mod_
 
 data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
 
-
-#LSTD_bias_avgm<-aggregate(LSTD_bias~month,data=data_month_all,mean)
-#LSTD_bias_sdm<-aggregate(LSTD_bias~month,data=data_month_all,sd)
 data_v_combined
 LST_avgm <- aggregate(LST~month+id,data=data_v_combined,mean)
 #test <- aggregate(LST+dailyTmax~month+id,data=data_v_combined,mean)
@@ -1141,6 +1140,91 @@ for(i in 1:12){
 df_cor <- do.call(rbind,l_df_cor)
 plot(df_cor$LST_tmax,ylim=c(-1,1),col="red",type="l")
 lines(df_cor$elev_tmax,ylim=c(-1,1),col="blue")
+
+#### Now plot figure for paper:
+
+
+res_pix<-480
+col_mfrow<-3
+row_mfrow<-1
+png_file_name<- paste("Figure_17_paper_","LST_elev_",out_prefix,".png", sep="")
+png(filename=file.path(out_dir,png_file_name),
+   width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+#png(filename=file.path(out_dir,png_file_name),
+    #width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+par(mfrow=c(row_mfrow,col_mfrow))
+
+plot(tb_mod4_LST_rec3,type="l",ylab="Proportion of significant LST term",
+     xlab="Month")
+title("Proportion of significant LST term in mod4",cex=1.5)
+
+plot(rmse_dif,type="l",ylab="ΔRMSE between mod1 and mod4",
+     xlab="Month")
+abline(h=0,lty="dashed")
+title("Monthly ΔRMSE betwen mod1 and mod4",cex=1.5)
+
+plot(df_cor$LST_tmax,ylim=c(-1,1),col="red",type="l",
+     ylab="Pearson Correlation",xlab="Month")
+legend("topright",legend=c("Elev-tmax","LST-tmax"),col=c("red","blue"),cex=1,bty="n")
+
+lines(df_cor$elev_tmax,ylim=c(-1,1),col="blue")
+title("Monthly correlation for LST-tmax and elev-tmax",cex=1.5)
+
+dev.off()
+
+names(tb_mod4_LST_rec3) <- c("month","p_val_rec3")
+tb_mod4_LST_rec3$month <- c("month","p_val_rec3")
+
+res_pix<-480
+layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
+#date_selected <- c("20100101","20100901")
+png(paste("Figure_17_paper_","LST_elev_",out_prefix,".png", sep=""),
+    height=res_pix*layout_m[1],width=res_pix*layout_m[2])
+    #height=480*6,width=480*4)
+     
+p_prop <- xyplot(p_val_rec3 ~ as.numeric(month),data=tb_mod4_LST_rec3,
+          col=c("black"),
+          type="b",
+          ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
+          xlab=list(label="Month",cex=1.5),
+          main=list(label="Proportion of significant LST term in mod4",cex=1.8))
+
+p_dif <- xyplot(rmse_dif ~ 1:12,
+          col=c("black"),
+          type="b",
+          ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
+          xlab=list(label="Month",cex=1.5),
+          main=list(label="Monthly \u0394RMSE betwen mod1 and mod4",cex=1.8))
+p_dif <- update(p_dif, panel = function(...) {
+            panel.abline(h = 0, lty = 2, col = "gray")
+            panel.xyplot(...)
+        })
+
+# Reshape the data:
+df_cor$id <- 1:nrow(df_cor) #add a column before "melt", solution works well for any data.frame
+m <- melt(df_cor, id = "id")
+
+p_cor<- xyplot(value ~ id, data = m, groups = variable,
+          #col=c("black","red"),
+          type="b",
+          ylim=c(-1,1),
+          ylab=list(label="Pearson Correlation",cex=1.5),
+          xlab=list(label="Month",cex=1.5),
+          main=list(label="Pearson Correlation",cex=1.8),
+          auto.key = list("topright", corner = c(0,1),# col=c("black","red"),
+                     border = FALSE, lines = TRUE,cex=1.2))
+p_cor <- update(p_cor, panel = function(...) {
+            panel.abline(h = 0, lty = 2, col = "gray")
+            panel.xyplot(...)
+        })
+          #par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
+                              #par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+
+#grid.arrange(p1,p2,p3,ncol=1)
+grid.arrange(p_prop,p_dif,p_cor,ncol=3)
+
+dev.off()
+
 
 ########################
 ### Prepare table 7: correlation matrix between covariates      
@@ -1420,13 +1504,41 @@ png_file_name<- paste("Figure_16_paper_","residuals_MAE_",out_prefix,".png", sep
 png(filename=file.path(out_dir,png_file_name),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(row_mfrow,col_mfrow))
+
 boxplot(data_v_ag$res_mod1~elev_rcstat,ylim=c(-15,15),ylab="Residuals (deg C)",main="Residuals vs elevation classes for mod1=lat*lon",
         xlab="Elevation classes (meter)",names=c("0-500","500-1000","1000-1500","1500-2000"))           
 boxplot(data_v_ag$res_mod5~elev_rcstat,ylim=c(-15,15),ylab="Residuals (deg C)",main="Residuals vs elevation classes for mod5=lat*lon+LST",
         xlab="Elevation classes (meter)",names=c("0-500","500-1000","1000-1500","1500-2000"))           
 boxplot(data_v_ag$res_mod2~elev_rcstat,ylim=c(-15,15),ylab="Residuals (deg C)",main="Residuals vs elevation classes for mod2=lat*lon+elev",
         xlab="Elevation classes (meter)",names=c("0-500","500-1000","1000-1500","1500-2000"))           
+dev.off()
 
+layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
+png(paste("Figure_16_paper_","residuals_MAE_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+    #height=480*6,width=480*4)
+
+p_bw1<-bwplot(data_v_ag$res_mod1~elev_rcstat,do.out=F,ylim=c(-15,15),
+         ylab=list(label="Residuals (deg C)",cex=1.5),
+         xlab=list(label="Elevation classes (meter)",cex=1.5),
+         main=list(label="Residuals vs elevation for mod1=lat*lon",cex=1.8),
+         scales = list(x = list(at = c(1, 2, 3, 4), 
+                               labels = c("0-500","500-1000","1000-1500","1500-2000"))))
+
+p_bw2 <- bwplot(data_v_ag$res_mod5~elev_rcstat,do.out=F,ylim=c(-15,15),
+         ylab=list(label="Residuals (deg C)",cex=1.5),
+         xlab=list(label="Elevation classes (meter)",cex=1.5),
+         main=list(label="Residuals vs elevation for mod5=lat*lon+LST",cex=1.8),
+         scales = list(x = list(at = c(1, 2, 3, 4), 
+                               labels = c("0-500","500-1000","1000-1500","1500-2000"))))
+
+p_bw3 <- bwplot(data_v_ag$res_mod5~elev_rcstat,do.out=F,ylim=c(-15,15),
+         ylab=list(label="Residuals (deg C)",cex=1.5),
+         xlab=list(label="Elevation classes (meter)",cex=1.5),
+         main=list(label="Residuals vs elevation for mod5=lat*lon+LST",cex=1.8),
+         scales = list(x = list(at = c(1, 2, 3, 4), 
+                               labels = c("0-500","500-1000","1000-1500","1500-2000"))))
+grid.arrange(p_bw1,p_bw2,p_bw3,ncol=3)
 dev.off()
 
 #layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
