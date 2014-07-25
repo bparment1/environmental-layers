@@ -39,7 +39,7 @@ library(ncf)                                 # No paramtric covariance function
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper <-"contribution_of_covariates_paper_interpolation_functions_05212014.R"
+function_analyses_paper <-"contribution_of_covariates_paper_interpolation_functions_07182014.R"
 
 ##############################
 #### Parameters and constants  
@@ -64,12 +64,14 @@ in_dir7 <-"/data/project/layers/commons/Oregon_interpolation/output_data_365d_gw
 
 
 infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
+infile_reg_raster <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.rst"  #input region outline defined by polygon: Oregon
+
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 y_var_name <- "dailyTmax"
 out_prefix<-"_07182014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_contribution_covar_analyses_tables_fig"
-setwd(out_dir)
+#setwd(out_dir)
 
 #out_dir<-"/home/parmentier/Data/IPLANT_project/paper_multitime_scale__analyses_tables"
 create_out_dir_param = TRUE
@@ -242,25 +244,20 @@ write.table(as.data.frame(table4_paper),file=file_name,sep=",")
 #figure 2: methodological worklfow (generated outside R)
 #figure 3: LST daily and monthly climatology
 #figure 4: MAE/RMSE and distance to closest fitting station.
-#Figure 5. RMSE and MAE, mulitisampling and hold out for FSS and GAM.
-#Figure 6. Overtraining tendency
+#Figure 5: RMSE and MAE, mulitisampling and hold out for FSS and GAM.
+#Figure 6: Overtraining tendency
 #Figure 7a: Spatial pattern of prediction for one day
 #figure 7b: Spatial autocorrelation profile : Moran's vs lag distance
-#Figure 8: Figure 8. (a) Monthly MAE averages for the three interpolation methods: GAM, GWR and Kriging.(b) Monthly MAE boxplot for GAM.
-#Figure 9: difference image
+#Figure 8: Prediction difference image for Sept 1, 2010 for mod1 and mod4
+#Figure 9: Semi variograms for January 1 2010 and September 1 2010.
+#Figure 10: Summary of variograms model parameters for mod1=lat*lon+elev over 2010
+#Figure 11: Testing Residuals per model for GAM method for baseline 2 for September 1, 2010.
+#Figure 12: Average testing MAE in 2010 per station for GAM method for baseline 2 models 
+#Figure 13: Boxplots of testing residuals and elevation classes over the year 2010 for GAM 
+#Figure 14: (a) Monthly MAE averages for the three interpolation methods: GAM, GWR and Kriging.(b) Monthly MAE boxplot for GAM.
+#Figure 15: Correlation between LST-tmax, elevation-tmax in relation to LST significance and monthly model accuracy 
 
 ### Figure 1: Oregon study area
-#3 parameters from output
-#infile_monthly<-list_outfiles$monthly_covar_ghcn_data #outile4 from database_covar script
-#infile_daily<-list_outfiles$daily_covar_ghcn_data  #outfile3 from database_covar script
-#infile_locs<- list_outfiles$loc_stations_ghcn #outfile2? from database covar script
-#
-#
-#ghcn_day_dat <- readOGR(dsn=dirname(met_stations_obj$daily_covar_ghcn_data),
-#                    sub(".shp","",basename(met_stations_obj$daily_covar_ghcn_data)))
-#ghcn_dayq_dat <- readOGR(dsn=dirname(met_stations_obj$daily_query_ghcn_data),
-#                        sub(".shp","",basename(met_stations_obj$daily_query_ghcn_data)))
-
 
 ghcn_dat <- readOGR(dsn=dirname(met_stations_obj$monthly_covar_ghcn_data),
         sub(".shp","",basename(met_stations_obj$monthly_covar_ghcn_data)))
@@ -270,7 +267,7 @@ ghcn_dat_WGS84 <-spTransform(ghcn_dat,CRS_locs_WGS84)         # Project from WGS
 interp_area <- readOGR(dsn=dirname(infile_reg_outline),sub(".shp","",basename(infile_reg_outline)))
 interp_area_WGS84 <-spTransform(interp_area,CRS_locs_WGS84)         # Project from WGS84 to new coord. system
 
-usa_map <- getData('GADM', country='USA', level=1) #Get US map
+usa_map <- getData('GADM', country='USA'), level=1) #Get US map
 usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
 usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
 usa_map_OR <- usa_map_2[usa_map_2$NAME_1=="Oregon",] #get OR
@@ -341,11 +338,15 @@ plot(interp_area,add=TRUE)
 title("Mean for month of January")
 dev.off()
 
-path_in_tmp <- "/home/parmentier/Data/IPLANT_project/region_outlines_ref_files"
-interp_area_tmp <- readOGR(dsn=path_in_tmp,"OR83M_state_outline")
-proj4string(interp_area_tmp ) <- proj4string(interp_area)
-projection(lst_md) <- proj4string(interp_area)
-r_region_ref <- rasterize(x=interp_area_tmp,y=lst_md,field="State_ID_s",fun=max)
+## Calucate the proprotion of missing pixel for January 1 mean climatotology image
+r_reg <- raster(infile_reg_raster)
+projection(r_reg) <- proj4string(interp_area)
+freq(r_reg)
+r_reg[r_reg==0] <- NA
+r_rec = lst_md > (-9999)
+lst_md_xtb <- crosstab(r_reg,r_rec, useNA='always',long=T)
+missing_prop <- lst_md_xtb[3,3]/freq(r_reg,value=1)
+missing_prop #51.3% of the study area (within Oregon state) that is missing!!!
 
 ################################################
 ################### Figure 4. MAE/RMSE and distance to closest fitting station.
@@ -395,12 +396,12 @@ add_CI <- c(TRUE,TRUE,TRUE)
 res_pix<-480
 col_mfrow<-2
 row_mfrow<-1
-png_file_name<- paste("Figure_3_accuracy_and_distance_to_closest_fitting_station_",out_prefix,".png", sep="")
+png_file_name<- paste("Figure_4_accuracy_and_distance_to_closest_fitting_station_",out_prefix,".png", sep="")
 png(filename=file.path(out_dir,png_file_name),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(row_mfrow,col_mfrow))
 
-#Figure 3a
+#Figure 4a
 list_param_plot<-list(list_dist_obj,col_t,pch_t,legend_text,mod_name,x_tick_labels,metric_name,
                       title_plot,y_lab_text,add_CI)
 names(list_param_plot)<-c("list_dist_obj","col_t","pch_t","legend_text","mod_name","x_tick_labels","metric_name",
@@ -409,7 +410,7 @@ names(list_param_plot)<-c("list_dist_obj","col_t","pch_t","legend_text","mod_nam
 plot_dst_MAE(list_param_plot)
 title(xlab="Distance to closest fitting station (km)")
 
-#Figure 3b: histogram
+#Figure 4b: histogram
 barplot(l1$n_tb$res_mod1,names.arg=limit_val,
         ylab="Number of observations",
         xlab="Distance to closest fitting station (km)")
@@ -418,7 +419,7 @@ box()
 dev.off()
 
 ####################################################
-#########Figure 4. RMSE and MAE, mulitisampling and hold out for single time scale methods.
+#########Figure 5. RMSE and MAE, mulitisampling and hold out for single time scale methods.
 
 #Using baseline 2: lat,lon and elev
 
@@ -454,7 +455,7 @@ prop_tb <- rbind(prop_obj_gam$tb,prop_obj_kriging$tb,prop_obj_gwr$tb)
 mod_compk1 <-kruskal.test(prop_tb$rmse ~ as.factor(prop_tb$method_interp)+as.factor(prop_tb$prop)) #Kruskal Wallis test
 mod_prop <-lm(prop_tb$rmse ~ as.factor(prop_tb$method_interp)+as.factor(prop_tb$prop)) #This is significant!!
 
-## plot setting for figure 4
+## plot setting for figure 5
 
 col_t<-c("red","blue","black")
 pch_t<- 1:length(col_t)
@@ -464,13 +465,13 @@ add_CI <- c(TRUE,TRUE,TRUE)
 CI_bar <- c(TRUE,TRUE,TRUE)
 #add_CI <- c(TRUE,FALSE,FALSE)
 
-##### plot figure 4 for paper
+##### plot figure 5 for paper
 ####
 
 res_pix<-480
 col_mfrow<-2
 row_mfrow<-1
-png_file_name<- paste("Figure_4_proportion_of_holdout_and_accuracy_",out_prefix,".png", sep="")
+png_file_name<- paste("Figure_5_proportion_of_holdout_and_accuracy_",out_prefix,".png", sep="")
 png(filename=file.path(out_dir,png_file_name),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(row_mfrow,col_mfrow))
@@ -485,7 +486,7 @@ title(main="MAE for hold out and methods",
       xlab="Hold out validation/testing proportion",
       ylab="MAE (°C)")
 
-#now figure 4b
+#now figure 5b
 metric_name<-"rmse"
 list_param_plot<-list(list_prop_obj,col_t,pch_t,legend_text,mod_name,metric_name,add_CI,CI_bar)
 names(list_param_plot)<-c("list_prop_obj","col_t","pch_t","legend_text","mod_name","metric_name","add_CI","CI_bar")
@@ -497,7 +498,7 @@ title(main="RMSE for hold out and methods",
 dev.off()
 
 ####################################################
-#########Figure 5. Overtraining tendency
+#########Figure 6. Overtraining tendency
 
 #read in relevant data:
 ## Calculate average difference for RMSE for all three methods
@@ -589,12 +590,12 @@ prop_obj_gwr_s<-calc_stat_prop_tb(names_mod,raster_prediction_obj_7,testing=FALS
 plot(prop_obj_gam_s$avg_tb$rmse ~ prop_obj_gam_s$avg_tb$prop, type="b",)
 
 ###############
-#### plot figure 5
+#### plot figure 6
 #set up the output file to plot
 res_pix<-480
 col_mfrow<-2
 row_mfrow<-1
-png_file_name<- paste("Figure_5_overtraining_tendency_and_holdout_proportion_",out_prefix,".png", sep="")
+png_file_name<- paste("Figure_6_overtraining_tendency_and_holdout_proportion_",out_prefix,".png", sep="")
 png(filename=file.path(out_dir,png_file_name),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(row_mfrow,col_mfrow))
@@ -603,13 +604,6 @@ col_t<-c("red","blue","black")
 pch_t<- 1:length(col_t)
 ##Make this a function???
 y_range<-range(prop_obj_kriging$avg_tb$rmse,prop_obj_kriging_s$avg_tb$rmse)
-#y_range<-range(prop_obj_gam$avg_tb$rmse,prop_obj_gam_s$avg_tb$rmse)
-#plot(prop_obj_gam$avg_tb$rmse ~ prop_obj_gam$avg_tb$prop, ylab="",xlab="",type="b",col=c("red"),pch=pch_t[1],ylim=y_range,lty=2)
-#lines(prop_obj_gam_s$avg_tb$rmse ~ prop_obj_gam_s$avg_tb$prop, ylab="",xlab="",type="b",pch=pch_t[1],ylim=y_range,col=c("red"))
-#lines(prop_obj_gwr_s$avg_tb$rmse ~ prop_obj_gwr_s$avg_tb$prop, ylab="",xlab="",type="b",ylim=y_range,pch=pch_t[3],col=c("black"))
-#lines(prop_obj_gwr$avg_tb$rmse ~ prop_obj_gam$avg_tb$prop, ylab="",xlab="",type="b",ylim=y_range,pch=pch_t[3],,col=c("black"),lty=2)
-#lines(prop_obj_kriging$avg_tb$rmse ~ prop_obj_kriging$avg_tb$prop,ylab="",xlab="", type="b",ylim=y_range,pch=pch_t[2],,col=c("blue"),lty=2)
-#lines(prop_obj_kriging_s$avg_tb$rmse ~ prop_obj_kriging_s$avg_tb$prop,ylab="",xlab="",type="b",ylim=y_range,pch=pch_t[2],col=c("blue"))
 
 plot_ac_holdout_prop<- function(l_prop,l_col_t,l_pch_t,add_CI,y_range){
   
@@ -662,8 +656,8 @@ title(main="Difference between training and testing MAE",
 
 dev.off()
 
-############### STUDY TIME AND accuracy
-#########Figure 6: Monthly RMSE averages for the three interpolation methods: GAM, GWR and Kriging.
+############### STUDY TIME AND accuracy: comparing methods over monthly averages
+#########Figure 14: Monthly RMSE averages for the three interpolation methods: GAM, GWR and Kriging.
 
 mae_tmp<- data.frame(gam=tb1[tb1$pred_mod=="mod1",c("mae")],
                      kriging=tb3[tb3$pred_mod=="mod1",c("mae")],
@@ -708,27 +702,13 @@ month_data_list<-list(gam=tb1[tb1$pred_mod=="mod1",c(metric_name,"month")],
                       gwr=tb4[tb4$pred_mod=="mod1",c(metric_name,"month")])
 y_range<-range(unlist(month_data_list))
 
-
-#boxplot(test[[metric_ac]]~test[[c("month")]],outline=FALSE,horizontal=FALSE,cex=0.5,
-#        ylab=paste(metric_ac,"in degree C",sep=" "),,axisnames=FALSE,axes=FALSE)
-#boxplot(test[[metric_ac]]~test[[c("month")]],outline=FALSE,horizontal=FALSE,cex=0.5,
-#        ylab=paste(metric_ac,"in degree C",sep=" "))
-#axis(1, labels = FALSE)
-## Create some text labels
-#labels <- month.abb # abbreviated names for each month
-## Plot x axis labels at default tick marks
-#text(1:length(labels), par("usr")[3] - 0.25, srt = 45, adj = 1,
-#     labels = labels, xpd = TRUE)
-#axis(2)
-#box()
-
-#Now plot figure 6
+#Now plot figure 14
 res_pix<-480
 col_mfrow<-2
 #row_mfrow<-2
 row_mfrow<-1
 
-png_file_name<- paste("Figure_6_monthly_accuracy_",out_prefix,".png", sep="")
+png_file_name<- paste("Figure_14_monthly_accuracy_",out_prefix,".png", sep="")
 png(filename=file.path(out_dir,png_file_name),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 par(mfrow=c(row_mfrow,col_mfrow))
@@ -752,12 +732,7 @@ legend("topleft",legend=legend_text,
 #Second plot
 ylab_text<-"MAE (°C)"
 xlab_text<-"Month"
-#y_range<-range(month_data_list$gam$mae,month_data_list$kriging$mae,month_data_list$gwr$mae)
-#y_range<-range(month_data_list$gam$mae)
 boxplot(mae~month,data=month_data_list$gam,main="Monthly MAE boxplot", xlab=xlab_text,ylab=ylab_text,outline=FALSE)
-#boxplot(mae~month,data=month_data_list$kriging,ylim=y_range,main="Kriging",ylab=ylab_text,outline=FALSE)
-#boxplot(mae~month,data=month_data_list$gwr,ylim=y_range,main="GWR",ylab=ylab_text,outline=FALSE)
-
 dev.off()
 
 #Now generate table 5
@@ -826,7 +801,7 @@ min_val <-s.range[1]
 min_val <- 0
 layout_m<-c(1,3) #one row two columns
 
-#png(paste("Figure7__spatial_pattern_tmax_prediction_levelplot_",date_selected,out_prefix,".png", sep=""),
+#png(paste("Figure7a__spatial_pattern_tmax_prediction_levelplot_",date_selected,out_prefix,".png", sep=""),
 #    height=480*layout_m[1],width=480*layout_m[2])
 
 p<-levelplot(pred_temp_s,main="Interpolated Surfaces Method Comparison", ylab=NULL,xlab=NULL,
@@ -837,7 +812,7 @@ print(p)
 #col.regions=temp.colors(25))
 #dev.off()
 
-## FIGURE COMPARISON OF  MODELS COVARRIATES: Figure 7...
+## FIGURE COMPARISON OF  MODELS COVARIATES: Figure 7...
 
 lf2 <- raster_prediction_obj_2$method_mod_obj[[index]][[y_var_name]]
 lf2 #contains the models for gam
@@ -863,7 +838,7 @@ min_val <-s.range[1]
 #min_val <- 0
 layout_m<-c(4,3) #one row two columns
 
-png(paste("Figure_7_spatial_pattern_tmax_prediction_models_baseline1_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
+png(paste("Figure_7a_spatial_pattern_tmax_prediction_models_baseline1_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
 
 p<- levelplot(pred_temp_s,main="Interpolated Surfaces Model Comparison baseline 1", ylab=NULL,xlab=NULL,
@@ -988,10 +963,12 @@ dev.off
 ###baseline 2: s(lat,lon) + s(elev)
       
 l_obj<-vector("list",length=2)
-l_obj[[1]]<-raster_prediction_obj_1
+l_obj[[1]]<-raster_prediction_obj_1 #baseline 1: s(lat,lon) + s(elev_s)
 l_obj[[2]]<-raster_prediction_obj_2
 l_table <- vector("list",length=length(l_obj))   
 l_s_table_term_tb <- vector("list",length(l_obj))
+
+(l_obj[[1]]$method_mod_obj[[1]]$formulas)
 for (k in 1:length(l_obj)){
   raster_prediction_obj<- l_obj[[k]]
   #extract models for every day
@@ -1010,8 +987,10 @@ for (k in 1:length(l_obj)){
   s.table_term_tb <- do.call(rbind.fill,s.table_term_list) 
   #Adding month to df
   #s.table_term_tb <- add_month_tag(s.table_term_tb)
-  s.table_term_tb$month <- add_month_tag(s.table_term_tb,"rownames")
-  
+  #s.table_term_tb$month <- add_month_tag(s.table_term_tb,"rownames")
+  col_date<-strptime(s.table_term_tb[["rownames"]], "%Y%m%d")   # interpolation date being processed
+  s.table_term_tb$month <-strftime(col_date, "%m")          # current month of the date being processed
+
   threshold_val<-c(0.01,0.05,0.1)
   s.table_term_tb$p_val_rec1 <- s.table_term_tb[["p-value"]] < threshold_val[1]
   s.table_term_tb$p_val_rec2 <- s.table_term_tb[["p-value"]] < threshold_val[2]
@@ -1097,7 +1076,7 @@ s_table_LST_mod4 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(LST)
 tb_mod4_LST_rec3 <- aggregate(s_table_LST_mod4$p_val_rec3~s_table_term_mod4$month,FUN=mean)
 plot(tb_mod4_LST_rec3,type="l",ylim=c(0.2,1))
 s_table_elev_mod4 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(elev_s)")
-tb_mod4_elev_rec3 <- aggregate(tb_mod4_elev_rec3$p_val_rec2 ~ tb_mod4_elev_rec3$month,FUN=mean)
+#tb_mod4_elev_rec3 <- aggregate(tb_mod4_elev_rec3$p_val_rec2 ~ tb_mod4_elev_rec3$month,FUN=mean)
 plot(tb_mod4_elev_rec3)
 lines(tb_mod4_elev_rec3)
 test1 <- subset(s.table_term_tb,mod_name=="mod1" & term_name=="s(elev_s)")
@@ -1143,58 +1122,33 @@ lines(df_cor$elev_tmax,ylim=c(-1,1),col="blue")
 
 #### Now plot figure for paper:
 
-
-res_pix<-480
-col_mfrow<-3
-row_mfrow<-1
-png_file_name<- paste("Figure_17_paper_","LST_elev_",out_prefix,".png", sep="")
-png(filename=file.path(out_dir,png_file_name),
-   width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-#png(filename=file.path(out_dir,png_file_name),
-    #width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(row_mfrow,col_mfrow))
-
-plot(tb_mod4_LST_rec3,type="l",ylab="Proportion of significant LST term",
-     xlab="Month")
-title("Proportion of significant LST term in mod4",cex=1.5)
-
-plot(rmse_dif,type="l",ylab="ΔRMSE between mod1 and mod4",
-     xlab="Month")
-abline(h=0,lty="dashed")
-title("Monthly ΔRMSE betwen mod1 and mod4",cex=1.5)
-
-plot(df_cor$LST_tmax,ylim=c(-1,1),col="red",type="l",
-     ylab="Pearson Correlation",xlab="Month")
-legend("topright",legend=c("Elev-tmax","LST-tmax"),col=c("red","blue"),cex=1,bty="n")
-
-lines(df_cor$elev_tmax,ylim=c(-1,1),col="blue")
-title("Monthly correlation for LST-tmax and elev-tmax",cex=1.5)
-
-dev.off()
-
 names(tb_mod4_LST_rec3) <- c("month","p_val_rec3")
-tb_mod4_LST_rec3$month <- c("month","p_val_rec3")
+tb_mod4_LST_rec3$month <- 1:12
 
 res_pix<-480
 layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
 #date_selected <- c("20100101","20100901")
-png(paste("Figure_17_paper_","LST_elev_",out_prefix,".png", sep=""),
+png(paste("Figure_15_paper_","LST_elev_",out_prefix,".png", sep=""),
     height=res_pix*layout_m[1],width=res_pix*layout_m[2])
     #height=480*6,width=480*4)
      
-p_prop <- xyplot(p_val_rec3 ~ as.numeric(month),data=tb_mod4_LST_rec3,
+p_prop <- xyplot(p_val_rec3 ~ month,data=tb_mod4_LST_rec3,
           col=c("black"),
           type="b",
           ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
           xlab=list(label="Month",cex=1.5),
           main=list(label="Proportion of significant LST term in mod4",cex=1.8))
+p_prop <- update(p_prop,par.settings = list(axis.text = list(font = 2, cex = 1.3),
+                par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5))
 
 p_dif <- xyplot(rmse_dif ~ 1:12,
           col=c("black"),
           type="b",
           ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
           xlab=list(label="Month",cex=1.5),
-          main=list(label="Monthly \u0394RMSE betwen mod1 and mod4",cex=1.8))
+          main=list(label="Monthly \u0394RMSE betwen mod1 and mod4",cex=1.8),
+          par.settings = list(axis.text = list(font = 2, cex = 1.3),
+          par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5))
 p_dif <- update(p_dif, panel = function(...) {
             panel.abline(h = 0, lty = 2, col = "gray")
             panel.xyplot(...)
@@ -1217,14 +1171,14 @@ p_cor <- update(p_cor, panel = function(...) {
             panel.abline(h = 0, lty = 2, col = "gray")
             panel.xyplot(...)
         })
-          #par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
-                              #par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+#increasing font size and making it bold
+p_cor <- update(p_cor,par.settings = list(axis.text = list(font = 2, cex = 1.3),
+                par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5))
 
 #grid.arrange(p1,p2,p3,ncol=1)
 grid.arrange(p_prop,p_dif,p_cor,ncol=3)
 
 dev.off()
-
 
 ########################
 ### Prepare table 7: correlation matrix between covariates      
@@ -1257,10 +1211,10 @@ write.table(corr_mat,file=file_name,sep=",")
 #Plot a sample variogram, and possibly a fitted model
 #model 1 lat,lon and elev
 layout_m <- c(1,2) # works if set to this?? ok set the resolution...
-      
+res_pix <- 480      
 date_selected <- c("20100101","20100901")
 png(paste("Figure9_paper_","_variogram_",date_selected[1],"_",date_selected[2],"_",out_prefix,".png", sep=""),
-    height=960*layout_m[1],width=960*layout_m[2])
+    height=res_pix*layout_m[1],width=res_pix*layout_m[2])
     #height=480*6,width=480*4)
 
 #p3 <- list_plots_spt[[3]]
@@ -1268,35 +1222,37 @@ p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_pre
          ylim=c(0,9),
          ylab=list(label="Semivariance",cex=1.5),
          xlab=list(label="Distance (meter)",cex=1.5),
-         main=list(label="Mod1 January 1, 2010",cex=1.8))
+         main=list(label="Mod1 January 1, 2010",cex=1.8),
+         par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
+                par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
+                par.strip.text=list(font=2,cex=1.5)
+         )
 #plot(p1)
 p241<-plot(raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$var_model,
          ylim=c(0,9),
          ylab=list(label="Semivariance",cex=1.5),
          xlab=list(label="Distance (meter)",cex=1.5),
-         main=list(label="Mod1 September 1, 2010",cex=1.8))
-#plot(p241)
-
-#grid.arrange(p1,p2,p3,ncol=1)
+         main=list(label="Mod1 September 1, 2010",cex=1.8),
+         par.settings = list(axis.text = list(font = 2, cex = 1.3),
+                par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
+                par.strip.text=list(font=2,cex=1.5)
+         )
 grid.arrange(p1,p241,ncol=2)
 
 dev.off()
 #Combine both plot?     + plot info on sill, nugget and range? and most frequent model selected
 
-list_kg_var_model <- lapply(1:365,function(i){raster_prediction_obj_3$method_mod_obj[[i]]$mod[[1]]$var_model})
-list_kg_var_model <- lapply(1:365,function(i){raster_prediction_obj_3$method_mod_obj[[i]]$mod[[1]]$var_model})
+############################
+#### Figure 10: Summarize variograms parameters over 365 days
 
+list_kg_var_model <- lapply(1:365,function(i){raster_prediction_obj_3$method_mod_obj[[i]]$mod[[1]]$var_model})
+list_kg_var_model <- lapply(1:365,function(i){raster_prediction_obj_3$method_mod_obj[[i]]$mod[[1]]$var_model})
 list_kg_var_model
    
 test <- do.call(rbind,list_kg_var_model)
 tb_variogram <- subset(test,model!="Nug")      
 tt2 <- subset(test,model=="Nug")      
 tb_variogram["Nug"] <- (tt2$psill)
-
-add_month_tag<-function(tb){
-  date<-strptime(tb$date, "%Y%m%d")   # interpolation date being processed
-  month<-strftime(date, "%m")          # current month of the date being processed
-}
 
 dates<-(extract_from_list_obj(raster_prediction_obj_1$method_mod_obj,"sampling_dat"))$date #get vector of dates
 tb_variogram["date"] <- dates
@@ -1305,7 +1261,7 @@ tb_variogram$month <- add_month_tag(tb_variogram)
 
 layout_m <- c(2,2) # works if set to this?? ok set the resolution...      
 #date_selected <- c("20100101","20100901")
-png(paste("Figure14_paper_","_variogram_",out_prefix,".png", sep=""),
+png(paste("Figure10_paper_","_variogram_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
     #height=480*6,width=480*4)
      
@@ -1333,7 +1289,8 @@ grid.arrange(p_hist,p_bw1,p_bw2,p_bw3,ncol=2)
 dev.off()
 
 ###########################################
-### Figure 10: map of residuals...for a specific date...
+### Figure 11: map of residuals...for a specific date...
+
 index <- 244
 names_mod <- names(raster_prediction_obj_2$method_mod_obj[[index]][[y_var_name]]) #names of models to plot
 #in_dir2 <-"/home/parmentier/Data/IPLANT_project/Oregon_interpolation/Oregon_03142013/output_data_365d_gam_day_lst_comb4_08152013"
@@ -1361,12 +1318,14 @@ for (k in 1:length(names_mod)){
   #p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,col.regions=rev(terrain.colors(255)),contour=T)
   #add legend..par.settings = GrTheme
   cx <- ((data_v[[res_model_name]])*2)
-  p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
+  p1 <- levelplot(elev,#margin=F,
+                  scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
 
   #p2 <- spplot(data_v,res_model_name, cex=1 * cx,main=paste("Residuals for ",res_model_name," ",datelabel,sep=""),
   #             col.regions=matlab.like(25))
-  p2 <- bubble(data_v,res_model_name, main=paste("Residuals for ",res_model_name," ",datelabel,sep=""),
-               col=matlab.like(25))  
+  p2 <- bubble(data_v,res_model_name, 
+               main=paste("Residuals for ",res_model_name," ",datelabel,sep=""))#,
+               #col=matlab.like(5))  
   p3 <- p2 + p1 + p2 #to force legend...
   #p1 <- spplot(interp_area)
   #p3 <- p1+p2 #to force legend...
@@ -1379,15 +1338,49 @@ for (k in 1:length(names_mod)){
   list_p[[k]] <- p3
 }
 
-layout_m<-c(1,3) # works if set to this?? ok set the resolution...
-png(paste("Figure13_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+layout_m<-c(4,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_11_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
 
-grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],ncol=3)
+grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],
+             list_p[[4]],list_p[[5]],list_p[[6]],
+             list_p[[7]],list_p[[8]],list_p[[9]],
+             list_p[[10]],ncol=3)
       
 dev.off()   
 
-######## NOW GET A ACCURACY BY STATIONS
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_11a_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+
+grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],
+             ncol=3)  
+dev.off() 
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_11b_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+
+grid.arrange(list_p[[4]],list_p[[5]],list_p[[6]],
+             ncol=3)  
+dev.off() 
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_11c_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+
+grid.arrange(list_p[[7]],list_p[[8]],list_p[[9]],
+             ncol=3)  
+dev.off() 
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_11d_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+
+grid.arrange(list_p[[10]],
+             ncol=3)  
+dev.off() 
+###########################################
+### Figure 12: map of MAE by stations over 365 days to summarize residuals information
+
+###First get accuracy by stations
 l_formulas<-(extract_from_list_obj(raster_prediction_obj_2$method_mod_obj,"formulas")) #get vector of dates
 #                            y_var ~ s(lat,lon)
 #                y_var ~ s(lat,lon) + s(elev_s)
@@ -1464,109 +1457,71 @@ for (k in 1:length(names_var)){
 }
 
 layout_m<-c(1,3) # works if set to this?? ok set the resolution...
-png(paste("Figure15_paper_","average_MAE_",date_selected,"_",out_prefix,".png", sep=""),
+png(paste("Figure12_paper_","average_MAE_",date_selected,"_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
 
 grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],ncol=3)
       
 dev.off()   
 
-#infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
-#reg_outline <- readOGR(dsn=dirname(infile_reg_outline),layer=sub(".shp","",basename(infile_reg_outline)))
+###########################################
+### Figure 13: Analysing residuals and relationship to elevation for mod1, mod2 and mod4 ######
 
-########### Figure 16: residuals and elev ######
-
-#raster_prediciton object for baseline 1 () s(lat,lon) + s(elev)) and baseline 2 (slat,lon))      
+#raster_predicton object for baseline 1 () s(lat,lon) + s(elev)) and baseline 2 (slat,lon))      
 list_data_v <- lapply(1:365,function(i){raster_prediction_obj_2$validation_mod_obj[[i]]$data_v}) #testing with residuals
 l_formulas<-(extract_from_list_obj(raster_prediction_obj_2$method_mod_obj,"formulas")) #get vector of dates
 
 test <- do.call(rbind,list_data_v)        
 data_v_ag <-test                
-plot(res_mod1~elev,data=test)                    
-plot(res_mod2~elev,data=test)                    
 cor(test$res_mod1,test$elev)
 cor(test$res_mod2,test$elev,use="complete.obs") #decrease in corellation when using elev
 cor(test$res_mod1,test$LST,,use="complete.obs")
 cor(test$res_mod5,test$LST,use="complete.obs") #decrease in correlation when using LST
-
-plot(res_mod1~LST,data=test)                    
-plot(res_mod5~LST,data=test)                    
                      
 brks<-c(0,500,1000,1500,2000)
 lab_brks<-1:4
 elev_rcstat<-cut(data_v_ag$elev,breaks=brks,labels=lab_brks,right=F)
 
 #Now set up plotting device
-res_pix<-480
-col_mfrow<-3
-row_mfrow<-1
-png_file_name<- paste("Figure_16_paper_","residuals_MAE_",out_prefix,".png", sep="")
-png(filename=file.path(out_dir,png_file_name),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-par(mfrow=c(row_mfrow,col_mfrow))
-
-boxplot(data_v_ag$res_mod1~elev_rcstat,ylim=c(-15,15),ylab="Residuals (deg C)",main="Residuals vs elevation classes for mod1=lat*lon",
-        xlab="Elevation classes (meter)",names=c("0-500","500-1000","1000-1500","1500-2000"))           
-boxplot(data_v_ag$res_mod5~elev_rcstat,ylim=c(-15,15),ylab="Residuals (deg C)",main="Residuals vs elevation classes for mod5=lat*lon+LST",
-        xlab="Elevation classes (meter)",names=c("0-500","500-1000","1000-1500","1500-2000"))           
-boxplot(data_v_ag$res_mod2~elev_rcstat,ylim=c(-15,15),ylab="Residuals (deg C)",main="Residuals vs elevation classes for mod2=lat*lon+elev",
-        xlab="Elevation classes (meter)",names=c("0-500","500-1000","1000-1500","1500-2000"))           
-dev.off()
 
 layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
-png(paste("Figure_16_paper_","residuals_MAE_",out_prefix,".png", sep=""),
+png(paste("Figure_13_paper_","residuals_MAE_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
     #height=480*6,width=480*4)
 
 p_bw1<-bwplot(data_v_ag$res_mod1~elev_rcstat,do.out=F,ylim=c(-15,15),
          ylab=list(label="Residuals (deg C)",cex=1.5),
          xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elevation for mod1=lat*lon",cex=1.8),
-         scales = list(x = list(at = c(1, 2, 3, 4), 
-                               labels = c("0-500","500-1000","1000-1500","1500-2000"))))
+         main=list(label="Residuals vs elev for mod1=lat*lon",cex=1.8),
+         scales = list(x = list(at = c(1, 2, 3, 4), #provide tick location and labels
+                               labels = c("0-500","500-1000","1000-1500","1500-2000"))),
+                       par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
+        par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
+        par.strip.text=list(font=2,cex=1.5)
+        )
 
 p_bw2 <- bwplot(data_v_ag$res_mod5~elev_rcstat,do.out=F,ylim=c(-15,15),
          ylab=list(label="Residuals (deg C)",cex=1.5),
          xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elevation for mod5=lat*lon+LST",cex=1.8),
+         main=list(label="Residuals vs elev for mod5=lat*lon+LST",cex=1.8),
          scales = list(x = list(at = c(1, 2, 3, 4), 
-                               labels = c("0-500","500-1000","1000-1500","1500-2000"))))
+                               labels = c("0-500","500-1000","1000-1500","1500-2000"))),
+         par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
+         par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
+         par.strip.text=list(font=2,cex=1.5)
+         )
 
-p_bw3 <- bwplot(data_v_ag$res_mod5~elev_rcstat,do.out=F,ylim=c(-15,15),
+p_bw3 <- bwplot(data_v_ag$res_mod2~elev_rcstat,do.out=F,ylim=c(-15,15),
          ylab=list(label="Residuals (deg C)",cex=1.5),
          xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elevation for mod5=lat*lon+LST",cex=1.8),
+         main=list(label="Residuals vs elev for mod2=lat*lon+elev",cex=1.8),
          scales = list(x = list(at = c(1, 2, 3, 4), 
-                               labels = c("0-500","500-1000","1000-1500","1500-2000"))))
+                               labels = c("0-500","500-1000","1000-1500","1500-2000"))),
+         par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
+                par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
+                par.strip.text=list(font=2,cex=1.5)
+                )
 grid.arrange(p_bw1,p_bw2,p_bw3,ncol=3)
 dev.off()
-
-#layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
-#png(paste("Figure16_paper_","residuals_MAE",out_prefix,".png", sep=""),
-#    height=480*layout_m[1],width=480*layout_m[2])
-#    #height=480*6,width=480*4)
-     
-#p_bw1<- bwplot(data_v_ag$res_mod1~elev_rcstat,ylim=c(-15,15),do.out=F,
-#         ylab=list(label="Residuals for Mod1 (deg C)",cex=1.5),
-#         xlab=list(label="Elevation class",cex=1.5),
-#         main=list(label="Mod1 range",cex=1.8))
-#p_bw2<-bwplot(tb_variogram$Nug~tb_variogram$month,do.out=F,ylim=c(0,12),
-#         ylab=list(label="Nugget of variograms",cex=1.5),
-#         xlab=list(label="Month",cex=1.5),
-#         main=list(label="Mod1 Nugget",cex=1.8))
-#p_bw3<-bwplot(tb_variogram$psill~tb_variogram$month,do.out=F,ylim=c(0,30),
-#         ylab=list(label="Sill of variograms",cex=1.5),
-#         xlab=list(label="Month",cex=1.5),
-#         main=list(label="Mod1 sill",cex=1.8))
-#grid.arrange(p1,p2,p3,ncol=1)
-#grid.arrange(p_hist,p_bw1,p_bw2,p_bw3,ncol=2)
-
-#dev.off()
-
-#brks<-c(0,20,40,60,80,100)
-#lab_brks<-1:5
-#rcstat<-cut(data_v_ag$LC1,breaks=brks,labels=lab_brks,right=F)
-#plot(data_v_ag$res_mod5~rcstat,ylim=c(-5,5))                      
-#plot(data_v_ag$res_mod5~rcstat,ylim=c(-5,5))
                       
 ###################### END OF SCRIPT #######################
