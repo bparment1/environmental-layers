@@ -141,6 +141,9 @@ extract_from_list_obj<-function(obj_list,list_name){
   return(tb_list_tmp) #this is  a data.frame
 }
 
+##############################s
+#### Parameters and constants  
+
 #scp -rp raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
 #scp -rp reg*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
 
@@ -148,6 +151,8 @@ in_dir <- "/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
 raster_obj_infile <- "raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData"
 
 setwd(in_dir)
+
+########################## START SCRIPT ##############################
 
 raster_obj<- load_obj(raster_obj_infile)
 
@@ -184,7 +189,9 @@ clim_method_mod_obj$data_month_v
 vis.gam(mod1)
 vis.gam(mod1,view=c("lat","lon"),theta= 35) # plot against by variable
 #http://stats.stackexchange.com/questions/12223/how-to-tune-smoothing-in-mgcv-gam-model
+mod1<- try(gam(y_var ~ s(lat, lon,k=22) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
 
+##New functions...
 fit_models<-function(list_formulas,data_training){
 
   #This functions several models and returns model objects.
@@ -209,20 +216,7 @@ fit_models<-function(list_formulas,data_training){
   return(list_fitted_models) 
 }
 
-mod1<- try(gam(y_var ~ s(lat, lon,k=22) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
-
-> sink("test.txt")
-> (gam.check(mod1))
-> getwd(0)
-Error in getwd(0) : unused argument (0)
-> getwd()
-> sink()
-> getwd(0)
-Error in getwd(0) : unused argument (0)
-> getwd()
-[1] "/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
-> system("more test.txt")
-
+##Format formula using prescribed k values for gam
 format_formula_k_fun <- function(formula,l_k){
   #l_k: list of k parameter for GAM method with the value of k and the name of the variable
   #split the formula by term 
@@ -241,7 +235,8 @@ format_formula_k_fun <- function(formula,l_k){
   #mod <- try(gam(formula_k, data=data_training)) #change to any model!!
 }
 
-test_k_gam <- function(formula,l_k){
+## Fit model using training  data, formula and k dimensions with increment
+test_k_gam <- function(formula,l_k,data_training){
 
   l_k_tmp <- as.numeric(l_k)/2
   #l_k_tmp <- l_k
@@ -259,7 +254,11 @@ test_k_gam <- function(formula,l_k){
     mod <- try(gam(formula_k, data=data_training)) #change to any model!! 
     list_l_k[[j]] <- l_k_tmp
     list_mod[[j]] <- mod
-    l_k_tmp <- l_k_tmp + rep(1,length(l_k_tmp))
+    #if opt_increase{}
+    l_k_tmp <- l_k_tmp + rep(1,length(l_k_tmp)) #can modify this option to go -1 instead of plus 1?
+    #if opt_decrease{}
+    l_k_tmp <- l_k_tmp + rep(1,length(l_k_tmp)) #can modify this option to go -1 instead of plus 1?
+    
     j <- j+1
     limit_l_k <- (l_k_tmp > l_k) #now check that c(30,10,10 is not gone above!!)
     for (i in 1:length(limit_l_k)){
@@ -269,35 +268,65 @@ test_k_gam <- function(formula,l_k){
     }
   }
   #store mod and l_k in a object
-  l_k_obj <- list(list_mod,l_k_tmp)
-  names(l_k_obj) <- c("list_mod","l_k_tmp")
+  l_k_obj <- list(list_mod,list_l_k)
+  names(l_k_obj) <- c("list_mod","list_l_k")
   
   return(l_k_obj)
 }
+
+## generate table of edf and k_index based on fitted models  
+create_gam_check_table <-function(l_k_obj){
+  list_mod <- l_k_obj$list_mod
+  list_l_k <- l_k_obj$list_l_k
+
+  #remove try-error model!!
+  list_mod<- list_mod[unlist(lapply(list_mod,FUN=function(x){!inherits(x,"try-error")}))]
+  list_df_k <- vector("list",length(list_mod))
+  
+  for(i in 1:length(list_mod)){
+    mod <- list_mod[[i]]
+    l_k <- list_l_k[[i]]
+    sink("test.txt")
+    gam.check(mod)
+    sink()
+    f <- readLines("test.txt") #read all lines
+    f_tmp <- strsplit(f," ")
+    names_term <- attr(terms(formula),"term.labels")
+    match(f_tmp,names_term[1])
+    grepl(glob2rx(paste(names_term[1],"*",sep="")),f_tmp)
+    selected_lines_s <- grep("s\\(",f_tmp)
+    selected_lines_ti <- grep("ti\\(",f_tmp)
+    selected_lines_te <- grep("te\\(",f_tmp)    
+    selected_lines <- sort(c(selected_lines_s,selected_lines_te,selected_lines_ti))
+    #selected_lines <- c(min(selected_lines)-1,selected_lines)
+    
+    rows <- f[selected_lines]
+    list_df <- vector("list",length(rows))
+    for (j in  1:length(rows)){
+      tmp <- unlist(strsplit(rows[j]," ",fixed=T))
+      index <- unlist(lapply(tmp,FUN=function(x){x!=""}))
+      tmp<- tmp[index]
+      list_df[[j]] <- data.frame(term=tmp[1],kp=tmp[2],edf=tmp[3],k_index=tmp[4],p_value=tmp[5])
+    }
+    df_k <-do.call(rbind,list_df)
+    df_k$k  <- l_k 
+    df_k$fit_no <- paste("t_",i,sep="")
+    list_df_k[[i]] <- df_k
+  }
+  return(list_df_k)
+}
+
+
+#l_k <- vector("list",3)
+#l_k <- list(25,10,10)
+l_k <- c(30,10,10)
+l_k_obj <- test_k_gam(formula,l_k,data_training)
 
 #d
 #Now get k_index for each model and store it in a table.
 #function gam.check with
 #select the  right mode based on k-index, edf or other criteria?
 
-l_k <- vector("list",3)
-l_k <- list(25,10,10)
-l_k <- c(30,10,10)
-
-
-#1. Fit with standard settings:
-#(Start at k=10 or k=30 if 2 interactive term.)
-#start with the highest k first...
-#If  does not fit then
-
-#mod <- try(gam(formula_k, data=data_training)) #change to any model!!
-
-#         K=15 for interactive term and k=5 unique term:
-#         - do gam.check:
-#                    If k-index < 1
-#                     Then increase k by 1 for interactive term and  fit again
-#          If k-index >1 or k=10 for unique term and k=30  
-#Break…
-
-
 #Now function to run mod depending on conditions
+
+################## END OF SCRIPT ###############
