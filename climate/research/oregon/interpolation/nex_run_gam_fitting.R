@@ -52,6 +52,30 @@ load_obj <- function(f)
   env[[nm]]
 }
 
+
+### Function to fit using  the training  data  from the  workflow
+fit_models<-function(list_formulas,data_training){
+
+  #This functions several models and returns model objects.
+  #Arguments: - list of formulas for GAM models
+  #           - fitting data in a data.frame or SpatialPointDataFrame
+
+  #Output: list of model objects 
+
+  list_fitted_models<-vector("list",length(list_formulas))
+  for (k in 1:length(list_formulas)){
+    formula<-list_formulas[[k]]
+    mod<- try(gam(formula, data=data_training)) #change to any model!!
+    #mod<- try(autoKrige(formula, input_data=data_s,new_data=s_sgdf,data_variogram=data_s))
+
+    model_name<-paste("mod",k,sep="")
+    assign(model_name,mod) 
+    list_fitted_models[[k]]<-mod
+  }
+  return(list_fitted_models) 
+}
+
+##Function to predict using a mod object from the workflow...
 predict_raster_model<-function(in_models,r_stack,out_filename){
 
   #This functions performs predictions on a raster grid given input models.
@@ -78,28 +102,7 @@ predict_raster_model<-function(in_models,r_stack,out_filename){
   return(list_rast_pred)
 }
 
-fit_models<-function(list_formulas,data_training){
-
-  #This functions several models and returns model objects.
-  #Arguments: - list of formulas for GAM models
-  #           - fitting data in a data.frame or SpatialPointDataFrame
-
-  #Output: list of model objects 
-
-  list_fitted_models<-vector("list",length(list_formulas))
-  for (k in 1:length(list_formulas)){
-    formula<-list_formulas[[k]]
-    mod<- try(gam(formula, data=data_training)) #change to any model!!
-    #mod<- try(autoKrige(formula, input_data=data_s,new_data=s_sgdf,data_variogram=data_s))
-
-    model_name<-paste("mod",k,sep="")
-    assign(model_name,mod) 
-    list_fitted_models[[k]]<-mod
-  }
-  return(list_fitted_models) 
-}
-
-
+## Create a new directory
 create_dir_fun <- function(out_dir,out_suffix){
   if(!is.null(out_suffix)){
     out_name <- paste("output_",out_suffix,sep="")
@@ -112,6 +115,7 @@ create_dir_fun <- function(out_dir,out_suffix){
   return(out_dir)
 }
 
+#Extract info from object
 extract_list_from_list_obj<-function(obj_list,list_name){
   library(plyr)
   
@@ -141,80 +145,7 @@ extract_from_list_obj<-function(obj_list,list_name){
   return(tb_list_tmp) #this is  a data.frame
 }
 
-##############################s
-#### Parameters and constants  
-
-#scp -rp raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
-#scp -rp reg*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
-
-in_dir <- "/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
-raster_obj_infile <- "raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData"
-
-setwd(in_dir)
-
-########################## START SCRIPT ##############################
-
-raster_obj<- load_obj(raster_obj_infile)
-
-#raster_obj <- load_obj(unlist(raster_obj_file)) #may not need unlist
-nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
-l_formulas <- (raster_obj$clim_method_mod_obj[[1]]$formulas)
-
-#y_var ~ s(lat, lon) + s(elev_s)
-#y_var ~ s(lat, lon) + s(elev_s) + s(LST)
-#y_var ~ s(lat, lon) + s(elev_s) + s(N_w, E_w) + s(LST) + ti(LST,LC1) + s(LC1)
-
-pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
-#we are assuming no monthly hold out...
-#we are assuming only one specific daily prop?
-nb_models <- length(pred_mod)
-
-j <- 7
-clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]]
-#this is made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
-clim_method_mod_obj$clim #file predicted
-
-l_mod <- clim_method_mod_obj$mod #file predicted
-
-reg_rast <- stack(list.files(pattern="*.tif"))
-plot(reg_rast,y=15)
-
-names(clim_method_mod_obj)
-clim_method_mod_obj$data_month
-clim_method_mod_obj$data_month_v
-
-## check for residual pattern, removeable by increasing `k'
-## typically `k', below, chould be substantially larger than 
-## the original, `k' but certainly less than n/2.
-vis.gam(mod1)
-vis.gam(mod1,view=c("lat","lon"),theta= 35) # plot against by variable
-#http://stats.stackexchange.com/questions/12223/how-to-tune-smoothing-in-mgcv-gam-model
-mod1<- try(gam(y_var ~ s(lat, lon,k=22) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
-
-##New functions...
-fit_models<-function(list_formulas,data_training){
-
-  #This functions several models and returns model objects.
-  #Arguments: - list of formulas for GAM models
-  #           - fitting data in a data.frame or SpatialPointDataFrame
-
-  #Output: list of model objects 
-
-  list_fitted_models<-vector("list",length(list_formulas))
-  for (k in 1:length(list_formulas)){
-    formula<-list_formulas[[k]]
-    mod<- try(gam(formula, data=data_training)) #change to any model!!
-    mod<- try(gam(formula, data=data_training,k=5)) #change to any model!!
-    mod<- try(gam(y_var ~ s(lat, lon,k=14) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
-
-    #mod<- try(autoKrige(formula, input_data=data_s,new_data=s_sgdf,data_variogram=data_s))
-
-    model_name<-paste("mod",k,sep="")
-    assign(model_name,mod) 
-    list_fitted_models[[k]]<-mod
-  }
-  return(list_fitted_models) 
-}
+### New functions to set the k dimension in GAM
 
 ##Format formula using prescribed k values for gam
 format_formula_k_fun <- function(formula,l_k){
@@ -316,17 +247,221 @@ create_gam_check_table <-function(l_k_obj){
   return(list_df_k)
 }
 
+extract_fitting_mod_gam_stat <- function(mod){
+  #Note that this assumes that we are using a gam mod object
+  gcv_val <- mod$gcv.ubre
+  aic_val <- AIC(mod)
+  rmse_val <- sqrt(mean((residuals(mod))^2))
+  mae_val <- mean(abs(residuals(mod)))
+  bias_val <- mean(residuals(mod))
+  n_val <- length(residuals(mod))
+  #Now create a data.frame
+  df_val <- data.frame(gcv=gcv_val,
+                   aic=aic_val,
+                   rmse=rmse_val,
+                   mae=mae_val,
+                   bias=bias_val,
+                   n=n_val)  
+  return(df_val)
+} 
 
-#l_k <- vector("list",3)
-#l_k <- list(25,10,10)
-l_k <- c(30,10,10)
+##############################s
+#### Parameters and constants  
+
+#scp -rp raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
+#scp -rp reg*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
+
+## laod data from Northen Africa
+in_dir <- "/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
+raster_obj_infile <- "raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData"
+
+setwd(in_dir)
+
+########################## START SCRIPT ##############################
+
+#### PART I: Explore fitting of GAM  ####
+
+raster_obj<- load_obj(raster_obj_infile)
+
+#raster_obj <- load_obj(unlist(raster_obj_file)) #may not need unlist
+nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
+list_formulas <- (raster_obj$clim_method_mod_obj[[1]]$formulas)
+
+#Models used:
+#y_var ~ s(lat, lon) + s(elev_s)
+#y_var ~ s(lat, lon) + s(elev_s) + s(LST)
+#y_var ~ s(lat, lon) + s(elev_s) + s(N_w, E_w) + s(LST) + ti(LST,LC1) + s(LC1)
+
+pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
+#we are assuming no monthly hold out...
+#we are assuming only one specific daily prop?
+nb_models <- length(pred_mod)
+
+#Select one month to play around:
+j <- 7 # July
+clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]]
+#this is made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
+clim_method_mod_obj$clim #file predicted
+
+l_mod <- clim_method_mod_obj$mod #file predicted
+
+#Quick look at the study area: Equatorial to Northern Africa
+reg_rast <- stack(list.files(pattern="*.tif"))
+plot(reg_rast,y=15)
+
+names(clim_method_mod_obj)
+clim_method_mod_obj$data_month
+clim_method_mod_obj$data_month_v
+
+
+k <- 2 #select model 2 with LST
+formula <-list_formulas[[k]]
+mod<- try(gam(formula, data=data_training)) #does not fit!! as expected
+
+mod_t1<- try(gam(y_var ~ s(lat, lon,k=14) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
+gam.check(mod_t1)
+mod_t2<- try(gam(y_var ~ s(lat, lon,k=5) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
+gam.check(mod_t2) #in this case k=5 is too small for the interactive  term as k-index is less than 1
+
+## check for residual pattern, removeable by increasing `k'
+## typically `k', below, chould be substantially larger than 
+## the original, `k' but certainly less than n/2.
+vis.gam(mod_t1)
+vis.gam(mod_t1,view=c("lat","lon"),theta= 35) # plot against by variable
+#http://stats.stackexchange.com/questions/12223/how-to-tune-smoothing-in-mgcv-gam-model
+
+mod_t3 <- try(gam(y_var ~ s(lat, lon,k=22) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
+gam.check(mod_t3)
+
+#Explore mod object
+mod_t1$gcv.ubre
+mod_t1$aic
+mod_t1$edf
+
+#### PART II: Use the new functions to explore fitting with k-dimension in GAM  ####
+
+j <- 7 # July
+clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]]
+#this is made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
+
+l_mod <- clim_method_mod_obj$mod #file predicted
+nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
+list_formulas <- (raster_obj$clim_method_mod_obj[[1]]$formulas)
+pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
+#we are assuming no monthly hold out...
+#we are assuming only one specific daily prop?
+nb_models <- length(pred_mod)
+
+data_training <- clim_method_mod_obj$data_month
+
+#list_fitted_models<-vector("list",length(list_formulas))
+k <-2 #select model 3 with LST
+names_mod <- paste("mod_",k,sep="")
+formula <-list_formulas[[k]]
+
+l_k <- c(30,10,10) #default values
+#Create 
 l_k_obj <- test_k_gam(formula,l_k,data_training)
-
 #d
 #Now get k_index for each model and store it in a table.
 #function gam.check with
+
+list_df_k <- create_gam_check_table(l_k_obj)
+
+list_mod_gam_stat <- lapply(list_mod,FUN=extract_fitting_mod_gam_stat)
+df_mod_stat <- list_mod_gam_stat[[7]]
+#combine tables...
+l_df_diagnostics<- lapply(1:length(list_df_k),FUN=function(i,df_1,df_2){cbind(df_1[[i]],df_2[[2]])},df_1=list_df_k,df_2=list_mod_gam_stat)
+
+df_diagnostics <- do.call(rbind,l_df_diagnostics)
+
+df_diagnostics$date <- rep(unique(data_training$date),nrow(df_diagnostics))
+df_diagnostics$month <- rep(unique(data_training$month))
+
+df_diagnostics$pred_mod <-names_mod #defined earlier... 
+
 #select the  right mode based on k-index, edf or other criteria?
 
+#choice of the lowest k for fit and k_index > 1
+#then use model 1
+
+#choice of the highest k for fit and k_index > 1
+#then use model 7
+
+########### Use loop to fit model for for  1 to  12 ?##############
 #Now function to run mod depending on conditions
+
+#first make a function for one model (could be month)
+j <- 7 # July
+clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]]
+#this is made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
+clim_method_mod_obj$clim #file predicted
+
+l_mod <- clim_method_mod_obj$mod #file predicted
+
+names(clim_method_mod_obj)
+data_training <- clim_method_mod_obj$data_month
+clim_method_mod_obj$data_month_v
+
+list_fitted_models<-vector("list",length(list_formulas))
+k <-3 #select model 3 with LST
+formula <-list_formulas[[k]]
+
+j <- 7 # July
+clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]]
+#this is made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
+
+l_mod <- clim_method_mod_obj$mod #file predicted
+nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
+list_formulas <- (raster_obj$clim_method_mod_obj[[1]]$formulas)
+pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
+#we are assuming no monthly hold out...
+#we are assuming only one specific daily prop?
+nb_models <- length(pred_mod)
+
+data_training <- clim_method_mod_obj$data_month
+
+#list_fitted_models<-vector("list",length(list_formulas))
+k <-2 #select model 3 with LST
+names_mod <- paste("mod_",k,sep="")
+formula <-list_formulas[[k]]
+
+l_k <- c(30,10,10) #default values
+
+test_df <- fit_gam_model_with_diagnostics(l_k,data_training,formula,names_mod)
+
+fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod){
+
+  
+  #STEP 1: fit with a range for k values
+  
+  #Fit models using given k values, formula and training dataset   
+  #This is done starting at l_k/2 e.g. c(30,10,10) becomes c(15,5,5) where k is assigned to each term in the order given
+  l_k_obj <- test_k_gam(formula,l_k,data_training)
+  
+  #STEP 2: get  k-index diagnostic for ech model
+  
+  #Now get k_index for each model and store it in a table.
+  #function gam.check is sued
+  
+  list_df_k <- create_gam_check_table(l_k_obj)
+  
+  #STEP 3: produce additional metrics for diagnostis of fit
+  #this includes the calculation of RMSE, MAE, bias, gcv,aic for fitted model
+  list_mod <- l_k_obj$list_mod
+  list_mod_gam_stat <- lapply(list_mod,FUN=extract_fitting_mod_gam_stat)
+  
+  #STEP 4: combine tables of diagnostics, format and add additional information  
+
+  #combine tables...
+  l_df_diagnostics <- lapply(1:length(list_df_k),FUN=function(i,df_1,df_2){cbind(df_1[[i]],df_2[[2]])},df_1=list_df_k,df_2=list_mod_gam_stat)
+  df_diagnostics <- do.call(rbind,l_df_diagnostics)
+  df_diagnostics$date <- rep(unique(data_training$date),nrow(df_diagnostics))
+  df_diagnostics$month <- rep(unique(data_training$month))
+  df_diagnostics$pred_mod <-names_mod #defined earlier... (input argutment )
+  
+  #Return the diagnostic table
+  return(df_diagnostics)
+}
 
 ################## END OF SCRIPT ###############
