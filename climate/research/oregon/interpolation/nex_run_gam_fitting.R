@@ -1,15 +1,16 @@
 ####################################  INTERPOLATION OF TEMPERATURES  #######################################
 ############################  Script for experimentation of GAM model fitting ##############################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
-#The purpose is to test different parameters for the GAM function to allow . 
+#The purpose is to test different parameters for the GAM function to allow .
+## - experiment with gamma
+# - experiment with k
+# A table of diagnostic is created.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 07/30/2014  
-#MODIFIED ON: 07/31/2014            
+#MODIFIED ON: 08/06/2014            
 #Version: 1
 #PROJECT: Environmental Layers project  
 #TO DO:
-# - experiment with gamma
-# - experiment with k
 #
 #################################################################################################
 
@@ -67,13 +68,15 @@ fit_models<-function(list_formulas,data_training){
     formula<-list_formulas[[k]]
     mod<- try(gam(formula, data=data_training)) #change to any model!!
     #mod<- try(autoKrige(formula, input_data=data_s,new_data=s_sgdf,data_variogram=data_s))
-
+    #This is where to change the function??
     model_name<-paste("mod",k,sep="")
     assign(model_name,mod) 
     list_fitted_models[[k]]<-mod
   }
   return(list_fitted_models) 
 }
+
+## Maybe write a new function to experiment gam fitting based on the above results??
 
 ##Function to predict using a mod object from the workflow...
 predict_raster_model<-function(in_models,r_stack,out_filename){
@@ -265,6 +268,57 @@ extract_fitting_mod_gam_stat <- function(mod){
   return(df_val)
 } 
 
+## Run whole process of diagnostic creation for given formula (without k), training data and model name
+fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod){
+  #Input parameters:
+  #l_k: vector of k value for each smooth term
+  #data_training: data.frame containing  data for fitting of  gam
+  #names_mod: character (string) with name of the model fitted.
+  
+  library(mgcv) #to avoid error below?? Maybe an indepent graphic devices needs to be opened??
+  #Error in get(name, envir = asNamespace(pkg), inherits = FALSE) : 
+  #object 'rversion' not found
+  #Graphics error: Error in get(name, envir = asNamespace(pkg), inherits = FALSE) : 
+  #object 'rversion' not found
+  
+  #STEP 1: fit with a range for k values
+  
+  #Fit models using given k values, formula and training dataset   
+  #This is done starting at l_k/2 e.g. c(30,10,10) becomes c(15,5,5) where k is assigned to each term in the order given
+  l_k_obj <- test_k_gam(formula,l_k,data_training)
+  
+  #STEP 2: get  k-index diagnostic for ech model
+  
+  #Now get k_index for each model and store it in a table.
+  #function gam.check is sued
+  
+  list_df_k <- create_gam_check_table(l_k_obj)
+  
+  #STEP 3: produce additional metrics for diagnostis of fit
+  #this includes the calculation of RMSE, MAE, bias, gcv,aic for fitted model
+  list_mod <- l_k_obj$list_mod
+  #remove try-error model!!
+  list_mod<- list_mod[unlist(lapply(list_mod,FUN=function(x){!inherits(x,"try-error")}))]
+
+  list_mod_gam_stat <- lapply(list_mod,FUN=extract_fitting_mod_gam_stat)
+  
+  #STEP 4: combine tables of diagnostics, format and add additional information  
+
+  #combine tables...
+  l_df_diagnostics <- lapply(1:length(list_df_k),FUN=function(i,df_1,df_2){cbind(df_1[[i]],df_2[[i]])},df_1=list_df_k,df_2=list_mod_gam_stat)
+  df_diagnostics <- do.call(rbind,l_df_diagnostics)
+  df_diagnostics$date <- rep(unique(data_training$date),nrow(df_diagnostics))
+  df_diagnostics$month <- rep(unique(data_training$month))
+  df_diagnostics$pred_mod <-names_mod #defined earlier... (input argutment )
+  
+  #Return the diagnostic table and model object
+  names(list_mod) <- paste("t_",1:length(list_mod),sep="")
+  diagnostics_obj <- list(df_diagnostics,list_mod)
+  names(diagnostics_obj) <- c("df_diagnostics","list_mod")
+  
+  return(diagnostics_obj)
+}
+
 ##############################s
 #### Parameters and constants  
 
@@ -279,7 +333,8 @@ setwd(in_dir)
 
 ########################## START SCRIPT ##############################
 
-#### PART I: Explore fitting of GAM  ####
+########################################
+#### PART I: Explore fitting of GAM with k and gamma parameters ####
 
 raster_obj<- load_obj(raster_obj_infile)
 
@@ -318,6 +373,26 @@ k <- 2 #select model 2 with LST
 formula <-list_formulas[[k]]
 mod<- try(gam(formula, data=data_training)) #does not fit!! as expected
 
+### TRY with different gamma
+
+mod_g1<- try(gam(y_var ~ s(lat, lon) + s(elev_s),gamma=1.4, data=data_training)) #change to any model!!
+gam.check(mod_g1)
+#               k'    edf k-index p-value
+#s(lat,lon) 29.000  9.470   0.967    0.32
+#s(elev_s)   9.000  2.020   0.732    0.02
+
+mod_g2<- try(gam(y_var ~ s(lat, lon) + s(elev_s),gamma=10, data=data_training)) #change to any model!!
+gam.check(mod_g2) #increase in k-index!!
+
+#              k'   edf k-index p-value
+#s(lat,lon) 29.00 29.00    1.50    1.00
+#s(elev_s)   9.00  9.00    1.11    0.74
+
+mod<- try(gam(y_var ~ s(lat, lon) + s(elev_s) + s(LST),gamma=1.4, data=data_training)) #does not fit!
+mod<- try(gam(y_var ~ s(lat, lon) + s(elev_s) + s(LST),gamma=10, data=data_training)) #does not fitl!!
+
+### TRY with different k
+
 mod_t1<- try(gam(y_var ~ s(lat, lon,k=14) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
 gam.check(mod_t1)
 mod_t2<- try(gam(y_var ~ s(lat, lon,k=5) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
@@ -338,6 +413,7 @@ mod_t1$gcv.ubre
 mod_t1$aic
 mod_t1$edf
 
+########################################
 #### PART II: Use the new functions to explore fitting with k-dimension in GAM  ####
 
 j <- 7 # July
@@ -348,6 +424,8 @@ l_mod <- clim_method_mod_obj$mod #file predicted
 nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
 list_formulas <- (raster_obj$clim_method_mod_obj[[1]]$formulas)
 pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
+
+#model_name<-paste("mod",k,sep="")
 #we are assuming no monthly hold out...
 #we are assuming only one specific daily prop?
 nb_models <- length(pred_mod)
@@ -357,6 +435,8 @@ data_training <- clim_method_mod_obj$data_month
 #list_fitted_models<-vector("list",length(list_formulas))
 k <-2 #select model 3 with LST
 names_mod <- paste("mod_",k,sep="")
+model_name<-paste("mod",k,sep="")
+
 formula <-list_formulas[[k]]
 
 l_k <- c(30,10,10) #default values
@@ -388,10 +468,13 @@ df_diagnostics$pred_mod <-names_mod #defined earlier...
 #choice of the highest k for fit and k_index > 1
 #then use model 7
 
-########### Use loop to fit model for for  1 to  12 ?##############
-#Now function to run mod depending on conditions
+########################################
+#### PART III: Use the general functions to explore fitting with k-dimension in GAM  ####
 
+#This can be done accross different months ...
+#The general function provides a quick call to all function and formatting of diagnostic table
 #first make a function for one model (could be month)
+
 j <- 7 # July
 clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]]
 #this is made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
@@ -422,46 +505,17 @@ nb_models <- length(pred_mod)
 data_training <- clim_method_mod_obj$data_month
 
 #list_fitted_models<-vector("list",length(list_formulas))
-k <-2 #select model 3 with LST
-names_mod <- paste("mod_",k,sep="")
+k <-2 #select model 2 with LST
+#names_mod <- paste("mod_",k,sep="")
+model_name<-paste("mod",k,sep="")
+
 formula <-list_formulas[[k]]
 
 l_k <- c(30,10,10) #default values
 
-test_df <- fit_gam_model_with_diagnostics(l_k,data_training,formula,names_mod)
+#test_df <- fit_gam_model_with_diagnostics(l_k,data_training,formula,model_name)
+test_obj <- fit_gam_model_with_diagnostics(l_k,data_training,formula,model_name)
 
-fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod){
-
-  
-  #STEP 1: fit with a range for k values
-  
-  #Fit models using given k values, formula and training dataset   
-  #This is done starting at l_k/2 e.g. c(30,10,10) becomes c(15,5,5) where k is assigned to each term in the order given
-  l_k_obj <- test_k_gam(formula,l_k,data_training)
-  
-  #STEP 2: get  k-index diagnostic for ech model
-  
-  #Now get k_index for each model and store it in a table.
-  #function gam.check is sued
-  
-  list_df_k <- create_gam_check_table(l_k_obj)
-  
-  #STEP 3: produce additional metrics for diagnostis of fit
-  #this includes the calculation of RMSE, MAE, bias, gcv,aic for fitted model
-  list_mod <- l_k_obj$list_mod
-  list_mod_gam_stat <- lapply(list_mod,FUN=extract_fitting_mod_gam_stat)
-  
-  #STEP 4: combine tables of diagnostics, format and add additional information  
-
-  #combine tables...
-  l_df_diagnostics <- lapply(1:length(list_df_k),FUN=function(i,df_1,df_2){cbind(df_1[[i]],df_2[[2]])},df_1=list_df_k,df_2=list_mod_gam_stat)
-  df_diagnostics <- do.call(rbind,l_df_diagnostics)
-  df_diagnostics$date <- rep(unique(data_training$date),nrow(df_diagnostics))
-  df_diagnostics$month <- rep(unique(data_training$month))
-  df_diagnostics$pred_mod <-names_mod #defined earlier... (input argutment )
-  
-  #Return the diagnostic table
-  return(df_diagnostics)
-}
+#Now do this over 12 months??
 
 ################## END OF SCRIPT ###############
