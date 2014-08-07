@@ -1,16 +1,22 @@
 ####################################  INTERPOLATION OF TEMPERATURES  #######################################
-############################  Script for experimentation of GAM model fitting ##############################
+############################  Script for the experimentation of GAM model fitting ##############################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
-#The purpose is to test different parameters for the GAM function to allow .
-## - experiment with gamma
-# - experiment with k
-# A table of diagnostic is created.
+#The purpose is to test different parameters for the GAM function to allow fitting in area with low stations count.
+##We experiment with:
+# - gamma:  multiplying factor that acts on the smoothing parameter lambda
+# - k: dimension for each term which affects the number of knots and complextiy of hte relationship
+#
+#The code generate a table of diagnostic that includes: k-index, rmse,mae, aic, gcv.
+#
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 07/30/2014  
-#MODIFIED ON: 08/06/2014            
+#MODIFIED ON: 08/07/2014            
 #Version: 1
-#PROJECT: Environmental Layers project  
+#PROJECT: Environmental Layers project  NCEAS-NASA
 #TO DO:
+# - check that step are increased by 1 for k
+# - k starting  value can  be controled by increase or decrease
+# - k initial value can be set
 #
 #################################################################################################
 
@@ -43,16 +49,12 @@ library(colorRamps)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_05212014.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_05052014.R"
-
 load_obj <- function(f)
 {
   env <- new.env()
   nm <- load(f, env)[1]
   env[[nm]]
 }
-
 
 ### Function to fit using  the training  data  from the  workflow
 fit_models<-function(list_formulas,data_training){
@@ -170,9 +172,16 @@ format_formula_k_fun <- function(formula,l_k){
 }
 
 ## Fit model using training  data, formula and k dimensions with increment
-test_k_gam <- function(formula,l_k,data_training){
+test_k_gam <- function(formula,l_k,data_training,l_k_min=NULL){
 
-  l_k_tmp <- as.numeric(l_k)/2
+  if(is.null(l_k_min)){
+    l_k_tmp <- as.numeric(l_k)/2  #if  no starting l_k then use half the l_k value (which correspond to the max)
+  }
+
+  if(!is.null(l_k_min)){
+    l_k_tmp <- l_k_min  #if l_k then use l_k_min
+  }
+
   #l_k_tmp <- l_k
   #maybe go in  a loop to  fit? could this in a loop for each term then select the term with highest k and k_index >1 ??
   #list_mod <- vector("list",0)
@@ -191,7 +200,7 @@ test_k_gam <- function(formula,l_k,data_training){
     #if opt_increase{}
     l_k_tmp <- l_k_tmp + rep(1,length(l_k_tmp)) #can modify this option to go -1 instead of plus 1?
     #if opt_decrease{}
-    l_k_tmp <- l_k_tmp + rep(1,length(l_k_tmp)) #can modify this option to go -1 instead of plus 1?
+    #l_k_tmp <- l_k_tmp - rep(1,length(l_k_tmp)) #can modify this option to go -1 instead of plus 1?
     
     j <- j+1
     limit_l_k <- (l_k_tmp > l_k) #now check that c(30,10,10 is not gone above!!)
@@ -269,11 +278,19 @@ extract_fitting_mod_gam_stat <- function(mod){
 } 
 
 ## Run whole process of diagnostic creation for given formula (without k), training data and model name
-fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod){
+fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod,y_var_name,out_suffix,out_path,l_k_min=NULL){
   #Input parameters:
   #l_k: vector of k value for each smooth term
+  #formula: model formul without the k values!! eg y_var ~ s(lat,lon) + s(elev_s)
   #data_training: data.frame containing  data for fitting of  gam
   #names_mod: character (string) with name of the model fitted.
+  #y_var_name: variable being model eg  dailyTmax
+  #out_suffix: ouput suffix added toe the file  saved
+  #out_path: output directory
+  #TODO: 
+  # -allow default val for out_suffix, y_var_name and out_path
+  
+  #### library and param
   
   library(mgcv) #to avoid error below?? Maybe an indepent graphic devices needs to be opened??
   #Error in get(name, envir = asNamespace(pkg), inherits = FALSE) : 
@@ -281,11 +298,13 @@ fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod){
   #Graphics error: Error in get(name, envir = asNamespace(pkg), inherits = FALSE) : 
   #object 'rversion' not found
   
+  ########## START  SCRIPT #############
+  
   #STEP 1: fit with a range for k values
   
   #Fit models using given k values, formula and training dataset   
   #This is done starting at l_k/2 e.g. c(30,10,10) becomes c(15,5,5) where k is assigned to each term in the order given
-  l_k_obj <- test_k_gam(formula,l_k,data_training)
+  l_k_obj <- test_k_gam(formula,l_k,data_training,l_k_min)
   
   #STEP 2: get  k-index diagnostic for ech model
   
@@ -316,66 +335,78 @@ fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod){
   diagnostics_obj <- list(df_diagnostics,list_mod)
   names(diagnostics_obj) <- c("df_diagnostics","list_mod")
   
+  out_prefix  <- out_suffix
+  filename_obj <- file.path(out_path,paste("diagnostics_obj_gam_fitting","_", y_var_name,out_prefix,".RData",sep=""))
+  
+  save(diagnostics_obj,file=filename_obj )
+
   return(diagnostics_obj)
+  
 }
 
 ##############################s
 #### Parameters and constants  
 
+#First, copy data from NEX to Atlas:
+
 #scp -rp raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
 #scp -rp reg*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
 
-## laod data from Northen Africa
-in_dir <- "/data/project/layers/commons/NEX_data/output_regions/15.0_20.0"
-raster_obj_infile <- "raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData"
+##Second, load data from Northen Africa
+in_dir <- "/data/project/layers/commons/NEX_data/output_regions/15.0_20.0" #Atlas location
+raster_obj_infile <- "raster_prediction_obj_gam_CAI_dailyTmax15.0_20.0.RData" #Raster prediction object
+out_path <- in_dir #output dir can  be set
 
-setwd(in_dir)
+out_suffix  <-"_08062014" #is the same as "out_prefix" in the workflow 
+y_var_name <- "dailyTmax" #see workflow
+
+setwd(out_path)
 
 ########################## START SCRIPT ##############################
 
 ########################################
 #### PART I: Explore fitting of GAM with k and gamma parameters ####
 
-raster_obj<- load_obj(raster_obj_infile)
+raster_obj <- load_obj(raster_obj_infile) #load raster predction object containing all the information
 
 #raster_obj <- load_obj(unlist(raster_obj_file)) #may not need unlist
-nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas))
-list_formulas <- (raster_obj$clim_method_mod_obj[[1]]$formulas)
+nb_models <- length((raster_obj$clim_method_mod_obj[[1]]$formulas)) #number of models predicted
+list_formulas <- (raster_obj$clim_method_mod_obj[[1]]$formulas) #list of formula with models predicted
 
-#Models used:
+#Models used/predicted:
 #y_var ~ s(lat, lon) + s(elev_s)
 #y_var ~ s(lat, lon) + s(elev_s) + s(LST)
 #y_var ~ s(lat, lon) + s(elev_s) + s(N_w, E_w) + s(LST) + ti(LST,LC1) + s(LC1)
 
-pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
+pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="") #names of models
 #we are assuming no monthly hold out...
 #we are assuming only one specific daily prop?
-nb_models <- length(pred_mod)
+nb_models <- length(pred_mod) #4 instead of 3
 
-#Select one month to play around:
+#Select one month to test and explored model fitting parameters:
 j <- 7 # July
-clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]]
-#this is made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
+clim_method_mod_obj <- raster_obj$clim_method_mod_obj[[j]] #object containing model fitted at the monthly time scale
+#Object is a list made of "clim",data_month, data_month_v , sampling_month_dat, mod and formulas
+names(clim_method_mod_obj)
+clim_method_mod_obj$data_month #fitting  data
+clim_method_mod_obj$data_month_v #no hold out for monthly data
 clim_method_mod_obj$clim #file predicted
 
-l_mod <- clim_method_mod_obj$mod #file predicted
-
+l_mod <- clim_method_mod_obj$mod # R model object for GAM
+data_training <- clim_method_mod_obj$data_month #no hold out for monthly data
 #Quick look at the study area: Equatorial to Northern Africa
 reg_rast <- stack(list.files(pattern="*.tif"))
-plot(reg_rast,y=15)
+plot(reg_rast,y=15) #plot SRTM (elev)
+dim(reg_rast) #7,200 ; 3,600 ; 15
 
-names(clim_method_mod_obj)
-clim_method_mod_obj$data_month
-clim_method_mod_obj$data_month_v
-
-
+### Which model to test? Use model 2 because it is not fitted.
 k <- 2 #select model 2 with LST
-formula <-list_formulas[[k]]
+formula <-list_formulas[[k]] #model 2: y_var ~ s(lat, lon) + s(elev_s) + s(LST)
 mod<- try(gam(formula, data=data_training)) #does not fit!! as expected
 
-### TRY with different gamma
+#### TRY with different gamma parameter value
 
-mod_g1<- try(gam(y_var ~ s(lat, lon) + s(elev_s),gamma=1.4, data=data_training)) #change to any model!!
+mod_g1 <- try(gam(y_var ~ s(lat, lon) + s(elev_s),gamma=1.4, data=data_training)) #change to any model!!
 gam.check(mod_g1)
 #               k'    edf k-index p-value
 #s(lat,lon) 29.000  9.470   0.967    0.32
@@ -384,12 +415,18 @@ gam.check(mod_g1)
 mod_g2<- try(gam(y_var ~ s(lat, lon) + s(elev_s),gamma=10, data=data_training)) #change to any model!!
 gam.check(mod_g2) #increase in k-index!!
 
+mod_g3<- try(gam(y_var ~ s(lat, lon) + s(elev_s),gamma=100, data=data_training)) #change to any model!!
+gam.check(mod_g3) #increase in k-index!!
+
 #              k'   edf k-index p-value
 #s(lat,lon) 29.00 29.00    1.50    1.00
 #s(elev_s)   9.00  9.00    1.11    0.74
 
+#Now try with model2: y_var ~ s(lat, lon) + s(elev_s) + s(LST)
+
 mod<- try(gam(y_var ~ s(lat, lon) + s(elev_s) + s(LST),gamma=1.4, data=data_training)) #does not fit!
-mod<- try(gam(y_var ~ s(lat, lon) + s(elev_s) + s(LST),gamma=10, data=data_training)) #does not fitl!!
+mod<- try(gam(y_var ~ s(lat, lon) + s(elev_s) + s(LST),gamma=10, data=data_training)) #does not fit!!
+mod<- try(gam(y_var ~ s(lat, lon) + s(elev_s) + s(LST),gamma=100, data=data_training)) #does not fit!!
 
 ### TRY with different k
 
@@ -398,11 +435,6 @@ gam.check(mod_t1)
 mod_t2<- try(gam(y_var ~ s(lat, lon,k=5) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
 gam.check(mod_t2) #in this case k=5 is too small for the interactive  term as k-index is less than 1
 
-## check for residual pattern, removeable by increasing `k'
-## typically `k', below, chould be substantially larger than 
-## the original, `k' but certainly less than n/2.
-vis.gam(mod_t1)
-vis.gam(mod_t1,view=c("lat","lon"),theta= 35) # plot against by variable
 #http://stats.stackexchange.com/questions/12223/how-to-tune-smoothing-in-mgcv-gam-model
 
 mod_t3 <- try(gam(y_var ~ s(lat, lon,k=22) + s(elev_s) + s(LST), data=data_training)) #change to any model!!
@@ -412,6 +444,24 @@ gam.check(mod_t3)
 mod_t1$gcv.ubre
 mod_t1$aic
 mod_t1$edf
+
+## check for residual pattern, removeable by increasing `k'
+## typically `k', below, chould be substantially larger than 
+## the original, `k' but certainly less than n/2.
+
+### Visualization of predicted values
+vis.gam(mod_t1)
+vis.gam(mod_t1,view=c("lat","lon"),theta= 35) # plot against by variable
+x_data <- mod_t1$model #model matrix also known as design matrix, note that it is stored as a data.frame
+
+plot(mod_t1)
+y<- fitted.values(mod_t1)
+x<- x_data$lat
+plot(y ~ x) #this is predicted versus lat
+points(x_data$y_var ~ x,col="red")
+y<- fitted.values(mod_t1)
+x<- x_data$LST
+plot(y~x) #this is predicted vs LST
 
 ########################################
 #### PART II: Use the new functions to explore fitting with k-dimension in GAM  ####
@@ -434,20 +484,24 @@ data_training <- clim_method_mod_obj$data_month
 
 #list_fitted_models<-vector("list",length(list_formulas))
 k <-2 #select model 3 with LST
-names_mod <- paste("mod_",k,sep="")
+names_mod <- paste("mod",k,sep="")
 model_name<-paste("mod",k,sep="")
 
 formula <-list_formulas[[k]]
 
-l_k <- c(30,10,10) #default values
+l_k <- c(30,10,10) #default values : max val
+l_k_min <- c(10,4,4) #minimum values, default is null
+
 #Create 
-l_k_obj <- test_k_gam(formula,l_k,data_training)
-#d
+l_k_obj <- test_k_gam(formula,l_k,data_training,l_k_min)
+
 #Now get k_index for each model and store it in a table.
 #function gam.check with
 
 list_df_k <- create_gam_check_table(l_k_obj)
 
+list_mod <- l_k_obj$list_mod 
+list_mod<- list_mod[unlist(lapply(list_mod,FUN=function(x){!inherits(x,"try-error")}))]
 list_mod_gam_stat <- lapply(list_mod,FUN=extract_fitting_mod_gam_stat)
 df_mod_stat <- list_mod_gam_stat[[7]]
 #combine tables...
@@ -487,7 +541,7 @@ data_training <- clim_method_mod_obj$data_month
 clim_method_mod_obj$data_month_v
 
 list_fitted_models<-vector("list",length(list_formulas))
-k <-3 #select model 3 with LST
+k <- 2 #select model 3 with LST
 formula <-list_formulas[[k]]
 
 j <- 7 # July
@@ -502,7 +556,7 @@ pred_mod <- paste("mod",c(1:nb_models,"_kr"),sep="")
 #we are assuming only one specific daily prop?
 nb_models <- length(pred_mod)
 
-data_training <- clim_method_mod_obj$data_month
+data_training <- clim_method_mod_obj$data_month #this is for July
 
 #list_fitted_models<-vector("list",length(list_formulas))
 k <-2 #select model 2 with LST
@@ -512,10 +566,32 @@ model_name<-paste("mod",k,sep="")
 formula <-list_formulas[[k]]
 
 l_k <- c(30,10,10) #default values
+l_k_min <- c(10,4,4) #minimum values, default is null
 
 #test_df <- fit_gam_model_with_diagnostics(l_k,data_training,formula,model_name)
-test_obj <- fit_gam_model_with_diagnostics(l_k,data_training,formula,model_name)
+#y_var_name, out_suffix, out_path are all set at the beginning of the script
+#test_obj <- fit_gam_model_with_diagnostics(l_k,data_training,formula,model_name)
+out_suffix_s  <- paste(7,"_",out_suffix,sep="") #7 for month of july
 
-#Now do this over 12 months??
+#could transform the input arguments to be a list??
+#use l_k_min=NULL to start with half of the maximum k values...
+test1_gam_fit_obj <- fit_gam_model_with_diagnostics(l_k,data_training,formula,names_mod,y_var_name,out_suffix_s,out_path,l_k_min=NULL)
+#use l_k_min=c(10,4,4) 
+out_suffix_s  <- paste(7,"_","lk_min_",out_suffix,sep="") #7 for month of july
+test2_gam_fit_obj <- fit_gam_model_with_diagnostics(l_k,data_training,formula,names_mod,y_var_name,out_suffix_s,out_path,l_k_min)
+
+names(test2_gam_fit_obj)
+
+df_diagnostics <- test2_gam_fit_obj$df_diagnostics #extract the diagnostic  table
+
+names(df_diagnostics)
+df_diagnostics$fit_no
+df_diagnostics$rmse
+plot(df_diagnostics$rmse)
+#plot(df_diagnostics$rmse~df_diagnostics$fit_no,data=df_diagnostics)
+
+#Now do this over 12 months for each model??
+
+#loop here or lapply
 
 ################## END OF SCRIPT ###############
