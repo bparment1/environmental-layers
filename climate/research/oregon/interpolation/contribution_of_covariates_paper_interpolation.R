@@ -4,7 +4,7 @@
 #different covariates using two baselines. Accuracy methods are added in the the function script to evaluate results.
 #Figures, tables and data for the contribution of covariate paper are also produced in the script.
 #AUTHOR: Benoit Parmentier                                                                      
-#MODIFIED ON: 07/18/2014            
+#MODIFIED ON: 08/08/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -257,6 +257,8 @@ write.table(as.data.frame(table4_paper),file=file_name,sep=",")
 #Figure 14: (a) Monthly MAE averages for the three interpolation methods: GAM, GWR and Kriging.(b) Monthly MAE boxplot for GAM.
 #Figure 15: Correlation between LST-tmax, elevation-tmax in relation to LST significance and monthly model accuracy 
 
+#Figure 0: Graphical abstract: Maps of predictions and spatial correlogram for lat*lon, lat*lon + elev, lat*lon + elev +  LST
+
 ### Figure 1: Oregon study area
 
 ghcn_dat <- readOGR(dsn=dirname(met_stations_obj$monthly_covar_ghcn_data),
@@ -267,7 +269,7 @@ ghcn_dat_WGS84 <-spTransform(ghcn_dat,CRS_locs_WGS84)         # Project from WGS
 interp_area <- readOGR(dsn=dirname(infile_reg_outline),sub(".shp","",basename(infile_reg_outline)))
 interp_area_WGS84 <-spTransform(interp_area,CRS_locs_WGS84)         # Project from WGS84 to new coord. system
 
-usa_map <- getData('GADM', country='USA'), level=1) #Get US map
+usa_map <- getData('GADM', country='USA', level=1) #Get US map
 usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
 usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
 usa_map_OR <- usa_map_2[usa_map_2$NAME_1=="Oregon",] #get OR
@@ -1523,5 +1525,97 @@ p_bw3 <- bwplot(data_v_ag$res_mod2~elev_rcstat,do.out=F,ylim=c(-15,15),
                 )
 grid.arrange(p_bw1,p_bw2,p_bw3,ncol=3)
 dev.off()
-                      
+          
+#############################################
+########### Figure 0: Graphical Abstract 
+
+y_var_name <-"dailyTmax"
+index<-244 #index corresponding to Sept 1
+
+## FIGURE COMPARISON OF  MODELS COVARIATES: Figure 7...
+
+lf2 <- raster_prediction_obj_2$method_mod_obj[[index]][[y_var_name]]
+lf2 #contains the models for gam
+list_formulas <- raster_prediction_obj_2$method_mod_obj[[244]]$formulas
+
+pred_temp_s2 <-stack(lf2[c(1,2,5)])
+date_selected <- "20109101"
+#names_layers <-c("mod1=s(lat,long)+s(elev)","mod4=s(lat,long)+s(LST)","diff=mod1-mod4")
+names_layers <- c("lat*long","lat*long+ elev","lat*long + LST")
+
+#names_layers<-names(pred_temp_s)
+names(pred_temp_s2)<-names_layers
+
+s.range <- c(min(minValue(pred_temp_s2)), max(maxValue(pred_temp_s2)))
+#s.range <- s.range+c(5,-5)
+col.breaks <- pretty(s.range, n=200)
+lab.breaks <- pretty(s.range, n=100)
+temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
+#temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
+
+max_val<-s.range[2]
+min_val <-s.range[1]
+#max_val<- -10
+#min_val <- 0
+layout_m<-c(1,3) #one row, three columns
+res_pix <- 480
+png(paste("Figure_0a_graphic_abstact_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
+    height=res_pix*layout_m[1],width=res_pix*layout_m[2])
+
+p<- levelplot(pred_temp_s2,main="Interpolated Surfaces using GAM on September 1, 2010", ylab=NULL,xlab=NULL,
+          par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
+                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+          names.attr=names_layers,col.regions=temp.colors,at=seq(max_val,min_val,by=0.01))
+#col.regions=temp.colors(25))
+print(p)
+dev.off()
+
+
+
+#p<- levelplot(pred_temp_s2,,main="Interpolated Surfaces using GAM on September 1, 2010", ylab=NULL,xlab=NULL,
+#          par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
+#                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+#          names.attr=names_layers,col.regions=temp.colors,at=seq(max_val,min_val,by=0.01))
+
+
+########################################################
+#### Examining spatial correlograms for each model...use spedep but can be problematic when many datapoints
+#The follwing method using Moran's I raster command works for now but does not provide CI/std dev...
+
+r_stack <-pred_temp_s2
+
+#generate filters for 10 lags: quick solution
+
+list_filters<-lapply(1:10,FUN=autocor_filter_fun,f_type="queen") #generate 10 filters
+#moran_list <- lapply(list_filters,FUN=Moran,x=r)
+
+list_param_moran <- list(list_filters=list_filters,r_stack=r_stack)
+#moran_r <-moran_multiple_fun(1,list_param=list_param_moran)
+nlayers(r_stack) 
+moran_I_df <-mclapply(1:nlayers(r_stack), list_param=list_param_moran, FUN=moran_multiple_fun,mc.preschedule=FALSE,mc.cores = 10) #This is the end bracket from mclapply(...) statement
+
+moran_df <- do.call(cbind,moran_I_df) #bind Moran's I value 10*nlayers data.frame
+moran_df$lag <-1:nrow(moran_df)
+
+#prepare to automate the plotting of   all columns
+mydata<-moran_df
+dd <- do.call(make.groups, mydata[,-ncol(mydata)]) 
+dd$lag <- mydata$lag 
+
+layout_m<-c(1,3) #one row three columns
+res_pix <-  480
+png(paste("Figure_0b_graphic_abstract_spatial_correlogram_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
+    height=res_pix*layout_m[1],width=res_pix*layout_m[2])
+
+p<-xyplot(data ~ lag | which, dd,type="b",main="Spatial content in interpolated Surfaces using GAM on September 1, 2010",
+          par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
+                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+          strip=strip.custom(factor.levels=names_layers),
+          xlab=list(label="Spatial lag neighbor", cex=2,font=2),
+          ylab=list(label="Moran's I", cex=2, font=2))
+print(p)
+
+dev.off()
+
+
 ###################### END OF SCRIPT #######################
