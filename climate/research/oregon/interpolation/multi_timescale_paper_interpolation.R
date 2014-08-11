@@ -7,8 +7,8 @@
 #Analyses, figures, tables and data for the  paper are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2013  
-#MODIFIED ON: 05/05/2014            
-#Version: 5
+#MODIFIED ON: 08/11/2014            
+#Version: 6
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
 
@@ -111,7 +111,7 @@ names(list_raster_obj_files)<- c("gam_daily","kriging_daily","gwr_daily_a","gwr_
                                  "gam_fss","kriging_fss","gwr_fss")
 
 y_var_name <- "dailyTmax"
-out_prefix<-"analyses_05062014"
+out_prefix<-"analyses_08112014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_multitime_scale__analyses_tables"
 create_out_dir_param = TRUE
 
@@ -1200,8 +1200,142 @@ trans_data3 <- plot_transect_m2(list_transect3,rast_pred3,title_plot2,disp=FALSE
 
          
          
-#### DATA MONTH
-         
+#### DATA INFORMATION ON STATIONS
+
+
+#Stations located in Oregon
+loc_spdf <- readOGR(dsn=dirname(met_stations_obj$loc_stations),
+                        sub(".shp","",basename(met_stations_obj$loc_stations)))
+dim(loc_spdf) # 1093 stations located in OR
+
+### Stations with covaraites values appended
+ghcn_day_dat <- readOGR(dsn=dirname(met_stations_obj$daily_covar_ghcn_data),
+                        sub(".shp","",basename(met_stations_obj$daily_covar_ghcn_data)))
+
+loc_2010_spdf<-subset(loc_spdf,loc_spdf$STAT_ID%in%ghcn_day_dat$station) #stations in 2010
+loc_2010_spdf <- spTransform(loc_2010_spdf, CRS=CRS(proj4string(ghcn_day_dat)))
+dim(loc_2010_spdf) #164 stations in 2010
+
+loc_knn1 <- knearneigh(coordinates(loc_2010_spdf), k=1) #lag1
+class(loc_knn1) #knn object
+loc_nb1 <- knn2nb(loc_knn1) #nb object
+dsts_nb1 <-unlist(nbdists(loc_nb1,coordinates(loc_2010_spdf))) #vector with first nearest neighbour distance for each station
+
+median(dsts_nb1) #median first nearest neighbour distance: 20023.03 m
+mean(dsts_nb1) #mean first nearest neighbour distance : 22480.91 meters
+min(dsts_nb1)
+max(dsts_nb1)
+sd(dsts_nb1) #
+hist(dsts_nb1)
+
+p <- histogram(dsts_nb1)
+
+hist(ghcnd_day_dat$elev_s)
+
+mean(ghcn_day_dat)
+unique(ghcn_day_dat$date) #
+tb_n_day <- as.data.frame(table(ghcn_day_dat$date)) #find the number of observation per day
+hist(table(ghcn_day_dat$date))
+range(tb_n_day$Freq) #range 134 to 159
+median(tb_n_day$Freq) #range 134 to 159
+
+
+## EXAMINE MONTHLY DAta
+(met_stations_obj$monthly_covar_ghcn_data)
+ghcn_month_dat <- readOGR(dsn=dirname(met_stations_obj$monthly_covar_ghcn_data),
+                        sub(".shp","",basename(met_stations_obj$monthly_covar_ghcn_data)))
+
+tb_n_month <- as.data.frame(table(ghcn_month_dat$month))
+hist(table(ghcn_month_dat$month))
+range(tb_n_month$Freq) #range 134 to 159
+median(tb_n_month$Freq) #range 134 to 159
+
+list_table_stat <- list("vector",length=2)
+#df_in <- list("vector",length=2)
+df_in <- list(ghcn_month_dat,ghcn_day_dat)
+for(i in 1:2){
+  df_stat <-  as.data.frame(df_in[[i]])[,c("elev_s", "lat", "lon", "E_w", "N_w", "DISTOC", "LC1")]
+  table8a <- as.data.frame(cbind(sapply(df_stat,min,na.rm=T),sapply(df_stat,max,na.rm=T),sapply(df_stat,mean,na.rm=T),sapply(df_stat,median,na.rm=T)))                  
+  names(table8a) <- c("min", "max", "mean", "median")  
+
+  df_stat <-  as.data.frame(df_in[[i]])[,c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")]# #, "Tmax", TMax")]
+  #df_stat <-  as.matrix(as.data.frame(ghcn_month_dat)[,c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")])# #, "Tmax", TMax")])
+  #df_sat <- as.vector(df_stat)
+  table8b <- cbind(sapply(df_stat,min,na.rm=T),sapply(df_stat,max,na.rm=T),sapply(df_stat,mean,na.rm=T),sapply(df_stat,median,na.rm=T))                  
+  df_stat <- as.data.frame(table8b)
+  #table8b <- cbind(sapply(df_stat,min,na.rm=T),sapply(df_stat,max,na.rm=T),sapply(df_stat,mean,na.rm=T),sapply(df_stat,median,na.rm=T))                  
+  table8b <- as.data.frame(cbind(min(df_stat[,1]),max(df_stat[,2]),mean(df_stat[,3]),median(df_stat[,4])))
+  row.names(table8b) <-"LST"
+  names(table8b) <- c("min", "max", "mean", "median")  
+  table_stat <-  rbind(table8a,table8b)
+  #names(table_stat) <- c("min", "max", "mean", "median")  
+  table_stat$covariates <-  row.names(table_stat)
+  table_stat <- table_stat[c(5,1,2,3,4)]
+  list_table_stat[[i]] <- table_stat
+}
+names(list_table_stat) <- c("month","day")
+#Very similar results so use only daily is sufficient
+
+table8_paper <- round(list_table_stat$day[,2:5],digit=3) #roundto three digits teh differences
+table8_paper$covariates <- list_table_stat$day[,1]
+table8_paper <- table8_paper[c(5,1,2,3,4)]
+
+#Now write out table 8
+
+file_name<-paste("table8__paper","_",out_prefix,".txt",sep="")
+write.table(table8_paper,file=file_name,sep=",",row.names=F)
+
+
+#############
+list_data_s <-extract_list_from_list_obj(raster_prediction_obj_2$validation_mod_obj,"data_s")
+list_data_v <-extract_list_from_list_obj(raster_prediction_obj_2$validation_mod_obj,"data_v")
+names_mod <- names(raster_prediction_obj_2$method_mod_obj[[1]][[y_var_name]]) #names of models to plot
+
+#number of observations per day
+year_nbv <- sapply(list_data_v,FUN=length)
+year_nbs <- sapply(list_data_s,FUN=length)
+nb_df <- data.frame(nv=year_nbv,ns=year_nbs)
+nb_df$n_tot <- year_nbv + year_nbs
+range(nb_df$n_tot)
+
+data_v_test <- list_data_v[[1]]
+
+#Convert sp data.frame and combined them in one unique df, see function define earlier
+data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
+names_var<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7","res_mod8","res_mod9","res_mod10")
+
+t<-melt(data_v_combined,
+        measure=names_var, 
+        id=c("id"),
+        na.rm=T)
+
+#hist(data_v_combined)
+names(data_v_combined)
+
+mae_fun<-function(x){mean(abs(x))} #Mean Absolute Error give a residuals vector
+sd_abs_fun<-function(x){sd(abs(x))} #sd Absolute Error give a residuals vector
+
+mae_tb<-cast(t,id~variable,mae_fun) #join to station location...
+
+met_obj <-load_obj(file.path(in_dir1,met_obj_file_1))
+stat_loc<-readOGR(dsn=in_dir1,layer=sub(".shp","",basename(met_obj$loc_stations)))
+
+data_v_mae <-merge(mae_tb,stat_loc,by.x=c("id"),by.y=c("STAT_ID"))
+hist(data_v_mae$res_mod1)
+mean(data_v_mae$res_mod1)
+
+coords<- data_v_mae[c('longitude','latitude')]              #Define coordinates in a data frame
+CRS_interp<-proj4string(data_v_test)
+coordinates(data_v_mae)<-coords                      #Assign coordinates to the data frame
+proj4string(data_v_mae)<- proj4string(stat_loc)                #Assign coordinates reference system in PROJ4 format
+data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to new coord. system
+elev <- subset(s_raster,"elev_s")
+list_p_mae <- vector("list", 3)
+names_var <- c("mod1","mod2","mod5")
+
+
+
+
 
 ###################### END OF SCRIPT #######################
 

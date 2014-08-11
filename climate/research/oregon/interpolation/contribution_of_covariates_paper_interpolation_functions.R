@@ -4,7 +4,7 @@
 # interpolation code.
 #Figures and data for the contribution of covariate paper are also produced.
 #AUTHOR: Benoit Parmentier                                                                      #
-#DATE: 07/18/2014            
+#DATE: 09/11/2014            
 #Version: 2
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################

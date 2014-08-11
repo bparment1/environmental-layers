@@ -336,7 +336,7 @@ fit_gam_model_with_diagnostics <- function(l_k,data_training,formula,names_mod,y
   names(diagnostics_obj) <- c("df_diagnostics","list_mod")
   
   out_prefix  <- out_suffix
-  filename_obj <- file.path(out_path,paste("diagnostics_obj_gam_fitting","_", y_var_name,out_prefix,".RData",sep=""))
+  filename_obj <- file.path(out_path,paste("diagnostics_obj_gam_fitting","_", y_var_name,"_",names_mod,out_prefix,".RData",sep=""))
   
   save(diagnostics_obj,file=filename_obj )
 
