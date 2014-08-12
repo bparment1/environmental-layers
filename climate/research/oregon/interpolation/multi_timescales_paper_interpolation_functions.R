@@ -5,7 +5,7 @@
 #Functions used in the production of figures and data for the multi timescale paper are recorded.
 #AUTHOR: Benoit Parmentier                                                                      #
 #DATE CREATED: 11/25/2013            
-#DATE MODIFIED: 05/05/2014            
+#DATE MODIFIED: 08/12/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
@@ -609,6 +609,59 @@ calc_stat_from_tb_list <-function(i,list_param){
   
   stat_tb<-cast(t,pred_mod~variable,stat)
   return(stat_tb)
+}
+
+### Plotting and computing average MAE per station for different methods
+plot_MAE_per_station_fun <- function(list_data_v,names_var,interp_method,var_background,stat_loc,out_suffix){
+  #Function to create a series of residuals MAE plots...
+  
+  mae_fun<-function(x){mean(abs(x))} #Mean Absolute Error give a residuals vector
+  sd_abs_fun<-function(x){sd(abs(x))} #sd Absolute Error give a residuals vector
+  
+  ### Start script ###
+  
+  data_v_test <- list_data_v[[1]]
+  #Convert sp data.frame and combined them in one unique df, see function define earlier
+  data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
+  
+  #names_var_all<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7")#,"res_mod8","res_mod9","res_mod10")
+  names_var_all <- res_model_name <- paste("res",names_var,sep="_")
+
+  t<-melt(data_v_combined,
+        measure=names_var_all, 
+        id=c("id"),
+        na.rm=T)
+
+  names(data_v_combined)
+  mae_tb<-cast(t,id~variable,mae_fun) #join to station location...
+
+  data_v_mae <-merge(mae_tb,stat_loc,by.x=c("id"),by.y=c("STAT_ID"))
+
+  coords<- data_v_mae[c('longitude','latitude')]              #Define coordinates in a data frame
+  CRS_interp<-proj4string(data_v_test)
+  coordinates(data_v_mae)<-coords                      #Assign coordinates to the data frame
+  proj4string(data_v_mae)<- proj4string(stat_loc)                #Assign coordinates reference system in PROJ4 format
+  data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to new coord. system
+
+  list_p_mae <- vector("list", length(names_var_all))
+  #names_var <- c("mod1","mod2","mod3","mod7")
+
+  for (k in 1:length(names_var)){
+    model_name <- names_var[k]
+    res_model_name <- paste("res",model_name,sep="_")
+
+    p1 <- levelplot(var_background,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
+    df_tmp=subset(data_v_mae,data_v_mae[[res_model_name]]!="NaN")
+  
+    p2 <- bubble(df_tmp,res_model_name, main=paste("Average MAE per station for ",model_name," ",interp_method, sep=""),
+               na.rm=TRUE)
+    p3 <- p2 + p1 + p2 #to force legend...
+    list_p_mae[[k]] <- p3
+  }
+  
+  data_mae_obj <- list(list_p_mae,data_v_mae)
+  names(data_mae_obj) <- c("list_p_mae","data_v_mae")
+  return(data_mae_obj)
 }
 
 
