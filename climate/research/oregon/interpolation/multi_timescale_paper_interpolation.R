@@ -1302,6 +1302,8 @@ elev <- subset(s_raster,"elev_s") #background var
 var_background <- elev #raster image used as background image
 names_var <- c("mod1","mod2","mod3","mod4","mod5","mod6","mod7")
 
+#Compute MAE per station, plots and other information on residuals
+
 interp_method <- "gam_CAI"
 list_data_v <- list_data_v_all$gam_CAI
 data_mae_gam_CAI_obj  <- plot_MAE_per_station_fun(list_data_v,names_var,interp_method,var_background,stat_loc,out_suffix)
@@ -1314,80 +1316,25 @@ interp_method <- "gwr_CAI"
 list_data_v <- list_data_v_all$gwr_CAI
 data_mae_gwr_CAI_obj  <- plot_MAE_per_station_fun(list_data_v,names_var,interp_method,var_background,stat_loc,out_suffix)
 
-plot_MAE_per_station_fun <- function(list_data_v,names_var,interp_method,var_background,stat_loc,out_suffix){
-  #Function to create a series of residuals MAE plots...
-  
-  mae_fun<-function(x){mean(abs(x))} #Mean Absolute Error give a residuals vector
-  sd_abs_fun<-function(x){sd(abs(x))} #sd Absolute Error give a residuals vector
-  
-  ### Start script ###
-  
-  data_v_test <- list_data_v[[1]]
-  #Convert sp data.frame and combined them in one unique df, see function define earlier
-  data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
-  
-  #names_var_all<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7")#,"res_mod8","res_mod9","res_mod10")
-  names_var_all <- res_model_name <- paste("res",names_var,sep="_")
-
-  t<-melt(data_v_combined,
-        measure=names_var_all, 
-        id=c("id"),
-        na.rm=T)
-
-  names(data_v_combined)
-  mae_tb<-cast(t,id~variable,mae_fun) #join to station location...
-
-  data_v_mae <-merge(mae_tb,stat_loc,by.x=c("id"),by.y=c("STAT_ID"))
-
-  coords<- data_v_mae[c('longitude','latitude')]              #Define coordinates in a data frame
-  CRS_interp<-proj4string(data_v_test)
-  coordinates(data_v_mae)<-coords                      #Assign coordinates to the data frame
-  proj4string(data_v_mae)<- proj4string(stat_loc)                #Assign coordinates reference system in PROJ4 format
-  data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to new coord. system
-
-  list_p_mae <- vector("list", length(names_var_all))
-  #names_var <- c("mod1","mod2","mod3","mod7")
-
-  for (k in 1:length(names_var)){
-    model_name <- names_var[k]
-    res_model_name <- paste("res",model_name,sep="_")
-
-    p1 <- levelplot(var_background,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
-    df_tmp=subset(data_v_mae,data_v_mae[[res_model_name]]!="NaN")
-  
-    p2 <- bubble(df_tmp,res_model_name, main=paste("Average MAE per station for ",model_name," ",interp_method, sep=""),
-               na.rm=TRUE)
-    p3 <- p2 + p1 + p2 #to force legend...
-    list_p_mae[[k]] <- p3
-  }
-  
-  data_mae_obj <- list(list_p_mae,data_v_mae)
-  names(data_mae_obj) <- c("list_p_mae","data_v_mae")
-  return(data_mae_obj)
-}
+#####
+#Make MAE maps per station for gam_CAI, kriging_CAI, gwr_CAI
 
 list_p_mae <- data_mae_gam_CAI_obj$list_p_mae
 interp_method <- "gam_CAI"
-
 layout_m<-c(1,4) # works if set to this?? ok set the resolution...
 
 png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-
 grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
-      
 dev.off()   
 
 list_p_mae <- data_mae_kriging_CAI_obj$list_p_mae
-
 layout_m<-c(1,4) # works if set to this?? ok set the resolution...
 interp_method <- "kriging_CAI"
 
 png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-
 grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
-      
 dev.off()   
 
 list_p_mae <- data_mae_gwr_CAI_obj$list_p_mae
@@ -1396,117 +1343,98 @@ interp_method <- "gwr_CAI"
 
 png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-
 grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
-      
 dev.off()   
 
-# boxplot compare lat*lon, lat*lon+elev , lat*lon+LST for  all three methods?
+#####
+## MAE Histogram plots: Show histo for mod1,mod2,mod3 and mod7 for gam, kriging and  gwr
 
+layout_m <- c(3,4) # works if set to this?? ok set the resolution...      
+
+png(paste("Figure11_paper_","_histogram_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+grid.arrange(     
+data_mae_gam_CAI_obj$list_p_hist[[1]],
+data_mae_gam_CAI_obj$list_p_hist[[2]],
+data_mae_gam_CAI_obj$list_p_hist[[3]],
+data_mae_gam_CAI_obj$list_p_hist[[7]],
+
+data_mae_kriging_CAI_obj$list_p_hist[[1]],
+data_mae_kriging_CAI_obj$list_p_hist[[2]],
+data_mae_kriging_CAI_obj$list_p_hist[[3]],
+data_mae_kriging_CAI_obj$list_p_hist[[7]],
+
+data_mae_gwr_CAI_obj$list_p_hist[[1]],
+data_mae_gwr_CAI_obj$list_p_hist[[2]],
+data_mae_gwr_CAI_obj$list_p_hist[[3]],
+data_mae_gwr_CAI_obj$list_p_hist[[7]],
+
+ncol=4)
+
+dev.off()
+
+# boxplot compare lat*lon, lat*lon+elev , lat*lon+LST for  all three methods?
 # Do MAE per stations for the best model  for  kriging, GWR and GAM/.
 names(data_mae_gam_CAI_obj)
 data_v_mae_gam_CAI <- data_mae_gam_CAI_obj$data_v_mae
 data_v_mae_kriging_CAI <- data_mae_kriging_CAI_obj$data_v_mae
 data_v_mae_gwr_CAI <- data_mae_gwr_CAI_obj$data_v_mae
 
-## Histogram plots: Show histo for mod1,mod2,mod3 and mod7 for gam, kriging and  gwr
 
-#Combine fig??
+####### Now map of residuals for supplementary material
 
-#hist(data_v_mae_gam_CAI$res_mod1,breaks=c(1,2,3))
-hist(data_v_mae_gam_CAI$res_mod1) #,breaks=c(1,2,3))
-hist(data_v_mae_kriging_CAI$res_mod1)
-hist(data_v_mae_gwr_CAI$res_mod1)
+###########################################
+### Figure 11: map of residuals...for a specific date...
 
-hist(data_v_mae_gam_CAI$res_mod2) #,breaks=c(1,2,3))
-hist(data_v_mae_kriging_CAI$res_mod2)
-hist(data_v_mae_gwr_CAI$res_mod2)
+#names(list_raster_obj_files)<- c("gam_daily","kriging_daily","gwr_daily_a","gwr_daily_b",
+#                                 "gam_CAI","kriging_CAI","gwr_CAI",
+#                                 "gam_fss","kriging_fss","gwr_fss")
 
-hist(data_v_mae_gam_CAI$res_mod3) #,breaks=c(1,2,3))
-hist(data_v_mae_kriging_CAI$res_mod3)
-hist(data_v_mae_gwr_CAI$res_mod3)
+list_data_v <-lapply(list_raster_obj_files[5:7],FUN=function(x){x<-load_obj(x);extract_list_from_list_obj(x$validation_mod_obj,"data_v")})                           
+index <- 244
+list_data_v_gam_CAI <- list_data_v$gam_CAI
+var_background <- subset(s_raster,"elev_s")
+interp_method <- "gam_CAI"
+names_var <- c("mod1","mod2","mod3","mod4","mod5","mod6","mod7")
+#names_mod <- names(raster_prediction_obj_2$method_mod_obj[[index]][[y_var_name]]) #names of models to plot
+date_selected <-  c("20100901")
 
-hist(data_v_mae_gam_CAI$res_mod7) #,breaks=c(1,2,3))
-hist(data_v_mae_kriging_CAI$res_mod7)
-hist(data_v_mae_gwr_CAI$res_mod7)
+list_p <- plot_residuals_map_fun(list_data_v_gam_CAI,date_selected,index,names_var,interp_method,var_background)
 
-### Figure 13: Analysing residuals and relationship to elevation for mod1, mod2 and mod4 ######
+#layout_m<-c(4,3) # works if set to this?? ok set the resolution...
+#png(paste("Figure_11_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+#    height=480*layout_m[1],width=480*layout_m[2])
+#
+#grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],
+#             list_p[[4]],list_p[[5]],list_p[[6]],
+#             list_p[[7]],ncol=3)
+#dev.off()   
 
-#raster_predicton object for baseline 1 () s(lat,lon) + s(elev)) and baseline 2 (slat,lon))      
-#list_data_v <- lapply(1:365,function(i){raster_prediction_obj_2$validation_mod_obj[[i]]$data_v}) #testing with residuals
-#l_formulas<-(extract_from_list_obj(raster_prediction_obj_2$method_mod_obj,"formulas")) #get vector of dates
-
-test <- do.call(rbind,list_data_v$gam_CAI)        
-data_v_ag <-test                
-cor(test$res_mod1,test$elev)
-cor(test$res_mod2,test$elev,use="complete.obs") #decrease in corellation when using elev
-cor(test$res_mod1,test$LST,,use="complete.obs")
-cor(test$res_mod3,test$LST,use="complete.obs") #decrease in correlation when using LST
-                     
-brks<- c(0,500,1000,1500,2000)
-lab_brks<-1:4
-elev_rcstat<-cut(data_v_ag$elev,breaks=brks,labels=lab_brks,right=F)
-
-#Now set up plotting device
-
-layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
-png(paste("Figure_13_paper_","residuals_MAE_",out_prefix,".png", sep=""),
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_s5a_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-    #height=480*6,width=480*4)
+grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],
+             ncol=3)  
+dev.off() 
 
-p_bw1<-bwplot(data_v_ag$res_mod1~elev_rcstat,do.out=F,ylim=c(-15,15),
-         ylab=list(label="Residuals (deg C)",cex=1.5),
-         xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elev for mod1=lat*lon",cex=1.8),
-         scales = list(x = list(at = c(1, 2, 3, 4), #provide tick location and labels
-                               labels = c("0-500","500-1000","1000-1500","1500-2000"))),
-                       par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
-        par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
-        par.strip.text=list(font=2,cex=1.5)
-        )
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_s5b_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
 
-p_bw1<-bwplot(data_v_ag$res_mod1~data_v_ag$LST,do.out=F,ylim=c(-15,15),
-         ylab=list(label="Residuals (deg C)",cex=1.5),
-         xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elev for mod1=lat*lon",cex=1.8),
-         scales = list(x = list(at = c(1, 2, 3, 4), #provide tick location and labels
-                               labels = c("0-500","500-1000","1000-1500","1500-2000"))),
-                       par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
-        par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
-        par.strip.text=list(font=2,cex=1.5)
-        )
+grid.arrange(list_p[[4]],list_p[[5]],list_p[[6]],
+             ncol=3)  
+dev.off() 
 
-p_bw2 <- bwplot(data_v_ag$res_mod2~elev_rcstat,do.out=F,ylim=c(-15,15),
-         ylab=list(label="Residuals (deg C)",cex=1.5),
-         xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elev for mod5=lat*lon+LST",cex=1.8),
-         scales = list(x = list(at = c(1, 2, 3, 4), 
-                               labels = c("0-500","500-1000","1000-1500","1500-2000"))),
-         par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
-         par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
-         par.strip.text=list(font=2,cex=1.5)
-         )
-
-p_bw3 <- bwplot(data_v_ag$res_mod7~elev_rcstat,do.out=F,ylim=c(-15,15),
-         ylab=list(label="Residuals (deg C)",cex=1.5),
-         xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elev for mod2=lat*lon+elev",cex=1.8),
-         scales = list(x = list(at = c(1, 2, 3, 4), 
-                               labels = c("0-500","500-1000","1000-1500","1500-2000"))),
-         par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
-                par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
-                par.strip.text=list(font=2,cex=1.5)
-                )
-grid.arrange(p_bw1,p_bw2,p_bw3,ncol=3)
-dev.off()
-
-
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+png(paste("Figure_s5c_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+grid.arrange(list_p[[7]],
+             ncol=3)  
+dev.off() 
 
 ###################### END OF SCRIPT #######################
 
-# #LAND COVER ###########################################
-
-#INFORMATION
+#LAND COVER INFORMATION
 
 # LC1: Evergreen/deciduous needleleaf trees
 # LC2: Evergreen broadleaf trees
