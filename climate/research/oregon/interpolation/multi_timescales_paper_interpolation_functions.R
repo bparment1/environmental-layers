@@ -613,7 +613,9 @@ calc_stat_from_tb_list <-function(i,list_param){
 
 ### Plotting and computing average MAE per station for different methods
 plot_MAE_per_station_fun <- function(list_data_v,names_var,interp_method,var_background,stat_loc,out_suffix){
-  #Function to create a series of residuals MAE plots...
+  #Function to compute residuals MAE per stations
+  #Plots of maps of MAE per stations with raster background.
+  #Plots of histograms of MAE per model and method
   
   mae_fun<-function(x){mean(abs(x))} #Mean Absolute Error give a residuals vector
   sd_abs_fun<-function(x){sd(abs(x))} #sd Absolute Error give a residuals vector
@@ -625,8 +627,9 @@ plot_MAE_per_station_fun <- function(list_data_v,names_var,interp_method,var_bac
   data_v_combined <-convert_spdf_to_df_from_list(list_data_v) #long rownames
   
   #names_var_all<-c("res_mod1","res_mod2","res_mod3","res_mod4","res_mod5","res_mod6","res_mod7")#,"res_mod8","res_mod9","res_mod10")
-  names_var_all <- res_model_name <- paste("res",names_var,sep="_")
-
+  res_model_name <- paste("res",names_var,sep="_")
+  covar_names_mod <- c("elev_s", "lat", "lon", "E_w", "N_w", "DISTOC", "LC1")
+  names_var_all <- c(res_model_name,covar_names_mod) 
   t<-melt(data_v_combined,
         measure=names_var_all, 
         id=c("id"),
@@ -644,7 +647,7 @@ plot_MAE_per_station_fun <- function(list_data_v,names_var,interp_method,var_bac
   data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to new coord. system
 
   list_p_mae <- vector("list", length(names_var_all))
-  #names_var <- c("mod1","mod2","mod3","mod7")
+  list_p_hist <- vector("list", length(names_var_all))
 
   for (k in 1:length(names_var)){
     model_name <- names_var[k]
@@ -657,13 +660,53 @@ plot_MAE_per_station_fun <- function(list_data_v,names_var,interp_method,var_bac
                na.rm=TRUE)
     p3 <- p2 + p1 + p2 #to force legend...
     list_p_mae[[k]] <- p3
+    
+    #Now add histogram!!
+    p_hist <-histogram(df_tmp[[res_model_name]],
+          col=c("grey"),
+          ylab=list(label="Percent of total",cex=1.5),
+          xlab=list(label="Residuals",cex=1.5),
+          main=list(label=paste("MAE per station for ",model_name," ",interp_method, sep=""),
+                    cex=1.8),
+          par.settings = list(axis.text = list(font = 2, cex = 1.3),
+                par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
+          par.strip.text=list(font=2,cex=1.5)        
+    )
+    list_p_hist[[k]] <- p_hist
+
   }
   
-  data_mae_obj <- list(list_p_mae,data_v_mae)
-  names(data_mae_obj) <- c("list_p_mae","data_v_mae")
+  data_mae_obj <- list(list_p_mae,list_p_hist,data_v_mae,data_v_combined)
+  names(data_mae_obj) <- c("list_p_mae","list_p_hist","data_v_mae","data_v_combined")
   return(data_mae_obj)
 }
 
+### Plotting and computing average MAE per station for different methods
+plot_residuals_map_fun <- function(list_data_v,date_selected,index,names_var,interp_method,var_background){
+  
+  #Function create residuals map from list  of station data
+  #index <- 244
+  data_v <- list_data_v[[index]]
+  names_mod <- names_var
+  date_proc<-strptime(date_selected, "%Y%m%d")   # interpolation date being processed
+  mo<-as.integer(strftime(date_proc, "%m"))          # current month of the date being processed
+  day<-as.integer(strftime(date_proc, "%d"))
+  year<-as.integer(strftime(date_proc, "%Y"))
+  datelabel=format(ISOdate(year,mo,day),"%b %d, %Y")
+  list_p <- vector("list", length(names_mod))
+  for (k in 1:length(names_mod)){
+    model_name <- names_mod[k]
+    res_model_name <- paste("res",model_name,sep="_")
+    #cx <- ((data_v[[res_model_name]])*2)
+    p1 <- levelplot(var_background,#margin=F,
+                  scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
+    p2 <- bubble(data_v,res_model_name, 
+               main=paste("Residuals ",model_name," ",interp_method," ",datelabel,sep=""))
+    p3 <- p2 + p1 + p2 #to force legend...
+    list_p[[k]] <- p3
+  }
+  return(list_p)
+}
 
 ################### END OF SCRIPT ###################
 
