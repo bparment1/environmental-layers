@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 06/27/2014            
+#MODIFIED ON: 08/14/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -15,6 +15,9 @@
 # - generate data_s and data_v inputs as giant table
 # - generate accuracy for mosaic (part 2 and part3)
 # - clean up
+
+#First source file:
+#source /nobackupp4/aguzman4/climateLayers/sharedModules/etc/environ.sh
 #################################################################################################
 
 ### Loading R library and packages        
@@ -46,8 +49,8 @@ library(colorRamps)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_05212014.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_05052014.R"
+function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
+function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
 
 load_obj <- function(f)
 {
@@ -310,9 +313,29 @@ list_tif_fun <- function(i,in_dir_list,pattern_str){
 #### Parameters and constants  
 
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
-in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/" #On NEX
+#in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/" #On NEX
+in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output20Deg/"
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_0.0/
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg3/-20.0_-70.0/
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_30.0/
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/40.0_0.0/
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_-10.0/
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/50.0_0.0/
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/30.0_40.0/
+
+
 #/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
-in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list of directories with resutls by 10x10 degree tiles
+#in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list of directories with resutls by 10x10 degree tiles
+in_dir_list <- c("/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_0.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg3/-20.0_-70.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_30.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/40.0_0.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_-10.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/50.0_0.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/30.0_40.0/")
+
 #use subset for now:
 
 #in_dir_list <- c(
@@ -322,16 +345,25 @@ in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list of director
 #in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 #in_dir_list <- as.list(in_dir_list[-1])
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
-#in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
-in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/subset/shapefiles/"
-in_dir_shp_list <- list.files(in_dir_shp,".shp")
+in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
+in_dir_shp <- c(
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg3/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/subset/shapefiles/")
+#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/subset/shapefiles/"
+#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output20Deg/reg2/subset/shapefiles"
+in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
 #in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)] 
 #the first one is the in_dir1
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run3_global_analyses_06192014"
+out_prefix<-"run4_global_analyses_08142014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -371,6 +403,7 @@ names(list_raster_obj_files)<- list_names_tile_id
 
 lf_covar_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar_obj.*.RData",full.names=T)})
 lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
+lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostic.*.RData",full.names=T)})
 
 ########################## START SCRIPT ##############################
 
@@ -483,33 +516,19 @@ write.table((tb_diagnostic_v_NA),
 ######################################################
 ####### PART 4: Get shapefile tiling with centroids ###
 
-#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
-
 #get shape files for the region being assessed:
-list_shp_global_tiles_files <- list.files(path=in_dir_shp,pattern="*.shp")
-l_shp<-lapply(1:length(in_dir_shp_list),FUN=function(i){paste(strsplit(in_dir_shp_list[i],"_")[[1]][2:3],collapse="_")})
-list_shp_global_tiles_files <- l_shp
-pattern_str <- basename(in_dir_list)
-list_shp_global_tiles_files
-list_shp_reg_files <- lapply(pattern_str,function(x){list_shp_global_tiles_files[grep(x,invert=FALSE,list_shp_global_tiles_files)]}) #select directory with shapefiles...
-df_tile_processed$shp_files <- unlist(list_shp_reg_files)
+
+list_shp_world <- list.files(path=in_dir_shp,pattern=".*.shp",full.names=T)
+l_shp <- unlist(lapply(1:length(list_shp_world),FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][2:3],collapse="_")}))
+matching_index <- match(basename(in_dir_list),l_shp)
+list_shp_reg_files <- list_shp_world[matching_index]
+df_tile_processed$shp_files <-list_shp_world[matching_index]
 
 tx<-strsplit(as.character(df_tile_processed$tile_coord),"_")
 lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
 long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
 df_tile_processed$lat <- lat
 df_tile_processed$lon <- long
-
-list_shp_world <- list.files(in_dir_shp,".shp")
-l_shp <- unlist(lapply(1:length(list_shp_world),FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][2:3],collapse="_")}))
-list_shp_reg_files <- as.character(df_tile_processed$tile_coord)
-#matching_index <- match(l_shp,list_shp_reg_files)
-matching_index <- match(list_shp_reg_files,l_shp)
-df_tile_processed$shp_files <-list_shp_world[matching_index]
-
-df_tile_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
-list_shp_reg_files <- df_tile_processed$shp_files
-list_shp_reg_files<- file.path(in_dir_shp,list_shp_reg_files)
 
 #put that list in the df_processed and also the centroids!!
 write.table(df_tile_processed,
@@ -774,17 +793,65 @@ write.table(pred_data_day_info,
 
 ### This assumes the tree structure has been replicated on Atlas:
 #for i in 1:length(df_tiled_processed$tile_coord)
-output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
+#output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
+output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/output20Deg"
+
+#Make directories on ATLAS
 #for (i in 1:length(df_tiled_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tiled_processed$tile_coord[i])),out_suffix=NULL)
 #}  
+
+#Make directories on ATLAS for shapefiles
+#for (i in 1:length(df_tiled_processed$tile_coord)){
+#  create_dir_fun(file.path(output_atlas_dir,as.character(df_tiled_processed$tile_coord[i]),"/shapefiles"),out_suffix=NULL)
+#}  
+
+
+#Copy summary textfiles and mosaic back to atlas
+
+Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir))#,"output/subset/shapefiles")
+Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+lf_cp_f <- list.files(out_dir,full.names=T)#copy all files can filter later
+filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+
+#system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
+#system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
+
+#### COPY SHAPEFILES, TIF MOSAIC, COMBINED TEXT FILES etc...
+
+#copy shapefiles defining regions
+Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output/subset/shapefiles")
+Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+lf_cp_shp <- df_tile_processed$shp_files #get all the files...
+
+#lf_cp_shp <- list.files(in_dir_shp, ".shp",full.names=T)
+list_tile_scp <- 1:8
+
+for (j in 1:length(list_tile_scp)){
+  tile_nb <- list_tile_scp[j]
+  
+  in_dir_tile <-dirname(df_tile_processed$shp_files[tile_nb])
+  #/data/project/layers/commons/NEX_data/output_run2_05122014/output
+  #output_atlas_dir
+  #Atlas_dir <- file.path(file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output"),in_dir_tile)
+  Atlas_dir <- file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[j]),"/shapefiles")
+
+  Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+
+  filenames_NEX <- paste(lf_cp_shp,collapse=" ")  #copy raster prediction object
+  cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+  system(cmd_str)
+}
 
 #### FIRST COPY DATA FOR SPECIFIC TILES #####
 #Copy specific tiles info back...This assumes that the tree structre 
 #has been created on ATLAS:
 #../$out_dir/ouput/tile_coord
 
-list_tile_scp <- c(1,2)
+#list_tile_scp <- c(1,2)
+list_tile_scp <- 1:8
 
 for (j in 1:length(list_tile_scp)){
   tile_nb <- list_tile_scp[j]
@@ -827,7 +894,7 @@ for (j in 1:length(list_tile_scp)){
     lf_cp_month[[i]]  <- unlist(lapply(1:nb_mod,FUN=function(x){lf_clim_tif[[x]][[index]][[tile_nb]]}))
   }
   ##Add RData object for specified tile...
-  lf_cp_RData_tif <- c(lf_covar_obj[tile_nb],lf_covar_tif[tile_nb],list_raster_obj_files[[tile_nb]])
+  lf_cp_RData_tif <- c(lf_covar_obj[tile_nb],lf_covar_tif[tile_nb],list_raster_obj_files[[tile_nb]],lf_diagnostic_obj[[tile_nb]])
   #unlist(lf_cp_RData_tif)
   lf_cp <- unlist(c(lf_cp_day,lf_cp_month,lf_cp_RData_tif))
   #lf_cp <- c(unlist(c(lf_cp_day,lf_cp_month)),list_raster_obj_files[tile_nb])
@@ -837,30 +904,5 @@ for (j in 1:length(list_tile_scp)){
   system(cmd_str)
 }
 
-#### COPY SHAPEFILES, TIF MOSAIC, COMBINED TEXT FILES etc...
-
-#copy shapefiles defining regions
-Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output/subset/shapefiles")
-Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-lf_cp_shp <- list.files(in_dir_shp,full.names=T) #get all the files...
-#lf_cp_shp <- list.files(in_dir_shp, ".shp",full.names=T)
-
-filenames_NEX <- paste(lf_cp_shp,collapse=" ")  #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-system(cmd_str)
-
-#Copy summary textfiles and mosaic back to atlas
-
-Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir))#,"output/subset/shapefiles")
-Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-lf_cp_f <- list.files(out_dir,full.names=T)#copy all files can filter later
-filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-system(cmd_str)
-
-#system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
-#system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
-
-system("scp -p /nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/* parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/shapefiles")
 
 ##################### END OF SCRIPT ######################
