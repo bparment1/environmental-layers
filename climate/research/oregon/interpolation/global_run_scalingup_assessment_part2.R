@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 07/02/2014            
+#MODIFIED ON: 08/14/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 3 global using 2 specific tiles
@@ -40,8 +40,8 @@ library(colorRamps)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_10222013.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_05052014.R"
+function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
+function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
 
 load_obj <- function(f)
 {
@@ -69,10 +69,10 @@ create_dir_fun <- function(out_dir,out_suffix){
 #on ATLAS
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #parent output dir : contains subset of the data produced on NEX
-in_dir1 <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output"
+in_dir1 <- "/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/output20Deg"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/"
 # input dir containing shapefiles defining tiles
 in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output/subset/shapefiles"
 
@@ -83,11 +83,10 @@ in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses
 #out_dir <- "/nobackup/bparmen1/" #on NEX
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
 
-df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
-#in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
-y_var_name <- "dailyTmax"
+y_var_nay_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run3_global_analyses_06192014"
+out_prefix<-"run4_global_analyses_08142014"
+
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- FALSE
@@ -111,37 +110,29 @@ region_name <- "world"
 #lf_tables <- list.files(out_dir,)
 summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
-df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=","),paste("pred_data_month_info_",out_prefix,".txt",sep="")) <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
 pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
 pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
+df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
+#in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 
 ########################## START SCRIPT ##############################
 
 ###############
 ### Figure 1: plot location of the study area with tiles processed
-list_shp_world <- list.files(in_dir_shp,".shp")
-l_shp <- unlist(lapply(1:length(list_shp_world),FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][2:3],collapse="_")}))
-list_shp_reg_files <- as.character(df_tile_processed$tile_coord)
-#matching_index <- match(l_shp,list_shp_reg_files)
-matching_index <- match(list_shp_reg_files,l_shp)
-df_tile_processed$shp_files <-list_shp_world[matching_index]
-list_shp_reg_files <- df_tile_processed$shp_files
 
 #df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
 #list_shp_reg_files <- df_tiled_processed$shp_files
-list_shp_reg_files<- file.path(in_dir_shp,list_shp_reg_files)
+list_shp_reg_files<- as.character(df_tile_processed$shp_files)
+list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/output20Deg",
+          as.character(df_tile_processed$tile_coord),"shapefiles",basename(list_shp_reg_files))
 
 ### First get background map to display where study area is located
 #can make this more general later on..       
-if region_name=="reg1"{
-  usa_map <- getData('GADM', country=c('USA'), level=1) #Get US map
-  can_map <- getData('GADM', country=c('CAN'), level=1) #Get Canada map
-  mex_map <- getData('GADM', country=c('MEX'), level=1) #Get Mexico map
-  
+if region_name=="USA"{
+  usa_map <- getData('GADM', country='USA', level=1) #Get US map
   #usa_map <- getData('GADM', country=region_name,level=1) #Get US map, this is not working right now
   usa_map <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
-  usa_map <- usa_map[usa_map$NAME_1!="Hawaii",] #remove Hawai 
-  #reg_layer <- combine all three?
+  reg_layer <- usa_map[usa_map$NAME_1!="Hawaii",] #remove Hawai 
 }
 
 if region_name=="world"{
@@ -150,9 +141,8 @@ if region_name=="world"{
   path_to_shp <- dirname(countries_shp)
   layer_name <- sub(".shp","",basename(countries_shp))
   reg_layer <- readOGR(path_to_shp, layer_name)
-  proj4string(reg_layer) <- CRS_locs_WGS84
+  #proj4string(reg_layer) <- CRS_locs_WGS84
   #reg_shp<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
-
 }
 
 centroids_pts <- vector("list",length(list_shp_reg_files))
@@ -188,7 +178,7 @@ for(i in 1:length(list_shp_reg_files)){
   label_id <- df_tile_processed$tile_id[i]
   text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
 }
-title(paste("Tiles location 10x10 degrees for ", region_name,sep=""))
+title(paste("Tiles location 20x20 degrees for ", region_name,sep=""))
 
 dev.off()
       
@@ -200,7 +190,7 @@ dev.off()
 ### Figure 2: boxplot of average accuracy by model and by tiles
 
 tb$tile_id <- factor(tb$tile_id, levels=unique(tb$tile_id))
-model_name <- unique(tb$pred_mod)
+model_name <- as.character(unique(tb$pred_mod))
 
 ## Figure 2a
 
@@ -261,6 +251,39 @@ boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
 title("RMSE per model over all tiles")
 
 dev.off()
+
+
+######################
+### Figure 5: plot accuracy ranked 
+
+#Turn summary table to a point shp
+
+list_df_ac_mod <- vector("list",length=length(model_name))
+for (i in 1:length(model_name)){
+  
+  ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
+  ### Ranking by tile...
+  df_ac_mod <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("pred_mod","rmse","mae","tile_id")]
+  list_df_ac_mod[[i]] <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("rmse","mae","tile_id")]
+  
+  res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+
+  png(filename=paste("Figure5_ac_metrics_ranked_",model_name[i],"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  x<- as.character(df_ac_mod$tile_id)
+  barplot(df_ac_mod$rmse, names.arg=x)
+  #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
+  #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
+  title(paste("RMSE ranked by tile for ",model_name[i],sep=""))
+
+  dev.off()
+  
+}
+
+
+
 
 ################ 
 ### Figure 4: plot predicted tiff for specific date per model
@@ -379,7 +402,7 @@ for (i in 1:length(lf_list)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,add=T)
   #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
-  title(paste("Average RMSE per tile and by ",model_name[i]))
+  title(paste("Averrage RMSE per tile and by ",model_name[i]))
 
   dev.off()
   
@@ -399,58 +422,42 @@ for (i in 1:length(lf_list)){
 ######################
 ### Figure 9: Plot the number of stations in a processing tile
 
-## Get ID from tile number...
-ID_str <- unlist(lapply(1:nrow(df_tile_processed),function(i){unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]}))
+dd <- merge(df_tile_processed,pred_data_month_info,"tile_id")
+coordinates(dd) <- c(dd$x,dd$y)
 
-assign_FID_spatial_polygons_df <-function(list_spdf,ID_str=NULL){
-  list_spdf_tmp <- vector("list",length(list_spdf))
-  if(is.null(ID_str)){
-    nf <- 0 #number of features
-    #for(i in 1:length(spdf)){
-    #    shp1 <- list_spdf[[i]]
-    #    f <- nrow(shp1)
-    #    nf <- nf + f
-    #}
-    #This assumes that the list has one feature per item list
-    nf <- length(list_spdf)
-    ID_str <- as.character(1:nf)
-  }
-  for(i in 1:length(list_spdf)){
-    #test=spRbind(shps_tiles[[1]],shps_tiles[[2]])
-    shp1 <- list_spdf[[i]]
-    shp1$FID <- ID_str
-    shp1<- spChFIDs(shp1, as.character(shp1$FID)) #assign ID
-    list_spdf_tmp[[i]]  <-shp1
-  }
-  return(list_spdf_tmp)
+## Make this a function later...
+list_shp_tmp <- vector("list",length(shps_tiles))
+for(i in 1:length(shps_tiles)){
+  #test=spRbind(shps_tiles[[1]],shps_tiles[[2]])
+  shp1 <- shps_tiles[[i]]
+
+  ID_str <- unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]
+  shp1$FID <- ID_str
+  shp1<- spChFIDs(shp1, as.character(shp1$FID)) #assign ID
+  list_shp_tmp[[i]]  <-shp1
 }
 
-combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
-  if(is.null(ID_str)){
-    #call function
-    list_spdf_tmp <- assign_FID_spatial_polygons_df
-  }
-  combined_spdf <- list_spdf_tmp[[1]]
-  for(i in 2:length(list_spdf_tmp)){
-    combined_spdf <- rbind(combined_spdf,list_spdf_tmp[[i]])
-    #sapply(slot(shps_tiles[[2]], "polygons"), function(x) slot(x, "ID"))
-    #rownames(as(alaska.tract, "data.frame"))
-  }
-  return(combined_spdf)
+combined_shp <- list_shp_tmp[[1]]
+for(i in 2:length(list_shp_tmp)){
+  combined_shp <- rbind(combined_shp,list_shp_tmp[[i]])
+  #sapply(slot(shps_tiles[[2]], "polygons"), function(x) slot(x, "ID"))
+  #rownames(as(alaska.tract, "data.frame"))
 }
 
 combined_shp$tile_id <- df_tile_processed$tile_id
  
+test <- combined_shp
+test2 <- merge(test,pred_data_month_info, by="tile_id")
+
 r <- raster(lf_pred_list[i])
 
 plot(combined_shp)
+# polygons
+plot(combined_shp, col = fillColour, border = outlineColour)
 
 p0 <- spplot(combined_shp, "Stations",col.regions=matlab.like(100))
-p1 <- spplot(usa_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-p2 <- spplot(can_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-p3 <- spplot(mex_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-
-p0 +p1+p2+p3
+p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+p0 +p1
 
 ### Now plot number of training for monthly data
 
@@ -466,13 +473,7 @@ pol <- SpatialPolygons(combined_shp@polygons,proj4string=CRS(CRS_WGS84))
 spp <- SpatialPolygonsDataFrame(pol,data=shp_dat)
 
 p0 <- spplot(spp, "n_mod",col.regions=matlab.like(100))
-#p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-p0 + p1 + p2 + p3
-
-######################
-### Figure 10: Plot the number of stations in a processing tile
-
-boxplot(n_mod~tile_id,pred_data_month_info)
-boxplot(n_mod~date,pred_data_month_info)
+p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+p0 +p1
 
 ##################### END OF SCRIPT ######################
