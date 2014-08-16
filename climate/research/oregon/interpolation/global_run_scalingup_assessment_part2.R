@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 08/14/2014            
+#MODIFIED ON: 08/16/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 3 global using 2 specific tiles
@@ -104,7 +104,7 @@ CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #S
 CRS_WGS84<-c("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
 region_name <- "world"
-
+# 
 ###Table 1: Average accuracy metrics
 ###Table 2: daily accuracy metrics for all tiles
 #lf_tables <- list.files(out_dir,)
@@ -114,6 +114,7 @@ pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month
 pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 #in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
+gam_diagnostic_df <- read.table(file=file.path(out_dir,"gam_diagnostic_df_run4_global_analyses_08142014.txt"),sep=",")
 
 ########################## START SCRIPT ##############################
 
@@ -283,7 +284,83 @@ for (i in 1:length(model_name)){
 }
 
 
+##### Diagnostic gam
 
+gam_diagnostic_df
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod1"),main="mod1 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
+boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod1"),main="mod1 and term=s(elev_s)",ylab="RMSE_f",xlab="k")
+boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and term=s(elev_s)",ylab="RMSE_f",xlab="k")
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and term=s(LST)",ylab="RMSE_f",xlab="k")
+
+res_pix <-480
+
+png(filename="test.png",
+    width=0.5*res_pix,height=6*res_pix)
+
+#boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+#title("RMSE per model over all tiles")
+#bwplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2"),)
+xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2"),type="p")
+xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod1"),type="p")
+xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod1" & tile_id=="tile_7"),type="b")
+xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2" & tile_id=="tile_7"),type="b")
+xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod1" & tile_id=="tile_8"),type="b")
+xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2" & tile_id=="tile_8"),type="b")
+
+xyplot(rmse~k | term + month,group=tile_id ,data=subset(gam_diagnostic_df,pred_mod=="mod1"),type="b",
+       auto.key=list(space = "top", cex=1.0,columns=8))
+dev.off()
+
+boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod2"))
+boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod1"))
+
+gam_diagnostic_df$month <- as.factor(gam_diagnostic_df$month)
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1"),main="mod1 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2"),main="mod2 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod2"))
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(LST)" & pred_mod=="mod2"))
+
+boxplot(rmse~n,data=subset(gam_diagnostic_df,pred_mod=="mod2"))
+boxplot(rmse~n,data=subset(gam_diagnostic_df,pred_mod=="mod1"))
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_8"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_7"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2" & tile_id=="tile_8"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2" & tile_id=="tile_7"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_8"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_7"))
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_7" & month==1))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_7" & month==7))
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_7" & month==1))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_7" & month==7))
+
+boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod1" & tile_id=="tile_7"))
+boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod2" & tile_id=="tile_7"))
+
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1"))
+boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod2"))
+
+plot(n~tile_id,data=gam_diagnostic_df,type="h")
+
+
+# 
+## Figure 3b
+png(filename=paste("Figure3b_boxplot_overall_region_scaling_",model_name[i],"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+title("RMSE per model over all tiles")
+
+dev.off()
 
 ################ 
 ### Figure 4: plot predicted tiff for specific date per model
