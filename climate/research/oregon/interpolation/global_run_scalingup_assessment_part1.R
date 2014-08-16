@@ -315,15 +315,6 @@ list_tif_fun <- function(i,in_dir_list,pattern_str){
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/" #On NEX
 in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output20Deg/"
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_0.0/
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg3/-20.0_-70.0/
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_30.0/
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/40.0_0.0/
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_-10.0/
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/50.0_0.0/
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/
-#/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/30.0_40.0/
-
 
 #/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
 #in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list of directories with resutls by 10x10 degree tiles
@@ -345,7 +336,7 @@ in_dir_list <- c("/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_0.0/"
 #in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 #in_dir_list <- as.list(in_dir_list[-1])
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
-in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
+#in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 in_dir_shp <- c(
 "/nobackupp4/aguzman4/climateLayers/output20Deg/reg3/subset/shapefiles/",
 "/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/subset/shapefiles/",
@@ -403,7 +394,9 @@ names(list_raster_obj_files)<- list_names_tile_id
 
 lf_covar_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar_obj.*.RData",full.names=T)})
 lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
-lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostic.*.RData",full.names=T)})
+#diagnostics_obj_gam_fitting_dailyTmax7__08062014.RData
+lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostics_.*.RData",full.names=T)})
+lf_diagnostic_obj <- lf_diagnostic_obj[grep("lk_min",lf_diagnostic_obj,invert=T)] #remove object that have lk_min...
 
 ########################## START SCRIPT ##############################
 
@@ -485,6 +478,35 @@ tb_diagnostic_v_NA <- merge(tb_diagnostic_v_NA,df_tile_processed[,1:2],by="tile_
 
 write.table((tb_diagnostic_v_NA),
             file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+
+####### process gam fitting diagnostic info
+
+#/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_30.0//diagnostics_obj_gam_fitting_TMax_9_mod2_08062014.RData
+#lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostics_.*.RData",full.names=T)})
+#lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostics_obj_gam_fitting_TMax_*_mod*_08062014.RData",full.names=T)})
+lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostics_obj_gam_fitting_TMax_.*._mod.*._08062014.RData",full.names=T)})
+
+#lf_diagnostic_obj <- lf_diagnostic_obj[grep("lk_min",lf_diagnostic_obj,invert=T)] #remove object that have lk_min...
+
+names(lf_diagnostic_obj) <- list_names_tile_id
+lf_diagnostic_obj_tmp <- remove_from_list_fun(lf_diagnostic_obj)$list
+#df_tile_processed$tb_diag <- remove_from_list_fun(tb_diagnostic_v_list)$valid
+
+gam_diagnostic_tb_list <- vector("list",length=length(lf_diagnostic_obj_tmp))
+for(i in 1:length(lf_diagnostic_obj_tmp)){
+  l_diagnostic_obj_tmp <- lf_diagnostic_obj_tmp[[i]]
+  tile_id_name <-  names(lf_diagnostic_obj_tmp)[i]
+  #l_diagnostic_obj_tmp <- l_diagnostic_obj_tmp[grep("lk_min",l_diagnostic_obj_tmp,invert=T)] #remove object that have lk_min...
+  l_diagnostic_obj_tmp_list <- lapply(l_diagnostic_obj_tmp,FUN=function(x){try(x<-load_obj(x));try(x[["df_diagnostics"]])})#,mc.preschedule=FALSE,mc.cores = 6)                            
+  gam_diagnostic_tb <- do.call(rbind.fill,l_diagnostic_obj_tmp_list)#create a df for NA tiles with all accuracy metrics
+  gam_diagnostic_tb$tile_id <- tile_id_name
+  gam_diagnostic_tb_list[[i]] <- gam_diagnostic_tb    
+}
+
+gam_diagnostic_df <- do.call(rbind.fill,gam_diagnostic_tb_list) #create a df for NA tiles with all accuracy metrics
+
+write.table(gam_diagnostic_df,
+            file=file.path(out_dir,paste("gam_diagnostic_df_",out_prefix,".txt",sep="")),sep=",")
 
 #################
 ###Table 3: monthly station information with predictions for all tiles
