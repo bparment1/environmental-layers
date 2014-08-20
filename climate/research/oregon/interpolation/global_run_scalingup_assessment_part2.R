@@ -296,11 +296,6 @@ boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and te
 
 boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and term=s(LST)",ylab="RMSE_f",xlab="k")
 
-res_pix <-480
-
-png(filename="test.png",
-    width=0.5*res_pix,height=6*res_pix)
-
 #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
 #title("RMSE per model over all tiles")
 #bwplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2"),)
@@ -315,42 +310,22 @@ xyplot(rmse~k | term + month,group=tile_id ,data=subset(gam_diagnostic_df,pred_m
        auto.key=list(space = "top", cex=1.0,columns=8))
 dev.off()
 
-boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod2"))
-boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod1"))
 
-gam_diagnostic_df$month <- as.factor(gam_diagnostic_df$month)
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1"),main="mod1 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2"),main="mod2 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod2"))
-
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(LST)" & pred_mod=="mod2"))
-
-boxplot(rmse~n,data=subset(gam_diagnostic_df,pred_mod=="mod2"))
-boxplot(rmse~n,data=subset(gam_diagnostic_df,pred_mod=="mod1"))
-
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_8"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_7"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2" & tile_id=="tile_8"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2" & tile_id=="tile_7"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_8"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_7"))
-
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_7" & month==1))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1" & tile_id=="tile_7" & month==7))
-
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_7" & month==1))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod1" & tile_id=="tile_7" & month==7))
-
-boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod1" & tile_id=="tile_7"))
-boxplot(rmse~month,data=subset(gam_diagnostic_df,pred_mod=="mod2" & tile_id=="tile_7"))
-
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(lat,lon)" & pred_mod=="mod2"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod1"))
-boxplot(rmse~k,data=subset(gam_diagnostic_df,term=="s(elev_s)" & pred_mod=="mod2"))
 
 plot(n~tile_id,data=gam_diagnostic_df,type="h")
 
+## Experimenting
+list_mod <- load_obj(lf_diagnostic_obj$tile_1[2])$list_mod
+data_training_lf <- as.data.frame(list_mod[[1]]$model)
+dim(data_training_lf) #is 13
+mod_t1 <-gam(y_var ~ s(lat,lon,k=6) + s(elev_s,k=4) + s(LST,k=4) , data= data_training_lf)
+mod_t2 <-gam(y_var ~ s(lat,lon,k=5) + s(elev_s,k=5) + s(LST,k=5) , data= data_training_lf)
+
+list_mod <- load_obj(lf_diagnostic_obj$tile_7[4])$list_mod
+data_training_lf <- as.data.frame(list_mod[[1]]$model)
+dim(data_training_lf) #is 13
+mod_t1 <-gam(y_var ~ s(lat,lon,k=6) + s(elev_s,k=4) + s(LST,k=4) , data= data_training_lf)
+mod_t2 <-gam(y_var ~ s(lat,lon,k=5) + s(elev_s,k=5) + s(LST,k=5) , data= data_training_lf)
 
 # 
 ## Figure 3b
