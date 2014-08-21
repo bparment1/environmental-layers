@@ -42,7 +42,7 @@ library(colorRamps)
 #### FUNCTION USED IN SCRIPT
 
 function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08122014.R"
+function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
 
 ##############################
 #### Parameters and constants  
@@ -194,7 +194,7 @@ table3_paper$Methods <- c(rep("gam",7),
 table3_paper <- subset(table3_paper,
                        select=grep("gam_fss",names(table3_paper),invert=T,value=T))
 
-list_tb <-lapply(list_raster_oj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
+list_tb <-lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
 
 stat<-"sd"
 training <- "FALSE"
@@ -369,6 +369,56 @@ print(table6) #show resulting table
 
 file_name<-paste("table6_correlation_multi_timescale_paper","_",out_prefix,".txt",sep="")
 write.table(table6,file=file_name,sep=",")
+
+### Additiona information:
+
+#model with LST and elev
+raster_obj <- load_obj(list_raster_obj_files$gam_CAI)
+
+list_tb_mod_month <- vector("list",length=3)
+interp_method_selected <- c("gam_CAI","kriging_CAI","gwr_CAI")
+for(i in 1:3){
+  raster_obj <- load_obj(list_raster_obj_files[[interp_method_selected[i]]])
+  tb1_mod1_month <- raster_obj$summary_month_metrics_v[[1]] #note that this is for model1
+  tb_mod_month <- raster_obj$summary_month_metrics_v[1:7]#note that this is for model1
+  tb_mod_month <- as.data.frame(do.call(rbind,tb_mod_month))
+  tb_mod_month <- tb_mod_month[,c("month","rmse","pred_mod")]
+  tb_mod_month$m <- as.numeric(tb_mod_month$month)
+  xyplot(rmse~m, group=pred_mod,data=tb_mod_month,type="b",
+         auto.key=list(space = "top", cex=1.0,columns=7))
+  test <- list(
+      tb_mod_month[tb_mod_month$pred_mod=="mod1",c("rmse")],
+      tb_mod_month[tb_mod_month$pred_mod=="mod2",c("rmse")],
+      tb_mod_month[tb_mod_month$pred_mod=="mod3",c("rmse")],
+      tb_mod_month[tb_mod_month$pred_mod=="mod4",c("rmse")],
+      tb_mod_month[tb_mod_month$pred_mod=="mod5",c("rmse")],
+      tb_mod_month[tb_mod_month$pred_mod=="mod6",c("rmse")],
+      tb_mod_month[tb_mod_month$pred_mod=="mod7",c("rmse")])
+  test<- as.data.frame(do.call(cbind,test))
+  names(test) <- paste("mod",1:7,sep="")
+  test$month <- tb_mod_month$month[1:12]     
+
+  test[,c(3,6,7)]
+  list_tb_mod_month[[i]] <-  test
+
+}
+
+list_tb_mod_month[[1]][,c(3,6,7)]
+list_tb_mod_month[[2]][,c(3,6,7)]
+list_tb_mod_month[[3]][,c(3,6,7)]
+#xyplot(test)
+
+list_tb_mod_month[[1]][,c(6,7)]-list_tb_mod_month[[1]][,c(3)]
+list_tb_mod_month[[2]][,c(6,7)]-list_tb_mod_month[[1]][,c(3)]
+list_tb_mod_month[[3]][,c(6,7)]-list_tb_mod_month[[1]][,c(3)]
+
+#model with lev only
+tb1_mod1_month <- raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
+
+tb1_mod1_month<-raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
+rmse_dif <- (tb1_mod4_month$rmse) - tb1_mod1_month$rmse
+plot(rmse_dif)
+
 
 #######################################################
 ####### PART 2: generate figures for paper #############
