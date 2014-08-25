@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 08/14/2014            
+#MODIFIED ON: 08/25/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -88,15 +88,26 @@ extract_list_from_list_obj<-function(obj_list,list_name){
 extract_from_list_obj<-function(obj_list,list_name){
   #extract object from list of list. This useful for raster_prediction_obj
   library(plyr)
-  
   list_tmp<-vector("list",length(obj_list))
   for (i in 1:length(obj_list)){
-    tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
-    list_tmp[[i]]<- as.data.frame(tmp) #if spdf
+    tmp <- obj_list[[i]]
+    if(inherits(tmp,"try-error")){     
+      print(paste("no model generated or error in list",sep=" ")) #change message for any model type...
+      list_tmp[[i]] <- NULL #double bracket to return data.frame
+    }else{
+      #tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
+      list_tmp[[i]] <- as.data.frame(tmp[[list_name]])
+    }
+    #
+    #tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
+    #list_tmp[[i]]<- as.data.frame(tmp) #if spdf
   }
+  #
+  #list_tmp <-list_tmp[!is.null(list_tmp)]
+  list_tmp <- list_tmp[unlist(lapply(list_tmp,FUN=function(x){!is.null(x)}))]
+
   tb_list_tmp<-do.call(rbind.fill,list_tmp) #long rownames
-  #tb_list_tmp<-do.call(rbind,list_tmp) #long rownames
-  
+  #tb_list_tmp<-do.call(rbind,list_tmp) #long rownames 
   return(tb_list_tmp) #this is  a data.frame
 }
 
@@ -318,15 +329,19 @@ in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output20Deg/"
 
 #/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
 #in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list of directories with resutls by 10x10 degree tiles
-in_dir_list <- c("/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_0.0/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg3/-20.0_-70.0/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_30.0/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/40.0_0.0/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_-10.0/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/50.0_0.0/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/30.0_40.0/")
+in_dir_list <- c(
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg2//-10.0_-70.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4//40.0_0.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4//50.0_0.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6//60.0_40.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6//30.0_40.0/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg8//40.0_130.0/")
 
+#Models used.
+#list_models<-c("y_var ~ s(lat,lon,k=4) + s(elev_s,k=3) + s(LST,k=3)",
+#               "y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)",
+#               "y_var ~ s(lat,lon,k=8) + s(elev_s,k=4) + s(LST,k=4)",
+  
 #use subset for now:
 
 #in_dir_list <- c(
@@ -338,13 +353,13 @@ in_dir_list <- c("/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/20.0_0.0/"
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 #in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 in_dir_shp <- c(
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg3/subset/shapefiles/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg2/subset/shapefiles/",
 "/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/subset/shapefiles/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg5/subset/shapefiles/",
 "/nobackupp4/aguzman4/climateLayers/output20Deg/reg4/subset/shapefiles/",
 "/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/subset/shapefiles/",
-"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/subset/shapefiles/")
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/subset/shapefiles/",
+"/nobackupp4/aguzman4/climateLayers/output20Deg/reg8/subset/shapefiles/")
+
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/subset/shapefiles/"
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output20Deg/reg2/subset/shapefiles"
 in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
@@ -354,7 +369,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run4_global_analyses_08142014"
+out_prefix<-"run5_global_analyses_08252014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -398,6 +413,11 @@ lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="co
 lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostics_.*.RData",full.names=T)})
 lf_diagnostic_obj <- lf_diagnostic_obj[grep("lk_min",lf_diagnostic_obj,invert=T)] #remove object that have lk_min...
 
+lf_validation_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="gam_CAI_validation_mod_obj_dailyTmax.*.RData",full.names=T)})
+#validation_mod_obj <-load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_validation_mod_obj_dailyTmax60.0_40.0.RData")
+debug(extract_from_list_obj)
+tb_diagnostic_v<-extract_from_list_obj(validation_mod_obj,"metrics_v") 
+
 ########################## START SCRIPT ##############################
 
 ################################################################
@@ -424,6 +444,24 @@ names(robj1$clim_method_mod_obj[[1]]$data_month) #for January
 names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
 #Get the number of models predicted
 nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))
+
+validation_mod_obj <-load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_validation_mod_obj_dailyTmax60.0_40.0.RData")
+tb_diagnostic_v<-extract_from_list_obj(validation_mod_obj,"metrics_v") 
+
+
+#clim_method_mod_obj <- load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_mod_dailyTmax60.0_40.0.RData")
+#list_data_v <- extract_list_from_list_obj(clim_method_mod_obj,"data_month_v") #extract monthly testing/validation dataset
+#list_data_s <- extract_list_from_list_obj(clim_method_mod_obj,"data_month") #extract monthly training/fitting dataset
+#rast_day_yearlist <- extract_list_from_list_obj(clim_method_mod_obj,"clim") #list_tmp #list of predicted images over full year at monthly time scale
+#list_sampling_dat <- extract_list_from_list_obj(clim_method_mod_obj,"sampling_month_dat")
+
+list_tb_diagnostic_v <- mclapply(lf_validation_obj,FUN=function(x){try( x<- load_obj(x)); try(extract_from_list_obj(x,"metrics_v"))},mc.preschedule=FALSE,mc.cores = 6)                           
+names(list_tb_diagnostic_v) <- list_names_tile_id
+
+#undebug(extract_from_list_obj)
+#validation_mod_month_obj <-load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_validation_mod_month_obj_dailyTmax60.0_40.0.RData")
+#tb_diagnostic_v<-extract_from_list_obj(validation_mod_obj,"metrics_v") 
+
 
 ################
 #### Table 1: Average accuracy metrics
@@ -507,6 +545,34 @@ gam_diagnostic_df <- do.call(rbind.fill,gam_diagnostic_tb_list) #create a df for
 
 write.table(gam_diagnostic_df,
             file=file.path(out_dir,paste("gam_diagnostic_df_",out_prefix,".txt",sep="")),sep=",")
+
+
+#Now look at the 100 tiles of 10x10
+#lf_test<-list.files("/nobackupp4/aguzman4/climateLayers/output10Deg/*/*/","diagnostics_obj_gam_fitting*")  
+lf_test <-list.files("/nobackupp4/aguzman4/climateLayers/output10Deg/","diagnostics_obj_gam_fitting.*.RData",recursive=T,full.names=T)
+
+gam_diagnostic_10x10tb_list <- vector("list",length=length(lf_test))
+lf_diagnostic_obj_tmp <- lf_test  
+for(i in 1:length( lf_diagnostic_obj_tmp)){
+  l_diagnostic_obj_tmp <-  lf_diagnostic_obj_tmp[[i]]
+  tile_coord <-  basename(dirname(lf_diagnostic_obj_tmp[i]))
+  #l_diagnostic_obj_tmp <- l_diagnostic_obj_tmp[grep("lk_min",l_diagnostic_obj_tmp,invert=T)] #remove object that have lk_min...
+  l_diagnostic_obj_tmp_list <- lapply(l_diagnostic_obj_tmp,FUN=function(x){try(x<-load_obj(x));try(x[["df_diagnostics"]])})#,mc.preschedule=FALSE,mc.cores = 6)                            
+  gam_diagnostic_tb <- do.call(rbind.fill,l_diagnostic_obj_tmp_list)#create a df for NA tiles with all accuracy metrics
+  gam_diagnostic_tb$tile_coord <- tile_coord
+  gam_diagnostic_10x10tb_list[[i]] <- gam_diagnostic_tb    
+}
+
+gam_diagnostic_10x10_df <- do.call(rbind.fill,gam_diagnostic_10x10tb_list) #create a df for NA tiles with all accuracy metrics
+
+list_tile_coord <- unique(gam_diagnostic_10x10_df$tile_coord)
+list_tile_id <- paste("tile_",1:length(list_tile_coord),sep="")
+
+tile_id_df <- data.frame(tile_coord=list_tile_coord,tile_id=list_tile_id)
+gam_diagnostic_10x10_df <- merge(gam_diagnostic_10x10_df,tile_id_df,by="tile_coord")
+
+# write.table(gam_diagnostic_10x10_df,
+#             file=file.path(out_dir,paste("gam_diagnostic_10x10_df_",out_prefix,".txt",sep="")),sep=",")
 
 #################
 ###Table 3: monthly station information with predictions for all tiles
