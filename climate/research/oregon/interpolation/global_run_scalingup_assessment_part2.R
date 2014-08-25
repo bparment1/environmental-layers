@@ -5,10 +5,10 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 08/16/2014            
+#MODIFIED ON: 08/28/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses for run 3 global using 2 specific tiles
+#COMMENTS: analyses for run 5 global using 6 specific tiles
 #################################################################################################
 
 ### Loading R library and packages        
@@ -69,12 +69,12 @@ create_dir_fun <- function(out_dir,out_suffix){
 #on ATLAS
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #parent output dir : contains subset of the data produced on NEX
-in_dir1 <- "/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/output20Deg"
+in_dir1 <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/"
 # input dir containing shapefiles defining tiles
-in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output/subset/shapefiles"
+#in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
 #On NEX
 #contains all data from the run by Alberto
@@ -85,7 +85,7 @@ in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses
 
 y_var_nay_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run4_global_analyses_08142014"
+out_prefix<-"run5_global_analyses_08252014"
 
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
@@ -110,6 +110,10 @@ region_name <- "world"
 #lf_tables <- list.files(out_dir,)
 summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+
+tb_month_s_<- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+tb_month_s <- read.table("tb_month_diagnostic_s_NA_run5_global_analyses_08252014.txt",sep=",")
 pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
 pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
@@ -129,14 +133,14 @@ list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/output_ru
 
 ### First get background map to display where study area is located
 #can make this more general later on..       
-if region_name=="USA"{
+if (region_name=="USA"){
   usa_map <- getData('GADM', country='USA', level=1) #Get US map
   #usa_map <- getData('GADM', country=region_name,level=1) #Get US map, this is not working right now
   usa_map <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
   reg_layer <- usa_map[usa_map$NAME_1!="Hawaii",] #remove Hawai 
 }
 
-if region_name=="world"{
+if (region_name=="world"){
   #http://www.diva-gis.org/Data
   countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp"
   path_to_shp <- dirname(countries_shp)
@@ -150,8 +154,10 @@ centroids_pts <- vector("list",length(list_shp_reg_files))
 shps_tiles <- vector("list",length(list_shp_reg_files))
 #collect info: read in all shapfiles
 #This is slow...make a function and use mclapply??
+
 for(i in 1:length(list_shp_reg_files)){
   path_to_shp <- dirname(list_shp_reg_files[[i]])
+  path_to_shp <- in_dir1 
   layer_name <- sub(".shp","",basename(list_shp_reg_files[[i]]))
   shp1 <- readOGR(path_to_shp, layer_name)
   #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
@@ -285,47 +291,21 @@ for (i in 1:length(model_name)){
 
 
 ##### Diagnostic gam
+####
+gam_diag_10x10 <- read.table("gam_diagnostic_10x10_df_run4_global_analyses_08142014.txt",sep=",")
+gam_diag_10x10$month <- as.factor(gam_diag_10x10$month)
 
-gam_diagnostic_df
+xyplot(rmse~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
+                                           pred_mod!="mod_kr"),type="b")
 
-boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod1"),main="mod1 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
-boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and term=s(lat,lon)",ylab="RMSE_f",xlab="k")
+xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
+                                           pred_mod!="mod_kr"),type="h")
 
-boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod1"),main="mod1 and term=s(elev_s)",ylab="RMSE_f",xlab="k")
-boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and term=s(elev_s)",ylab="RMSE_f",xlab="k")
+xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
+                                           pred_mod!="mod_kr"),type="h")
 
-boxplot(rmse~k,data=subset(gam_diagnostic_df,pred_mod=="mod2"),main="mod2 and term=s(LST)",ylab="RMSE_f",xlab="k")
-
-#boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-#title("RMSE per model over all tiles")
-#bwplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2"),)
-xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2"),type="p")
-xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod1"),type="p")
-xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod1" & tile_id=="tile_7"),type="b")
-xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2" & tile_id=="tile_7"),type="b")
-xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod1" & tile_id=="tile_8"),type="b")
-xyplot(rmse~k | term + month,data=subset(gam_diagnostic_df,pred_mod=="mod2" & tile_id=="tile_8"),type="b")
-
-xyplot(rmse~k | term + month,group=tile_id ,data=subset(gam_diagnostic_df,pred_mod=="mod1"),type="b",
-       auto.key=list(space = "top", cex=1.0,columns=8))
-dev.off()
-
-
-
-plot(n~tile_id,data=gam_diagnostic_df,type="h")
-
-## Experimenting
-list_mod <- load_obj(lf_diagnostic_obj$tile_1[2])$list_mod
-data_training_lf <- as.data.frame(list_mod[[1]]$model)
-dim(data_training_lf) #is 13
-mod_t1 <-gam(y_var ~ s(lat,lon,k=6) + s(elev_s,k=4) + s(LST,k=4) , data= data_training_lf)
-mod_t2 <-gam(y_var ~ s(lat,lon,k=5) + s(elev_s,k=5) + s(LST,k=5) , data= data_training_lf)
-
-list_mod <- load_obj(lf_diagnostic_obj$tile_7[4])$list_mod
-data_training_lf <- as.data.frame(list_mod[[1]]$model)
-dim(data_training_lf) #is 13
-mod_t1 <-gam(y_var ~ s(lat,lon,k=6) + s(elev_s,k=4) + s(LST,k=4) , data= data_training_lf)
-mod_t2 <-gam(y_var ~ s(lat,lon,k=5) + s(elev_s,k=5) + s(LST,k=5) , data= data_training_lf)
+xyplot(n~month | tile_id + pred_mod,data=subset(as.data.frame(tb_month_s),
+                                           pred_mod!="mod_kr"),type="h")
 
 # 
 ## Figure 3b
