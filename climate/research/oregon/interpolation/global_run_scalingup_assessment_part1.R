@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 08/25/2014            
+#MODIFIED ON: 08/28/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -320,6 +320,140 @@ list_tif_fun <- function(i,in_dir_list,pattern_str){
   return(list_tif_files_dates)
 } 
 
+calculate_summary_from_tb_diagnostic <-function(tb_diagnostic,metric_names){#,out_prefix,out_path){
+  #now boxplots and mean per models
+  library(gdata) #Nesssary to use cbindX
+  
+  ### Start script
+  y_var_name<-unique(tb_diagnostic$var_interp) #extract the name of interpolated variable: dailyTmax, dailyTmin
+  
+  mod_names<-sort(unique(tb_diagnostic$pred_mod)) #models that have accuracy metrics
+  t<-melt(tb_diagnostic,
+          #measure=mod_var, 
+          id=c("date","pred_mod","prop"),
+          na.rm=F)
+  t$value<-as.numeric(t$value) #problem with char!!!
+  avg_tb<-cast(t,pred_mod~variable,mean)
+  avg_tb$var_interp<-rep(y_var_name,times=nrow(avg_tb))
+  median_tb<-cast(t,pred_mod~variable,median)
+  
+  #avg_tb<-cast(t,pred_mod~variable,mean)
+  tb<-tb_diagnostic
+ 
+  #mod_names<-sort(unique(tb$pred_mod)) #kept for clarity
+  tb_mod_list<-lapply(mod_names, function(k) subset(tb, pred_mod==k)) #this creates a list of 5 based on models names
+  names(tb_mod_list)<-mod_names
+  #mod_metrics<-do.call(cbind,tb_mod_list)
+  #debug here
+  if(length(tb_mod_list)>1){
+    mod_metrics<-do.call(cbindX,tb_mod_list) #column bind the list??
+  }else{
+    mod_metrics<-tb_mod_list[[1]]
+  }
+  
+  test_names<-lapply(1:length(mod_names),function(k) paste(names(tb_mod_list[[1]]),mod_names[k],sep="_"))
+  #test names are used when plotting the boxplot for the different models
+  names(mod_metrics)<-unlist(test_names)
+  rows_total<-lapply(tb_mod_list,nrow)
+  avg_tb$n<-rows_total #total number of predictions on which the mean is based
+  median_tb$n<-rows_total
+  summary_obj<-list(avg_tb,median_tb)
+  names(summary_obj)<-c("avg","median")
+  return(summary_obj)  
+}
+
+#boxplot_month_from_tb(tb_diagnostic,metric_names,out_prefix,out_path)
+## Function to display metrics by months/seasons
+calculate_summary_from_tb_month_diagnostic <-function(tb_diagnostic,metric_names){ #,out_prefix,out_path){
+  
+  #Generate boxplot per month for models and accuracy metrics
+  #Input parameters:
+  #1) df: data frame containing accurayc metrics (RMSE etc.) per day)
+  #2) metric_names: metrics used for validation
+  #3) out_prefix
+  #
+  
+  #################
+  ## BEGIN
+  y_var_name<-unique(tb_diagnostic$var_interp) #extract the name of interpolated variable: dailyTmax, dailyTmin  
+  date_f<-strptime(tb_diagnostic$date, "%Y%m%d")   # interpolation date being processed
+  tb_diagnostic$month<-strftime(date_f, "%m")          # current month of the date being processed
+  mod_names<-sort(unique(tb_diagnostic$pred_mod)) #models that have accuracy metrics
+  tb_mod_list<-lapply(mod_names, function(k) subset(tb_diagnostic, pred_mod==k)) #this creates a list of 5 based on models names
+  names(tb_mod_list)<-mod_names
+  t<-melt(tb_diagnostic,
+          #measure=mod_var, 
+          id=c("date","pred_mod","prop","month"),
+          na.rm=F)
+  t$value<-as.numeric(t$value) #problem with char!!!
+  tb_mod_m_avg <-cast(t,pred_mod+month~variable,mean) #monthly mean for every model
+  tb_mod_m_avg$var_interp<-rep(y_var_name,times=nrow(tb_mod_m_avg))
+  
+  tb_mod_m_sd <-cast(t,pred_mod+month~variable,sd)   #monthly sd for every model  
+  tb_mod_m_list <-lapply(mod_names, function(k) subset(tb_mod_m_avg, pred_mod==k)) #this creates a list of 5 based on models names
+  
+  summary_month_obj <-c(tb_mod_m_list,tb_mod_m_avg,tb_mod_m_sd)
+  names(summary_month_obj)<-c("tb_list","metric_month_avg","metric_month_sd")
+  return(summary_month_obj)  
+}
+
+create_raster_prediction_obj<- function(in_dir_list,interpolation_method, y_var_name,out_prefix,out_path_list=NULL){
+  
+  
+  #gather all necessary info:
+  lf_validation_mod_month_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="gam_CAI_validation_mod_month_obj_dailyTmax.*.RData",full.names=T)})
+  lf_validation_mod_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="gam_CAI_validation_mod_obj_dailyTmax.*.RData",full.names=T)})
+  lf_clim_method_mod_obj <- lapply(in_dir_list,FUN=function(x){mixedsort(list.files(path=x,pattern="clim_obj_CAI_month_.*._TMAX_0_1_.*.RData",full.names=T))})
+  lf_method_mod_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="method_mod_obj_gam_CAI_dailyTmax.*.RData",full.names=T)})
+
+  tb_month_diagnostic_v_list <- mclapply(lf_validation_mod_month_obj,FUN=function(x){try( x<- load_obj(x)); try(extract_from_list_obj(x,"metrics_v"))},mc.preschedule=FALSE,mc.cores = 6)                           
+  tb_month_diagnostic_s_list <- mclapply(lf_validation_mod_month_obj,FUN=function(x){try( x<- load_obj(x)); try(extract_from_list_obj(x,"metrics_s"))},mc.preschedule=FALSE,mc.cores = 6)                           
+  tb_diagnostic_v_list <- mclapply(lf_validation_mod_obj,FUN=function(x){try( x<- load_obj(x)); try(extract_from_list_obj(x,"metrics_v"))},mc.preschedule=FALSE,mc.cores = 6)                           
+  tb_diagnostic_s_list <- mclapply(lf_validation_mod_obj,FUN=function(x){try( x<- load_obj(x)); try(extract_from_list_obj(x,"metrics_s"))},mc.preschedule=FALSE,mc.cores = 6)                           
+
+  #rownames(tb_month_diagnostic_v)<-NULL #remove row names
+  #tb_month_diagnostic_v$method_interp <- interpolation_method
+
+  #Call functions to create plots of metrics for validation dataset
+  metric_names<-c("rmse","mae","me","r","m50")
+  summary_metrics_v_list <- lapply(tb_diagnostic_v_list,FUN=function(x){try(calculate_summary_from_tb_diagnostic(x,metric_names))})
+  summary_month_metrics_v_list <- lapply(tb_diagnostic_v_list,FUN=function(x){try(calculate_summary_from_tb_month_diagnostic(x,metric_names))}) 
+  #list_summalist_summary_metrics_vry_month_metrics_v <- calculate_summary_from_tb_month_diagnostic(list_tb_diagnostic_v[[1]],metric_names)
+
+  #if (interpolation_method %in% c("gam_CAI","kriging_CAI","gwr_CAI","gam_fusion","kriging_fusion","gwr_fusion")){
+  lf_raster_obj <- vector("list",length=length(in_dir_list))
+  for (i in 1:length(in_dir_list)){
+    
+    clim_method_mod_obj <- try(lapply(lf_clim_method_mod_obj[[i]],FUN=try(load_obj)))
+    method_mod_obj <- try(load_obj(lf_method_mod_obj[[i]]))
+    validation_mod_month_obj <- try(load_obj(lf_validation_mod_month_obj[[i]]))   
+    validation_mod_obj <- try(load_obj(lf_validation_mod_obj[[i]]))
+
+    tb_month_diagnostic_v <- try(tb_month_diagnostic_v_list[[i]])
+    tb_month_diagnostic_s <- try(tb_month_diagnostic_s_list[[i]])
+    tb_diagnostic_v <- try(tb_diagnostic_v_list[[i]])
+    tb_diagnostic_s <- try(tb_diagnostic_s_list[[i]])
+
+    summary_metrics_v <- summary_metrics_v_list[[i]]
+    summary_month_metrics_v <- summary_month_metrics_v_list[[i]] 
+    
+    raster_prediction_obj <- list(clim_method_mod_obj,method_mod_obj,validation_mod_obj,validation_mod_month_obj, tb_diagnostic_v,
+                                tb_diagnostic_s,tb_month_diagnostic_v,tb_month_diagnostic_s,summary_metrics_v,summary_month_metrics_v)
+    names(raster_prediction_obj) <-c ("clim_method_mod_obj","method_mod_obj","validation_mod_obj","validation_mod_month_obj","tb_diagnostic_v",
+                                "tb_diagnostic_s","tb_month_diagnostic_v","tb_month_diagnostic_s","summary_metrics_v","summary_month_metrics_v") 
+    if(is.null(out_path_list)){
+      out_path <- in_dir_list[[i]]
+    }  
+    if(!is.null(out_path_list)){
+      out_path <- out_path_list[[i]]
+    }  
+    lf_raster_obj[[i]] <- file.path(out_path,paste("raster_prediction_obj_",interpolation_method,"_", y_var_name,out_prefix_str[i],".RData",sep=""))  
+
+    save(raster_prediction_obj,file= file.path(out_path,paste("raster_prediction_obj_",interpolation_method,"_", y_var_name,out_prefix_str[i],".RData",sep="")))
+  }
+  return(lf_raster_obj)
+}
+
 ##############################
 #### Parameters and constants  
 
@@ -413,10 +547,17 @@ lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="co
 lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="diagnostics_.*.RData",full.names=T)})
 lf_diagnostic_obj <- lf_diagnostic_obj[grep("lk_min",lf_diagnostic_obj,invert=T)] #remove object that have lk_min...
 
-lf_validation_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="gam_CAI_validation_mod_obj_dailyTmax.*.RData",full.names=T)})
-#validation_mod_obj <-load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_validation_mod_obj_dailyTmax60.0_40.0.RData")
-debug(extract_from_list_obj)
-tb_diagnostic_v<-extract_from_list_obj(validation_mod_obj,"metrics_v") 
+## This will be part of the raster_obj function
+debug(create_raster_prediction_obj)
+out_prefix_str <- paste(basename(in_dir_list),out_prefix,sep="_") 
+lf_raster_obj <- create_raster_prediction_obj(in_dir_list,interpolation_method, y_var_name,out_prefix_str,out_path_list=NULL)
+
+lf_raster_obj <- c("/nobackupp4/aguzman4/climateLayers/output20Deg/reg2//-10.0_-70.0//raster_prediction_obj_gam_CAI_dailyTmax-10.0_-70.0_run5_global_analyses_08252014.RData"
+  ,"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4//40.0_0.0//raster_prediction_obj_gam_CAI_dailyTmax40.0_0.0_run5_global_analyses_08252014.RData"   
+  ,"/nobackupp4/aguzman4/climateLayers/output20Deg/reg4//50.0_0.0//raster_prediction_obj_gam_CAI_dailyTmax50.0_0.0_run5_global_analyses_08252014.RData"
+  ,"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6//60.0_40.0//raster_prediction_obj_gam_CAI_dailyTmax60.0_40.0_run5_global_analyses_08252014.RData"
+  ,"/nobackupp4/aguzman4/climateLayers/output20Deg/reg6//30.0_40.0//raster_prediction_obj_gam_CAI_dailyTmax30.0_40.0_run5_global_analyses_08252014.RData"
+  ,"/nobackupp4/aguzman4/climateLayers/output20Deg/reg8//40.0_130.0//raster_prediction_obj_gam_CAI_dailyTmax40.0_130.0_run5_global_analyses_08252014.RData")
 
 ########################## START SCRIPT ##############################
 
@@ -445,23 +586,8 @@ names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
 #Get the number of models predicted
 nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))
 
-validation_mod_obj <-load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_validation_mod_obj_dailyTmax60.0_40.0.RData")
-tb_diagnostic_v<-extract_from_list_obj(validation_mod_obj,"metrics_v") 
-
-
-#clim_method_mod_obj <- load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_mod_dailyTmax60.0_40.0.RData")
-#list_data_v <- extract_list_from_list_obj(clim_method_mod_obj,"data_month_v") #extract monthly testing/validation dataset
-#list_data_s <- extract_list_from_list_obj(clim_method_mod_obj,"data_month") #extract monthly training/fitting dataset
-#rast_day_yearlist <- extract_list_from_list_obj(clim_method_mod_obj,"clim") #list_tmp #list of predicted images over full year at monthly time scale
-#list_sampling_dat <- extract_list_from_list_obj(clim_method_mod_obj,"sampling_month_dat")
-
 list_tb_diagnostic_v <- mclapply(lf_validation_obj,FUN=function(x){try( x<- load_obj(x)); try(extract_from_list_obj(x,"metrics_v"))},mc.preschedule=FALSE,mc.cores = 6)                           
 names(list_tb_diagnostic_v) <- list_names_tile_id
-
-#undebug(extract_from_list_obj)
-#validation_mod_month_obj <-load_obj("/nobackupp4/aguzman4/climateLayers/output20Deg/reg6/60.0_40.0/gam_CAI_validation_mod_month_obj_dailyTmax60.0_40.0.RData")
-#tb_diagnostic_v<-extract_from_list_obj(validation_mod_obj,"metrics_v") 
-
 
 ################
 #### Table 1: Average accuracy metrics
@@ -470,6 +596,7 @@ names(list_tb_diagnostic_v) <- list_names_tile_id
 #summary_metrics_v_list <- mclapply(list_raster_obj_files[5:6],FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 2)                           
 
 summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 6)                           
+summary_metrics_v_list <- lapply(summary_metrics_v_list,FUN=function(x){try(x$avg)})
 names(summary_metrics_v_list) <- list_names_tile_id
 
 summary_metrics_v_tmp <- remove_from_list_fun(summary_metrics_v_list)$list
@@ -516,6 +643,47 @@ tb_diagnostic_v_NA <- merge(tb_diagnostic_v_NA,df_tile_processed[,1:2],by="tile_
 
 write.table((tb_diagnostic_v_NA),
             file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+
+## Monthly fitting information
+tb_month_diagnostic_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_month_diagnostic_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+
+names(tb_month_diagnostic_s_list) <- list_names_tile_id
+tb_month_diagnostic_s_tmp <- remove_from_list_fun(tb_month_diagnostic_s_list)$list
+#df_tile_processed$tb_diag <- remove_from_list_fun(tb_diagnostic_v_list)$valid
+
+tb_month_diagnostic_s_NA <- do.call(rbind.fill,tb_month_diagnostic_s_tmp) #create a df for NA tiles with all accuracy metrics
+tile_id_tmp <- lapply(1:length(tb_month_diagnostic_s_tmp),
+                     FUN=function(i,x,y){rep(y[i],nrow(x[[i]]))},x=tb_month_diagnostic_s_tmp,y=names(tb_month_diagnostic_s_tmp))
+
+tb_month_diagnostic_s_NA$tile_id <- unlist(tile_id_tmp) #adding identifier for tile
+
+tb_month_diagnostic_s_NA <- merge(tb_month_diagnostic_s_NA,df_tile_processed[,1:2],by="tile_id")
+
+date_f<-strptime(tb_month_diagnostic_s_NA$date, "%Y%m%d")   # interpolation date being processed
+tb_month_diagnostic_s_NA$month<-strftime(date_f, "%m")          # current month of the date being processed
+
+write.table((tb_month_diagnostic_s_NA),
+            file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+
+## daily fit info:
+
+tb_diagnostic_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+
+names(tb_diagnostic_s_list) <- list_names_tile_id
+tb_diagnostic_s_tmp <- remove_from_list_fun(tb_diagnostic_s_list)$list
+#df_tile_processed$tb_diag <- remove_from_list_fun(tb_diagnostic_v_list)$valid
+
+tb_diagnostic_s_NA <- do.call(rbind.fill,tb_diagnostic_s_tmp) #create a df for NA tiles with all accuracy metrics
+tile_id_tmp <- lapply(1:length(tb_diagnostic_s_tmp),
+                     FUN=function(i,x,y){rep(y[i],nrow(x[[i]]))},x=tb_diagnostic_s_tmp,y=names(tb_diagnostic_s_tmp))
+
+tb_diagnostic_s_NA$tile_id <- unlist(tile_id_tmp) #adding identifier for tile
+
+tb_diagnostic_s_NA <- merge(tb_diagnostic_s_NA,df_tile_processed[,1:2],by="tile_id")
+
+write.table((tb_diagnostic_s_NA),
+            file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+
 
 ####### process gam fitting diagnostic info
 
@@ -882,16 +1050,15 @@ write.table(pred_data_day_info,
 ### This assumes the tree structure has been replicated on Atlas:
 #for i in 1:length(df_tiled_processed$tile_coord)
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
-output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/output20Deg"
-
+output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
 #Make directories on ATLAS
-#for (i in 1:length(df_tiled_processed$tile_coord)){
-#  create_dir_fun(file.path(output_atlas_dir,as.character(df_tiled_processed$tile_coord[i])),out_suffix=NULL)
+#for (i in 1:length(df_tile_processed$tile_coord)){
+#  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
 #}  
 
 #Make directories on ATLAS for shapefiles
-#for (i in 1:length(df_tiled_processed$tile_coord)){
-#  create_dir_fun(file.path(output_atlas_dir,as.character(df_tiled_processed$tile_coord[i]),"/shapefiles"),out_suffix=NULL)
+#for (i in 1:length(df_tile_processed$tile_coord)){
+#  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i]),"/shapefiles"),out_suffix=NULL)
 #}  
 
 
@@ -914,8 +1081,10 @@ Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
 lf_cp_shp <- df_tile_processed$shp_files #get all the files...
 
+layer_name <- sub(".shp","",basename(lf_cp_shp[[i]]))
+
 #lf_cp_shp <- list.files(in_dir_shp, ".shp",full.names=T)
-list_tile_scp <- 1:8
+list_tile_scp <- 1:6
 
 for (j in 1:length(list_tile_scp)){
   tile_nb <- list_tile_scp[j]
@@ -927,8 +1096,12 @@ for (j in 1:length(list_tile_scp)){
   Atlas_dir <- file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[j]),"/shapefiles")
 
   Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+  
+  lf_cp_shp_pattern <- gsub(".shp","*",lf_cp_shp)
 
-  filenames_NEX <- paste(lf_cp_shp,collapse=" ")  #copy raster prediction object
+  #filenames_NEX <- paste(lf_cp_shp,collapse=" ")  #copy raster prediction object
+  filenames_NEX <- paste(lf_cp_shp_pattern,collapse=" ")  #copy raster prediction object
+
   cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
   system(cmd_str)
 }
@@ -939,7 +1112,7 @@ for (j in 1:length(list_tile_scp)){
 #../$out_dir/ouput/tile_coord
 
 #list_tile_scp <- c(1,2)
-list_tile_scp <- 1:8
+list_tile_scp <- 1:6
 
 for (j in 1:length(list_tile_scp)){
   tile_nb <- list_tile_scp[j]
