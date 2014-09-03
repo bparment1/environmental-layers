@@ -548,7 +548,7 @@ lf_diagnostic_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,patter
 lf_diagnostic_obj <- lf_diagnostic_obj[grep("lk_min",lf_diagnostic_obj,invert=T)] #remove object that have lk_min...
 
 ## This will be part of the raster_obj function
-debug(create_raster_prediction_obj)
+#debug(create_raster_prediction_obj)
 out_prefix_str <- paste(basename(in_dir_list),out_prefix,sep="_") 
 lf_raster_obj <- create_raster_prediction_obj(in_dir_list,interpolation_method, y_var_name,out_prefix_str,out_path_list=NULL)
 
@@ -576,6 +576,7 @@ df_tile_processed$path_NEX <- in_dir_list
   
 ##Quick exploration of raster object
 robj1 <- load_obj(list_raster_obj_files[[2]]) #This is tile corresponding to Oregon
+robj1 <- load_obj(lf_raster_obj[2]) #This is tile corresponding to Oregon
 
 names(robj1)
 names(robj1$method_mod_obj[[1]]) #for January 1, 2010
@@ -1117,8 +1118,8 @@ list_tile_scp <- 1:6
 for (j in 1:length(list_tile_scp)){
   tile_nb <- list_tile_scp[j]
   #nb_mod <- 3+1 #set up earlier
-  date_selected <- c("20100101","20100901") #should be set up earlier
-  date_index <- c(1,244) #list_day??
+  date_selected <- c("20100101","20100102","20100103","20100103","20100901","20100902","20100903") #should be set up earlier
+  date_index <- c(1,2,3,244,245,246) #list_day??
   #tile_nb <- 1
 
   in_dir_tile <- basename(df_tile_processed$path_NEX[tile_nb])

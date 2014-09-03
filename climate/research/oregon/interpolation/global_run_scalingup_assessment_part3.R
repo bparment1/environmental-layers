@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/21/2014  
-#MODIFIED ON: 06/01/2014            
+#MODIFIED ON: 09/07/2014            
 #Version: 1
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -42,7 +42,7 @@ library(colorRamps)
 function_analyses_paper1 <- "contribution_of_covariates_paper_interpolation_functions_05212014.R" #first interp paper
 function_analyses_paper2 <- "multi_timescales_paper_interpolation_functions_05052014.R"
 function_assessment_by_tile <- "results_interpolation_date_output_analyses_05212014.R"
-#source(file.path(script_path,"results_interpolation_date_output_analyses_08052013.R"))
+source(file.path(script_path,"results_interpolation_date_output_analyses_08052013.R"))
 
 load_obj <- function(f)
 {
@@ -80,11 +80,11 @@ source(file.path(script_path,function_assessment_by_tile)) #source all functions
 
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #parent output dir : contains subset of the data produced on NEX
-in_dir1 <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/output/"
+in_dir1 <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg/"
 # parent output dir for the curent script analyes
-out_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/" #On NCEAS Atlas
+out_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/" #On NCEAS Atlas
 # input dir containing shapefiles defining tiles
-in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_05292014/output/subset/shapefiles"
+in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg/subset/shapefiles"
 
 #On NEX
 #contains all data from the run by Alberto
@@ -95,7 +95,7 @@ in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run3_global_analyses_05292014"
+out_prefix<-"run5_global_analyses_08252014"
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- FALSE
@@ -109,7 +109,7 @@ if(create_out_dir_param==TRUE){
 setwd(out_dir)
                               
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-region_name <- "USA"
+region_name <- "World"
 
 ###Table 1: Average accuracy metrics
 ###Table 2: daily accuracy metrics for all tiles
@@ -124,8 +124,9 @@ df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_
 
 #Now add things here...
 #
-#selected_tiles <- c("45.0_-120.0","35.0_-115.0")
-selected_tiles <- c("40.0_-120.0","35.0_-115.0")
+selected_tiles <- df_tile_processed$tile_coord #selecting tiles 4 and  5
+
+#selected_tiles <- c("40.0_-120.0","35.0_-115.0")
 
 ##raster_prediction object : contains testing and training stations with RMSE and model object
 in_dir_list <- list.files(path=in_dir1,full.names=T)
@@ -146,16 +147,14 @@ list_shp_reg_files <- file.path(in_dir_shp,df_tile_processed$shp_files)
 ###############
 
 ##Quick interactive  exploration of raster object to check possible errors
-robj1 <- load_obj(list_raster_obj_files[[1]]) #This is tile in CA
-
-names(robj1)
-names(robj1$method_mod_obj[[1]]) #for January 1, 2010
-names(robj1$method_mod_obj[[1]]$dailyTmax) #for January
-
-names(robj1$clim_method_mod_obj[[1]]$data_month) #for January
-names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
+#robj1 <- load_obj(list_raster_obj_files[[1]]) #This is tile in CA
+#names(robj1)
+#names(robj1$method_mod_obj[[1]]) #for January 1, 2010
+# names(robj1$method_mod_obj[[1]]$dailyTmax) #for January
+#names(robj1$clim_method_mod_obj[[1]]$data_month) #for January
+#names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
 #Get the number of models predicted
-nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))
+#nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))
 
 ### Figure 1: plot location of the study area with tiles processed
 
@@ -165,14 +164,16 @@ nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))
 ##Quick exploration of raster object
 
 date_selected_results <- c("20100101") 
-raster_prediction_obj <- list_raster_obj_files[[1]]
-in_path_tile <- in_dir_list[[1]] #Oregon tile
-#in_path_tile <- NULL # set to NULL if the script is run on the NEX node as part of job
-covar_obj <- lf_covar_obj[[1]] 
+date_selected_results <- c("20100901") 
 
+#robj1 <- load_obj(list_raster_obj_files[[2]])
+in_path_tile <- in_dir_list[[2]] #Oregon tile
+#in_path_tile <- NULL # set to NULL if the script is run on the NEX node as part of job
+covar_obj <- load_obj(lf_covar_obj[[2]]) 
+out_prefix_str <- paste(out_prefix,"_",basename(dirname(list_raster_obj_files[[2]][2])),sep="")
 var <- "TMAX"
-list_param_results_analyses<-list(out_dir,in_path_tile,script_path,raster_prediction_obj,interpolation_method,
-                                  covar_obj,date_selected_results,var,out_prefix)
+list_param_results_analyses <- list(out_dir,in_path_tile,script_path,list_raster_obj_files[[2]][2],interpolation_method,
+                                  covar_obj,date_selected_results,var,out_prefix_str)
 names(list_param_results_analyses)<-c("out_path","in_path_tile","script_path","raster_prediction_obj","interpolation_method",
                      "covar_obj","date_selected_results","var","out_prefix")
 #list_param <- list_param_results_analyses
@@ -180,8 +181,10 @@ names(list_param_results_analyses)<-c("out_path","in_path_tile","script_path","r
 #Run modified code from stage 5...
 #plots_assessment_by_date<-function(j,list_param){
 #Use lapply or mclapply
-#debug(plots_assessment_by_date)
-summary_v_day <- plots_assessment_by_date(1,list_param_results_analyses)
+debug(plots_assessment_by_date)
+#summary_v_day <- plots_assessment_by_date(1,list_param_results_analyses)
+summary_v_day <- plots_assessment_by_date(244,list_param_results_analyses)
+
 #Call as function...
 
 #Boxplots...etc...
