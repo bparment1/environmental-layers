@@ -4,7 +4,7 @@
 #different covariates using two baselines. Accuracy methods are added in the the function script to evaluate results.
 #Figures, tables and data for the contribution of covariate paper are also produced in the script.
 #AUTHOR: Benoit Parmentier                                                                      
-#MODIFIED ON: 08/08/2014            
+#MODIFIED ON: 09/03/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -69,7 +69,7 @@ infile_reg_raster <- "/data/project/layers/commons/data_workflow/inputs/region_o
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 y_var_name <- "dailyTmax"
-out_prefix<-"_07182014"
+out_prefix<-"_09032014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_contribution_covar_analyses_tables_fig"
 #setwd(out_dir)
 
@@ -330,14 +330,36 @@ lst_mm_01<-subset(s_raster,"mm_01")
 #temp.colors <- matlab.like(no_brks)
 temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
 
-png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=960,height=480)
+png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=980,height=480)
 par(mfrow=c(1,2))
 plot(lst_md,col=temp.colors(25),axes=F) #use axes=F to remove lat and lon or coordinates
 plot(interp_area,add=TRUE)
-title("Mean for January 1")
+title("(a) Mean for 1 January")
 plot(lst_mm_01,col=temp.colors(25),axes=F)
 plot(interp_area,add=TRUE)
-title("Mean for month of January")
+title("(b) Mean for month of January")
+dev.off()
+
+png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=980,height=480)
+par(mfrow=c(1,2))
+
+p <-levelplot(lst_md,col.regions=temp.colors(25),axes=F,margin=F,scales = list(draw = FALSE), #use list(draw=F) so as  not to dispaly coordinates!!!
+              main="(a) Mean for 1 January") #use axes=F to remove lat and lon or coordinates
+p_shp <- layer(sp.polygons(interp_area, lwd=0.8, col='black'))
+#title("(a) Mean for 1 January")
+
+p1 <- p+p_shp
+#plot(interp_area,add=TRUE)
+p <-levelplot(lst_mm_01,col.regions=temp.colors(25),axes=FALSE,margin=F,scales = list(draw = FALSE),
+              main="(b) Mean for month of January") #use axes=F to remove lat and lon or coordinates
+
+p2 <- p+p_shp
+
+#plot(lst_mm_01,col=temp.colors(25),axes=F)
+#plot(interp_area,add=TRUE)
+#title("(b) Mean for month of January")
+grid.arrange(p1,p2,ncol=2)
+
 dev.off()
 
 ## Calucate the proprotion of missing pixel for January 1 mean climatotology image
@@ -391,7 +413,7 @@ names(list_param_plot)<-c("list_dist_obj","col_t","pch_t","legend_text","mod_nam
 plot_dst_MAE(list_param_plot)
 
 metric_name <-"mae_tb"
-title_plot <- "MAE and distance to closest fitting station"
+title_plot <- "(a) MAE and distance to closest fitting station"
 y_lab_text <- "MAE (°C)"
 add_CI <- c(TRUE,TRUE,TRUE)
 #Now set up plotting device
@@ -416,7 +438,7 @@ title(xlab="Distance to closest fitting station (km)")
 barplot(l1$n_tb$res_mod1,names.arg=limit_val,
         ylab="Number of observations",
         xlab="Distance to closest fitting station (km)")
-title("Number of observation in term of distance bins")
+title("(b) Number of observations in term of distance bins")
 box()
 dev.off()
 
@@ -484,7 +506,7 @@ names(list_param_plot)<-c("list_prop_obj","col_t","pch_t","legend_text","mod_nam
 
 #debug(plot_prop_metrics)
 plot_prop_metrics(list_param_plot)
-title(main="MAE for hold out and methods",
+title(main="(a) MAE for hold out and methods",
       xlab="Hold out validation/testing proportion",
       ylab="MAE (°C)")
 
@@ -493,7 +515,7 @@ metric_name<-"rmse"
 list_param_plot<-list(list_prop_obj,col_t,pch_t,legend_text,mod_name,metric_name,add_CI,CI_bar)
 names(list_param_plot)<-c("list_prop_obj","col_t","pch_t","legend_text","mod_name","metric_name","add_CI","CI_bar")
 plot_prop_metrics(list_param_plot)
-title(main="RMSE for hold out and methods",
+title(main="(b) RMSE for hold out and methods",
       xlab="Hold out validation/testing proportion",
       ylab="RMSE (°C)")
 
@@ -645,14 +667,14 @@ legend_text_data <-c("training","testing")
 legend("top",legend=legend_text_data, 
        cex=0.9, lty=c(1,2),bty="n")
 
-title(main="Training and testing RMSE for hold out and methods",
+title(main="(a) Training and testing RMSE for hold out and methods",
       xlab="Hold out validation/testing proportion",
       ylab="RMSE (°C)")
 
 
 boxplot(diff_mae_data_mult[-4]) #plot differences in training and testing accuracies for three methods
 
-title(main="Difference between training and testing MAE",
+title(main="(b) Difference between training and testing MAE",
       xlab="Interpolation method",
       ylab="MAE (°C)")
 
@@ -727,14 +749,14 @@ plot(1:12,tb1_month$mae,col=c("red"),type="b",ylim=y_range,xlab=xlab_text,ylab=y
 lines(1:12,tb3_month$mae,col=c("blue"),type="b")
 lines(1:12,tb4_month$mae,col=c("black"),type="b")
 axis(1,at=1:12,labels=xlab_tick)
-title(main="Monthly average MAE")
+title(main="(a) Monthly average MAE")
 legend("topleft",legend=legend_text, 
        cex=0.9, pch=c(pch_t),col=c(col_t),lty=c(1,1,1),bty="n")
 
 #Second plot
 ylab_text<-"MAE (°C)"
 xlab_text<-"Month"
-boxplot(mae~month,data=month_data_list$gam,main="Monthly MAE boxplot", xlab=xlab_text,ylab=ylab_text,outline=FALSE)
+boxplot(mae~month,data=month_data_list$gam,main="(b) Monthly MAE boxplot", xlab=xlab_text,ylab=ylab_text,outline=FALSE)
 dev.off()
 
 #Now generate table 5
@@ -888,7 +910,8 @@ p<-xyplot(data ~ lag | which, dd,type="b",
                               par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
           strip=strip.custom(factor.levels=names_layers),
           xlab=list(label="Spatial lag neighbor", cex=2,font=2),
-          ylab=list(label="Moran's I", cex=2, font=2))
+          ylab=list(label="Moran's I", cex=2, font=2),
+          as.table=TRUE) #as.table controls the order  of the pannels!!
 print(p)
 
 dev.off()
@@ -933,31 +956,41 @@ layout_m<-c(1,2) #one row two columns
 
 png(paste("Figure_8a_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
+#X11(height=7*layout_m[1],width=7*layout_m[2])
 
-p<-levelplot(pred_temp_s,main="Interpolated Surfaces Model Comparison", ylab=NULL,xlab=NULL,
+names_layers <-c("mod1 = s(lat,long)+s(elev)","mod4 = s(lat,long)+s(LST)")
+
+p<-levelplot(pred_temp_s,main="(a) Interpolated Surfaces Model Comparison", ylab=NULL,xlab=NULL,
           par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
                               par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
           names.attr=names_layers,col.regions=temp.colors,at=seq(max_val,min_val,by=0.01))
 #col.regions=temp.colors(25))
 print(p)
+
+#savePlot(paste("Figure_8a_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""), 
+#         type="png")
+
 #col.regions=temp.colors(25))
 dev.off()
 
 
 diff<-raster(lf1$mod1)-raster(lf1$mod4)
-names_layers <- c("difference=mod1-mod4")
+names_layers <- c("mod1-mod4")
+diff<-stack(diff)
 names(diff) <- names_layers
 
 
 png(paste("Figure_8b_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=530*1,width=534*1)
 
-plot(diff,col=temp.colors(100),main=names_layers)
-#levelplot(diff,main="Interpolated Surfaces Model Comparison", ylab=NULL,xlab=NULL,
-#          par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=c(1,1),
-#                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
-#          names.attr=names_layers,col.regions=temp.colors)
-dev.off
+#plot(diff,col=temp.colors(100),main=names_layers)
+levelplot(diff,main="(b) Difference  between models", ylab=NULL,xlab=NULL,
+          margin=F,
+          par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=c(1,1),
+                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+          names.attr=names_layers,col.regions=temp.colors)
+
+dev.off()
 
 ###############################
 ########## Prepare table 6
@@ -1075,10 +1108,13 @@ tb_sig_p_val_rec2 <- aggregate(s.table_term_tb$p_val_rec2~s.table_term_tb$month,
 plot(tb_sig_p_val_rec2)
 #Now prepare 
 s_table_LST_mod4 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(LST)")
-tb_mod4_LST_rec3 <- aggregate(s_table_LST_mod4$p_val_rec3~s_table_term_mod4$month,FUN=mean)
+#tb_mod4_LST_rec3 <- aggregate(s_table_LST_mod4$p_val_rec3~s_table_term_mod4$month,FUN=mean)
+tb_mod4_LST_rec3 <- aggregate(s_table_LST_mod4$p_val_rec3~s_table_LST_mod4$month,FUN=mean)
+
 plot(tb_mod4_LST_rec3,type="l",ylim=c(0.2,1))
 s_table_elev_mod4 <- subset(s.table_term_tb,mod_name=="mod4" & term_name=="s(elev_s)")
 #tb_mod4_elev_rec3 <- aggregate(tb_mod4_elev_rec3$p_val_rec2 ~ tb_mod4_elev_rec3$month,FUN=mean)
+
 plot(tb_mod4_elev_rec3)
 lines(tb_mod4_elev_rec3)
 test1 <- subset(s.table_term_tb,mod_name=="mod1" & term_name=="s(elev_s)")
@@ -1139,7 +1175,7 @@ p_prop <- xyplot(p_val_rec3 ~ month,data=tb_mod4_LST_rec3,
           type="b",
           ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
           xlab=list(label="Month",cex=1.5),
-          main=list(label="Proportion of significant LST term in mod4",cex=1.8))
+          main=list(label="(a) Proportion of significant LST term in mod4",cex=1.8))
 p_prop <- update(p_prop,par.settings = list(axis.text = list(font = 2, cex = 1.3),
                 par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5))
 
@@ -1148,7 +1184,7 @@ p_dif <- xyplot(rmse_dif ~ 1:12,
           type="b",
           ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
           xlab=list(label="Month",cex=1.5),
-          main=list(label="Monthly \u0394RMSE betwen mod1 and mod4",cex=1.8),
+          main=list(label="(b) Monthly \u0394RMSE betwen mod1 and mod4",cex=1.8),
           par.settings = list(axis.text = list(font = 2, cex = 1.3),
           par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5))
 p_dif <- update(p_dif, panel = function(...) {
@@ -1166,7 +1202,7 @@ p_cor<- xyplot(value ~ id, data = m, groups = variable,
           ylim=c(-1,1),
           ylab=list(label="Pearson Correlation",cex=1.5),
           xlab=list(label="Month",cex=1.5),
-          main=list(label="Pearson Correlation",cex=1.8),
+          main=list(label="(c) Pearson Correlation",cex=1.8),
           auto.key = list("topright", corner = c(0,1),# col=c("black","red"),
                      border = FALSE, lines = TRUE,cex=1.2))
 p_cor <- update(p_cor, panel = function(...) {
@@ -1223,8 +1259,8 @@ png(paste("Figure9_paper_","_variogram_",date_selected[1],"_",date_selected[2],"
 p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$var_model,
          ylim=c(0,9),
          ylab=list(label="Semivariance",cex=1.5),
-         xlab=list(label="Distance (meter)",cex=1.5),
-         main=list(label="Mod1 January 1, 2010",cex=1.8),
+         xlab=list(label="Distance (m)",cex=1.5),
+         main=list(label="(a) Mod1 1 January 2010",cex=1.8),
          par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
                 par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
                 par.strip.text=list(font=2,cex=1.5)
@@ -1233,8 +1269,8 @@ p1<-plot(raster_prediction_obj_3$method_mod_obj[[1]]$mod[[1]]$exp_var,raster_pre
 p241<-plot(raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$exp_var,raster_prediction_obj_3$method_mod_obj[[241]]$mod[[1]]$var_model,
          ylim=c(0,9),
          ylab=list(label="Semivariance",cex=1.5),
-         xlab=list(label="Distance (meter)",cex=1.5),
-         main=list(label="Mod1 September 1, 2010",cex=1.8),
+         xlab=list(label="Distance (m)",cex=1.5),
+         main=list(label="(b) Mod1 1 September 2010",cex=1.8),
          par.settings = list(axis.text = list(font = 2, cex = 1.3),
                 par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
                 par.strip.text=list(font=2,cex=1.5)
@@ -1271,20 +1307,20 @@ p_hist <-histogram(tb_variogram$model,
           col=c("grey"),
           ylab=list(label="Percent of total",cex=1.5),
           xlab=list(label="Variogram model",cex=1.5),
-          main=list(label="Variogram model type",cex=1.8))
+          main=list(label="(a) Variogram model type",cex=1.8))
 
 p_bw1<- bwplot(tb_variogram$range~tb_variogram$month,do.out=F,ylim=c(0,250000),
          ylab=list(label="Range of variograms",cex=1.5),
          xlab=list(label="Month",cex=1.5),
-         main=list(label="Mod1 range",cex=1.8))
+         main=list(label="(b) Mod1 range",cex=1.8))
 p_bw2<-bwplot(tb_variogram$Nug~tb_variogram$month,do.out=F,ylim=c(0,12),
          ylab=list(label="Nugget of variograms",cex=1.5),
          xlab=list(label="Month",cex=1.5),
-         main=list(label="Mod1 Nugget",cex=1.8))
+         main=list(label="(c) Mod1 Nugget",cex=1.8))
 p_bw3<-bwplot(tb_variogram$psill~tb_variogram$month,do.out=F,ylim=c(0,30),
          ylab=list(label="Sill of variograms",cex=1.5),
          xlab=list(label="Month",cex=1.5),
-         main=list(label="Mod1 sill",cex=1.8))
+         main=list(label="(d) Mod1 sill",cex=1.8))
 #grid.arrange(p1,p2,p3,ncol=1)
 grid.arrange(p_hist,p_bw1,p_bw2,p_bw3,ncol=2)
 
@@ -1306,7 +1342,7 @@ mo<-as.integer(strftime(date_proc, "%m"))          # current month of the date b
 day<-as.integer(strftime(date_proc, "%d"))
 year<-as.integer(strftime(date_proc, "%Y"))
 datelabel=format(ISOdate(year,mo,day),"%b %d, %Y")
-
+datelabel <- format(ISOdate(year,mo,day),"%d-%m-%Y")
 #height=480*6,width=480*4)
 list_p <- vector("list", length(names_mod))
 for (k in 1:length(names_mod)){
@@ -1379,6 +1415,7 @@ png(paste("Figure_11d_paper_","_residuals_",date_selected,"_",out_prefix,".png",
 grid.arrange(list_p[[10]],
              ncol=3)  
 dev.off() 
+
 ###########################################
 ### Figure 12: map of MAE by stations over 365 days to summarize residuals information
 
@@ -1439,17 +1476,20 @@ data_v_mae<-spTransform(data_v_mae,CRS(CRS_interp))     #Project from WGS84 to n
 elev <- subset(s_raster,"elev_s")
 list_p_mae <- vector("list", 3)
 names_var <- c("mod1","mod2","mod5")
+plot_nb <- c("(a)","(b)","(c)")
 for (k in 1:length(names_var)){
   
   model_name <- names_var[k]
+  nb_p <- plot_nb[k]
   res_model_name <- paste("res",model_name,sep="_")
+  
   #res_model_name <- "res_mod1"
   p1 <- levelplot(elev,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
   #tt <- na.omit(data_v_mae)
   #df_tmp=subset(data_v_mae,data_v_mae$res_mod1!="NaN")
   df_tmp=subset(data_v_mae,data_v_mae[[res_model_name]]!="NaN")
   
-  p2 <- bubble(df_tmp,res_model_name, main=paste("Average MAE per station for ",model_name,sep=""),
+  p2 <- bubble(df_tmp,res_model_name, main=paste(nb_p," Average MAE per station for ",model_name,sep=""),
                col=matlab.like(5),na.rm=TRUE)
   p3 <- p2 + p1 + p2 #to force legend...
   #print(p3)
@@ -1459,10 +1499,13 @@ for (k in 1:length(names_var)){
 }
 
 layout_m<-c(1,3) # works if set to this?? ok set the resolution...
-png(paste("Figure12_paper_","average_MAE_",date_selected,"_",out_prefix,".png", sep=""),
+png(paste("Figure12_paper_","average_MAE_","_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
+X11(height=7*layout_m[1],width=7*layout_m[2])
 
 grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],ncol=3)
+savePlot(paste("Figure12_paper_","average_MAE_","_",out_prefix,".png", sep=""), 
+         type="png")
       
 dev.off()   
 
@@ -1494,7 +1537,7 @@ png(paste("Figure_13_paper_","residuals_MAE_",out_prefix,".png", sep=""),
 p_bw1<-bwplot(data_v_ag$res_mod1~elev_rcstat,do.out=F,ylim=c(-15,15),
          ylab=list(label="Residuals (deg C)",cex=1.5),
          xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elev for mod1=lat*lon",cex=1.8),
+         main=list(label="(a) Residuals vs elev for mod1=lat*lon",cex=1.8),
          scales = list(x = list(at = c(1, 2, 3, 4), #provide tick location and labels
                                labels = c("0-500","500-1000","1000-1500","1500-2000"))),
                        par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
@@ -1505,7 +1548,7 @@ p_bw1<-bwplot(data_v_ag$res_mod1~elev_rcstat,do.out=F,ylim=c(-15,15),
 p_bw2 <- bwplot(data_v_ag$res_mod5~elev_rcstat,do.out=F,ylim=c(-15,15),
          ylab=list(label="Residuals (deg C)",cex=1.5),
          xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elev for mod5=lat*lon+LST",cex=1.8),
+         main=list(label="(b) Residuals vs elev for mod5=lat*lon+LST",cex=1.8),
          scales = list(x = list(at = c(1, 2, 3, 4), 
                                labels = c("0-500","500-1000","1000-1500","1500-2000"))),
          par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
@@ -1516,7 +1559,7 @@ p_bw2 <- bwplot(data_v_ag$res_mod5~elev_rcstat,do.out=F,ylim=c(-15,15),
 p_bw3 <- bwplot(data_v_ag$res_mod2~elev_rcstat,do.out=F,ylim=c(-15,15),
          ylab=list(label="Residuals (deg C)",cex=1.5),
          xlab=list(label="Elevation classes (meter)",cex=1.5),
-         main=list(label="Residuals vs elev for mod2=lat*lon+elev",cex=1.8),
+         main=list(label="(c) Residuals vs elev for mod2=lat*lon+elev",cex=1.8),
          scales = list(x = list(at = c(1, 2, 3, 4), 
                                labels = c("0-500","500-1000","1000-1500","1500-2000"))),
          par.settings = list(axis.text = list(font = 2, cex = 1.3), #control the font size!!
