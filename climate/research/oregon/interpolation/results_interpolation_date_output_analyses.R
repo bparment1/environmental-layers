@@ -5,7 +5,7 @@
 #Part 2: Examine 
 #AUTHOR: Benoit Parmentier                                                                       
 #DATE: 08/05/2013                                                                                 
-#DATE MODIFIED: 05/21/2014                                                                                 
+#DATE MODIFIED: 09/07/2014                                                                                 
 
 #PROJECT: NCEAS INPLANT: Environment and Organisms --TASK#???--   
 
@@ -71,7 +71,7 @@ plots_assessment_by_date<-function(j,list_param){
   in_path_tile <- list_param$in_path_tile
   
   if(!is.null(in_path_tile)){
-    covar_obj <- load_obj(list_param$covar_obj)
+    #covar_obj <- load_obj(list_param$covar_obj)
     infile_covariates <- file.path(in_path_tile,basename(covar_obj$infile_covariates))
     covar_names <- covar_obj$covar_names
   }else{ #we are on the node or running as stage 5
@@ -81,7 +81,7 @@ plots_assessment_by_date<-function(j,list_param){
   
   #if raster_obj has not been loaded in memory then we have
   #the name of the RData object for a specific tile
-  raster_prediction_obj<-list_param$raster_prediction_obj
+  raster_prediction_obj <- list_param$raster_prediction_obj
   if(class(raster_prediction_obj)=="character"){
     raster_prediction_obj <- load_obj(raster_prediction_obj)
   }
@@ -116,21 +116,35 @@ plots_assessment_by_date<-function(j,list_param){
   LC_mask_rec[is.na(LC_mask_rec)]<- 0
     
   #determine index position matching date selected
-  i_dates<-vector("list",length(date_selected))
-  for (j in 1:length(date_selected)){
-    for (i in 1:length(method_mod_obj)){
-      if(method_mod_obj[[i]]$sampling_dat$date==date_selected[j]){  
-        i_dates[[j]]<-i
-      }
-    }
-  }
+  #i_dates<-vector("list",length(date_selected))
+  #for (j in 1:length(date_selected)){
+  #  for (i in 1:length(method_mod_obj)){
+  #    if(try(method_mod_obj[[i]]$sampling_dat$date==date_selected[j])){  
+  #      i_dates[[j]]<-i
+  #    }
+  #  }
+  #}
+  
+  metrics_s_list <- lapply(1:length(validation_mod_obj),FUN=function(x){metrics_s <- try(validation_mod_obj[[x]]$metrics_s)})
+  nb_days_fitted <- length(metrics_s_list)
+  metrics_s_list <- metrics_s_list[unlist(lapply(metrics_s_list,FUN=function(x){!inherits(x,"try-error")}))]
+  nb_days_not_fitted <- nb_days_fitted - length(metrics_s_list)
+  nb_days_fitted <- length(metrics_s_list)
+  #Count number of try-error (not fitted)
+  metrics_s_all <- do.call(rbind.fill,metrics_s_list)
+  #Select predicted date...
+  dat<- subset(metrics_s_all,date==date_selected_results)
+
+  index <- unique(dat$index_d)
   #Examine the first select date add loop or function later
   #j=1
   date <- strptime(date_selected[j], "%Y%m%d")   # interpolation date being processed
+  date <- strptime(date_selected, "%Y%m%d")   # interpolation date being processed
+
   month <- strftime(date, "%m")          # current month of the date being processed
   
   #Get raster stack of interpolated surfaces
-  index <- i_dates[[j]]
+  #index <- i_dates[[j]]
   ##The path of production is not the same if input_path_tile is not NULL
   if(!is.null(in_path_tile)){
     #infile_covariates <- file.path(in_path_tile,basename(list_param$covar_obj$infile_covariates))
@@ -243,7 +257,7 @@ plots_assessment_by_date<-function(j,list_param){
     title(paste("Predicted_versus_observed_",y_var_name,"_",model_name,"_",datelabel,sep=" "))
     nb_point1<-paste("ns_obs=",length(data_s[[y_var_name]])-sum(is.na(data_s[[model_name]])),sep="")
     nb_point2<-paste("nv_obs=",length(data_v[[y_var_name]])-sum(is.na(data_v[[model_name]])),sep="")
-    
+    #Bug here
     rmse_str1<-paste("RMSE= ",format(rmse,digits=3),sep="")
     rmse_str2<-paste("RMSE_f= ",format(rmse_f,digits=3),sep="")
     
@@ -281,6 +295,7 @@ plots_assessment_by_date<-function(j,list_param){
   title(paste("Daily stations ", datelabel,sep=""))
   nb_point1<-paste("ns_obs=",nrow(data_s),sep="")
   nb_point2<-paste("nv_obs=",nrow(data_v),sep="")
+  #Bug here
   legend("bottomright",legend=c(nb_point1,nb_point2),bty="n",cex=0.8)
 
   dev.off()
@@ -323,7 +338,7 @@ plots_assessment_by_date<-function(j,list_param){
       clim_lf <- basename(as.character(clim_method_mod_obj[[mo]]$clim)) #list of daily prediction files with path included
       clim_lf <- file.path(in_path_tile,clim_lf)
       delta_lf <- basename(unlist(method_mod_obj[[index]]$delta))
-      delta_lf <- file.path(in_path,delta_lf)
+      delta_lf <- file.path(in_path_tile,delta_lf)
     }else{
       clim_lf <- clim_method_mod_obj[[index]]$clim #list of monthly prediction files with path included
       delta_lf <- method_mod_obj[[index]]$delta
