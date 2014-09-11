@@ -4,7 +4,7 @@
 #different covariates using two baselines. Accuracy methods are added in the the function script to evaluate results.
 #Figures, tables and data for the contribution of covariate paper are also produced in the script.
 #AUTHOR: Benoit Parmentier                                                                      
-#MODIFIED ON: 09/03/2014            
+#MODIFIED ON: 09/11/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -69,7 +69,7 @@ infile_reg_raster <- "/data/project/layers/commons/data_workflow/inputs/region_o
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 y_var_name <- "dailyTmax"
-out_prefix<-"_09032014"
+out_prefix<-"_09112014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_contribution_covar_analyses_tables_fig"
 #setwd(out_dir)
 
@@ -270,6 +270,9 @@ interp_area <- readOGR(dsn=dirname(infile_reg_outline),sub(".shp","",basename(in
 interp_area_WGS84 <-spTransform(interp_area,CRS_locs_WGS84)         # Project from WGS84 to new coord. system
 
 usa_map <- getData('GADM', country='USA', level=1) #Get US map
+#usa_map <- getData('GADM', country='USA') #Get US map
+#usa_map <- getData(name=GADM) #Get US map
+#usa_map <- load_obj(list.files(pattern="^USA.*.RData"))
 usa_map_2 <- usa_map[usa_map$NAME_1!="Alaska",] #remove Alaska
 usa_map_2 <- usa_map_2[usa_map_2$NAME_1!="Hawaii",] #remove Hawai 
 usa_map_OR <- usa_map_2[usa_map_2$NAME_1=="Oregon",] #get OR
@@ -279,6 +282,8 @@ elev_WGS84 <- projectRaster(from=elev,crs=CRS_locs_WGS84,method="ngb")
 
 #set up the output file to plot
 res_pix<-960
+res_pix<-1200
+
 col_mfrow<-1
 row_mfrow<-1
 png(filename=paste("Figure1_contribution_covariates_study_area_",out_prefix,".png",sep=""),
@@ -299,7 +304,8 @@ par(mar = c(0,0,0,0)) # remove margin
 #opar <- par(fig=c(0.85,0.95,0.8, 0.9), new=TRUE)
 #opar <- par(fig=c(0.8,0.95,0.75, 0.9), new=TRUE)
 #opar <- par(fig=c(0.75,0.95,0.7, 0.9), new=TRUE)
-opar <- par(fig=c(0.65,0.9,0.8, 0.92), new=TRUE)
+#opar <- par(fig=c(0.65,0.9,0.8, 0.92), new=TRUE)
+opar <- par(fig=c(0.66,0.91,0.82, 0.93), new=TRUE)
 
 plot(usa_map_2,border="black") #border and lwd are options of graphics package polygon object
 plot(usa_map_OR,col="dark grey",add=T)
@@ -330,7 +336,8 @@ lst_mm_01<-subset(s_raster,"mm_01")
 #temp.colors <- matlab.like(no_brks)
 temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
 
-png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=980,height=480)
+png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),
+    width=1200,height=600)
 par(mfrow=c(1,2))
 plot(lst_md,col=temp.colors(25),axes=F) #use axes=F to remove lat and lon or coordinates
 plot(interp_area,add=TRUE)
@@ -340,7 +347,7 @@ plot(interp_area,add=TRUE)
 title("(b) Mean for month of January")
 dev.off()
 
-png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=980,height=480)
+png(filename=paste("Figure_3_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=1000,height=500)
 par(mfrow=c(1,2))
 
 p <-levelplot(lst_md,col.regions=temp.colors(25),axes=F,margin=F,scales = list(draw = FALSE), #use list(draw=F) so as  not to dispaly coordinates!!!
@@ -417,7 +424,9 @@ title_plot <- "(a) MAE and distance to closest fitting station"
 y_lab_text <- "MAE (°C)"
 add_CI <- c(TRUE,TRUE,TRUE)
 #Now set up plotting device
-res_pix<-480
+#res_pix<- 960
+#res_pix<- 480
+res_pix <- 600 #it will be time 2
 col_mfrow<-2
 row_mfrow<-1
 png_file_name<- paste("Figure_4_accuracy_and_distance_to_closest_fitting_station_",out_prefix,".png", sep="")
@@ -492,7 +501,9 @@ CI_bar <- c(TRUE,TRUE,TRUE)
 ##### plot figure 5 for paper
 ####
 
-res_pix<-480
+#res_pix<-480
+#res_pix<-960
+res_pix<- 600 #width will be time 2
 col_mfrow<-2
 row_mfrow<-1
 png_file_name<- paste("Figure_5_proportion_of_holdout_and_accuracy_",out_prefix,".png", sep="")
@@ -616,7 +627,7 @@ plot(prop_obj_gam_s$avg_tb$rmse ~ prop_obj_gam_s$avg_tb$prop, type="b",)
 ###############
 #### plot figure 6
 #set up the output file to plot
-res_pix<-480
+res_pix <- 600
 col_mfrow<-2
 row_mfrow<-1
 png_file_name<- paste("Figure_6_overtraining_tendency_and_holdout_proportion_",out_prefix,".png", sep="")
@@ -727,7 +738,7 @@ month_data_list<-list(gam=tb1[tb1$pred_mod=="mod1",c(metric_name,"month")],
 y_range<-range(unlist(month_data_list))
 
 #Now plot figure 14
-res_pix<-480
+res_pix<-500
 col_mfrow<-2
 #row_mfrow<-2
 row_mfrow<-1
@@ -863,7 +874,7 @@ min_val <-s.range[1]
 layout_m<-c(4,3) #one row two columns
 
 png(paste("Figure_7a_spatial_pattern_tmax_prediction_models_baseline1_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=500*layout_m[1],width=500*layout_m[2])
 
 p<- levelplot(pred_temp_s,main="Interpolated Surfaces Model Comparison baseline 1", ylab=NULL,xlab=NULL,
           par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
@@ -903,7 +914,7 @@ dd$lag <- mydata$lag
 layout_m<-c(4,3) #one row two columns
 
 png(paste("Figure_7b_spatial_correlogram_tmax_prediction_models_baseline1_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=500*layout_m[1],width=500*layout_m[2])
 
 p<-xyplot(data ~ lag | which, dd,type="b",
           par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
@@ -955,7 +966,7 @@ min_val <- 0
 layout_m<-c(1,2) #one row two columns
 
 png(paste("Figure_8a_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=510*layout_m[1],width=510*layout_m[2])
 #X11(height=7*layout_m[1],width=7*layout_m[2])
 
 names_layers <-c("mod1 = s(lat,long)+s(elev)","mod4 = s(lat,long)+s(LST)")
@@ -973,7 +984,6 @@ print(p)
 #col.regions=temp.colors(25))
 dev.off()
 
-
 diff<-raster(lf1$mod1)-raster(lf1$mod4)
 names_layers <- c("mod1-mod4")
 diff<-stack(diff)
@@ -981,15 +991,21 @@ names(diff) <- names_layers
 
 
 png(paste("Figure_8b_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
-    height=530*1,width=534*1)
+    height=510*1,width=510*1)
 
 #plot(diff,col=temp.colors(100),main=names_layers)
-levelplot(diff,main="(b) Difference  between models", ylab=NULL,xlab=NULL,
+p_diff<- levelplot(diff,main="(b) Difference  between models", ylab=NULL,xlab=NULL,
           margin=F,
           par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=c(1,1),
                               par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
           names.attr=names_layers,col.regions=temp.colors)
+print(p_diff)
+dev.off()
 
+layout_m <- c(1,3)
+png(paste("Figure_8_spatial_pattern_tmax_prediction_models_gam_levelplot_and_difference_",date_selected,out_prefix,".png", sep=""),
+    height=500*layout_m[1],width=500*layout_m[2])
+grid.arrange(p,p_diff,ncol=3)
 dev.off()
 
 ###############################
@@ -1163,7 +1179,7 @@ lines(df_cor$elev_tmax,ylim=c(-1,1),col="blue")
 names(tb_mod4_LST_rec3) <- c("month","p_val_rec3")
 tb_mod4_LST_rec3$month <- 1:12
 
-res_pix<-480
+res_pix <- 500
 layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
 #date_selected <- c("20100101","20100901")
 png(paste("Figure_15_paper_","LST_elev_",out_prefix,".png", sep=""),
@@ -1300,7 +1316,7 @@ tb_variogram$month <- add_month_tag(tb_variogram)
 layout_m <- c(2,2) # works if set to this?? ok set the resolution...      
 #date_selected <- c("20100101","20100901")
 png(paste("Figure10_paper_","_variogram_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=500*layout_m[1],width=500*layout_m[2])
     #height=480*6,width=480*4)
      
 p_hist <-histogram(tb_variogram$model,
@@ -1378,7 +1394,7 @@ for (k in 1:length(names_mod)){
 
 layout_m<-c(4,3) # works if set to this?? ok set the resolution...
 png(paste("Figure_11_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=500*layout_m[1],width=500*layout_m[2])
 
 grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],
              list_p[[4]],list_p[[5]],list_p[[6]],
@@ -1389,28 +1405,28 @@ dev.off()
 
 layout_m<-c(1,3) # works if set to this?? ok set the resolution...
 png(paste("Figure_11a_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=520*layout_m[1],width=520*layout_m[2])
 
 grid.arrange(list_p[[1]],list_p[[2]],list_p[[3]],
              ncol=3)  
 dev.off() 
 layout_m<-c(1,3) # works if set to this?? ok set the resolution...
 png(paste("Figure_11b_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=520*layout_m[1],width=520*layout_m[2])
 
 grid.arrange(list_p[[4]],list_p[[5]],list_p[[6]],
              ncol=3)  
 dev.off() 
 layout_m<-c(1,3) # works if set to this?? ok set the resolution...
 png(paste("Figure_11c_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=520*layout_m[1],width=520*layout_m[2])
 
 grid.arrange(list_p[[7]],list_p[[8]],list_p[[9]],
              ncol=3)  
 dev.off() 
 layout_m<-c(1,3) # works if set to this?? ok set the resolution...
 png(paste("Figure_11d_paper_","_residuals_",date_selected,"_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=520*layout_m[1],width=520*layout_m[2])
 
 grid.arrange(list_p[[10]],
              ncol=3)  
@@ -1500,12 +1516,12 @@ for (k in 1:length(names_var)){
 
 layout_m<-c(1,3) # works if set to this?? ok set the resolution...
 png(paste("Figure12_paper_","average_MAE_","_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
-X11(height=7*layout_m[1],width=7*layout_m[2])
+    height=500*layout_m[1],width=500*layout_m[2])
+#X11(height=7*layout_m[1],width=7*layout_m[2])
 
 grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],ncol=3)
-savePlot(paste("Figure12_paper_","average_MAE_","_",out_prefix,".png", sep=""), 
-         type="png")
+#savePlot(paste("Figure12_paper_","average_MAE_","_",out_prefix,".png", sep=""), 
+#         type="png")
       
 dev.off()   
 
@@ -1531,7 +1547,7 @@ elev_rcstat<-cut(data_v_ag$elev,breaks=brks,labels=lab_brks,right=F)
 
 layout_m <- c(1,3) # works if set to this?? ok set the resolution...      
 png(paste("Figure_13_paper_","residuals_MAE_",out_prefix,".png", sep=""),
-    height=480*layout_m[1],width=480*layout_m[2])
+    height=500*layout_m[1],width=500*layout_m[2])
     #height=480*6,width=480*4)
 
 p_bw1<-bwplot(data_v_ag$res_mod1~elev_rcstat,do.out=F,ylim=c(-15,15),
@@ -1601,7 +1617,7 @@ min_val <-s.range[1]
 #max_val<- -10
 #min_val <- 0
 layout_m<-c(1,3) #one row, three columns
-res_pix <- 480
+res_pix <- 500
 png(paste("Figure_0a_graphic_abstact_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
     height=res_pix*layout_m[1],width=res_pix*layout_m[2])
 
@@ -1646,7 +1662,7 @@ dd <- do.call(make.groups, mydata[,-ncol(mydata)])
 dd$lag <- mydata$lag 
 
 layout_m<-c(1,3) #one row three columns
-res_pix <-  480
+res_pix <-  500
 png(paste("Figure_0b_graphic_abstract_spatial_correlogram_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
     height=res_pix*layout_m[1],width=res_pix*layout_m[2])
 
