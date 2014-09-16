@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 08/28/2014            
+#MODIFIED ON: 09/16/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 5 global using 6 specific tiles
@@ -69,10 +69,10 @@ create_dir_fun <- function(out_dir,out_suffix){
 #on ATLAS
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #parent output dir : contains subset of the data produced on NEX
-in_dir1 <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
+in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/"
 # input dir containing shapefiles defining tiles
 #in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
@@ -83,9 +83,9 @@ out_dir <-"/data/project/layers/commons/NEX_data/output_run5_global_analyses_082
 #out_dir <- "/nobackup/bparmen1/" #on NEX
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
 
-y_var_nay_var_name <- "dailyTmax"
+y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run5_global_analyses_08252014"
+out_prefix<-"run6_global_analyses_09162014"
 
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
@@ -113,12 +113,12 @@ tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefi
 tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
 
 tb_month_s_<- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
-tb_month_s <- read.table("tb_month_diagnostic_s_NA_run5_global_analyses_08252014.txt",sep=",")
+#tb_month_s <- read.table("tb_month_diagnostic_s_NA_run5_global_analyses_08252014.txt",sep=",")
 pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
 pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 #in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
-gam_diagnostic_df <- read.table(file=file.path(out_dir,"gam_diagnostic_df_run4_global_analyses_08142014.txt"),sep=",")
+#gam_diagnostic_df <- read.table(file=file.path(out_dir,"gam_diagnostic_df_run4_global_analyses_08142014.txt"),sep=",")
 
 ########################## START SCRIPT ##############################
 
@@ -128,8 +128,10 @@ gam_diagnostic_df <- read.table(file=file.path(out_dir,"gam_diagnostic_df_run4_g
 #df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
 #list_shp_reg_files <- df_tiled_processed$shp_files
 list_shp_reg_files<- as.character(df_tile_processed$shp_files)
-list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/output_run4_global_analyses_08142014/output20Deg",
-          as.character(df_tile_processed$tile_coord),"shapefiles",basename(list_shp_reg_files))
+#list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
+#          as.character(df_tile_processed$tile_coord),"shapefiles",basename(list_shp_reg_files))
+list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
+          "shapefiles",basename(list_shp_reg_files))
 
 ### First get background map to display where study area is located
 #can make this more general later on..       
@@ -154,10 +156,10 @@ centroids_pts <- vector("list",length(list_shp_reg_files))
 shps_tiles <- vector("list",length(list_shp_reg_files))
 #collect info: read in all shapfiles
 #This is slow...make a function and use mclapply??
-
+/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
 for(i in 1:length(list_shp_reg_files)){
-  path_to_shp <- dirname(list_shp_reg_files[[i]])
-  path_to_shp <- in_dir1 
+  #path_to_shp <- dirname(list_shp_reg_files[[i]])
+  path_to_shp <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles"
   layer_name <- sub(".shp","",basename(list_shp_reg_files[[i]]))
   shp1 <- readOGR(path_to_shp, layer_name)
   #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
@@ -168,7 +170,7 @@ for(i in 1:length(list_shp_reg_files)){
 
 
 #plot info: with labels
-res_pix <- 480
+res_pix <- 1200
 col_mfrow <- 1
 row_mfrow <- 1
 
@@ -183,7 +185,7 @@ for(i in 1:length(list_shp_reg_files)){
   plot(shp1,add=T,border="blue")
   #plot(pt,add=T,cex=2,pch=5)
   label_id <- df_tile_processed$tile_id[i]
-  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
+  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
 }
 title(paste("Tiles location 20x20 degrees for ", region_name,sep=""))
 
@@ -292,20 +294,20 @@ for (i in 1:length(model_name)){
 
 ##### Diagnostic gam
 ####
-gam_diag_10x10 <- read.table("gam_diagnostic_10x10_df_run4_global_analyses_08142014.txt",sep=",")
-gam_diag_10x10$month <- as.factor(gam_diag_10x10$month)
+#gam_diag_10x10 <- read.table("gam_diagnostic_10x10_df_run4_global_analyses_08142014.txt",sep=",")
+#gam_diag_10x10$month <- as.factor(gam_diag_10x10$month)
 
-xyplot(rmse~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
-                                           pred_mod!="mod_kr"),type="b")
+#xyplot(rmse~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
+#                                           pred_mod!="mod_kr"),type="b")
 
-xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
-                                           pred_mod!="mod_kr"),type="h")
+#xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
+#                                           pred_mod!="mod_kr"),type="h")
 
-xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
-                                           pred_mod!="mod_kr"),type="h")
+#xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
+#                                           pred_mod!="mod_kr"),type="h")
 
-xyplot(n~month | tile_id + pred_mod,data=subset(as.data.frame(tb_month_s),
-                                           pred_mod!="mod_kr"),type="h")
+#xyplot(n~month | tile_id + pred_mod,data=subset(as.data.frame(tb_month_s),
+#                                           pred_mod!="mod_kr"),type="h")
 
 # 
 ## Figure 3b
@@ -349,17 +351,21 @@ for(i in 1:length(lf_pred_list)){
 ####### Figure 5...
 ### Adding tiles do a plot of mod1 with tiles
 
-r_pred <- raster(lf_pred_list[i])
+#r_pred <- raster(lf_pred_list[i])
   
 res_pix <- 480
 col_mfrow <- 1
 row_mfrow <- 1
-  
+model_name <- as.character(model_name)
+
+i<-2
 png(filename=paste("Figure5_tiles_with_models_predicted_surfaces_",model_name[i],"_",name_method_var,out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-plot(r_pred)
-title(paste("Mosaiced",model_name[i],name_method_var,date_selected,"with tiles",sep=" "))
+#plot(r_pred)
+plot(reg_layer)
+
+#title(paste("Mosaiced",model_name[i],name_method_var,date_selected,"with tiles",sep=" "))
 
 #Add polygon tiles...
 for(i in 1:length(list_shp_reg_files)){
@@ -415,7 +421,7 @@ dev.off()
 
 coordinates(summary_metrics_v) <- cbind(summary_metrics_v$lon,summary_metrics_v$lat)
 proj4string(summary_metrics_v) <- CRS_WGS84
-lf_list <- lf_pred_list
+#lf_list <- lf_pred_list
 list_df_ac_mod <- vector("list",length=length(lf_pred_list))
 for (i in 1:length(lf_list)){
   
@@ -430,7 +436,7 @@ for (i in 1:length(lf_list)){
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_pred)  
-
+  
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,add=T)
   #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
@@ -445,6 +451,46 @@ for (i in 1:length(lf_list)){
   
 #quick kriging...
 #autokrige(rmse~1,r2,)
+
+
+### Without 
+
+list_df_ac_mod <- vector("list",length=length(lf_pred_list))
+list_df_ac_mod <- vector("list",length=3)
+
+for (i in 1:length(model_name)){
+  
+  ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
+  #r_pred <- raster(lf_list[i])
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+
+  png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  #plot(r_pred)  
+  #plot(reg_layer)
+  #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
+  #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
+
+  p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+  #title("(a) Mean for 1 January")
+  p <- bubble(ac_mod,"rmse",main=paste("Averrage RMSE per tile and by ",model_name[i]))
+  p1 <- p+p_shp
+  print(p1)
+  #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
+  #title(paste("Averrage RMSE per tile and by ",model_name[i]))
+
+  dev.off()
+  
+  ### Ranking by tile...
+  #df_ac_mod <- 
+  list_df_ac_mod[[i]] <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("rmse","mae","tile_id")]
+}
 
 ######################
 ### Figure 7: Delta and clim...
