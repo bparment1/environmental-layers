@@ -62,6 +62,50 @@ create_dir_fun <- function(out_dir,out_suffix){
   return(out_dir)
 }
 
+#Function to rasterize a table with coordinates and variables...,maybe add option for ref image??
+rasterize_df_fun <- function(data_tb,coord_names,proj_str,out_suffix,out_dir=".",file_format=".rst",NA_flag_val=-9999,tolerance_val= 0.000120005){
+  data_spdf <- data_tb
+  coordinates(data_spdf) <- cbind(data_spdf[[coord_names[1]]],data_spdf[[coord_names[2]]])
+  proj4string(data_spdf) <- proj_str
+
+  data_pix <- try(as(data_spdf,"SpatialPixelsDataFrame"))
+  #tolerance_val <- 0.000120005 
+  #tolerance_val <- 0.000856898
+  if(inherits(data_pix,"try-error")){
+      data_pix <- SpatialPixelsDataFrame(data_spdf, data=data_spdf@data, tolerance=tolerance_val) 
+  }
+  
+  #test <- as(data_spdf,"SpatialPixelsDataFrame")
+
+  # set up an 'empty' raster, here via an extent object derived from your data
+  #e <- extent(s100[,1:2])
+  #e <- e + 1000 # add this as all y's are the same
+
+  #r <- raster(e, ncol=10, nrow=2)
+  # or r <- raster(xmn=, xmx=,  ...
+
+  data_grid <- as(data_pix,"SpatialGridDataFrame") #making it a regural grid
+  r_ref <- raster(data_grid) #this is the ref image
+  rast_list <- vector("list",length=ncol(data_tb))
+  
+  for(i in 1:(ncol(data_tb))){
+    field_name <- names(data_tb)[i]
+    var <- as.numeric(data_spdf[[field_name]])
+    data_spdf$var  <- var
+    #r <-rasterize(data_spdf,r_ref,field_name)
+    r <-rasterize(data_spdf,r_ref,"var",NAflag=NA_flag_val,fun=mean) #prolem with NA in NDVI!!
+
+    data_name<-paste("r_",field_name,sep="") #can add more later...
+    #raster_name<-paste(data_name,out_names[j],".tif", sep="")
+    raster_name<-paste(data_name,out_suffix,file_format, sep="")
+  
+    writeRaster(r, NAflag=NA_flag_val,filename=file.path(out_dir,raster_name),overwrite=TRUE)
+    #Writing the data in a raster file format...
+    rast_list[i] <-file.path(out_dir,raster_name)
+  }
+  return(unlist(rast_list))
+}
+
 
 ##############################
 #### Parameters and constants  
@@ -87,6 +131,11 @@ y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
 out_prefix<-"run6_global_analyses_09162014"
 
+proj_str<- CRS_WGS84
+file_format <- ".rst"
+NA_value <- -9999
+NA_flag_val <- NA_value
+out_suffix <-out_prefix  
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- FALSE
@@ -156,7 +205,7 @@ centroids_pts <- vector("list",length(list_shp_reg_files))
 shps_tiles <- vector("list",length(list_shp_reg_files))
 #collect info: read in all shapfiles
 #This is slow...make a function and use mclapply??
-/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
+#/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
 for(i in 1:length(list_shp_reg_files)){
   #path_to_shp <- dirname(list_shp_reg_files[[i]])
   path_to_shp <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles"
@@ -167,6 +216,8 @@ for(i in 1:length(list_shp_reg_files)){
   centroids_pts[[i]] <-pt
   shps_tiles[[i]] <- shp1
 }
+coord_names <- c("lon","lat")
+l_rast <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_prefix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
 
 
 #plot info: with labels
@@ -303,10 +354,10 @@ for (i in 1:length(model_name)){
 #xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
 #                                           pred_mod!="mod_kr"),type="h")
 
-#xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
-#                                           pred_mod!="mod_kr"),type="h")
+xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
+                                           pred_mod!="mod_kr"),type="h")
 
-#xyplot(n~month | tile_id + pred_mod,data=subset(as.data.frame(tb_month_s),
+#xyplot(n~month | tile_id + pred_mod,data=subset(as.data.frame(tb_month_s_),
 #                                           pred_mod!="mod_kr"),type="h")
 
 # 
@@ -500,7 +551,181 @@ for (i in 1:length(model_name)){
 ######################
 ### Figure 9: Plot the number of stations in a processing tile
 
-dd <- merge(df_tile_processed,pred_data_month_info,"tile_id")
+#data_tb <- merge(df_tile_processed,summary_metrics_v,by="tile_id") #keep only the common id, id tiles with pred ac
+#data_tb <- merge(df_tile_processed,summary_metrics_v,by="tile_id",all=T) #keep all
+
+mod1_data_tb <- merge(df_tile_processed,subset(summary_metrics_v,pred_mod=="mod1"),by="tile_id",all=T) #keep all
+mod2_data_tb <- merge(df_tile_processed,subset(summary_metrics_v,pred_mod=="mod2"),by="tile_id",all=T) #keep all
+mod_kr_data_tb <- merge(df_tile_processed,subset(summary_metrics_v,pred_mod=="mod_kr"),by="tile_id",all=T) #keep all
+
+##First create an image of the tiles, use ratify?? with tile id as the raster id for the attribute table??
+#Transform table text file into a raster image
+#coord_names <- c("XCoord","YCoord")
+coord_names <- c("lon.x","lat.x")
+#l_r_ast <- rasterize_df_fun(df_tile_processed,coord_names,proj_str,out_suffix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+out_suffix_str <- paste("mod1_",out_suffix)
+mod1_l_rast <- rasterize_df_fun(mod1_data_tb,coord_names,proj_str,out_suffix_str,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+mod1_stack <- stack(mod1_l_rast)
+names(mod1_stack) <- names(mod1_data_tb)
+
+out_suffix_str <- paste("mod2_",out_suffix)
+mod2_l_rast <- rasterize_df_fun(mod2_data_tb,coord_names,proj_str,out_suffix_str,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+mod2_stack <- stack(mod2_l_rast)
+names(mod2_stack) <- names(mod2_data_tb)
+
+out_suffix_str <- paste("mod_kr_",out_suffix)
+mod_kr_l_rast <- rasterize_df_fun(mod_kr_data_tb,coord_names,proj_str,out_suffix_str,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+mod_kr_stack <- stack(mod_kr_l_rast)
+names(mod_kr_stack) <- names(mod_kr_data_tb)
+
+#Number of daily predictions 
+p0 <- levelplot(mod1_stack,layer=21,margin=F)
+p<- p0+p_shp
+print(p)
+p0<- levelplot(mod2_stack,layer=21,margin=F)
+p<- p0+p_shp
+print(p)
+plot(mod_kr_stack,y=21)
+
+#RMSE
+p0 <- levelplot(mod1_stack,layer=10,margin=F,col.regions=matlab.like(25),main="Average RMSE for mod1")
+p<- p0+p_shp
+print(p)
+
+p0 <- levelplot(mod1_stack,layer=10,margin=F,col.regions=matlab.like(25),main="Average RMSE for mod2")
+p<- p0+p_shp
+print(p)
+
+#plot(mod1_stack,y=10)
+#plot(mod2_stack,y=10)
+#plot(mod_kr_stack,y=10)
+
+## Can make maps of daily and accuracy metrics!!!
+
+#mod1_tb <- subset(tb,pred_mod=="mod1")
+
+## loop or create image for specific day
+#proj_str<- CRS_WGS84
+#file_format <- ".rst"
+#NA_value <- -9999
+#NA_flag_val <- NA_value
+#out_suffix <-out_prefix  
+
+#first need to join x and y coord
+date_selected <- "20100101"
+mod_selected <- "mod1"
+var_selected <- "rmse"
+#test2_data_tb <- merge(df_tile_processed,test2,by="tile_id",all=T) #keep all
+
+#l_date_selected <- unique(tb$date)
+idx <- seq(as.Date('2010-01-01'), as.Date('2010-12-31'), 'day')
+#idx <- seq(as.Date('20100101'), as.Date('20101231'), 'day')
+#date_l <- strptime(idx[1], "%Y%m%d") # interpolation date being processed
+l_date_selected <- format(idx, "%Y%m%d") # interpolation date being processed
+
+list_param_raster_from_tb <- list(tb_dat,df_tile_processed,l_date_selected,
+                                  mod_selected,var_selected,out_suffix,
+                                  proj_str,file_format,NA_value,NA_flag_val)
+
+names(list_param_raster_from_tb) <- c("tb_dat","df_tile_processed","date_selected",
+                                      "mod_selected","var_selected","out_suffix",
+                                      "proj_str","file_format","NA_value","NA_flag_val")
+#undebug(create_raster_from_tb_diagnostic)
+rast <- create_raster_from_tb_diagnostic (i,list_param=list_param_raster_from_tb)
+l_rast <- lapply(1:length(l_date_selected),FUN=create_raster_from_tb_diagnostic,list_param=list_param_raster_from_tb)
+r_rmse <- stack(l_rast)
+#Make this a function...
+#test <- subset(tb,pred_mod=="mod1" & date=="20100101",select=c("tile_id","n","mae","rmse","me","r","m50"))
+
+plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
+mod_selected <- "mod2"
+plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
+mod_selected <- "mod1"
+date_selected  <- "20100901"
+plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
+
+list_date_selected <- c("20100101","20100901")
+for (i in 1:length(list_date_selected)){
+  mod_selected <- "mod1"
+  date_selected  <- list_date_selected[i]
+  var_selected <- "rmse"
+  plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
+  var_selected <- "n"
+  plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
+}
+
+list_date_selected <- c("20100101","20100901")
+for (i in 1:length(list_date_selected)){
+  mod_selected <- "mod2"
+  date_selected  <- list_date_selected[i]
+  var_selected <- "rmse"
+  plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
+  var_selected <- "n"
+  plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
+}
+
+plot_raster_tb_diagnostic <- function(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix){
+  
+  test <- subset(tb_dat,pred_mod==mod_selected & date==date_selected,select=c("tile_id",var_selected))
+
+  test_data_tb <- merge(df_tile_processed,test,by="tile_id",all=T) #keep all
+  test_r <- subset(test_data_tb,select=c("lat","lon","tile_id",var_selected))
+  out_suffix_str <- paste(var_selected,mod_selected,date_selected,out_suffix,sep="_")
+  coord_names <- c("lon","lat")
+  l_rast <- rasterize_df_fun(test_r,coord_names,proj_str,out_suffix_str,out_dir=".",file_format=".tif",NA_flag_val=-9999,tolerance_val=0.000120005)
+  #mod_kr_stack <- stack(mod_kr_l_rast)
+  d_tb_rast <- stack(l_rast)
+  names(d_tb_rast) <- names(test_r)
+  #plot(d_tb_rast)
+  r <- subset(d_tb_rast,"rmse")
+  names(r) <- paste(mod_selected,var_selected,date_selected,sep="_")
+  #plot info: with labels
+
+  res_pix <- 1200
+  col_mfrow <- 1
+  row_mfrow <- 1
+
+  png(filename=paste("Figure9_",names(r),"_map_processed_region_",region_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  #plot(reg_layer)
+  #p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+  title_str <- paste(names(r),"for ", region_name,sep="")
+
+  p0 <- levelplot(r,col.regions=matlab.like(25),margin=F,main=title_str)
+  p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+
+  p <- p0 + p_shp
+  print(p)
+
+  dev.off()
+
+}
+
+create_raster_from_tb_diagnostic <- function(i,list_param){
+  #create a raster image using tile centroids and given fields  from tb diagnostic data
+  tb_dat <- list_param$tb_dat
+  df_tile_processed <- list_param$df_tile_processed
+  date_selected <- list_param$date_selected[i]
+  mod_selected <- list_param$mod_selected
+  var_selected <- list_param$var_selected
+  out_suffix <- list_param$out_suffix
+  
+  test <- subset(tb_dat,pred_mod==mod_selected & date==date_selected,select=c("tile_id",var_selected))
+
+  test_data_tb <- merge(df_tile_processed,test,by="tile_id",all=T) #keep all
+  test_r <- subset(test_data_tb,select=c("lat","lon","tile_id",var_selected))
+  out_suffix_str <- paste(var_selected,mod_selected,date_selected,out_suffix,sep="_")
+  coord_names <- c("lon","lat")
+  l_rast <- rasterize_df_fun(test_r,coord_names,proj_str,out_suffix_str,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+  #mod_kr_stack <- stack(mod_kr_l_rast)
+  #d_tb_rast <- stack(l_rast)
+  #r <- subset(d_tb_rast,var_selected)
+  #names(d_tb_rast) <- names(test_r)
+  return(l_rast[4])
+}
+
+dd <- merge(df_tile_processed,pred_data_month_info,by="tile_id")
 coordinates(dd) <- c(dd$x,dd$y)
 
 ## Make this a function later...
