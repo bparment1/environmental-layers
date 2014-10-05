@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 09/30/2014            
+#MODIFIED ON: 10/05/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 5 global using 6 specific tiles
@@ -37,6 +37,8 @@ library(gridExtra)
 #Additional libraries not used in workflow
 library(pgirmess)                            # Krusall Wallis test with mulitple options, Kruskalmc {pgirmess}  
 library(colorRamps)
+library(zoo)
+library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
@@ -167,6 +169,43 @@ create_raster_from_tb_diagnostic <- function(i,list_param){
   return(l_rast[4])
 }
 
+assign_FID_spatial_polygons_df <-function(list_spdf,ID_str=NULL){
+  list_spdf_tmp <- vector("list",length(list_spdf))
+  if(is.null(ID_str)){
+    nf <- 0 #number of features
+    #for(i in 1:length(spdf)){
+    #    shp1 <- list_spdf[[i]]
+    #    f <- nrow(shp1)
+    #    nf <- nf + f
+    #}
+    #This assumes that the list has one feature per item list
+    nf <- length(list_spdf)
+    ID_str <- as.character(1:nf)
+  }
+  for(i in 1:length(list_spdf)){
+    #test=spRbind(shps_tiles[[1]],shps_tiles[[2]])
+    shp1 <- list_spdf[[i]]
+    shp1$FID <- ID_str
+    shp1<- spChFIDs(shp1, as.character(shp1$FID)) #assign ID
+    list_spdf_tmp[[i]]  <-shp1
+  }
+  return(list_spdf_tmp)
+}
+
+combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
+  if(is.null(ID_str)){
+    #call function
+    list_spdf_tmp <- assign_FID_spatial_polygons_df
+  }
+  combined_spdf <- list_spdf_tmp[[1]]
+  for(i in 2:length(list_spdf_tmp)){
+    combined_spdf <- rbind(combined_spdf,list_spdf_tmp[[i]])
+    #sapply(slot(shps_tiles[[2]], "polygons"), function(x) slot(x, "ID"))
+    #rownames(as(alaska.tract, "data.frame"))
+  }
+  return(combined_spdf)
+}
+
 ##############################
 #### Parameters and constants  
 
@@ -176,7 +215,7 @@ create_raster_from_tb_diagnostic <- function(i,list_param){
 in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run7_global_analyses_10042014/"
 # input dir containing shapefiles defining tiles
 #in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
@@ -189,7 +228,7 @@ out_dir <-"/data/project/layers/commons/NEX_data/output_run6_global_analyses_091
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run6_global_analyses_09162014"
+out_prefix<-"run7_global_analyses_10042014"
 mosaic_plot <- FALSE
 
 proj_str<- CRS_WGS84
@@ -269,7 +308,7 @@ shps_tiles <- vector("list",length(list_shp_reg_files))
 #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
 for(i in 1:length(list_shp_reg_files)){
   #path_to_shp <- dirname(list_shp_reg_files[[i]])
-  path_to_shp <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles"
+  path_to_shp <- file.path(out_dir,"/shapefiles")
   layer_name <- sub(".shp","",basename(list_shp_reg_files[[i]]))
   shp1 <- readOGR(path_to_shp, layer_name)
   #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
@@ -279,7 +318,6 @@ for(i in 1:length(list_shp_reg_files)){
 }
 #coord_names <- c("lon","lat")
 #l_rast <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_prefix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
-
 
 #plot info: with labels
 res_pix <- 1200
@@ -476,7 +514,6 @@ if (mosaic_plot==TRUE){
 #print(p)
 #dev.off()
 
-
 ######################
 ### Figure 5: plot accuracy ranked 
 
@@ -569,6 +606,7 @@ for (i in 1:length(model_name)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
 
+  coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
   p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   #title("(a) Mean for 1 January")
   p <- bubble(ac_mod,"rmse",main=paste("Averrage RMSE per tile and by ",model_name[i]))
@@ -744,6 +782,8 @@ var_selected <- "rmse"
 
 #l_date_selected <- unique(tb$date)
 idx <- seq(as.Date('2010-01-01'), as.Date('2010-12-31'), 'day')
+#idx <- seq(as.Date('2010-01-01'),by="day", length=365)
+
 #idx <- seq(as.Date('20100101'), as.Date('20101231'), 'day')
 #date_l <- strptime(idx[1], "%Y%m%d") # interpolation date being processed
 l_date_selected <- format(idx, "%Y%m%d") # interpolation date being processed
@@ -769,12 +809,59 @@ r_mod1_n <- stack(l_rast_n)
 list_param_raster_from_tb$mod_selected <- "mod2"
 list_param_raster_from_tb$var_selected <- "rmse"
 l_rast <- lapply(1:length(l_date_selected),FUN=create_raster_from_tb_diagnostic,list_param=list_param_raster_from_tb)
-r_mod1_rmse <- stack(l_rast)
+r_mod2_rmse <- stack(l_rast)
 list_param_raster_from_tb$var_selected <- "n"
 l_rast_n<- lapply(1:length(l_date_selected),FUN=create_raster_from_tb_diagnostic,list_param=list_param_raster_from_tb)
-r_mod1_n <- stack(l_rast_n)
+r_mod2_n <- stack(l_rast_n)
 
+#r_mod2_n <- stack(list.files(pattern="r_nn_mod2.*.rst"))
+#r_mod1_n <- stack(list.files(pattern="r_nn_mod1.*.rst"))
 
+l_rast_n[[1]]
+#"./r_nn_mod2_20101231_run7_global_analyses_10042014.rst"
+
+# Create a raster stack with time series tag
+r_mod2_rmse <- setZ(r_mod2_rmse, idx)
+names(r_mod2_rmse) <- l_date_selected
+r_mod2_n <- setZ(r_mod2_n, idx)
+names(r_mod2_n) <- l_date_selected
+
+writeRaster(r_mod2_n,by=F)
+
+levelplot(r_mod2_rmse,layers=1:12,panel=panel.levelplot.raster, col.regions=matlab.like(25))+p_shp
+
+p_hist <- histogram(r_mod2_rmse,FUN=as.yearmon)
+p_hist2 <- p_hist
+print(p_hist)
+p_hist$x.limits <- rep(list(c(-2,6)),12)
+print(p_hist)
+p_bw <- bwplot(r_mod2_rmse,FUN=as.yearmon)
+print(p_bw)
+p_bw2 <- p_bw
+p_bw2$y.limits <- c(-2,6)
+print(p_bw2)
+r_mod2_rmse_m <- zApply(r_mod2_rmse,by=as.yearmon,fun="mean")
+p_lev_rmse_m <- levelplot(r_mod2_rmse_m,panel=panel.levelplot.raster,col.regions=matlab.like(25)) + p_shp
+print(p_lev_rmse_m)
+
+## analysis of the daily nmber of validation stations per tile
+r_mod2_n_m <- zApply(r_mod2_n,by=as.yearmon,fun="mean")
+p_lev_n_m <- levelplot(r_mod2_n_m,panel=panel.levelplot.raster,col.regions=matlab.like(25))+p_shp
+print(p_lev_n_m)
+
+p_bw_n2 <- bwplot(r_mod2_n,FUN=as.yearmon,do.out=F)
+print(p_bw_n)
+p_bw_n$y.limits <- c(0,16)
+print(p_bw_n)
+p_ho <- hovmoller(r_mod2_rmse)
+
+p_lev_n <- levelplot(r_mod2_n,layers=1:12,panel=panel.levelplot.raster, col.regions=matlab.like(25))+p_shp
+
+print(p_lev_n)
+
+### mod1
+
+#as(r_mod2_rmse)
 
 #Make this a function...
 #test <- subset(tb,pred_mod=="mod1" & date=="20100101",select=c("tile_id","n","mae","rmse","me","r","m50"))
@@ -807,58 +894,44 @@ for (i in 1:length(list_date_selected)){
 }
 
 
-dd <- merge(df_tile_processed,pred_data_month_info,by="tile_id")
-coordinates(dd) <- c(dd$x,dd$y)
+# dd <- merge(df_tile_processed,pred_data_month_info,by="tile_id")
+# coordinates(dd) <- c(dd$x,dd$y)
+# 
 
-## Make this a function later...
-list_shp_tmp <- vector("list",length(shps_tiles))
-for(i in 1:length(shps_tiles)){
-  #test=spRbind(shps_tiles[[1]],shps_tiles[[2]])
-  shp1 <- shps_tiles[[i]]
+######################
+### Figure 9: Plot the number of stations in a processing tile
 
-  ID_str <- unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]
-  shp1$FID <- ID_str
-  shp1<- spChFIDs(shp1, as.character(shp1$FID)) #assign ID
-  list_shp_tmp[[i]]  <-shp1
-}
+## Get ID from tile number...
+#ID_str <- unlist(lapply(1:nrow(df_tile_processed),function(i){unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]}))
 
-combined_shp <- list_shp_tmp[[1]]
-for(i in 2:length(list_shp_tmp)){
-  combined_shp <- rbind(combined_shp,list_shp_tmp[[i]])
-  #sapply(slot(shps_tiles[[2]], "polygons"), function(x) slot(x, "ID"))
-  #rownames(as(alaska.tract, "data.frame"))
-}
-
-combined_shp$tile_id <- df_tile_processed$tile_id
+#combined_shp$tile_id <- df_tile_processed$tile_id
  
-test <- combined_shp
-test2 <- merge(test,pred_data_month_info, by="tile_id")
+#r <- raster(lf_pred_list[i])
 
-r <- raster(lf_pred_list[i])
+#plot(combined_shp)
 
-plot(combined_shp)
-# polygons
-plot(combined_shp, col = fillColour, border = outlineColour)
+#p0 <- spplot(combined_shp, "Stations",col.regions=matlab.like(100))
+#p1 <- spplot(usa_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+#p2 <- spplot(can_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+#p3 <- spplot(mex_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
 
-p0 <- spplot(combined_shp, "Stations",col.regions=matlab.like(100))
-p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-p0 +p1
+#p0 +p1+p2+p3
 
 ### Now plot number of training for monthly data
 
-df_dat <- subset(pred_data_month_info, pred_mod == "mod1" & date =="20100115")
+#df_dat <- subset(pred_data_month_info, pred_mod == "mod1" & date =="20100115")
 #shp_dat <-merge(combined_shp,df_dat,by="tile_id")
-shp_dat <-merge(x=combined_shp,y=df_dat,by="tile_id",all.x=T) #if tile is missing then add rows with NA
+#shp_dat <-merge(x=combined_shp,y=df_dat,by="tile_id",all.x=T) #if tile is missing then add rows with NA
 #shp_dat <- merge(shp_dat,df_tile_processed,by="tile_id")
 #coordinates(shp_dat) <- cbind(shp_dat$lon,shp_dat$lat) 
 #proj4string(shp_dat) <- CRS_WGS84
   
 #test <- overlay(combined_shp,shp_dat)
-pol <- SpatialPolygons(combined_shp@polygons,proj4string=CRS(CRS_WGS84))
-spp <- SpatialPolygonsDataFrame(pol,data=shp_dat)
+#pol <- SpatialPolygons(combined_shp@polygons,proj4string=CRS(CRS_WGS84))
+#spp <- SpatialPolygonsDataFrame(pol,data=shp_dat)
 
-p0 <- spplot(spp, "n_mod",col.regions=matlab.like(100))
-p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-p0 +p1
+#p0 <- spplot(spp, "n_mod",col.regions=matlab.like(100))
+#p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
+#p0 + p1 + p2 + p3
 
 ##################### END OF SCRIPT ######################
