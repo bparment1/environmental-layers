@@ -5,7 +5,7 @@
 #Functions used in the production of figures and data for the multi timescale paper are recorded.
 #AUTHOR: Benoit Parmentier                                                                      #
 #DATE CREATED: 11/25/2013            
-#DATE MODIFIED: 08/12/2014            
+#DATE MODIFIED: 10/06/2014            
 #Version: 5
 #PROJECT: Environmental Layers project                                       #
 #################################################################################################
@@ -30,7 +30,7 @@ library(plyr)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper <-"multi_timescales_paper_interpolation_functions_05052014.R"
+function_analyses_paper <-"multi_timescales_paper_interpolation_functions_10062014.R"
 
 create_dir_fun <- function(out_dir,out_suffix){
   if(!is.null(out_suffix)){
@@ -122,11 +122,13 @@ plot_transect_m2<-function(list_trans,r_stack,title_plot,disp=FALSE,m_layers){
       m<-match(k,m_layers)
       
       if (k==1 & is.na(m)){
+        par(mar = c(5,5,2,5)) #added 10/06
         plot(x,y,type="l",xlab="transect distance from coastal origin (km)", ylab=" maximum temperature (degree C)",
              ylim=y_range,cex=1.2,col=t_col[k])
         #axis(2)
       }
       if (k==1 & !is.na(m)){ #if layer sc (i.e. ellevation then plot on another scale)
+        par(mar = c(5,5,2,5))
         plot(x,y,type="l",col=t_col[k],lty="dotted",axes=F) #plotting fusion profile
         #axis(4,xlab="",ylab="elevation(m)")  
         axis(4,cex=1.2)
@@ -138,6 +140,7 @@ plot_transect_m2<-function(list_trans,r_stack,title_plot,disp=FALSE,m_layers){
       }
       if (k!=1 & !is.na(m)){
         par(new=TRUE)              # key: ask for new plot without erasing old
+        par(mar = c(5,5,2,5)) #adjust margin to give space for right side labels for axes
         plot(x,y,type="l",col=t_col[k],xlab="",ylab="",lty="dotted",axes=F) #plotting fusion profile
         #axis(4,xlab="",ylab="elevation(m)")  
         axis(4,cex=1.2)
@@ -148,6 +151,7 @@ plot_transect_m2<-function(list_trans,r_stack,title_plot,disp=FALSE,m_layers){
            cex=1.2, col=t_col,lty=1,bty="n")
     legend("topright",legend=names(r_stack)[m_layers], 
            cex=1.2, col=t_col[3],lty="dotted",bty="n")
+    mtext(side = 4, line = 3, "Elevation (m)")
     if (disp==TRUE){
       savePlot(file=paste(list_trans[[i]][2],".png",sep=""),type="png")
     }
@@ -656,8 +660,15 @@ plot_MAE_per_station_fun <- function(list_data_v,names_var,interp_method,var_bac
     p1 <- levelplot(var_background,scales = list(draw = FALSE), colorkey = FALSE,par.settings = GrTheme)
     df_tmp=subset(data_v_mae,data_v_mae[[res_model_name]]!="NaN")
   
-    p2 <- bubble(df_tmp,res_model_name, main=paste("Average MAE per station for ",model_name," ",interp_method, sep=""),
-               na.rm=TRUE)
+    #p2 <- bubble(df_tmp,res_model_name, main=paste("Average MAE per station for ",model_name," ",interp_method, sep=""),
+    #          na.rm=TRUE)
+    temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
+    p2<- spplot(df_tmp[res_model_name],col.regions=temp.colors(5),
+                main=list(label=paste("Average MAE per station for ",model_name," ",interp_method, sep=""),cex=1.5),
+                cex=sqrt(1:5)*1.5,key.space="right", 
+                auto.key=list(space = "right", cex=1.1,font=2))#,
+                #na.rm=T)
+    
     p3 <- p2 + p1 + p2 #to force legend...
     list_p_mae[[k]] <- p3
     
