@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data for the  paper are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2013  
-#MODIFIED ON: 08/12/2014            
+#MODIFIED ON: 10/06/2014            
 #Version: 6
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -42,7 +42,7 @@ library(colorRamps)
 #### FUNCTION USED IN SCRIPT
 
 function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
+function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_10062014.R"
 
 ##############################
 #### Parameters and constants  
@@ -111,7 +111,7 @@ names(list_raster_obj_files)<- c("gam_daily","kriging_daily","gwr_daily_a","gwr_
                                  "gam_fss","kriging_fss","gwr_fss")
 
 y_var_name <- "dailyTmax"
-out_prefix<-"analyses_08112014"
+out_prefix<-"analyses_10062014"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_multitime_scale__analyses_tables"
 create_out_dir_param = TRUE
 
@@ -127,6 +127,8 @@ if(create_out_dir_param==TRUE){
 infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
 met_stations_outfiles_obj_file<-"/data/project/layers/commons/data_workflow/output_data_365d_gam_fus_lst_test_run_07172013/met_stations_outfiles_obj_gam_fusion__365d_gam_fus_lst_test_run_07172013.RData"
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+
 ref_rast_name<- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/mean_day244_rescaled.rst"                     #This is the shape file of outline of the study area. #local raster name defining resolution, exent, local projection--. set on the fly??
 infile_reg_outline <- "/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/OR83M_state_outline.shp"  #input region outline defined by polygon: Oregon
 ref_rast_name <-"/data/project/layers/commons/data_workflow/inputs/region_outlines_ref_files/mean_day244_rescaled.rst"  #local raster name defining resolution, exent: oregon
@@ -370,7 +372,7 @@ print(table6) #show resulting table
 file_name<-paste("table6_correlation_multi_timescale_paper","_",out_prefix,".txt",sep="")
 write.table(table6,file=file_name,sep=",")
 
-### Additiona information:
+### Additional information:
 
 #model with LST and elev
 raster_obj <- load_obj(list_raster_obj_files$gam_CAI)
@@ -402,23 +404,61 @@ for(i in 1:3){
   list_tb_mod_month[[i]] <-  test
 
 }
-
+names(list_tb_mod_month) <- interp_method_selected
+list_formulas
 list_tb_mod_month[[1]][,c(3,6,7)]
 list_tb_mod_month[[2]][,c(3,6,7)]
 list_tb_mod_month[[3]][,c(3,6,7)]
 #xyplot(test)
 
-list_tb_mod_month[[1]][,c(6,7)]-list_tb_mod_month[[1]][,c(3)]
-list_tb_mod_month[[2]][,c(6,7)]-list_tb_mod_month[[1]][,c(3)]
-list_tb_mod_month[[3]][,c(6,7)]-list_tb_mod_month[[1]][,c(3)]
+rmse_dif_gam_CAI <- list_tb_mod_month[[1]][,c(6,7)]-list_tb_mod_month[[1]][,c(3)]
+rmse_dif_kriging_CAI <- list_tb_mod_month[[2]][,c(6,7)]-list_tb_mod_month[[2]][,c(3)]
+rmse_dif_gwr_CAI <- list_tb_mod_month[[3]][,c(6,7)]-list_tb_mod_month[[3]][,c(3)]
 
-#model with lev only
-tb1_mod1_month <- raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
+rmse_dif_gam_CAI$interp_method  <- interp_method_selected[1]
+rmse_dif_kriging_CAI$interp_method  <- interp_method_selected[2]
+rmse_dif_gwr_CAI$interp_method  <- interp_method_selected[3]
 
-tb1_mod1_month<-raster_prediction_obj_1$summary_month_metrics_v[[1]] #note that this is for model1
-rmse_dif <- (tb1_mod4_month$rmse) - tb1_mod1_month$rmse
-plot(rmse_dif)
+mydata <- do.call(rbind,list(rmse_dif_gam_CAI,rmse_dif_kriging_CAI,rmse_dif_gwr_CAI))
+dd <- do.call(make.groups, mydata[,-ncol(mydata)]) 
+dd$interp_method <- mydata$interp_method
+dd$month <- 1:12
 
+layout_m<-c(1,3) #one row two columns
+
+png(paste("Figure_11_improvement_dure to LST and models_tmax_prediction_",out_prefix,".png", sep=""),
+    height=500*layout_m[1],width=500*layout_m[2])
+
+p<-xyplot(data ~ month | interp_method, groups=which,dd,type="b",
+          par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
+                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+          #strip=strip.custom(factor.levels=names_layers),
+          xlab=list(label="Month", cex=2,font=2),
+          ylab=list(label="difference to mod3", cex=2, font=2),
+          auto.key=list(columns=2,space="top",cex=2.5,font=2),
+          
+          #list(label="\u0394RMSE between mod1 and mod4",cex=1.5)
+          as.table=TRUE) #as.table controls the order  of the pannels!!
+p <- update(p, panel = function(...) {
+            panel.abline(h = 0, lty = 2, col = "gray")
+            panel.xyplot(...)
+        })
+print(p)
+
+#p_dif <- xyplot(rmse_dif ~ 1:12,
+#          col=c("black"),
+#          type="b",
+#          ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
+#          xlab=list(label="Month",cex=1.5),
+#          main=list(label="(b) Monthly \u0394RMSE betwen mod1 and mod4",cex=1.8),
+#          par.settings = list(axis.text = list(font = 2, cex = 1.3),
+#          par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5))
+#p_dif <- update(p_dif, panel = function(...) {
+#            panel.abline(h = 0, lty = 2, col = "gray")
+#            panel.xyplot(...)
+#        })
+
+dev.off()
 
 #######################################################
 ####### PART 2: generate figures for paper #############
@@ -680,7 +720,7 @@ nb_fig<- c("4a","4b")
 list_plots_spt <- vector("list",length=length(lf))
 for (i in 1:length(lf)){
   pred_temp_s <-stack(lf[[i]])
-
+  pred_temp_s <- projectRaster(pred_temp_s,crs=CRS_WGS84)
   #lf2 <- raster_prediction_obj_2$method_mod_obj[[index]][[y_var_name]]
   #lf2 #contains the models for gam
 
@@ -699,16 +739,23 @@ for (i in 1:length(lf)){
   #temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
   #temp.colors <- matlab.like(no_brks)
   temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
+  #temp.colors <- colorRampPalette(c('khaki', 'darkred'))
   
   png(paste("Figure_",nb_fig[i],"_spatial_pattern_tmax_prediction_models_gam_levelplot_",date_selected,out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
 
-  p <- levelplot(pred_temp_s,main=methods_names[i], 
+  p <- levelplot(pred_temp_s,main=paste(methods_names[i],"temperature (°C)",sep=" "), 
                  ylab=NULL,xlab=NULL,
           par.settings = list(axis.text = list(font = 2, cex = 2),layout=layout_m,
-                              par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),par.strip.text=list(font=2,cex=2),
+                              par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),
+          par.strip.text=list(font=2,cex=2),
           names.attr=names_layers,
-                 col.regions=temp.colors(no_brks),at=seq(min_val,max_val,by=0.1))
+          col.regions=temp.colors(no_brks),
+          at=seq(min_val,max_val,by=0.1),
+          colorkey = list(space = "right",legend),
+          #main = "Temp (C)"
+          )
+
   #col.regions=temp.colors(25))
   print(p)
   dev.off()
@@ -913,9 +960,9 @@ p1 <- list_plot_std_moranI[[2]][[1]] #moran I for gam CAI
 p2 <- list_plot_std_moranI[[2]][[2]] #std for gam CAI
 
 p1$main <- "Moran I in daily predictions averaged by month"
-p2$main <- "Standard devation in daily predictions averaged by month"
-p3$main <- "Moran I devation in daily predictions average by month"
-p4$main <- "Standard devation in daily predictions average by month"
+p2$main <- "Standard deviation in daily predictions averaged by month"
+p3$main <- "Moran I in daily predictions averaged by month"
+p4$main <- "Standard deviation in daily predictions averaged by month"
 
 p1$legend$right$args$title <- "gam_CAI"
 p2$legend$right$args$title <- "gam_CAI"
@@ -941,7 +988,7 @@ lf_clim_gam_CAI <-extract_list_from_list_obj(load_obj(list_raster_obj_files[["ga
 index <- 289
 temp_day_s <- stack(lf_clim_gam_CAI[[index]]$mod7,lf_delta_gam_CAI[[index]]$mod7,lf_daily_gam_CAI[[index]]$mod7)
 names(temp_day_s) <- c("Monhtly Climatology","Daily Devation","Daily Prediction")
-
+temp_day_s <- projectRaster(temp_day_s,crs=CRS_WGS84)
 
 no_brks=25
 temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
@@ -955,7 +1002,8 @@ for(i in 1:length(names_layers)){
                  ylab=NULL,xlab=NULL,
                  par.settings = list(axis.text = list(font = 2, cex = 1.5),
                               par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),par.strip.text=list(font=2,cex=2),
-                 main=names_layers[i],col.regions=temp.colors(no_brks))
+                 main=paste(names_layers[i],"temp. (°C)",sep=" "),
+                 col.regions=temp.colors(no_brks))
   
   png(paste("Figure",fig_nb[i],"_paper_climatology_daily_deviation_daily_prediction_model7_levelplot_",out_prefix,".png", sep=""),
     height=480*1,width=480*1)
@@ -1019,9 +1067,12 @@ year_nbs <- sapply(list_data_month_s,FUN=length) #number of observations per mon
 data_month_all <-convert_spdf_to_df_from_list(list_data_month_s) #long rownames
 #LSTD_bias_avgm<-aggregate(LSTD_bias~month,data=data_month_all,mean)
 #LSTD_bias_sdm<-aggregate(LSTD_bias~month,data=data_month_all,sd)
-LST_avgm <- aggregate(LST~month,data=data_month_all,mean)
 LST_avgm_min <- aggregate(LST~month,data=data_month_all,min)
 LST_avgm_max <- aggregate(LST~month,data=data_month_all,max)
+TMax_avgm_min <- aggregate(TMax~month,data=data_month_all,min)
+TMax_avgm_max <- aggregate(TMax~month,data=data_month_all,max)
+
+LST_avgm <- aggregate(LST~month,data=data_month_all,mean)
 TMax_avgm <- aggregate(TMax~month,data=data_month_all,mean)
 
 #plot(LST_avgm,type="b")
@@ -1031,19 +1082,30 @@ TMax_avgm <- aggregate(TMax~month,data=data_month_all,mean)
 statistics_LST_s<- LST_stat$avg #extracted earlier!!!
 
 ##Now plot Figure 8a
-plot(TMax_avgm,type="b",ylim=c(-10,50),col="red",xlab="month",
-     ylab="tmax (degree C)",cex=2,cex.lab=1.5) #,cex.axis=1.8)
-lines(1:12,LST_avgm$LST,type="b",col="green",lty="dashed",pch=2,cex=2)
+plot(TMax_avgm,type="b",ylim=c(-10,50),col="red",lty="dotted",xlab="month",
+     ylab="tmax (degree C)",pch=2,cex=2,cex.lab=1.5) #,cex.axis=1.8)
+
+lines(1:12,TMax_avgm_min$TMax,type="b",col="red",lty="dotted",pch=3,cex=2)
+lines(1:12,TMax_avgm_max$TMax,type="b",col="red",lty="dotted",pch=5,cex=2)
+
+lines(1:12,LST_avgm$LST,type="b",col="blue",lty="dashed",pch=2,cex=2)
 #lines(1:12,statistics_LST_s$mean,type="b",col="darkgreen")
-lines(1:12,LST_avgm_min$LST,type="b",col="black",lty="dashed",pch=3,cex=2)
-lines(1:12,LST_avgm_max$LST,type="b",col="black",lty="dashed",pch=4,cex=2)
+lines(1:12,LST_avgm_min$LST,type="b",col="blue",lty="dashed",pch=3,cex=2)
+lines(1:12,LST_avgm_max$LST,type="b",col="blue",lty="dashed",pch=5,cex=2)
+
 #text(1:12,LST_avgm$LST,month.abb,cex=0.8,pos=2)
-legend("topleft",legend=c("TMax","LST","LST min","LST max"), cex=1.5, 
-       col=c("red","green","black","black"),
-              lty=c("solid","dashed","dashed","dashed"),pch=1:4,bty="n")
-#legend("topright",legend=c("TMax","LST","LST min","LST max"), cex=1.5, 
+#legend("topleft",legend=c("TMax_avg","LST_avg","LST_min","LST_max"), cex=1.5, 
 #       col=c("red","green","black","black"),
 #              lty=c("solid","dashed","dashed","dashed"),pch=1:4,bty="n")
+legend("topright",legend=c("LST_mean","LST_min","LST_max"), cex=1.5, 
+       col=c("blue","blue","blue"),
+              lty=c("dashed","dashed","dashed"),
+       pch=c(2,3,5),bty="n")
+legend("topleft",legend=c("TMax_mean","TMax_min","TMax_max"), cex=1.5, 
+       col=c("red","red","red"),
+              lty=c("dotted","dotted","dotted"),
+       pch=c(2,3,5),bty="n")
+
 title("Monthly average LST and tmax at stations in Oregon",cex=2.4)           
 
 ##############################
@@ -1060,16 +1122,34 @@ LST_avgm_forest <-aggregate(LST~month,data=data_month_all_forest,mean)
 LST_avgm_grass <-aggregate(LST~month,data=data_month_all_grass,mean)
 LST_avgm_urban <-aggregate(LST~month,data=data_month_all_urban,mean)
 
+TMax_avgm_forest <-aggregate(TMax~month,data=data_month_all_forest,mean)
+TMax_avgm_grass <-aggregate(TMax~month,data=data_month_all_grass,mean)
+TMAx_avgm_urban <-aggregate(TMax~month,data=data_month_all_urban,mean)
+
 ##Now plot Figure 8b
 plot(TMax_avgm,type="b",ylim=c(-7,50),col="red",xlab="month",
-     ylab="tmax (degree C)",cex=2,cex.lab=1.5)#,cex.axis=1.8)
-lines(1:12,LST_avgm$LST,type="b",col="green",lty="dashed",pch=2,cex=2)
-lines(LST_avgm_forest,type="b",col="black",lty="dotted",pch=3,cex=2)
-lines(LST_avgm_grass,type="b",col="black",lty="dotdash",pch=4,cex=2)
+     ylab="tmax (degree C)",pch=2,cex=2,cex.lab=1.5,lty="dashed")#,cex.axis=1.8)
+lines(TMax_avgm_forest,type="b",col="red",lty="dashed",pch=3,cex=2)
+lines(TMax_avgm_grass,type="b",col="red",lty="dashed",pch=5,cex=2)
+
+lines(1:12,LST_avgm$LST,type="b",col="blue",lty="dotted",pch=2,cex=2)
+lines(LST_avgm_forest,type="b",col="blue",lty="dotted",pch=3,cex=2)
+lines(LST_avgm_grass,type="b",col="blue",lty="dotted",pch=5,cex=2)
 #lines(LST_avgm_urban,type="b",col="black",lty="longdash",pch=4)
-legend("topleft",legend=c("TMax","LST","LST_forest","LST_grass"), cex=1.5, 
-       col=c("red","green","black","black","black"),
-       lty=1:4,pch=1:4,bty="n")
+#legend("topleft",legend=c("TMax","LST","LST_forest","LST_grass"), cex=1.5, 
+#       col=c("red","green","black","black","black"),
+#       lty=1:4,pch=1:4,bty="n")
+
+legend("topleft",legend=c("TMax_mean","TMax_forest","TMax_grass"), cex=1.5, 
+       col=c("red","red","red"),
+              lty=c("dotted","dotted","dotted"),
+       pch=c(2,3,5),bty="n")
+
+legend("topright",legend=c("LST_mean","LST_forest","LST_grass"), cex=1.5, 
+       col=c("blue","blue","blue"),
+              lty=c("dashed","dashed","dashed"),
+       pch=c(2,3,5),bty="n")
+
 title("Monthly average LST and land cover types for stations ",cex=2.4)
        
 ########################################
@@ -1089,7 +1169,7 @@ r_tmp2 <-stack(LST_s,LC1)
 names(r_tmp2) <- c("mm_01","mm_02","mm_03","mm_04","mm_05","mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12","LC1")
 x_cor_tmp2 <-layerStats(r_tmp2,stat="pearson",na.rm=T)
 
-##Now plot Figure 8d
+##Now plot Figure 8c
 plot(1:12,x_cor_tmp1[[1]][1:12,13],ylim=c(-0.9,0.9),
      type="b",lty="solid",pch=1,
      ylab="Pearson corelation",xlab="month",
@@ -1133,20 +1213,25 @@ dev.off()
 
 lst_md <- raster(ref_rast_name)
 projection(lst_md)<-projection(s_raster)
-lst_mm_09<-subset(s_raster,"mm_09")
+lst_mm_09 <-subset(s_raster,"mm_09")
+lst_mm_09 <- projectRaster(lst_mm_09,crs=CRS_WGS84)
 
 lst_md<-raster(ref_rast_d001)
+projection(lst_md) <- proj4string(elev)
+lst_md <- projectRaster(lst_md,crs=CRS_WGS84)
+
 lst_md<- lst_md - 273.16
 lst_mm_01<-subset(s_raster,"mm_01")
+lst_mm_01 <- projectRaster(lst_mm_01,crs=CRS_WGS84)
 
 png(filename=paste("Figure_annex1_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=960,height=480)
 par(mfrow=c(1,2))
 plot(lst_md)
-plot(interp_area,add=TRUE)
-title("Mean for January 1")
+plot(interp_area_WGS84,add=TRUE)
+title("Mean temperature (°C) for January 1")
 plot(lst_mm_01)
-plot(interp_area,add=TRUE)
-title("Mean for month of January")
+plot(interp_area_WGS84,add=TRUE)
+title("Mean temperature (°C) for month of January")
 dev.off()
 
 ############################################
@@ -1156,20 +1241,31 @@ dev.off()
 layout_m<-c(1,1)
 png(paste("Figure_annex2_paper_elevation_transect_paths_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-vx_text <- c(395770.1,395770.1,395770.1) #location of labels
-vy_text  <-c(473000,297045.9,112611.5)
-
-plot(elev)
+#vx_text <- c(395770.1,395770.1,395770.1) #location of labels
+#vy_text  <-c(473000,297045.9,112611.5)
+vx_text <- c(-122,-122,-122)
+vy_text <- c(45.9,44.4,42.7)
+  
+#plot(elev)
+#plot(elev_WGS84,cex.axis=2.1,cex.z=2.1)
+plot(elev_WGS84,cex.axis=1.4,ylab="latitude (degree)",xlab="longitude (degree)",
+     cex.lab=1.4,
+     axis.args=list(at=seq(0,3500,500),
+               labels=seq(0, 3500, 500), 
+               cex.axis=1.4))
+title_text <-c("Elevation (m) and spatial transects"," in Oregon")
+title(title_text)
 for(i in 1:length(transect_list)){
   filename<-sub(".shp","",transect_list[i])             #Removing the extension from file.
   transect<-readOGR(dirname(filename), basename(filename))                 #reading shapefile 
+  transect<- spTransform(transect,CRS=CRS_WGS84)
   #transect2 <- elide(transect, shift=c(0, -24000))
   #plot(transect2,add=TRUE)
   #writeOGR(transect2,dsn=".",layer="transect_OR_1_12282013",driver="ESRI Shapefile")
   plot(transect,add=TRUE)
 }
 text(x=vx_text,y=vy_text,labels=c("Transect 1","Transect 2","Transect 3"))
-title("Transect Oregon")
+#title("Transects in Oregon with elevation (m) in the background")
 dev.off()
 
 ##############################
@@ -1248,8 +1344,8 @@ m_layers_sc<-c(4) #elevation in the third layer
 trans_data2 <- plot_transect_m2(list_transect2,rast_pred2,title_plot2,disp=FALSE,m_layers_sc)
 trans_data3 <- plot_transect_m2(list_transect3,rast_pred3,title_plot2,disp=FALSE,m_layers_sc)
 
-         
-### REVISIONS 1 PAPER #####
+##############################         
+#######  REVISIONS 1 PAPER #####
 
 ## DATA INFORMATION ON STATIONS
 
@@ -1280,7 +1376,8 @@ hist(dsts_nb1)
 
 p <- histogram(dsts_nb1)
 
-hist(ghcnd_day_dat$elev_s)
+hist(ghcn_day_dat$elev_s)
+histogram(ghcn_day_dat$elev_s)
 
 mean(ghcn_day_dat)
 unique(ghcn_day_dat$date) #
@@ -1288,6 +1385,7 @@ tb_n_day <- as.data.frame(table(ghcn_day_dat$date)) #find the number of observat
 hist(table(ghcn_day_dat$date))
 range(tb_n_day$Freq) #range 134 to 159
 median(tb_n_day$Freq) #range 134 to 159
+mean(tb_n_day$Freq) #range 134 to 159
 
 
 ## EXAMINE MONTHLY DAta
@@ -1342,7 +1440,8 @@ write.table(table8_paper,file=file_name,sep=",",row.names=F)
 #                                 "gam_CAI","kriging_CAI","gwr_CAI",
 #                                 "gam_fss","kriging_fss","gwr_fss")
 
-list_data_v <-lapply(list_raster_obj_files[5:7],FUN=function(x){x<-load_obj(x);extract_list_from_list_obj(x$validation_mod_obj,"data_v")})                           
+#get data for gam_CAI,kriging_CAI, gwr_CAI
+list_data_v_all <-lapply(list_raster_obj_files[5:7],FUN=function(x){x<-load_obj(x);extract_list_from_list_obj(x$validation_mod_obj,"data_v")})                           
 #list_data_s <-lapply(list_raster_obj_files[5:7],FUN=function(x){x<-load_obj(x);extract_list_from_list_obj(x$validation_mod_obj,"data_s")})                           
 
 met_obj <-load_obj(file.path(in_dir1,met_obj_file_1))
@@ -1357,6 +1456,8 @@ names_var <- c("mod1","mod2","mod3","mod4","mod5","mod6","mod7")
 interp_method <- "gam_CAI"
 list_data_v <- list_data_v_all$gam_CAI
 data_mae_gam_CAI_obj  <- plot_MAE_per_station_fun(list_data_v,names_var,interp_method,var_background,stat_loc,out_suffix)
+#debug(plot_MAE_per_station_fun)
+#data_mae_gam_CAI_obj  <- plot_MAE_per_station_fun(list_data_v,names_var,interp_method,var_background,stat_loc,out_suffix)
 
 interp_method <- "kriging_CAI"
 list_data_v <- list_data_v_all$kriging_CAI
@@ -1371,30 +1472,63 @@ data_mae_gwr_CAI_obj  <- plot_MAE_per_station_fun(list_data_v,names_var,interp_m
 
 list_p_mae <- data_mae_gam_CAI_obj$list_p_mae
 interp_method <- "gam_CAI"
-layout_m<-c(1,4) # works if set to this?? ok set the resolution...
+#layout_m<-c(1,4) # works if set to this?? ok set the resolution...
+#layout_m<-c(4,1) # works if set to this?? ok set the resolution...
 
-png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
+#This is for model  1, model2, mod3 and mod
+#png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
+#    height=480*layout_m[1],width=480*layout_m[2])
+#grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=1)
+#dev.off()   
+
+#This is for model  1, model2, mod3 and mod7
+
+layout_m<-c(1,3) # works if set to this?? ok set the resolution...
+
+png(paste("Figure10_paper_","average_MAE_","mod1_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
+grid.arrange(data_mae_gam_CAI_obj$list_p_mae[[1]],data_mae_kriging_CAI_obj$list_p_mae[[1]],data_mae_gwr_CAI_obj$list_p_mae[[1]]
+             , ncol=3)
 dev.off()   
 
-list_p_mae <- data_mae_kriging_CAI_obj$list_p_mae
-layout_m<-c(1,4) # works if set to this?? ok set the resolution...
-interp_method <- "kriging_CAI"
-
-png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
+#This is for model  1, model2, mod3 and mod
+png(paste("Figure10_paper_","average_MAE_","mod2_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
+grid.arrange(data_mae_gam_CAI_obj$list_p_mae[[2]],data_mae_kriging_CAI_obj$list_p_mae[[2]],data_mae_gwr_CAI_obj$list_p_mae[[2]]
+             , ncol=3)
 dev.off()   
 
-list_p_mae <- data_mae_gwr_CAI_obj$list_p_mae
-layout_m<-c(1,4) # works if set to this?? ok set the resolution...
-interp_method <- "gwr_CAI"
-
-png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
+#This is for model  1, model2, mod3 and mod
+png(paste("Figure10_paper_","average_MAE_","mod3_",out_prefix,".png", sep=""),
     height=480*layout_m[1],width=480*layout_m[2])
-grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
+grid.arrange(data_mae_gam_CAI_obj$list_p_mae[[3]],data_mae_kriging_CAI_obj$list_p_mae[[3]],data_mae_gwr_CAI_obj$list_p_mae[[3]]
+             , ncol=3)
 dev.off()   
+
+#This is for model  1, model2, mod3 and mod
+png(paste("Figure10_paper_","average_MAE_","mod7_",out_prefix,".png", sep=""),
+    height=480*layout_m[1],width=480*layout_m[2])
+grid.arrange(data_mae_gam_CAI_obj$list_p_mae[[7]],data_mae_kriging_CAI_obj$list_p_mae[[7]],data_mae_gwr_CAI_obj$list_p_mae[[7]]
+             , ncol=3)
+dev.off()   
+
+#list_p_mae <- data_mae_kriging_CAI_obj$list_p_mae
+#layout_m<-c(1,4) # works if set to this?? ok set the resolution...
+#interp_method <- "kriging_CAI"
+
+#png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
+#    height=480*layout_m[1],width=480*layout_m[2])
+#grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
+#dev.off()   
+
+#list_p_mae <- data_mae_gwr_CAI_obj$list_p_mae
+#layout_m<-c(1,4) # works if set to this?? ok set the resolution...
+#interp_method <- "gwr_CAI"
+
+#png(paste("Figure10_paper_","average_MAE_",interp_method,out_prefix,".png", sep=""),
+#    height=480*layout_m[1],width=480*layout_m[2])
+#grid.arrange(list_p_mae[[1]],list_p_mae[[2]],list_p_mae[[3]],list_p_mae[[7]], ncol=4)
+#dev.off()   
 
 #####
 ## MAE Histogram plots: Show histo for mod1,mod2,mod3 and mod7 for gam, kriging and  gwr
@@ -1502,3 +1636,19 @@ dev.off()
 ###
 
 
+#http://www.carlislerainey.com/2012/12/28/how-to-add-an-extra-vertical-axis-to-r-plots/
+# I make the following changes.
+# 
+# 1)  Adjust the mar option in the graphical parameters to give me a little more room for constructing the vertical axis on the right side.
+# 2)  Add the xlab="x" argument to the first plot() function call. This improves the label of the vertical axis on the left.
+# 3)  Add the axes = F, xlab = NA, and ylab = NA arguments to the second plot() function call. This removes all the axes and axis notation from this call.
+# 4)  Add the vertical axis on the right with a simple call to the axis() function and setting side = 4.
+# 5)  Add a label to the vertical axis on the right with the mtext() command. Use the options side = 4 and line = 3 to position the text "y" correctly.
+
+#Adding right side label
+#par(mar = c(5,5,2,5))
+#plot(ts(x), ylab = "x")
+#par(new = T)
+#plot(ts(y), col = "red", axes = F, xlab = NA, ylab = NA)
+#axis(side = 4)
+#mtext(side = 4, line = 3, "y")
