@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 10/04/2014            
+#MODIFIED ON: 10/21/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -46,19 +46,19 @@ library(gridExtra)
 #Additional libraries not used in workflow
 library(pgirmess)                            # Krusall Wallis test with mulitple options, Kruskalmc {pgirmess}  
 library(colorRamps)
-
+  
 #### FUNCTION USED IN SCRIPT
-
+  
 function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
 function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
-
+  
 load_obj <- function(f)
 {
   env <- new.env()
   nm <- load(f, env)[1]
   env[[nm]]
 }
-
+  
 create_dir_fun <- function(out_dir,out_suffix){
   if(!is.null(out_suffix)){
     out_name <- paste("output_",out_suffix,sep="")
@@ -459,19 +459,23 @@ create_raster_prediction_obj<- function(in_dir_list,interpolation_method, y_var_
 
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output20Deg2/"
-in_dir1 <-"/nobackupp4/aguzman4/climateLayers/output20Deg_75overlap/reg4"
+#in_dir1 <-"/nobackupp4/aguzman4/climateLayers/output20Deg_75overlap/reg4"
+in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
 #/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
-in_dir_list_all <- in_dir_list
+#if(basename(in_dir_list)[[1]]=="reg?") #add later
+in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
+#in_dir_list_all <- in_dir_list
 #in_dir_list <- list.dirs(path=in_dir_reg,recursive=FALSE) #get the list of tiles/directories with outputs 
+in_dir_list <- unlist(in_dir_list_all[c(2)]) #only region 3 has informatation at this stage
 
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
-in_dir_subset <- in_dir_list[grep("subset",basename(in_dir_reg),invert=FALSE)] #select directory with shapefiles...
+in_dir_subset <- in_dir_list[grep("subset",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 in_dir_shp <- file.path(in_dir_subset,"shapefiles")
 
 #select only directories used for predictions
 in_dir_reg <- in_dir_list[grep(".*._.*.",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
-in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
+#in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
 in_dir_list <- in_dir_reg
 #Models used.
 #list_models<-c("y_var ~ s(lat,lon,k=4) + s(elev_s,k=3) + s(LST,k=3)",
@@ -493,7 +497,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run7_global_analyses_10042014"
+out_prefix<-"run8_global_analyses_10212014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -704,7 +708,7 @@ write.table((tb_diagnostic_s_NA),
 list_shp_world <- list.files(path=in_dir_shp,pattern=".*.shp",full.names=T)
 l_shp <- unlist(lapply(1:length(list_shp_world),
                        FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][3:4],collapse="_")}))
-
+l_shp <- gsub(".shp","",l_shp)
 matching_index <- match(basename(in_dir_list),l_shp)
 list_shp_reg_files <- list_shp_world[matching_index]
 df_tile_processed$shp_files <-list_shp_world[matching_index]
@@ -1004,7 +1008,8 @@ write.table(pred_data_day_info,
 ### This assumes the tree structure has been replicated on Atlas:
 #for i in 1:length(df_tiled_processed$tile_coord)
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
-output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
+#output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
+output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014"
 #Make directories on ATLAS
 #for (i in 1:length(df_tile_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
