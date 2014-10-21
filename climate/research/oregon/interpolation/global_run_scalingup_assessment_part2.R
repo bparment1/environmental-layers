@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 10/05/2014            
+#MODIFIED ON: 10/21/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 5 global using 6 specific tiles
@@ -212,10 +212,10 @@ combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
 #on ATLAS
 #in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
 #parent output dir : contains subset of the data produced on NEX
-in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
+#in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run7_global_analyses_10042014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014/"
 # input dir containing shapefiles defining tiles
 #in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
@@ -228,7 +228,7 @@ out_dir <-"/data/project/layers/commons/NEX_data/output_run7_global_analyses_100
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run7_global_analyses_10042014"
+out_prefix<-"run8_global_analyses_10212014"
 mosaic_plot <- FALSE
 
 proj_str<- CRS_WGS84
@@ -642,6 +642,20 @@ xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
                                            pred_mod!="mod_kr"),type="h")
 dev.off()
 
+table(tb$pred_mod)
+table(tb$index_d)
+table(subset(tb,pred_mod!="mod_kr"))
+table(subset(tb,pred_mod=="mod1")$index_d)
+aggregate()
+tb$predicted <- 1
+test <- aggregate(predicted~pred_mod+tile_id,data=tb,sum)
+xyplot(predicted~pred_mod | tile_id,data=subset(as.data.frame(test),
+                                           pred_mod!="mod_kr"),type="h")
+
+test
+LST_avgm_min <- aggregate(LST~month,data=data_month_all,min)
+histogram(test$predicted~test$tile_id)
+table(tb)
 ## Figure 7b
 #png(filename=paste("Figure7b_number_daily_predictions_per_models","_",out_prefix,".png",sep=""),
 #    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
