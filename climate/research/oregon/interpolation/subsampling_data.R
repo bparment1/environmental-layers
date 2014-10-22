@@ -65,33 +65,80 @@ test <- zerodist(data_month, zero = 0.0, unique.ID = FALSE)
 
 target_max_nb <- 200
 target_min_nb <- 100
-max_dist <- 10000
+max_dist <- 10
 min_dist <- 0
 step_dist <- 1000
 target_range_nb <- c(target_min_nb,target_max_nb)
 #debug(sub_sampling_by_dist)
 #First increase distance till 5km
 #then use random sampling...to get the extact target?
-test <- sub_sampling_by_dist(target_range_nb,dist=min_dist,step=step_dist,data_in=data_month)
+test <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=max_dist,step=step_dist,data_in=data_month)
+test <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=NULL,step=step_dist,data_in=data_month)
 
 dist_range <- c(0,5000) 
 
+sub_sampling_by_dist_nb_stat(target_range_nb=c(10000,10000),dist_range,data_in,sampling=T){
 
-sub_sampling_stat <- function(target_range_nb=,sampling=T)
-
-sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist=0.0,step,data_in){
+  
+sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist=0.0,max_dist=NULL,step,data_in){
   data <- data_in
   target_min_nb <- target_range_nb[1]
   station_nb <- nrow(data_in)
-  while(station_nb > target_min_nb){  #} #|| nrow > 0){
+  if(is.null(max_dist)){
+    while(station_nb > target_min_nb){
+      data <- remove.duplicates(data, zero = dist) #spatially sub sample...
+      dist <- dist + step
+      station_nb <- nrow(data)
+    }
+  }
+  if(!is.null(max_dist)){
+    while(station_nb > target_min_nb || dist < max_dist){ 
+      d#} #|| nrow > 0){
       #test <- zerodist(data, zero = 0.0, unique.ID = FALSE)
       #test <- remove.duplicates(data_month, zero = 5000)
       data <- remove.duplicates(data, zero = dist) #spatially sub sample...
       dist <- dist + step
       station_nb <- nrow(data)
+    }
   }
+  
   obj_sub_sampling <- list(data,dist)
   names(obj_sub_sampling) <- c("data","dist")
   return(obj_sub_sampling)
 }
 
+sub_sampling_by_dist_nb_stat <- function(target_range_nb=c(10000,10000),dist_range,data_in,sampling=T){
+  
+  data <- data_in
+  min_dist <- dist_range[1]
+  max_dist <- dist_range[2]
+  
+  if(sampling==T){
+    dat <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=max_dist,step=step_dist,data_in=data_month)
+    data_out <-sample(dat$data, target_range_nb[2], replace = FALSE, prob = NULL)
+    data_out <- list(data_out,dat$dist,dat$data)
+    data_out <- c("data","dist","data_dist")
+  }
+  if(sampling!=T){
+    data_out <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=NULL,step=step_dist,data_in=data_month)
+  }
+  return(data_out)
+}
+
+#sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist=0.0,step,data_in){
+#  data <- data_in
+#  target_min_nb <- target_range_nb[1]
+#  station_nb <- nrow(data_in)
+#  while(station_nb > target_min_nb){  #} #|| nrow > 0){
+#      #test <- zerodist(data, zero = 0.0, unique.ID = FALSE)
+#      #test <- remove.duplicates(data_month, zero = 5000)
+#      data <- remove.duplicates(data, zero = dist) #spatially sub sample...
+#      dist <- dist + step
+#      station_nb <- nrow(data)
+#  }
+#  obj_sub_sampling <- list(data,dist)
+#  names(obj_sub_sampling) <- c("data","dist")
+#  return(obj_sub_sampling)
+#}
+
+############ END OF SCRIPT #########
