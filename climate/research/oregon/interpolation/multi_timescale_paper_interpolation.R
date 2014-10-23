@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data for the  paper are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2013  
-#MODIFIED ON: 10/06/2014            
+#MODIFIED ON: 10/23/2014            
 #Version: 6
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -434,7 +434,7 @@ p<-xyplot(data ~ month | interp_method, groups=which,dd,type="b",
                               par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
           #strip=strip.custom(factor.levels=names_layers),
           xlab=list(label="Month", cex=2,font=2),
-          ylab=list(label="difference to mod3", cex=2, font=2),
+          ylab=list(label="\u0394RMSE from model with elevation", cex=2, font=2),
           auto.key=list(columns=2,space="top",cex=2.5,font=2),
           
           #list(label="\u0394RMSE between mod1 and mod4",cex=1.5)
@@ -772,7 +772,9 @@ png(paste("Figure4_paper_","_spatial_pattern_tmax_prediction_models_gam_levelplo
 p1 <- list_plots_spt[[1]]
 p2 <- list_plots_spt[[2]]
 #p3 <- list_plots_spt[[3]]
-
+#Modify title here...
+p1$main <- "(a) gam_daily temperature (°C)"
+p2$main <- "(b) gam_CAI temperature (°C)"
 #grid.arrange(p1,p2,p3,ncol=1)
 grid.arrange(p1,p2,ncol=1)
 
@@ -780,7 +782,7 @@ dev.off()
 
 ################################################
 #### Figure 5: Spatial lag profiles  
-#This figure is generated to show the spatial Moran'I for 10 spatial 
+#This figure is generated to show the spatial Moran'I for spatial 
 #for Jan 1 and Sept 1 in 2010 for all models (1 to 7) and methods
 
 index <- 1 #index corresponding to Jan 1 #For now create Moran's I for only one date...
@@ -866,7 +868,7 @@ list_lf_gam_daily <-extract_list_from_list_obj(load_obj(list_raster_obj_files[["
 
 nb_lag <- 10
 list_filters<-lapply(1:nb_lag,FUN=autocor_filter_fun,f_type="queen") #generate lag 10 filters
-list_param_stat_moran_CAI <- list(filter=list_filters[[10]],lf_list=list_lf_gam_CAI)
+list_param_stat_moran_CAI <- list(filter=list_filters[[10]],lf_list=list_lf_gam_CAI) #select only lag 10
 list_param_stat_moran_gam_daily <- list(filter=list_filters[[10]],lf_list=list_lf_gam_daily)
 #tt <- stat_moran_std_raster_fun(1,list_param=list_param_stat_moran)
 #tt <- mclapply(1:11, list_param=list_param_stat_moran_CAI, FUN=stat_moran_std_raster_fun,mc.preschedule=FALSE,mc.cores = 11) #This is the end bracket from mclapply(...) statement
@@ -1227,10 +1229,10 @@ lst_mm_01 <- projectRaster(lst_mm_01,crs=CRS_WGS84)
 png(filename=paste("Figure_annex1_paper_Comparison_daily_monthly_mean_lst",out_prefix,".png",sep=""),width=960,height=480)
 par(mfrow=c(1,2))
 plot(lst_md)
-plot(interp_area_WGS84,add=TRUE)
+plot(interp_area_WGS84,ylab="Latitude (degree)",xlab="Longitude (degree)",add=TRUE)
 title("Mean temperature (°C) for January 1")
 plot(lst_mm_01)
-plot(interp_area_WGS84,add=TRUE)
+plot(interp_area_WGS84,ylab="Latitude (degree)",xlab="Longitude (degree)",add=TRUE)
 title("Mean temperature (°C) for month of January")
 dev.off()
 
