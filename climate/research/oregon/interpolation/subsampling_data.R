@@ -5,7 +5,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                      
 #CREATED ON: 10/16/2014            
-#MODIFIED ON: 10/23/2014            
+#MODIFIED ON: 10/27/2014            
 #Version: 1
 #
 #PROJECT: Environmental Layers project  NCEAS-NASA
@@ -47,36 +47,43 @@ library(ncf)                                 # No paramtric covariance function
 function_analyses_paper1 <- "contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
 function_analyses_paper2 <- "multi_timescales_paper_interpolation_functions_10062014.R"
 
-sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist=0.0,max_dist=NULL,step,data_in){
+sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max_dist=NULL,step,data_in){
   #Function to select stations data that are outside a specific spatial range from each other
   #Parameters:
   #max_dist: maximum spatial distance at which to stop the pruning
   #min_dist: minimum distance to start pruning the data
   #step: spatial distance increment
+  #Note that we are assuming that the first columns contains ID with name col of "id"
 
   data <- data_in
   target_min_nb <- target_range_nb[1]
   station_nb <- nrow(data_in)
   if(is.null(max_dist)){
     while(station_nb > target_min_nb){
-      data <- remove.duplicates(data, zero = dist) #spatially sub sample...
-      dist <- dist + step
+      data <- remove.duplicates(data, zero = dist_val) #spatially sub sample...
+      dist_val <- dist_val + step
       station_nb <- nrow(data)
     }
+    #setdiff(as.character(data$id),as.character(data_in$id))
+    ind.selected <-match(as.character(data$id),as.character(data_in$id)) #index of stations row selected
+    ind.removed  <- setdiff(1:nrow(data_in), ind.selected) #index of stations rows removed 
   }
   if(!is.null(max_dist)){
     
-    while(station_nb > target_min_nb & dist < max_dist){ 
-      data <- remove.duplicates(data, zero = dist) #spatially sub sample...
-      id_rm <- zerodist(data, zero = dist, unique.ID = FALSE)
-      data_rm <- data[id_rm,]
-      dist <- dist + step
+    while(station_nb > target_min_nb & dist_val < max_dist){ 
+      data <- remove.duplicates(data, zero = dist_val) #spatially sub sample...
+      #id_rm <- zerodist(data, zero = dist_val, unique.ID = FALSE)
+      #data_rm <- data[id_rm,]
+      dist_val <- dist_val + step
       station_nb <- nrow(data)
     }
+    ind.selected <-match(as.character(data$id),as.character(data_in$id))
+    ind.removed  <- setdiff(1:nrow(data_in), ind.selected)
   }
   
-  obj_sub_sampling <- list(data,dist)
-  names(obj_sub_sampling) <- c("data","dist")
+  data_rm <- data_in[ind.removed,]
+  obj_sub_sampling <- list(data,dist_val,data_rm) #data.frame selected, minimum distance, data.frame stations removed
+  names(obj_sub_sampling) <- c("data","dist","data_rm")
   return(obj_sub_sampling)
 }
 
@@ -86,45 +93,40 @@ sub_sampling_by_dist_nb_stat <- function(target_range_nb,dist_range,data_in,samp
   min_dist <- dist_range[1]
   max_dist <- dist_range[2]
   
+  #if sampling is chosen...first run spatial selection then sampling...
   if(sampling==T){
-    dat <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=max_dist,step=step_dist,data_in=data_month)
-    ind_s1  <- sample(nrow(dat$data), size=target_range_nb[1], replace = FALSE, prob = NULL)
-    ind_s2 <- setdiff(1:nrow(dat$data), ind_s1)
-    data_out <- dat$data[ind_s1,] #selected the randomly sampled stations
-    data_removed <- dat[ind_s2,]
+    #debug(sub_sampling_by_dist)
+    dat <- sub_sampling_by_dist(target_range_nb,dist_val=min_dist,max_dist=max_dist,step=step_dist,data_in=data_month)
+    station_nb <- nrow(dat$data)
+    if (station_nb > target_min_nb){
+      ind_s1  <- sample(nrow(dat$data), size=target_range_nb[1], replace = FALSE, prob = NULL) #furhter sample
+      #ind_s2 <- setdiff(1:nrow(dat$data), ind_s1)
+      data_out <- dat$data[ind_s1,] #selected the randomly sampled stations
     
-    #Find the corresponding 
-    #data_sampled<-ghcn.subsets[[i]][ind.training,] #selected the randomly sampled stations
+      ind.selected <-match(as.character(data_out$id),as.character(data_in$id))
+      ind.removed  <- setdiff(1:nrow(data_in), ind.selected)
+      data_removed <- data_in[ind.removed,]
+    
+      #Find the corresponding 
+      #data_sampled<-ghcn.subsets[[i]][ind.training,] #selected the randomly sampled stations
+    }
+    if (station_nb <= target_min_nb){
+      data_out <- dat$data
+      data_removed <- dat$data_rm
+    }
 
-    data_out <- list(data_out,dat$dist,data_removed,dat$data)
-    data_out <- c("data","dist","data_removed","data_dist")
+    data_obj <- list(data_out,dat$dist,data_removed,dat$data)
+    names(data_obj) <- c("data","dist","data_removed","data_dist")
   }
   if(sampling!=T){
     dat <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=NULL,step=step_dist,data_in=data_month)
     #
-    data_out <- list(dat$data,dat$dist,data_removed)
-    data_out <- c("data","dist","data_removed")
+    data_obj <- list(dat$data,dat$dist,dat$data_rm)
+    names(data_obj) <- c("data","dist","data_removed")
     
   }
-  return(data_out)
+  return(data_obj)
 }
-
-debug(sub_sampling_by_dist_nb_stat)
-test3 <- sub_sampling_by_dist_nb_stat(target_range_nb=c(100,200),dist_range=c(0,1000),data_in=data_month,sampling=T,combined=F)
-
-
-#n<-nrow(ghcn.subsets[[i]])
-#prop<-(sampling_dat$prop[i])/100
-#ns<-n-round(n*prop)   #Create a sample from the data frame with 70% of the rows
-#nv<-n-ns              #create a sample for validation with prop of the rows
-#ind.training <- sample(nrow(ghcn.subsets[[i]]), size=ns, replace=FALSE) #This selects the index position for 70% of the rows taken randomly
-#ind.testing <- setdiff(1:nrow(ghcn.subsets[[i]]), ind.training)
-#Find the corresponding 
-#data_sampled<-ghcn.subsets[[i]][ind.training,] #selected the randomly sampled stations
-#station_id.training<-data_sampled$station     #selected id for the randomly sampled stations (115)
-#Save the information
-#sampling[[i]]<-ind.training #index of training sample from data.frame
-#sampling_station_id[[i]]<- station_id.training #station ID for traning samples
 
 ##############################
 #### Parameters and constants  
@@ -151,6 +153,9 @@ dim(data_month) #193x70, there are 70 stations in this particular case
 
 plot(data_month)
 
+
+### Part 1, use selection based on spatial distance only!!
+
 #set up input parameters
 
 target_max_nb <- 200 #this is not actually used yet in the current implementation
@@ -173,24 +178,25 @@ test1$dist # for distance of 1000 m (max_dist)
 dim(test2$data) #97 stations selected 
 test2$dist # for distance of 31,000 m (no max_dist is set)
 
-dist_range <- c(0,5000) 
+dist_range <- c(0,10000) 
+max_dist <- 10000# the maximum distance used for pruning ie removes stations that are closer than 1000m 
 
+test3 <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=max_dist,step=step_dist,data_in=data_month)
+dim(test3$data) #178 stations selected 
+
+################
+### Part 2 use selection based on both spatial and sampling distance
+
+#if for a given max distance there is still too many stations then use sampling (use sampling==T)
 #Now use the other function to sample the station data points:
 
-sub_sampling_by_dist_nb_stat(target_range_nb=c(10000,10000),dist_range,data_in,sampling=T)
+#### 
+dist_range <- c(0,10000) 
+max_dist <- 10000# the maximum distance used for pruning ie removes stations that are closer than 1000m 
 
-
-#n<-nrow(ghcn.subsets[[i]])
-#prop<-(sampling_dat$prop[i])/100
-#ns<-n-round(n*prop)   #Create a sample from the data frame with 70% of the rows
-#nv<-n-ns              #create a sample for validation with prop of the rows
-#ind.training <- sample(nrow(ghcn.subsets[[i]]), size=ns, replace=FALSE) #This selects the index position for 70% of the rows taken randomly
-#ind.testing <- setdiff(1:nrow(ghcn.subsets[[i]]), ind.training)
-#Find the corresponding 
-#data_sampled<-ghcn.subsets[[i]][ind.training,] #selected the randomly sampled stations
-#station_id.training<-data_sampled$station     #selected id for the randomly sampled stations (115)
-#Save the information
-#sampling[[i]]<-ind.training #index of training sample from data.frame
-#sampling_station_id[[i]]<- station_id.training #station ID for traning samples
+#debug(sub_sampling_by_dist_nb_stat)
+test4 <- sub_sampling_by_dist_nb_stat(target_range_nb=c(100,200),dist_range=c(0,10000),data_in=data_month,sampling=T,combined=F)
+dim(test4$data) #we get exactly 100 stations as asked...first the 178 stations were selected using the spatial criteria
+                #then 100 stations were selected using the sampling function
   
 ############ END OF SCRIPT #########
