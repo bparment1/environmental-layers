@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 10/21/2014            
+#MODIFIED ON: 10/29/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -171,36 +171,36 @@ mosaic_m_raster_list<-function(j,list_param){
 }
 
 ### Function:
-pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
-  #Summarizing input info from sampling and df used in training/testing
-    
-  data <- list_data[[k]]
-  sampling_dat <- sampling_dat_info[[k]]
-  if(data!="try-error"){
-    n <- nrow(data)
-    n_mod <- vector("numeric",length(pred_mod))
-    for(j in 1:length(pred_mod)){
-      n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
-    }
-    n <- rep(n,length(pred_mod))
-    sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
-    row.names(sampling_dat) <- NULL
-    df_n <- data.frame(n,n_mod,pred_mod)
-    df_n <- cbind(df_n,sampling_dat)
-  }else{        
-    n <- rep(NA,length(pred_mod))
-    n_mod <- vector("numeric",length(pred_mod))
-    n_mod <- rep(NA,length(pred_mod))
-    df_n <- data.frame(n,n_mod,pred_mod)
-    sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
-    row.names(sampling_dat) <- NULL
-    df_n <- data.frame(n,n_mod,pred_mod)
-    df_n <- cbind(df_n,sampling_dat)
-
-  }
+  pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
+    #Summarizing input info from sampling and df used in training/testing
+      
+    data <- list_data[[k]]
+    sampling_dat <- sampling_dat_info[[k]]
+    if(data!="try-error"){
+      n <- nrow(data)
+      n_mod <- vector("numeric",length(pred_mod))
+      for(j in 1:length(pred_mod)){
+        n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
+      }
+      n <- rep(n,length(pred_mod))
+      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+      row.names(sampling_dat) <- NULL
+      df_n <- data.frame(n,n_mod,pred_mod)
+      df_n <- cbind(df_n,sampling_dat)
+    }else{        
+      n <- rep(NA,length(pred_mod))
+      n_mod <- vector("numeric",length(pred_mod))
+      n_mod <- rep(NA,length(pred_mod))
+      df_n <- data.frame(n,n_mod,pred_mod)
+      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+      row.names(sampling_dat) <- NULL
+      df_n <- data.frame(n,n_mod,pred_mod)
+      df_n <- cbind(df_n,sampling_dat)
   
-  return(df_n)
-}
+    }
+    
+    return(df_n)
+  }
 
 extract_daily_training_testing_info <- function(i,list_param){
   #This function extracts training and testing information from the raster object produced for each tile
@@ -467,7 +467,8 @@ in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions pro
 in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
 #in_dir_list_all <- in_dir_list
 #in_dir_list <- list.dirs(path=in_dir_reg,recursive=FALSE) #get the list of tiles/directories with outputs 
-in_dir_list <- unlist(in_dir_list_all[c(2)]) #only region 3 has informatation at this stage
+#in_dir_list <- unlist(in_dir_list_all[c(2)]) #only region 3 has informatation at this stage
+in_dir_list <- unlist(in_dir_list_all) #[c(2)]) #only region 3 has informatation at this stage
 
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 in_dir_subset <- in_dir_list[grep("subset",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
@@ -497,7 +498,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run8_global_analyses_10212014"
+out_prefix<-"run8_global_analyses_10292014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -1009,7 +1010,7 @@ write.table(pred_data_day_info,
 #for i in 1:length(df_tiled_processed$tile_coord)
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
-output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014"
+output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run8_global_analyses_10292014"
 #Make directories on ATLAS
 #for (i in 1:length(df_tile_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
@@ -1043,6 +1044,7 @@ lf_cp_shp <- df_tile_processed$shp_files #get all the files...
 
 lf_cp_shp_pattern <- gsub(".shp","*",basename(lf_cp_shp))
 lf_cp_shp_pattern <- file.path(dirname(lf_cp_shp),lf_cp_shp_pattern)
+
 filenames_NEX <- paste(lf_cp_shp_pattern,collapse=" ")  #copy raster prediction object
 
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
@@ -1050,27 +1052,27 @@ system(cmd_str)
 
 ###Copy shapefiles in the separate directories?
 #lf_cp_shp <- list.files(in_dir_shp, ".shp",full.names=T)
-list_tile_scp <- 1:6
+#list_tile_scp <- 1:6
 
-for (j in 1:length(list_tile_scp)){
-  tile_nb <- list_tile_scp[j]
-  
-  in_dir_tile <-dirname(df_tile_processed$shp_files[tile_nb])
-  #/data/project/layers/commons/NEX_data/output_run2_05122014/output
-  #output_atlas_dir
-  #Atlas_dir <- file.path(file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output"),in_dir_tile)
-  Atlas_dir <- file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[j]),"/shapefiles")
+#for (j in 1:length(list_tile_scp)){
+#  tile_nb <- list_tile_scp[j]
+#  
+#  in_dir_tile <-dirname(df_tile_processed$shp_files[tile_nb])
+#  #/data/project/layers/commons/NEX_data/output_run2_05122014/output
+#  #output_atlas_dir
+#  #Atlas_dir <- file.path(file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"output"),in_dir_tile)
+#  Atlas_dir <- file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[j]),"/shapefiles")
 
-  Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-  
-  lf_cp_shp_pattern <- gsub(".shp","*",lf_cp_shp)
+#  Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+#  
+#  lf_cp_shp_pattern <- gsub(".shp","*",lf_cp_shp)
 
   #filenames_NEX <- paste(lf_cp_shp,collapse=" ")  #copy raster prediction object
-  filenames_NEX <- paste(lf_cp_shp_pattern,collapse=" ")  #copy raster prediction object
+#  filenames_NEX <- paste(lf_cp_shp_pattern,collapse=" ")  #copy raster prediction object
 
-  cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-  system(cmd_str)
-}
+#  cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+#  system(cmd_str)
+#}
 
 #### FIRST COPY DATA FOR SPECIFIC TILES #####
 #Copy specific tiles info back...This assumes that the tree structre 
