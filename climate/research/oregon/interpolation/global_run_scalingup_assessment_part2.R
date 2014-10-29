@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 10/21/2014            
+#MODIFIED ON: 11/03/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 5 global using 6 specific tiles
@@ -215,7 +215,7 @@ combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
 #in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run8_global_analyses_10292014/"
 # input dir containing shapefiles defining tiles
 #in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
@@ -228,7 +228,7 @@ out_dir <-"/data/project/layers/commons/NEX_data/output_run8_global_analyses_102
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run8_global_analyses_10212014"
+out_prefix<-"run8_global_analyses_10292014"
 mosaic_plot <- FALSE
 
 proj_str<- CRS_WGS84
@@ -622,6 +622,18 @@ for (i in 1:length(model_name)){
   list_df_ac_mod[[i]] <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("rmse","mae","tile_id")]
 }
 
+
+#coordinates
+coordinates(summary_metrics_v) <- c("lon","lat")
+summary_metrics_v$n_missing <- summary_metrics_v$n == 365
+  
+#plot(summary_metrics_v)
+p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+#title("(a) Mean for 1 January")
+p <- bubble(summary_metrics_v,"n_missing",main=paste("Averrage RMSE per tile and by ",model_name[i]))
+p1 <- p+p_shp
+print(p1)
+
 ######################
 ### Figure 7: Number of predictions: daily and monthly
 
@@ -631,7 +643,7 @@ for (i in 1:length(model_name)){
 #xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
 #                                           pred_mod!="mod_kr"),type="h")
 
-
+#cor
 
 # 
 ## Figure 7a
@@ -653,6 +665,13 @@ xyplot(predicted~pred_mod | tile_id,data=subset(as.data.frame(test),
                                            pred_mod!="mod_kr"),type="h")
 
 test
+
+unique(test$tile_id) #71 tiles
+dim(subset(test,test$predicted==365 & test$pred_mod=="mod2"))
+histogram(subset(test, test$pred_mod=="mod2")$predicted)
+unique(subset(test, test$pred_mod=="mod2")$predicted)
+table((subset(test, test$pred_mod=="mod2")$predicted))
+
 LST_avgm_min <- aggregate(LST~month,data=data_month_all,min)
 histogram(test$predicted~test$tile_id)
 table(tb)
