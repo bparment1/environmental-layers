@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 10/29/2014            
+#MODIFIED ON: 11/13/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -171,36 +171,35 @@ mosaic_m_raster_list<-function(j,list_param){
 }
 
 ### Function:
-  pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
+pred_data_info_fun <- function(k,list_data,pred_mod,sampling_dat_info){
     #Summarizing input info from sampling and df used in training/testing
       
-    data <- list_data[[k]]
-    sampling_dat <- sampling_dat_info[[k]]
-    if(data!="try-error"){
-      n <- nrow(data)
-      n_mod <- vector("numeric",length(pred_mod))
-      for(j in 1:length(pred_mod)){
-        n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
-      }
-      n <- rep(n,length(pred_mod))
-      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
-      row.names(sampling_dat) <- NULL
-      df_n <- data.frame(n,n_mod,pred_mod)
-      df_n <- cbind(df_n,sampling_dat)
-    }else{        
-      n <- rep(NA,length(pred_mod))
-      n_mod <- vector("numeric",length(pred_mod))
-      n_mod <- rep(NA,length(pred_mod))
-      df_n <- data.frame(n,n_mod,pred_mod)
-      sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
-      row.names(sampling_dat) <- NULL
-      df_n <- data.frame(n,n_mod,pred_mod)
-      df_n <- cbind(df_n,sampling_dat)
-  
+  data <- list_data[[k]]
+  sampling_dat <- sampling_dat_info[[k]]
+  if(data!="try-error"){
+    n <- nrow(data)
+    n_mod <- vector("numeric",length(pred_mod))
+    for(j in 1:length(pred_mod)){
+      n_mod[j] <- sum(!is.na(data[[pred_mod[j]]]))
     }
-    
-    return(df_n)
-  }
+    n <- rep(n,length(pred_mod))
+    sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+    row.names(sampling_dat) <- NULL
+    df_n <- data.frame(n,n_mod,pred_mod)
+    df_n <- cbind(df_n,sampling_dat)
+  }else{        
+    n <- rep(NA,length(pred_mod))
+    n_mod <- vector("numeric",length(pred_mod))
+    n_mod <- rep(NA,length(pred_mod))
+    df_n <- data.frame(n,n_mod,pred_mod)
+    sampling_dat <- sampling_dat[rep(seq_len(nrow(sampling_dat)), each=length(pred_mod)),]
+    row.names(sampling_dat) <- NULL
+    df_n <- data.frame(n,n_mod,pred_mod)
+    df_n <- cbind(df_n,sampling_dat)
+  
+  }  
+  return(df_n)
+}
 
 extract_daily_training_testing_info <- function(i,list_param){
   #This function extracts training and testing information from the raster object produced for each tile
@@ -457,12 +456,12 @@ create_raster_prediction_obj<- function(in_dir_list,interpolation_method, y_var_
 ##############################
 #### Parameters and constants  
 
-#in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
-#in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output20Deg2/"
-#in_dir1 <-"/nobackupp4/aguzman4/climateLayers/output20Deg_75overlap/reg4"
-in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
+#in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
 #/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
+in_dir_list <- in_dir_list[c(3,4)] #get the list regions processed for this run
+
 #if(basename(in_dir_list)[[1]]=="reg?") #add later
 in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
 #in_dir_list_all <- in_dir_list
@@ -486,8 +485,9 @@ in_dir_list <- in_dir_reg
   
 #in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 #in_dir_list <- as.list(in_dir_list[-1])
-#in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
+in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 #in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
+in_dir_shp <- in_dir_shp[grep("subset_bak",basename(dirname(in_dir_shp)),invert=TRUE)] #the first one is the in_dir1
 
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/subset/shapefiles/"
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output20Deg/reg2/subset/shapefiles"
@@ -498,7 +498,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run8_global_analyses_10292014"
+out_prefix<-"run9_global_analyses_11122014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
