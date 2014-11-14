@@ -87,7 +87,25 @@ sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max
   return(obj_sub_sampling)
 }
 
-sub_sampling_by_dist_nb_stat <- function(target_range_nb,dist_range,data_in,sampling=T,combined=F){
+sub_sampling_by_dist_nb_stat <- function(target_range_nb,dist_range,step_dist,data_in,sampling=T,combined=F){
+  ##This functions perform subsampling for tiles/region wiht a high density of region.
+  ##Sub-sampling can be done through spatial pruning by providing  a range of distance and step or
+  ##by using random sampling in addition  to spatial pruning.
+  #Input parameters:
+  #sampling: if  TRUE use random sampling  in addition to spatial  sub-sampling
+  #target_range_nb : number of stations desired as min and max, convergence to  min  for  now
+  #dist_range : spatial distance range  for pruning,  usually (0,5) in km or 0,0.009*5 for  degreee
+  #step_dist : stepping distance used in pruning  spatially, use 1km or 0.009 for degree data
+  #data_in : input data to be resampled (data.frame or spatial point df.)
+  #combined: if FALSE, combined, add variable to  show wich  data rows  were removed (not currently in use)
+  #
+  #Output parameters:
+  #data: subsampled data
+  #dist: distance at which spatial sub-sampling  ended
+  #data_removed: data that was removed from the input data frame
+  #data_dist: data item/stations after using spatial pruning, only appears if sampling = T
+
+  #### START PROGRAM BODY #####
   
   data <- data_in
   min_dist <- dist_range[1]
@@ -191,12 +209,27 @@ dim(test3$data) #178 stations selected
 #Now use the other function to sample the station data points:
 
 #### 
-dist_range <- c(0,10000) 
+#dist_range <- c(0,10000) 
 max_dist <- 10000# the maximum distance used for pruning ie removes stations that are closer than 1000m 
+target_range_nb <- c(target_min_nb,target_max_nb) #target range of number of stations
+step_dist <- 1000 #iteration step to remove the stations, 1000 meters
 
 #debug(sub_sampling_by_dist_nb_stat)
-test4 <- sub_sampling_by_dist_nb_stat(target_range_nb=c(100,200),dist_range=c(0,10000),data_in=data_month,sampling=T,combined=F)
+#test4 <- sub_sampling_by_dist_nb_stat(target_range_nb=c(100,200),dist_range=c(0,10000),data_in=data_month,sampling=T,combined=F)
+test4 <- sub_sampling_by_dist_nb_stat(target_range_nb=c(100,200),dist_range=c(0,10000),step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
 dim(test4$data) #we get exactly 100 stations as asked...first the 178 stations were selected using the spatial criteria
                 #then 100 stations were selected using the sampling function
+
+### for NEX, most likely settings:
+
+target_max_nb <- 100,000 #this is not actually used yet in the current implementation,can be set to very high value...
+target_min_nb <- 8,000 #this is the target number of stations we would like: to be set by Alberto...
+#max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
+max_idst <- 0.009*5 #5km in degree
+min_dist <- 0    #minimum distance to start with
+step_dist <- 0.009 #iteration step to remove the stations
+
+test5 <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
+
   
 ############ END OF SCRIPT #########
