@@ -19,6 +19,9 @@ database_covariates_preparation<-function(list_param_prep){
   # 12) qc_flags_stations: flag used to screen out at this stage only two values...
   # 13) out_prefix: output suffix added to output names--it is the same in the interpolation script
   #
+  # 
+  # 14)
+  # 15)..
   #The output is a list of four shapefile names produced by the function:
   #1) loc_stations: locations of stations as shapefile in EPSG 4326
   #2) loc_stations_ghcn: ghcn daily data for the year range of interpolation (locally projected)
@@ -82,27 +85,34 @@ database_covariates_preparation<-function(list_param_prep){
   qc_flags_stations <- list_param_prep$qc_flags_stations #flags allowed for the query from the GHCND??
   out_prefix<-list_param_prep$out_prefix #"_365d_GAM_fus5_all_lstd_03012013"                #User defined output prefix
   
+  ## New parameters added for  sub samplineg in areas with important density of meteo stations
+  sub_sampling <- list_param$sub_sampling  #if TRUE then monthly stations data are resampled
+  sub_sample_rnd <- list_param$sub_sample_rnd #if  TRUE use random sampling  in addition to spatial  sub-sampling
+  target_range_nb <- list_param$target_range_nb # number of stations desired as min and max, convergence to  min  for  now
+  dist_range <- list_param$dist_range #distance range  for pruning,  usually (0,5) in km or 0,0.009*5 for  degreee
+  step_dist <- list_param$step_dist #stepping distance used in pruning  spatially, use 1km or 0.009 for degree data
+
   ## working directory is the same for input and output for this function  
   #setwd(in_path) 
   setwd(out_path)
   ##### STEP 1: Select station in the study area
-  
-  filename<-sub(".shp","",infile_reg_outline)             #Removing the extension from file.
+    
+  filename<-sub(".shp","",fixed=TRUE,infile_reg_outline)             #Removing the extension from file.
   interp_area <- readOGR(dsn=dirname(filename),basename(filename))
   CRS_interp<-proj4string(interp_area)         #Storing the coordinate information: geographic coordinates longlat WGS84
   
   #Read in GHCND database station locations
   dat_stat <- read.fwf(infile_ghncd_data, 
                        widths = c(11,9,10,7,3,31,4,4,6),fill=TRUE)
+
   colnames(dat_stat)<-c("STAT_ID","latitude","longitude","elev","state","name","GSNF","HCNF","WMOID")
   coords<- dat_stat[,c('longitude','latitude')]
   coordinates(dat_stat)<-coords
   proj4string(dat_stat)<-CRS_locs_WGS84 #this is the WGS84 projection
   #proj4string(dat_stat)<-CRS_interp
   interp_area_WGS84 <-spTransform(interp_area,CRS_locs_WGS84)         # Project from WGS84 to new coord. system
-  
   # Spatial query to find relevant stations
-  
+
   inside <- !is.na(over(dat_stat, as(interp_area_WGS84, "SpatialPolygons")))  #Finding stations contained in the current interpolation area
   stat_reg<-dat_stat[inside,]              #Selecting stations contained in the current interpolation area
   
@@ -111,10 +121,10 @@ database_covariates_preparation<-function(list_param_prep){
   ####
   
   #### STEP 2: Connecting to the database and query for relevant data 
-  
+
   drv <- dbDriver("PostgreSQL")
   db <- dbConnect(drv, dbname=db.name)
-  
+
   time1<-proc.time()    #Start stop watch
   list_s<-format_s(stat_reg$STAT_ID)
   data2<-dbGetQuery(db, paste("SELECT *
@@ -125,16 +135,17 @@ database_covariates_preparation<-function(list_param_prep){
                               "AND station IN ",list_s,";",sep=""))  #Selecting station using a SQL query
   time_duration<-proc.time()-time1             #Time for the query may be long given the size of the database
   time_minutes<-time_duration[3]/60
+  print(time_minutes)
   dbDisconnect(db)
-
+ 
   data_table<-merge(data2,as.data.frame(stat_reg), by.x = "station", by.y = "STAT_ID")
-  
+
   #Transform the subset data frame in a spatial data frame and reproject
   data_reg<-data_table                               #Make a copy of the data frame
   coords<- data_reg[c('longitude','latitude')]              #Define coordinates in a data frame: clean up here!!
   coordinates(data_reg)<-coords                      #Assign coordinates to the data frame
   proj4string(data_reg)<-CRS_locs_WGS84                #Assign coordinates reference system in PROJ4 format
-  data_reg<-spTransform(data_reg,CRS(CRS_interp))     #Project from WGS84 to new coord. system
+  #data_reg<-spTransform(data_reg,CRS(CRS_interp))     #Project from WGS84 to new coord. system
   
   data_d <-data_reg  #data_d: daily data containing the query without screening
   #data_reg <-subset(data_d,mflag=="0" | mflag=="S") #should be input arguments!!
@@ -142,7 +153,7 @@ database_covariates_preparation<-function(list_param_prep){
   
   data_reg <-subset(data_d, mflag %in% qc_flags_stations) #screening using flags
   #data_reg2 <-subset(data_d,mflag==qc_flags_stations[1] | mflag==qc_flags_stations[2]) #screening using flags
-  
+
   ##################################################################
   ### STEP 3: Save results and outuput in textfile and a shape file
   #browser()
@@ -151,19 +162,25 @@ database_covariates_preparation<-function(list_param_prep){
   outfile1<-file.path(out_path,paste("stations","_",out_prefix,".shp",sep=""))
   writeOGR(stat_reg,dsn= dirname(outfile1),layer= sub(".shp","",basename(outfile1)), driver="ESRI Shapefile",overwrite_layer=TRUE)
   #writeOGR(dst,dsn= ".",layer= sub(".shp","",outfile4), driver="ESRI Shapefile",overwrite_layer=TRUE)
-  
+  #Also save as rds
+  outfile1_rds<-sub(".shp",".rds",outfile1)
+  saveRDS(stat_reg,outfile1)
+
   outfile2<-file.path(out_path,paste("ghcn_data_query_",var,"_",year_start,"_",year_end,out_prefix,".shp",sep=""))         #Name of the file
   #writeOGR(data_proj, paste(outfile, "shp", sep="."), outfile, driver ="ESRI Shapefile") #Note that the layer name is the file name without extension
   writeOGR(data_d,dsn= dirname(outfile2),layer= sub(".shp","",basename(outfile2)), driver="ESRI Shapefile",overwrite_layer=TRUE)
-  
+  outfile2_rds<-sub(".shp",".rds",outfile2)
+  saveRDS(data_d,outfile2_rds) 
+
   outfile3<-file.path(out_path,paste("ghcn_data_",var,"_",year_start,"_",year_end,out_prefix,".shp",sep=""))         #Name of the file
   #writeOGR(data_proj, paste(outfile, "shp", sep="."), outfile, driver ="ESRI Shapefile") #Note that the layer name is the file name without extension
   writeOGR(data_reg,dsn= dirname(outfile3),layer= sub(".shp","",basename(outfile3)), driver="ESRI Shapefile",overwrite_layer=TRUE)
-  
+  outfile3_rds<-sub(".shp",".rds",outfile3)
+  saveRDS(data_reg,outfile3_rds)
+
   ###################################################################
   ### STEP 4: Extract values at stations from covariates stack of raster images
   #Eventually this step may be skipped if the covariates information is stored in the database...
-  
   #s_raster<-stack(file.path(in_path,infile_covariates))                   #read in the data stack
   s_raster<-brick(infile_covariates)                   #read in the data stack
   names(s_raster)<-covar_names               #Assigning names to the raster layers: making sure it is included in the extraction
@@ -171,18 +188,18 @@ database_covariates_preparation<-function(list_param_prep){
   #stat_val_test<- extract(s_raster, data_reg,def=TRUE)
   
   #create a shape file and data_frame with names
-  
   data_RST<-as.data.frame(stat_val)                                            #This creates a data frame with the values extracted
   data_RST_SDF<-cbind(data_reg,data_RST)
+
   coordinates(data_RST_SDF)<-coordinates(data_reg) #Transforming data_RST_SDF into a spatial point dataframe
   CRS_reg<-proj4string(data_reg)
   proj4string(data_RST_SDF)<-CRS_reg  #Need to assign coordinates...
-  
+
   #Creating a date column
   date1<-ISOdate(data_RST_SDF$year,data_RST_SDF$month,data_RST_SDF$day) #Creating a date object from 3 separate column
   date2<-gsub("-","",as.character(as.Date(date1)))
   data_RST_SDF$date<-date2                                              #Date format (year,month,day) is the following: "20100627"
-  
+ 
   #This allows to change only one name of the data.frame
   pos<-match("value",names(data_RST_SDF)) #Find column with name "value"
   if (var=="TMAX"){
@@ -198,25 +215,28 @@ database_covariates_preparation<-function(list_param_prep){
   #write out a new shapefile (including .prj component)
   outfile4<-file.path(out_path,paste("daily_covariates_ghcn_data_",var,"_",range_years[1],"_",range_years[2],out_prefix,".shp",sep=""))         #Name of the file
   writeOGR(data_RST_SDF,dsn= dirname(outfile4),layer= sub(".shp","",basename(outfile4)), driver="ESRI Shapefile",overwrite_layer=TRUE)
-  
+  outfile4_rds<-sub(".shp",".rds",outfile4)
+  saveRDS(data_RST_SDF,outfile4_rds)  
+
   ###############################################################
   ######## STEP 5: Preparing monthly averages from the ProstGres database
-  
   drv <- dbDriver("PostgreSQL")
   db <- dbConnect(drv, dbname=db.name)
   
   #year_start_clim: set at the start of the script
   time1<-proc.time()    #Start stop watch
   list_s<-format_s(stat_reg$STAT_ID)
+ 
   data_m<-dbGetQuery(db, paste("SELECT *
                                FROM ghcn
                                WHERE element=",shQuote(var),
                                "AND year>=",year_start_clim,
-                               "AND year<",year_end_clim,
                                "AND station IN ",list_s,";",sep=""))  #Selecting station using a SQL query
   time_duration<-proc.time()-time1             #Time for the query may be long given the size of the database
   time_minutes<-time_duration[3]/60
+  print(time_minutes)
   dbDisconnect(db)
+  
   #Clean out this section!!
   date1<-ISOdate(data_m$year,data_m$month,data_m$day) #Creating a date object from 3 separate column
   date2<-as.POSIXlt(as.Date(date1))
@@ -231,10 +251,13 @@ database_covariates_preparation<-function(list_param_prep){
   outfile5<-file.path(out_path,paste("monthly_query_ghcn_data_",var,"_",year_start_clim,"_",year_end_clim,out_prefix,".shp",sep=""))  #Name of the file
   writeOGR(data_m,dsn= dirname(outfile5),layer= sub(".shp","",basename(outfile5)), driver="ESRI Shapefile",overwrite_layer=TRUE)
   
+  outfile5_rds<-sub(".shp",".rds",outfile5)
+  saveRDS(data_m,outfile5_rds) 
+
   #In Venezuela and other regions where there are not many stations...mflag==S should be added..see Durenne etal.2010.
 
   #d<-subset(data_m,mflag==qc_flags_stations[1] | mflag==qc_flags_stations[2])
-  d<-subset(data_m,mflag %in% qc_flags_stations)
+  d<-subset(data_m,mflag %in% qc_flags_stations) 
   
   #Add screening here ...May need some screeing??? i.e. range of temp and elevation...
   
@@ -261,7 +284,7 @@ database_covariates_preparation<-function(list_param_prep){
   #Extracting covariates from stack for the monthly dataset...
   #names(dst)[5:6] <-c('latitude','longitude')
   coords<- dst[c('longitude','latitude')]              #Define coordinates in a data frame
-  
+
   coordinates(dst)<-coords                      #Assign coordinates to the data frame
   proj4string(dst)<-CRS_locs_WGS84                  #Assign coordinates reference system in PROJ4 format
   dst_month<-spTransform(dst,CRS(CRS_interp))     #Project from WGS84 to new coord. system
@@ -283,16 +306,33 @@ database_covariates_preparation<-function(list_param_prep){
   #Covariates ok since screening done in covariate script
   #screening on var i.e. value, TMIN, TMAX...
   
-  ####
+  #### Adding  subsampling for regions  that  have  too  many stations...
   
+  #This must be set up in master script
+  #target_max_nb <- 100,000 #this is not actually used yet in the current implementation,can be set to very high value...
+  #target_min_nb <- 8,000 #this is the target number of stations we would like: to be set by Alberto...
+  ##max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
+  #max_dist <- 0.009*5 #5km in degree
+  #min_dist <- 0    #minimum distance to start with
+  #step_dist <- 0.009 #iteration step to remove the stations
+
+  #test5 <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
+  if(sub_sampling==TRUE){
+    sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
+    dst <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
+    #save the information for later use (validation at monthly step!!)
+    save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_",interpolation_method,"_", out_prefix,".RData",sep="")))
+  }
+ 
   ####
   #write out a new shapefile (including .prj component)
   dst$OID<-1:nrow(dst) #need a unique ID?
   outfile6<-file.path(out_path,paste("monthly_covariates_ghcn_data_",var,"_",year_start_clim,"_",year_end_clim,out_prefix,".shp",sep=""))  #Name of the file
   writeOGR(dst,dsn= dirname(outfile6),layer= sub(".shp","",basename(outfile6)), driver="ESRI Shapefile",overwrite_layer=TRUE)
   
-  ### list of outputs return
-  
+  outfile6_rds<-sub(".shp",".rds",outfile6)
+  saveRDS(dst,outfile6_rds)
+
   outfiles_obj<-list(outfile1,outfile2,outfile3,outfile4,outfile5,outfile6)
   names(outfiles_obj)<- c("loc_stations","loc_stations_ghcn","daily_query_ghcn_data","daily_covar_ghcn_data","monthly_query_ghcn_data","monthly_covar_ghcn_data")
   save(outfiles_obj,file= file.path(out_path,paste("met_stations_outfiles_obj_",interpolation_method,"_", out_prefix,".RData",sep="")))
