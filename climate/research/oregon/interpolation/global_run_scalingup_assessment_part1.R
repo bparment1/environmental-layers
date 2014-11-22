@@ -1010,7 +1010,7 @@ write.table(pred_data_day_info,
 #for i in 1:length(df_tiled_processed$tile_coord)
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
-output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run8_global_analyses_10292014"
+output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run9_global_analyses_10292014"
 #Make directories on ATLAS
 #for (i in 1:length(df_tile_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
