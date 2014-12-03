@@ -267,13 +267,41 @@ tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_pre
 
 tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
 #tb_month_s <- read.table("tb_month_diagnostic_s_NA_run5_global_analyses_08252014.txt",sep=",")
-#pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
-#pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
+pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
+pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 #in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
 #gam_diagnostic_df <- read.table(file=file.path(out_dir,"gam_diagnostic_df_run4_global_analyses_08142014.txt"),sep=",")
 
 ########################## START SCRIPT ##############################
+
+mulitple_region <- TRUE
+
+#multiple regions?
+if(mulitple_region==TRUE){
+  df_tile_processed$reg <- basename(dirname(as.character(df_tile_processed$path_NEX)))
+}
+
+#This part is specifically related to this run : dropping model with elev
+tb <- merge(tb,df_tile_processed,by="tile_id")
+tb$pred_mod <- as.character(tb$pred_mod)
+tb_tmp_reg5 <- subset(tb,reg=="reg5")
+tb_tmp_reg4 <- subset(tb,reg=="reg4")
+tb_tmp_reg4 <- subset(tb_tmp_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
+tb_tmp_reg4$pred_mod <- replace(tb_tmp_reg4$pred_mod, tb_tmp_reg4$pred_mod=="mod2", "mod1")
+tb <- rbind(tb_tmp_reg4,tb_tmp_reg5)
+
+#ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
+summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+table(summary_metrics_v$reg)
+
+summary_metrics_v$pred_mod <- as.character(summary_metrics_v$pred_mod)
+summary_metrics_v_reg5 <- subset(summary_metrics_v,reg=="reg5")
+summary_metrics_v_reg4 <- subset(summary_metrics_v,reg=="reg4")
+summary_metrics_v_reg4 <- subset(summary_metrics_v_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
+summary_metrics_v_reg4$pred_mod <- replace(summary_metrics_v_reg4$pred_mod, 
+                                           summary_metrics_v_reg4$pred_mod=="mod2", "mod1")
+summary_metrics_v <- rbind(summary_metrics_v_reg4,summary_metrics_v_reg5)
 
 ###############
 ### Figure 1: plot location of the study area with tiles processed
@@ -353,7 +381,9 @@ dev.off()
 ### Figure 2: boxplot of average accuracy by model and by tiles
 
 tb$tile_id <- factor(tb$tile_id, levels=unique(tb$tile_id))
+
 model_name <- as.character(unique(tb$pred_mod))
+
 
 ## Figure 2a
 
@@ -588,8 +618,8 @@ for (i in 1:length(model_name)){
 
 ### Without 
 
-list_df_ac_mod <- vector("list",length=length(lf_pred_list))
-list_df_ac_mod <- vector("list",length=3)
+#list_df_ac_mod <- vector("list",length=length(lf_pred_list))
+list_df_ac_mod <- vector("list",length=2)
 
 for (i in 1:length(model_name)){
   
@@ -610,7 +640,8 @@ for (i in 1:length(model_name)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
 
-  coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
+  #coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
+  #coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
   p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   #title("(a) Mean for 1 January")
   p <- bubble(ac_mod,"rmse",main=paste("Averrage RMSE per tile and by ",model_name[i]))
@@ -628,26 +659,29 @@ for (i in 1:length(model_name)){
 
 ## Number of tiles with information:
 
-sum(df_tile_processed$metrics_v)/nrow(df_tile_processed$metrics_v)
+sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #81.40%
 
 #coordinates
-coordinates(summary_metrics_v) <- c("lon","lat")
+#coordinates(summary_metrics_v) <- c("lon","lat")
+coordinates(summary_metrics_v) <- c("lon.y","lat.y")
+
 summary_metrics_v$n_missing <- summary_metrics_v$n == 365
-#summary_metrics_v$n_missing <- summary_metrics_v$n < 365
-#summary_metrics_v$n_missing <- summary_metrics_v$n < 300
+summary_metrics_v$n_missing <- summary_metrics_v$n < 365
+summary_metrics_v$n_missing <- summary_metrics_v$n < 300
 
 nb<-nrow(subset(summary_metrics_v,model_name=="mod1"))  
-sum(subset(summary_metrics_v,model_name=="mod1")$n_missing)/nb
+sum(subset(summary_metrics_v,model_name=="mod1")$n_missing)/nb #33/35
 
 ## Make this a figure...
 
 #plot(summary_metrics_v)
+i <- 1
+model_name[1]
 p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
 #title("(a) Mean for 1 January")
-p <- bubble(summary_metrics_v,"n_missing",main=paste("Averrage RMSE per tile and by ",model_name[i]))
+p <- bubble(summary_metrics_v,"n_missing",main=paste("Missing per tile and by ",model_name[i]))
 p1 <- p+p_shp
 print(p1)
-
 
 ######################
 ### Figure 7: Number of predictions: daily and monthly
@@ -702,6 +736,101 @@ histogram(test$predicted~test$tile_id)
 #table(tb_month_s$month)
 #dev.off()
 #
+
+## plot mosaics...
+
+lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
+           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
+
+
+#r_reg5 <- stack(lf_mosaics_reg5)
+lf_m <- lf_mosaics_reg5[1:12]
+reg_name <- "reg5"
+for(i in 1:length(lf_m)){
+  r_test<- raster(lf_m[i])
+  #r_test <- subset(r_reg5,1)
+
+  r_test_mask_high <- r_test < 100
+  NAvalue(r_test_mask_high) <- 0
+  r_test_mask_low <- r_test > -100
+  NAvalue(r_test_mask_low) <- 0
+  r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
+  #writeRaster(r3,file=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_month","_",i,"_",reg_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r3,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+}
+
+
+
+
+#####
+
+lf_mosaics_reg4 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg4",
+           pattern="CAI_TMAX_clim_month_.*_mod2_all.tif",full.names=T))
+
+lf_m <- lf_mosaics_reg4[1:12]
+reg_name <- "reg4"
+for(i in 1:length(lf_m)){
+  r_test<- raster(lf_m[i])
+  #r_test <- subset(r_reg5,1)
+
+  r_test_mask_high <- r_test < 100
+  NAvalue(r_test_mask_high) <- 0
+  r_test_mask_low <- r_test > -100
+  NAvalue(r_test_mask_low) <- 0
+  r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
+  #writeRaster(r3,file=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_month","_",i,"_",reg_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r3,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+}
+
+####
+
+lf_m <- lf_mosaics_reg5[13:15]
+reg_name <- "reg5"
+for(i in 1:length(lf_m)){
+  r_test<- raster(lf_m[i])
+  #r_test <- subset(r_reg5,1)
+
+  r_test_mask_high <- r_test < 100
+  NAvalue(r_test_mask_high) <- 0
+  r_test_mask_low <- r_test > -100
+  NAvalue(r_test_mask_low) <- 0
+  r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
+  #writeRaster(r3,file=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_day_test","_",i,"_",reg_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r3,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+}
 
 ######################
 ### Figure 9: Plot the number of stations in a processing tile
