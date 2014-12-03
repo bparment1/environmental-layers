@@ -560,7 +560,7 @@ df_tile_processed$tile_id <- unlist(list_names_tile_id) #Arbitrary tiling number
 df_tile_processed$path_NEX <- in_dir_list
   
 ##Quick exploration of raster object
-robj1 <- load_obj(list_raster_obj_files[[1]]) #This is an example tile
+robj1 <- load_obj(list_raster_obj_files[[20]]) #This is an example tile
 #robj1 <- load_obj(lf_raster_obj[4]) #This is tile tile
 
 names(robj1)
@@ -1048,6 +1048,30 @@ lf_cp_shp_pattern <- file.path(dirname(lf_cp_shp),lf_cp_shp_pattern)
 filenames_NEX <- paste(lf_cp_shp_pattern,collapse=" ")  #copy raster prediction object
 
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+
+###### COPY MOSAIC files
+
+#> system("ls -ltr /nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg5")
+#Copy all mosaics related files in one unique directory called mosaics on Atlas
+
+Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"mosaics")
+Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+lf_reg4 <- list.files(path=file.path(dirname(in_dir_list[[2]]),"mosaics"),full.names=T)
+lf_reg5 <- list.files(path=file.path(dirname(in_dir_list[[20]]),"mosaics"),full.names=T)
+
+#lf_cp_mosaics <- c(lf_reg4,lf_reg5)
+filenames_NEX <- paste(lf_cp_mosaics,collapse=" ")  #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
+system(cmd_str)
+
+#since they have the same  name, must place them in separate dir...
+filenames_NEX <- paste(lf_reg4,collapse=" ")  #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,file.path(Atlas_dir,"reg4"),sep=":"), sep=" ")
+system(cmd_str)
+
+filenames_NEX <- paste(lf_reg5,collapse=" ")  #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,file.path(Atlas_dir,"reg5"),sep=":"), sep=" ")
 system(cmd_str)
 
 ###Copy shapefiles in the separate directories?
