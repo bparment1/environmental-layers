@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 11/30/2014            
+#MODIFIED ON: 12/15/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -457,17 +457,18 @@ create_raster_prediction_obj<- function(in_dir_list,interpolation_method, y_var_
 #### Parameters and constants  
 
 #in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/"
+#in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2"
 #/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #in_dir_list <- in_dir_list[c(3,4)] #get the list regions processed for this run
 
 #if(basename(in_dir_list)[[1]]=="reg?") #add later
-in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
+#in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
 #in_dir_list_all <- in_dir_list
 #in_dir_list <- list.dirs(path=in_dir_reg,recursive=FALSE) #get the list of tiles/directories with outputs 
 #in_dir_list <- unlist(in_dir_list_all[c(2)]) #only region 3 has informatation at this stage
-in_dir_list <- unlist(in_dir_list_all) #[c(2)]) #only region 3 has informatation at this stage
+#in_dir_list <- unlist(in_dir_list_all) #[c(2)]) #only region 3 has informatation at this stage
 
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 in_dir_subset <- in_dir_list[grep("subset",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
@@ -498,7 +499,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 # the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_11302014"
+out_prefix<-"run10_global_analyses_12152014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -560,7 +561,7 @@ df_tile_processed$tile_id <- unlist(list_names_tile_id) #Arbitrary tiling number
 df_tile_processed$path_NEX <- in_dir_list
   
 ##Quick exploration of raster object
-robj1 <- load_obj(list_raster_obj_files[[20]]) #This is an example tile
+robj1 <- load_obj(list_raster_obj_files[[3]]) #This is an example tile
 #robj1 <- load_obj(lf_raster_obj[4]) #This is tile tile
 
 names(robj1)
@@ -1010,7 +1011,7 @@ write.table(pred_data_day_info,
 #for i in 1:length(df_tiled_processed$tile_coord)
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
-output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014"
+output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014"
 #Make directories on ATLAS
 #for (i in 1:length(df_tile_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
@@ -1158,3 +1159,10 @@ for (j in 1:length(list_tile_scp)){
 }
 
 ##################### END OF SCRIPT ######################
+
+
+###Mosaic ...
+#MODULEPATH=$MODULEPATH:/nex/modules/files
+#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
+
+

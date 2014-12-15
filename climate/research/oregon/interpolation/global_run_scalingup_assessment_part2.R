@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 11/30/2014            
+#MODIFIED ON: 12/15/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 5 global using 6 specific tiles
@@ -215,7 +215,7 @@ combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
 #in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/"
 # input dir containing shapefiles defining tiles
 #in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
@@ -228,7 +228,7 @@ out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_11
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_11302014"
+out_prefix<-"run10_global_analyses_12152014"
 mosaic_plot <- FALSE
 
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -274,8 +274,10 @@ df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_
 #gam_diagnostic_df <- read.table(file=file.path(out_dir,"gam_diagnostic_df_run4_global_analyses_08142014.txt"),sep=",")
 
 ########################## START SCRIPT ##############################
+tb$pred_mod <- as.character(tb$pred_mod)
+summary_metrics_v$pred_mod <- as.character(summary_metrics_v$pred_mod)
 
-mulitple_region <- TRUE
+mulitple_region <- FALSE
 
 #multiple regions?
 if(mulitple_region==TRUE){
@@ -283,25 +285,24 @@ if(mulitple_region==TRUE){
 }
 
 #This part is specifically related to this run : dropping model with elev
-tb <- merge(tb,df_tile_processed,by="tile_id")
-tb$pred_mod <- as.character(tb$pred_mod)
-tb_tmp_reg5 <- subset(tb,reg=="reg5")
-tb_tmp_reg4 <- subset(tb,reg=="reg4")
-tb_tmp_reg4 <- subset(tb_tmp_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
-tb_tmp_reg4$pred_mod <- replace(tb_tmp_reg4$pred_mod, tb_tmp_reg4$pred_mod=="mod2", "mod1")
-tb <- rbind(tb_tmp_reg4,tb_tmp_reg5)
+#tb <- merge(tb,df_tile_processed,by="tile_id")
+
+#tb_tmp_reg5 <- subset(tb,reg=="reg5")
+#tb_tmp_reg4 <- subset(tb,reg=="reg4")
+#tb_tmp_reg4 <- subset(tb_tmp_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
+#tb_tmp_reg4$pred_mod <- replace(tb_tmp_reg4$pred_mod, tb_tmp_reg4$pred_mod=="mod2", "mod1")
+#tb <- rbind(tb_tmp_reg4,tb_tmp_reg5)
 
 #ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
-summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
-table(summary_metrics_v$reg)
+#summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+#table(summary_metrics_v$reg)
 
-summary_metrics_v$pred_mod <- as.character(summary_metrics_v$pred_mod)
-summary_metrics_v_reg5 <- subset(summary_metrics_v,reg=="reg5")
-summary_metrics_v_reg4 <- subset(summary_metrics_v,reg=="reg4")
-summary_metrics_v_reg4 <- subset(summary_metrics_v_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
-summary_metrics_v_reg4$pred_mod <- replace(summary_metrics_v_reg4$pred_mod, 
-                                           summary_metrics_v_reg4$pred_mod=="mod2", "mod1")
-summary_metrics_v <- rbind(summary_metrics_v_reg4,summary_metrics_v_reg5)
+#summary_metrics_v_reg5 <- subset(summary_metrics_v,reg=="reg5")
+#summary_metrics_v_reg4 <- subset(summary_metrics_v,reg=="reg4")
+#summary_metrics_v_reg4 <- subset(summary_metrics_v_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
+#summary_metrics_v_reg4$pred_mod <- replace(summary_metrics_v_reg4$pred_mod, 
+#                                           summary_metrics_v_reg4$pred_mod=="mod2", "mod1")
+#summary_metrics_v <- rbind(summary_metrics_v_reg4,summary_metrics_v_reg5)
 
 ###############
 ### Figure 1: plot location of the study area with tiles processed
@@ -640,7 +641,7 @@ for (i in 1:length(model_name)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
 
-  #coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
+  coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
   #coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
   p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   #title("(a) Mean for 1 January")
@@ -662,8 +663,8 @@ for (i in 1:length(model_name)){
 sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #81.40%
 
 #coordinates
-#coordinates(summary_metrics_v) <- c("lon","lat")
-coordinates(summary_metrics_v) <- c("lon.y","lat.y")
+coordinates(summary_metrics_v) <- c("lon","lat")
+#coordinates(summary_metrics_v) <- c("lon.y","lat.y")
 
 summary_metrics_v$n_missing <- summary_metrics_v$n == 365
 summary_metrics_v$n_missing <- summary_metrics_v$n < 365
