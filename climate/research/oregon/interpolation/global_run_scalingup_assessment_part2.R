@@ -5,10 +5,10 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/15/2014            
+#MODIFIED ON: 12/16/2014            
 #Version: 3
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses for run 5 global using 6 specific tiles
+#COMMENTS: analyses for run 10 global analyses, Europe 1000x300km
 #################################################################################################
 
 ### Loading R library and packages        
@@ -743,7 +743,6 @@ histogram(test$predicted~test$tile_id)
 lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
            pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
 
-
 #r_reg5 <- stack(lf_mosaics_reg5)
 lf_m <- lf_mosaics_reg5[1:12]
 reg_name <- "reg5"
@@ -771,53 +770,35 @@ for(i in 1:length(lf_m)){
   dev.off()
 }
 
-
-
-
-#####
-
-lf_mosaics_reg4 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg4",
-           pattern="CAI_TMAX_clim_month_.*_mod2_all.tif",full.names=T))
-
-lf_m <- lf_mosaics_reg4[1:12]
-reg_name <- "reg4"
-for(i in 1:length(lf_m)){
-  r_test<- raster(lf_m[i])
-  #r_test <- subset(r_reg5,1)
-
-  r_test_mask_high <- r_test < 100
-  NAvalue(r_test_mask_high) <- 0
-  r_test_mask_low <- r_test > -100
-  NAvalue(r_test_mask_low) <- 0
-  r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
-  #writeRaster(r3,file=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
-  
-  res_pix <- 1200
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png(filename=paste("Figure9_clim_mosaics_month","_",i,"_",reg_name,"_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r3,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
-  dev.off()
-}
-
 ####
 
-lf_m <- lf_mosaics_reg5[13:15]
-reg_name <- "reg5"
+#Monthly
+lf_m <- lf_mosaics_reg2[13:15]
+lf_m <- lf_mosaics_reg2[1:12]
+
+reg_name <- "reg2"
 for(i in 1:length(lf_m)){
   r_test<- raster(lf_m[i])
   #r_test <- subset(r_reg5,1)
 
-  r_test_mask_high <- r_test < 100
-  NAvalue(r_test_mask_high) <- 0
-  r_test_mask_low <- r_test > -100
-  NAvalue(r_test_mask_low) <- 0
-  r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
+  #r_test_mask_high <- r_test < 100
+  #r_test_mask_high <- r_test[r_test < 100]
+  
+  #r_test_mask_high <- r_test < 100
+
+  m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA)
+  rclmat <- matrix(m, ncol=3, byrow=TRUE)
+  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
+  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
+  #r <- raster(r_test_mask_high,dataType="INT2U")
+  #r3 <- clamp(r_test,-100,100)
+  #NAvalue(r_test_mask_high) <- 0
+  
+  #r_test_mask_low <- r_test > -100
+  #NAvalue(r_test_mask_low) <- 0
+  #r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
   #writeRaster(r3,file=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
   
   res_pix <- 1200
@@ -829,287 +810,137 @@ for(i in 1:length(lf_m)){
   png(filename=paste("Figure9_clim_mosaics_day_test","_",i,"_",reg_name,"_",out_prefix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-  plot(r3,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
+  plot(r_pred,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
   dev.off()
 }
 
-######################
-### Figure 9: Plot the number of stations in a processing tile
+#daily
+lf_m <- lf_mosaics_reg2[13:length(lf_mosaics_reg2)]
+#lf_m <- lf_mosaics_reg2[1:12]
 
-# #data_tb <- merge(df_tile_processed,summary_metrics_v,by="tile_id") #keep only the common id, id tiles with pred ac
-# #data_tb <- merge(df_tile_processed,summary_metrics_v,by="tile_id",all=T) #keep all
-# 
-# mod1_data_tb <- merge(df_tile_processed,subset(summary_metrics_v,pred_mod=="mod1"),by="tile_id",all=T) #keep all
-# mod2_data_tb <- merge(df_tile_processed,subset(summary_metrics_v,pred_mod=="mod2"),by="tile_id",all=T) #keep all
-# mod_kr_data_tb <- merge(df_tile_processed,subset(summary_metrics_v,pred_mod=="mod_kr"),by="tile_id",all=T) #keep all
-# 
-# ##First create an image of the tiles, use ratify?? with tile id as the raster id for the attribute table??
-# #Transform table text file into a raster image
-# #coord_names <- c("XCoord","YCoord")
-# coord_names <- c("lon.x","lat.x")
-# #l_r_ast <- rasterize_df_fun(df_tile_processed,coord_names,proj_str,out_suffix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
-# out_suffix_str <- paste("mod1_",out_suffix)
-# mod1_l_rast <- rasterize_df_fun(mod1_data_tb,coord_names,proj_str=CRS_WGS84,out_suffix_str,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
-# mod1_stack <- stack(mod1_l_rast)
-# names(mod1_stack) <- names(mod1_data_tb)
-# 
-# out_suffix_str <- paste("mod2_",out_suffix)
-# mod2_l_rast <- rasterize_df_fun(mod2_data_tb,coord_names,proj_str=CRS_WGS84,out_suffix_str,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
-# mod2_stack <- stack(mod2_l_rast)
-# names(mod2_stack) <- names(mod2_data_tb)
-# 
-# out_suffix_str <- paste("mod_kr_",out_suffix)
-# mod_kr_l_rast <- rasterize_df_fun(mod_kr_data_tb,coord_names,proj_str=CRS_WGS84,out_suffix_str,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
-# mod_kr_stack <- stack(mod_kr_l_rast)
-# names(mod_kr_stack) <- names(mod_kr_data_tb)
-# 
-# #Number of daily predictions 
-# p0 <- levelplot(mod1_stack,layer=21,margin=F,
-#                 main=paste("number_daily_predictions_for_","mod1",sep=""))
-# p<- p0+p_shp
+reg_name <- "reg2"
+for(i in 1:length(lf_m)){
+  r_test<- raster(lf_m[i])
 
-###########
-## Figure 9a: number of daily predictions
-
-#res_pix <- 1200
-#res_pix <- 480
-#col_mfrow <- 1
-#row_mfrow <- 1
-
-#png(filename=paste("Figure9a_raster_map_number_daily_predictions_forr_","mod1","_",out_prefix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-#print(p)
-
-#dev.off()
-
-## Figure 9a
-#p0 <- levelplot(mod2_stack,layer=21,margin=F)
-#p <- p0+p_shp
-
-#res_pix <- 1200
-#res_pix <- 480
-#col_mfrow <- 1
-#row_mfrow <- 1
-#png(filename=paste("Figure9a_raster_map_number_daily_predictions_for_","mod2","_",out_prefix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-#print(p)
-
-#dev.off()
-
-#plot(mod_kr_stack,y=21)
-
-########
-###Figure 9b: RMSE plots
-##
-#p0 <- levelplot(mod1_stack,layer=10,margin=F,col.regions=matlab.like(25),
-#                main="Average RMSE for mod1")
-#p<- p0+p_shp
-
-#res_pix <- 1200
-#res_pix <- 480
-#col_mfrow <- 1
-#row_mfrow <- 1
-#png(filename=paste("Figure9b_raster_map_rmse_predictions_for_","mod1","_",out_prefix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-#print(p)
-
-#dev.off()
-
-#print(p)
-#p0 <- levelplot(mod2_stack,layer=10,margin=F,col.regions=matlab.like(25),
-#                main="Average RMSE for mod2")
-#p<- p0+p_shp
-#print(p)
-
-#res_pix <- 1200
-#res_pix <- 480
-#col_mfrow <- 1
-#row_mfrow <- 1
-#png(filename=paste("Figure9b_raster_map_rmse_predictions_for_","mod2","_",out_prefix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-#print(p)
-
-#dev.off()
-
-#plot(mod1_stack,y=10)
-#plot(mod2_stack,y=10)
-#plot(mod_kr_stack,y=10)
-
-########## Figure 10: map of daily predictions accuracy
-
-## Can make maps of daily and accuracy metrics!!!
-
-#mod1_tb <- subset(tb,pred_mod=="mod1")
-
-## loop or create image for specific day
-#proj_str<- CRS_WGS84
-#file_format <- ".rst"
-#NA_value <- -9999
-#NA_flag_val <- NA_value
-#out_suffix <-out_prefix  
-
-#first need to join x and y coord
-# date_selected <- "20100101"
-# mod_selected <- "mod1"
-# var_selected <- "rmse"
-# #test2_data_tb <- merge(df_tile_processed,test2,by="tile_id",all=T) #keep all
-# 
-# #l_date_selected <- unique(tb$date)
-# idx <- seq(as.Date('2010-01-01'), as.Date('2010-12-31'), 'day')
-# #idx <- seq(as.Date('2010-01-01'),by="day", length=365)
-# 
-# #idx <- seq(as.Date('20100101'), as.Date('20101231'), 'day')
-# #date_l <- strptime(idx[1], "%Y%m%d") # interpolation date being processed
-# l_date_selected <- format(idx, "%Y%m%d") # interpolation date being processed
-# tb_dat <- tb
-# proj_str <- CRS_WGS84
-# list_param_raster_from_tb <- list(tb_dat,df_tile_processed,l_date_selected,
-#                                   mod_selected,var_selected,out_suffix,
-#                                   proj_str,file_format,NA_value,NA_flag_val)
-# 
-# names(list_param_raster_from_tb) <- c("tb_dat","df_tile_processed","date_selected",
-#                                       "mod_selected","var_selected","out_suffix",
-#                                       "proj_str","file_format","NA_value","NA_flag_val")
-# #undebug(create_raster_from_tb_diagnostic)
-# rast <- create_raster_from_tb_diagnostic (i,list_param=list_param_raster_from_tb)
-# l_rast <- lapply(1:length(l_date_selected),FUN=create_raster_from_tb_diagnostic,list_param=list_param_raster_from_tb)
-# r_mod1_rmse <- stack(l_rast)
-# list_param_raster_from_tb$var_selected <- "n"
-# l_rast_n<- lapply(1:length(l_date_selected),FUN=create_raster_from_tb_diagnostic,list_param=list_param_raster_from_tb)
-# r_mod1_n <- stack(l_rast_n)
-# 
-# ##now stack for mod2
-# 
-# list_param_raster_from_tb$mod_selected <- "mod2"
-# list_param_raster_from_tb$var_selected <- "rmse"
-# l_rast <- lapply(1:length(l_date_selected),FUN=create_raster_from_tb_diagnostic,list_param=list_param_raster_from_tb)
-# r_mod2_rmse <- stack(l_rast)
-# list_param_raster_from_tb$var_selected <- "n"
-# l_rast_n<- lapply(1:length(l_date_selected),FUN=create_raster_from_tb_diagnostic,list_param=list_param_raster_from_tb)
-# r_mod2_n <- stack(l_rast_n)
-# 
-# #r_mod2_n <- stack(list.files(pattern="r_nn_mod2.*.rst"))
-# #r_mod1_n <- stack(list.files(pattern="r_nn_mod1.*.rst"))
-# 
-# l_rast_n[[1]]
-# #"./r_nn_mod2_20101231_run7_global_analyses_10042014.rst"
-# 
-# # Create a raster stack with time series tag
-# r_mod2_rmse <- setZ(r_mod2_rmse, idx)
-# names(r_mod2_rmse) <- l_date_selected
-# r_mod2_n <- setZ(r_mod2_n, idx)
-# names(r_mod2_n) <- l_date_selected
-# 
-# writeRaster(r_mod2_n,by=F)
-# 
-# levelplot(r_mod2_rmse,layers=1:12,panel=panel.levelplot.raster, col.regions=matlab.like(25))+p_shp
-# 
-# p_hist <- histogram(r_mod2_rmse,FUN=as.yearmon)
-# p_hist2 <- p_hist
-# print(p_hist)
-# p_hist$x.limits <- rep(list(c(-2,6)),12)
-# print(p_hist)
-# p_bw <- bwplot(r_mod2_rmse,FUN=as.yearmon)
-# print(p_bw)
-# p_bw2 <- p_bw
-# p_bw2$y.limits <- c(-2,6)
-# print(p_bw2)
-# r_mod2_rmse_m <- zApply(r_mod2_rmse,by=as.yearmon,fun="mean")
-# p_lev_rmse_m <- levelplot(r_mod2_rmse_m,panel=panel.levelplot.raster,col.regions=matlab.like(25)) + p_shp
-# print(p_lev_rmse_m)
-# 
-# ## analysis of the daily nmber of validation stations per tile
-# r_mod2_n_m <- zApply(r_mod2_n,by=as.yearmon,fun="mean")
-# p_lev_n_m <- levelplot(r_mod2_n_m,panel=panel.levelplot.raster,col.regions=matlab.like(25))+p_shp
-# print(p_lev_n_m)
-# 
-# p_bw_n2 <- bwplot(r_mod2_n,FUN=as.yearmon,do.out=F)
-# print(p_bw_n)
-# p_bw_n$y.limits <- c(0,16)
-# print(p_bw_n)
-# p_ho <- hovmoller(r_mod2_rmse)
-# 
-# p_lev_n <- levelplot(r_mod2_n,layers=1:12,panel=panel.levelplot.raster, col.regions=matlab.like(25))+p_shp
-# 
-# print(p_lev_n)
-# 
-# ### mod1
-# 
-# #as(r_mod2_rmse)
-# 
-# #Make this a function...
-# #test <- subset(tb,pred_mod=="mod1" & date=="20100101",select=c("tile_id","n","mae","rmse","me","r","m50"))
-# 
-# plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
-# mod_selected <- "mod2"
-# plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
-# mod_selected <- "mod1"
-# date_selected  <- "20100901"
-# plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
-# 
-# list_date_selected <- c("20100101","20100901")
-# for (i in 1:length(list_date_selected)){
-#   mod_selected <- "mod1"
-#   date_selected  <- list_date_selected[i]
-#   var_selected <- "rmse"
-#   plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
-#   var_selected <- "n"
-#   plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
-# }
-# 
-# list_date_selected <- c("20100101","20100901")
-# for (i in 1:length(list_date_selected)){
-#   mod_selected <- "mod2"
-#   date_selected  <- list_date_selected[i]
-#   var_selected <- "rmse"
-#   plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
-#   var_selected <- "n"
-#   plot_raster_tb_diagnostic(reg_layer,tb_dat,df_tile_processed,date_selected,mod_selected,var_selected,out_suffix)
-# }
-# 
-# 
-# # dd <- merge(df_tile_processed,pred_data_month_info,by="tile_id")
-# # coordinates(dd) <- c(dd$x,dd$y)
-# # 
-
-######################
-### Figure 9: Plot the number of stations in a processing tile
-
-## Get ID from tile number...
-#ID_str <- unlist(lapply(1:nrow(df_tile_processed),function(i){unlist(strsplit(as.character(df_tile_processed$tile_id[i]),"_"))[2]}))
-
-#combined_shp$tile_id <- df_tile_processed$tile_id
- 
-#r <- raster(lf_pred_list[i])
-
-#plot(combined_shp)
-
-#p0 <- spplot(combined_shp, "Stations",col.regions=matlab.like(100))
-#p1 <- spplot(usa_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-#p2 <- spplot(can_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-#p3 <- spplot(mex_map,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-
-#p0 +p1+p2+p3
-
-### Now plot number of training for monthly data
-
-#df_dat <- subset(pred_data_month_info, pred_mod == "mod1" & date =="20100115")
-#shp_dat <-merge(combined_shp,df_dat,by="tile_id")
-#shp_dat <-merge(x=combined_shp,y=df_dat,by="tile_id",all.x=T) #if tile is missing then add rows with NA
-#shp_dat <- merge(shp_dat,df_tile_processed,by="tile_id")
-#coordinates(shp_dat) <- cbind(shp_dat$lon,shp_dat$lat) 
-#proj4string(shp_dat) <- CRS_WGS84
+  m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA)
+  rclmat <- matrix(m, ncol=3, byrow=TRUE)
+  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
+  raster_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+  date_proc <- raster_name[5]
+  #paste(raster_name[1:7],collapse="_")
+  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_mod1_all_",reg_name,"_",date_proc,"_masked.tif",sep=""),overwrite=TRUE)
   
-#test <- overlay(combined_shp,shp_dat)
-#pol <- SpatialPolygons(combined_shp@polygons,proj4string=CRS(CRS_WGS84))
-#spp <- SpatialPolygonsDataFrame(pol,data=shp_dat)
+  res_pix <- 1200
+  #res_pix <- 480
 
-#p0 <- spplot(spp, "n_mod",col.regions=matlab.like(100))
-#p1 <- spplot(reg_layer,"ISO",colorkey=FALSE) #Use ISO instead of NAME_1 to see no color?
-#p0 + p1 + p2 + p3
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+}
+
+
+#### for reg5
+
+lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/reg5",
+           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
+
+reg_name <- "reg5_1500x4500"
+#daily
+lf_m <- lf_mosaics_reg5[13:length(lf_mosaics_reg5)]
+
+for(i in 1:length(lf_m)){
+  r_test<- raster(lf_m[i])
+
+  m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA)
+  rclmat <- matrix(m, ncol=3, byrow=TRUE)
+  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
+  raster_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+  date_proc <- raster_name[5]
+  #paste(raster_name[1:7],collapse="_")
+  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_mod1_all_",reg_name,"_",date_proc,"_masked.tif",sep=""),overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+}
+
+### for reg4
+
+reg_name <- "reg2"
+for(i in 1:length(lf_m)){
+  r_test<- raster(lf_m[i])
+
+  m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA)
+  rclmat <- matrix(m, ncol=3, byrow=TRUE)
+  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
+  raster_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+  date_proc <- raster_name[5]
+  #paste(raster_name[1:7],collapse="_")
+  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_mod1_all_",reg_name,"_",date_proc,"_masked.tif",sep=""),overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+}
+
+
+
+######################
+### Figure 10: Plot the difference in mosaics for processing tiles at 1500x4500 and 1000x3500
+
+
+reg_name <- "reg4"
+for(i in 1:length(lf_m)){
+  r_test<- raster(lf_m[i])
+
+  m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA)
+  rclmat <- matrix(m, ncol=3, byrow=TRUE)
+  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
+  raster_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+  date_proc <- raster_name[5]
+  #paste(raster_name[1:7],collapse="_")
+  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_mod1_all_",reg_name,"_",date_proc,"_masked.tif",sep=""),overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+}
 
 ##################### END OF SCRIPT ######################
