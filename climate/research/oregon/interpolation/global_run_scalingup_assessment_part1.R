@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/15/2014            
+#MODIFIED ON: 12/23/2014            
 #Version: 3
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -20,6 +20,13 @@
 #source /nobackupp4/aguzman4/climateLayers/sharedModules/etc/environ.sh
 #MODULEPATH=$MODULEPATH:/nex/modules/files
 #module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex
+# These are the names and number for the current subset regions used for global runs:
+#reg1 - North America (NAM)
+#reg2 - Western Europe (WE)
+#reg3 - Eastern Europe to East Asia (EE_EA)
+#reg4 - South America (SAM)
+#reg5 - Africa (AF)
+#reg6 - South East Asia and Australia (SEA_AUS)
 
 #################################################################################################
 
@@ -459,20 +466,19 @@ create_raster_prediction_obj<- function(in_dir_list,interpolation_method, y_var_
 ##############################
 #### Parameters and constants  
 
-#in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
-#in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2"
-#/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/finished.txt
+#reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
+#master directory containing the definition of tile size and tiles predicted
+in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
+
+region_names <- c("reg2","reg6") #selected region names
+
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
-#in_dir_list <- in_dir_list[c(3,4)] #get the list regions processed for this run
+#basename(in_dir_list)
+in_dir_list<- lapply(region_names,FUN=function(x,y){y[grep(x,basename(y),invert=FALSE)]},
+                                               y=in_dir_list) 
 
-#if(basename(in_dir_list)[[1]]=="reg?") #add later
-#in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
-#in_dir_list_all <- in_dir_list
-#in_dir_list <- list.dirs(path=in_dir_reg,recursive=FALSE) #get the list of tiles/directories with outputs 
-#in_dir_list <- unlist(in_dir_list_all[c(2)]) #only region 3 has informatation at this stage
-#in_dir_list <- unlist(in_dir_list_all) #[c(2)]) #only region 3 has informatation at this stage
-
+in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
+in_dir_list <- unlist(in_dir_list_all)
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 in_dir_subset <- in_dir_list[grep("subset",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 in_dir_shp <- file.path(in_dir_subset,"shapefiles")
@@ -481,28 +487,19 @@ in_dir_shp <- file.path(in_dir_subset,"shapefiles")
 in_dir_reg <- in_dir_list[grep(".*._.*.",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 #in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
 in_dir_list <- in_dir_reg
+
 #Models used.
 #list_models<-c("y_var ~ s(lat,lon,k=4) + s(elev_s,k=3) + s(LST,k=3)",
 #               "y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)",
 #               "y_var ~ s(lat,lon,k=8) + s(elev_s,k=4) + s(LST,k=4)",
-  
-  
-#in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
-#in_dir_list <- as.list(in_dir_list[-1])
+    
 in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
-#in_dir_shp <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
-in_dir_shp <- in_dir_shp[grep("subset_bak",basename(dirname(in_dir_shp)),invert=TRUE)] #the first one is the in_dir1
-
-#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output10Deg/reg1/subset/shapefiles/"
-#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output20Deg/reg2/subset/shapefiles"
+#list of shapefiles used to define tiles
 in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
-#in_dir_list <- in_dir_list[grep("shapefiles",basename(in_dir_list),invert=TRUE)] 
-#the first one is the in_dir1
-# the last directory contains shapefiles 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_12152014"
+out_prefix<-"run10_global_analyses_12232014"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -522,17 +519,19 @@ setwd(out_dir)
                                    
 CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
-day_to_mosaic <- c("20100101","20100901")
+#day_to_mosaic <- c("20100101","20100901")
+day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
+                   "20100301","20100302","20100303","20100304","20100305",
+                   "20100501","20100502","20100503","20100504","20100505",
+                   "20100701","20100702","20100703","20100704","20100705",
+                   "20100901","20100902","20100903","20100904","20100905",
+                   "20101101","20101102","20101103","20101104","20101105")
+#day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
+
 file_format <- ".tif" #format for mosaiced files
 NA_flag_val <- -9999  #No data value
 
-#day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates
-
 ##raster_prediction object : contains testing and training stations with RMSE and model object
-
-#l_shp <- lapply(1:length(in_dir_shp_list),FUN=function(i){paste(strsplit(in_dir_shp_list[i],"_")[[1]][2:3],collapse="_")})
-#match(l_shp,in_dir_list)
-#in_dir_list[match(in_dir_list,l_shp]
 
 list_raster_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
 basename(dirname(list_raster_obj_files[[1]]))
@@ -586,7 +585,7 @@ list_formulas <- (robj1$clim_method_mod_obj[[1]]$formulas)
 #### Table 1: Average accuracy metrics
 
 #can use a maximum of 6 cores on the NEX Bridge
-#For 177 tiles but only xx RData boject it takes xxx min
+#For 43 tiles but only xx RData boject it takes xxx min
 #summary_metrics_v_list <- mclapply(list_raster_obj_files[5:6],FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 2)                           
 
 summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 6)                           
