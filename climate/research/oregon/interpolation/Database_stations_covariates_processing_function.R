@@ -20,9 +20,13 @@ database_covariates_preparation<-function(list_param_prep){
   # 13) out_prefix: output suffix added to output names--it is the same in the interpolation script
   #
   # 
-  # 14)
+  # 14) subampling:
   # 15)..
+  #
+  #
+  
   #The output is a list of four shapefile names produced by the function:
+  
   #1) loc_stations: locations of stations as shapefile in EPSG 4326
   #2) loc_stations_ghcn: ghcn daily data for the year range of interpolation (locally projected)
   #3) daily_query_ghcn_data: ghcn daily data from daily query before application of quality flag
@@ -85,16 +89,22 @@ database_covariates_preparation<-function(list_param_prep){
   qc_flags_stations <- list_param_prep$qc_flags_stations #flags allowed for the query from the GHCND??
   out_prefix<-list_param_prep$out_prefix #"_365d_GAM_fus5_all_lstd_03012013"                #User defined output prefix
   
-  ## New parameters added for  sub samplineg in areas with important density of meteo stations
+  ## New parameters added for  sub sampling in areas with important density of meteo stations
+  
   sub_sampling <- list_param$sub_sampling  #if TRUE then monthly stations data are resampled
   sub_sample_rnd <- list_param$sub_sample_rnd #if  TRUE use random sampling  in addition to spatial  sub-sampling
+  
   target_range_nb <- list_param$target_range_nb # number of stations desired as min and max, convergence to  min  for  now
+  #needs to be added in master script!!
+  target_range_daily_nb <- list_param$target_range_daily_nb #desired number range of daily stations
+    
   dist_range <- list_param$dist_range #distance range  for pruning,  usually (0,5) in km or 0,0.009*5 for  degreee
   step_dist <- list_param$step_dist #stepping distance used in pruning  spatially, use 1km or 0.009 for degree data
 
   ## working directory is the same for input and output for this function  
   #setwd(in_path) 
   setwd(out_path)
+  
   ##### STEP 1: Select station in the study area
     
   filename<-sub(".shp","",fixed=TRUE,infile_reg_outline)             #Removing the extension from file.
@@ -212,6 +222,33 @@ database_covariates_preparation<-function(list_param_prep){
     data_RST_SDF$value<-data_RST_SDF$value/10                #TMax is the average max temp for monthy data
   }
   
+
+  ## Adding subsampling for daily stations...
+  
+    #This must be set up in master script
+  #target_max_nb <- 100,000 #this is not actually used yet in the current implementation,can be set to very high value...
+  #target_min_nb <- 600 #this is the target number of stations we would like for daily and 1000x3000 tiles   
+                        #to be set by Alberto...
+  ##max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
+  #max_dist <- 0.009*5 #5km in degree
+  #min_dist <- 0    #minimum distance to start with
+  #step_dist <- 0.009 #iteration step to remove the stations
+
+  #test5 <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
+  if(sub_sampling_day==TRUE){
+    
+    sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_day_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_RST_SDF,sampling=T,combined=F)
+    data_RST_SDF <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
+    #save the information for later use (validation at monthly step!!)
+    save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_","dayly_",interpolation_method,"_", out_prefix,".RData",sep="")))
+  }
+  
+  #Make sure this is still a shapefile...!! This might need to be uncommented...
+  
+  #coordinates(data_RST_SDF)<-cbind(data_RST_SDF$x,data_RST_SDF$y) #Transforming data_RST_SDF into a spatial point dataframe
+  #CRS_reg<-proj4string(data_RST_SDF)
+  #proj4string(data_RST_SDF)<-CRS_reg  #Need to assign coordinates...
+
   #write out a new shapefile (including .prj component)
   outfile4<-file.path(out_path,paste("daily_covariates_ghcn_data_",var,"_",range_years[1],"_",range_years[2],out_prefix,".shp",sep=""))         #Name of the file
   writeOGR(data_RST_SDF,dsn= dirname(outfile4),layer= sub(".shp","",basename(outfile4)), driver="ESRI Shapefile",overwrite_layer=TRUE)
@@ -318,12 +355,18 @@ database_covariates_preparation<-function(list_param_prep){
 
   #test5 <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
   if(sub_sampling==TRUE){
-    sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
+    sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=dst,sampling=T,combined=F)
     dst <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
     #save the information for later use (validation at monthly step!!)
     save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_",interpolation_method,"_", out_prefix,".RData",sep="")))
   }
  
+  #Make sure this is still a shapefile...!! This might need to be uncommented...
+  
+  #coordinates(dst)<-cbind(dst$x,dst$y) #Transforming data_RST_SDF into a spatial point dataframe
+  #CRS_reg<-proj4string(data_reg)
+  #proj4string(dst)<-CRS_reg  #Need to assign coordinates...
+
   ####
   #write out a new shapefile (including .prj component)
   dst$OID<-1:nrow(dst) #need a unique ID?
