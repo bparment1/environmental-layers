@@ -5,7 +5,7 @@
 #
 #AUTHOR: Benoit Parmentier                                                                      
 #CREATED ON: 10/16/2014            
-#MODIFIED ON: 10/27/2014            
+#MODIFIED ON: 01/06/2015            
 #Version: 1
 #
 #PROJECT: Environmental Layers project  NCEAS-NASA
@@ -47,26 +47,42 @@ library(ncf)                                 # No paramtric covariance function
 function_analyses_paper1 <- "contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
 function_analyses_paper2 <- "multi_timescales_paper_interpolation_functions_10062014.R"
 
-sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max_dist=NULL,step,data_in){
+sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max_dist=NULL,step_val,data_in){
   #Function to select stations data that are outside a specific spatial range from each other
   #Parameters:
   #max_dist: maximum spatial distance at which to stop the pruning
   #min_dist: minimum distance to start pruning the data
-  #step: spatial distance increment
-  #Note that we are assuming that the first columns contains ID with name col of "id"
-
+  #step_val: spatial distance increment
+  #Note that we are assuming that the first columns contains ID with name col of "id".
+  #Note that the selection is based on unique id of original SPDF so that replicates screened.
+  
+  data_in$id <- as.character(data_in$id)
   data <- data_in
+  
+  #Now only take unique id in the shapefile!!!
+  #This step is necessary to avoid the large calculation of matrix distance with replicates
+  #unique(data$id)
+  data <- aggregate(id ~ x + y , data=data,min)
+  coordinates(data) <- cbind(data$x,data$y)
+  proj4string(data) <- proj4string(data_in)
+  
   target_min_nb <- target_range_nb[1]
-  station_nb <- nrow(data_in)
+  #target_min_nb <- target_range_day_nb[1]
+  
+  #station_nb <- nrow(data_in)
+  station_nb <- nrow(data)
   if(is.null(max_dist)){
     while(station_nb > target_min_nb){
       data <- remove.duplicates(data, zero = dist_val) #spatially sub sample...
-      dist_val <- dist_val + step
+      dist_val <- dist_val + step_val
       station_nb <- nrow(data)
     }
     #setdiff(as.character(data$id),as.character(data_in$id))
-    ind.selected <-match(as.character(data$id),as.character(data_in$id)) #index of stations row selected
-    ind.removed  <- setdiff(1:nrow(data_in), ind.selected) #index of stations rows removed 
+    #ind.selected <-match(as.character(data$id),as.character(data_in$id)) #index of stations row selected
+    #ind.removed  <- setdiff(1:nrow(data_in), ind.selected) #index of stations rows removed 
+    id_selected <- as.character(data$id)
+    id_removed <- setdiff(unique(as.character(data_in$id)),as.character(data$id))
+
   }
   if(!is.null(max_dist)){
     
@@ -74,14 +90,23 @@ sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max
       data <- remove.duplicates(data, zero = dist_val) #spatially sub sample...
       #id_rm <- zerodist(data, zero = dist_val, unique.ID = FALSE)
       #data_rm <- data[id_rm,]
-      dist_val <- dist_val + step
+      dist_val <- dist_val + step_val
       station_nb <- nrow(data)
     }
-    ind.selected <-match(as.character(data$id),as.character(data_in$id))
-    ind.removed  <- setdiff(1:nrow(data_in), ind.selected)
+    #ind.selected <- match(as.character(data$id),as.character(data_in$id))
+    id_selected <- as.character(data$id)
+    id_removed <- setdiff(unique(as.character(data_in$id)),as.character(data$id))
+  #  ind.removed  <- setdiff(1:nrow(data_in), ind.selected)
   }
+    
+  #data_rm <- data_in[ind.removed,]
+  data_rm <- subset(data_in, id %in% id_removed)
+  data_tmp <- data #store the reduced dataset with only id, for debugging purpose
   
-  data_rm <- data_in[ind.removed,]
+  #data <- subset(data_in, id %in% data$id) #select based on id
+  data <-subset(data_in, id %in% id_selected) #select based on id
+  
+  #data <- data_in[ind.selected,]
   obj_sub_sampling <- list(data,dist_val,data_rm) #data.frame selected, minimum distance, data.frame stations removed
   names(obj_sub_sampling) <- c("data","dist","data_rm")
   return(obj_sub_sampling)
@@ -96,34 +121,55 @@ sub_sampling_by_dist_nb_stat <- function(target_range_nb,dist_range,step_dist,da
   #target_range_nb : number of stations desired as min and max, convergence to  min  for  now
   #dist_range : spatial distance range  for pruning,  usually (0,5) in km or 0,0.009*5 for  degreee
   #step_dist : stepping distance used in pruning  spatially, use 1km or 0.009 for degree data
-  #data_in : input data to be resampled (data.frame or spatial point df.)
+  #data_in : input data to be resampled (spatial point df. which contains)
   #combined: if FALSE, combined, add variable to  show wich  data rows  were removed (not currently in use)
   #
   #Output parameters:
-  #data: subsampled data
+  #data_out: subsampled data
   #dist: distance at which spatial sub-sampling  ended
   #data_removed: data that was removed from the input data frame
   #data_dist: data item/stations after using spatial pruning, only appears if sampling = T
 
   #### START PROGRAM BODY #####
   
-  data <- data_in
+  data_all <- data_in
   min_dist <- dist_range[1]
   max_dist <- dist_range[2]
   
   #if sampling is chosen...first run spatial selection then sampling...
   if(sampling==T){
     #debug(sub_sampling_by_dist)
-    dat <- sub_sampling_by_dist(target_range_nb,dist_val=min_dist,max_dist=max_dist,step=step_dist,data_in=data_month)
-    station_nb <- nrow(dat$data)
-    if (station_nb > target_min_nb){
-      ind_s1  <- sample(nrow(dat$data), size=target_range_nb[1], replace = FALSE, prob = NULL) #furhter sample
-      #ind_s2 <- setdiff(1:nrow(dat$data), ind_s1)
-      data_out <- dat$data[ind_s1,] #selected the randomly sampled stations
+    dat <- sub_sampling_by_dist(target_range_nb,dist_val=min_dist,max_dist=max_dist,step_val=step_dist,data_in=data_in)
+    data_out1 <- dat$data #after subsampling using spatial proximity
     
-      ind.selected <-match(as.character(data_out$id),as.character(data_in$id))
-      ind.removed  <- setdiff(1:nrow(data_in), ind.selected)
-      data_removed <- data_in[ind.removed,]
+    data <- aggregate(id ~ x + y , data=data_out1,min)
+    coordinates(data) <- cbind(data$x,data$y)
+    proj4string(data) <- proj4string(data_in)
+
+    #once more we need to use only stations with id not replicates!!
+    
+    station_nb <- nrow(data)
+    
+    if (station_nb > target_min_nb){
+      
+      ind_s1  <- sample(nrow(data), size=target_range_nb[1], replace = FALSE, prob = NULL) #furhter sample
+      ind_s2 <- setdiff(1:nrow(data), ind_s1)
+
+      data_out_tmp <- data[ind_s1,] #selected the randomly sampled stations, only station location used here!!
+
+      id_selected <- as.character(data_out_tmp$id)
+      id_removed <- setdiff(unique(as.character(data$id)),as.character(data_out_tmp$id))
+      
+      data_removed <- subset(data_out1, id %in% id_removed)
+      #data_tmp <- data #store the reduced dataset with only id, for debugging purpose
+  
+      #data <- subset(data_in, id %in% data$id) #select based on id
+      data_out <-subset(data_out1, id %in% id_selected) #select based on id
+
+      #data_out_tmp <- data[ind_s1,] #selected the randomly sampled stations, only station location used here!!
+      #ind.selected <- match(as.character(data_out$id),as.character(data_in$id))
+      #ind.removed  <- setdiff(1:nrow(data_in), ind.selected)
+      #data_removed <- data[ind.removed,]
     
       #Find the corresponding 
       #data_sampled<-ghcn.subsets[[i]][ind.training,] #selected the randomly sampled stations
@@ -137,7 +183,7 @@ sub_sampling_by_dist_nb_stat <- function(target_range_nb,dist_range,step_dist,da
     names(data_obj) <- c("data","dist","data_removed","data_dist")
   }
   if(sampling!=T){
-    dat <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=NULL,step=step_dist,data_in=data_month)
+    dat <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=NULL,step_val=step_dist,data_in=data_in)
     #
     data_obj <- list(dat$data,dat$dist,dat$data_rm)
     names(data_obj) <- c("data","dist","data_removed")
@@ -231,5 +277,144 @@ step_dist <- 0.009 #iteration step to remove the stations
 
 test5 <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
 
+#### Now testing on NEX data for North America
+#daily sampling...
+
+path_tmp <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg1/33.8_-93.3"
+setwd(path_tmp)
+#daily_covariates_ghcn_data_TMAX_2010_201133.8_-93.3.shp
+
+data_RST_SDF <- readOGR(".","daily_covariates_ghcn_data_TMAX_2010_201133.8_-93.3")
+dim(data_RST_SDF)
+
+
+target_max_nb <- 100000 #this is not actually used yet in the current implementation,can be set to very high value...
+target_min_nb <- 600 #this is the target number of stations we would like: to be set by Alberto...
+#max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
+max_idst <- 0.009*5 #5km in degree
+min_dist <- 0    #minimum distance to start with
+step_dist <- 0.009 #iteration step to remove the stations
+target_range_day_nb <- c(target_min_nb,target_max_nb) #set in master script and read in database_preparation script..
+
+if(sub_sampling_day==TRUE){
+    
+  sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_day_nb,
+                                                   dist_range=dist_range,step_dist=step_dist,data_in=data_RST_SDF,
+                                                   sampling=T,combined=F)
+  #data_RST_SDF <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
+  data_test <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
   
+  #save the information for later use (validation at monthly step!!)
+  save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_","daily_",interpolation_method,"_", out_prefix,".RData",sep="")))
+}
+
+dim(data_test)
+#> dim(data_test) #some replications
+#[1] 199755     72
+unique(data_test$id) #this is 600 stations as requested!
+
+#### now deal with monthly data
+
+#monthly_covariates_ghcn_data_TMAX_2000_201133.8_-93.3.shp
+dst <- readOGR(".","monthly_covariates_ghcn_data_TMAX_2000_201133.8_-93.3")
+dst$id <- dst$station #must have an id column, this was added in database prepration script
+
+#This must be set up in master script
+target_max_nb <- 100000 #this is not actually used yet in the current implementation,can be set to very high value...
+target_min_nb <- 2500 #this is the target number of stations we would like: to be set by Alberto...#THIS IS DIFFERENT THAN DAILY
+#max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
+max_dist <- 0.009*5 #5km in degree
+min_dist <- 0    #minimum distance to start with
+step_dist <- 0.009 #iteration step to remove the stations
+target_range_nb <- c(target_min_nb,target_max_nb)
+#note that  this is for monthly stations.
+  
+if(sub_sampling==TRUE){ #sub_sampling is an option for the monthly station
+  sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=dst,sampling=T,combined=F)
+  data_test_month <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
+  #save the information for later use (validation at monthly step!!)
+  save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_",interpolation_method,"_", out_prefix,".RData",sep="")))
+}
+ 
+#> dim(data_test_month)
+#[1] 29418    68
+#> length(unique(data_test_month$id))
+#[1] 2500
+
+#Ok working for monthly as well...
+
+############################
+### Additional tile to test: Tile 2 on NEX with about 1.1 millon rows
+
+#37.6_-89.5
+
+path_tmp <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg1/37.6_-89.5"
+setwd(path_tmp)
+#daily_covariates_ghcn_data_TMAX_2010_201133.8_-93.3.shp
+
+data_RST_SDF <- readOGR(".","daily_covariates_ghcn_data_TMAX_2010_201137.6_-89.5")
+dim(data_RST_SDF)
+#> length(unique(data_RST_SDF$id))
+#[1] 3298
+#> dim(data_RST_SDF)
+#[1] 1117029      72
+
+target_max_nb <- 100000 #this is not actually used yet in the current implementation,can be set to very high value...
+target_min_nb <- 600 #this is the target number of stations we would like: to be set by Alberto...
+#max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
+max_idst <- 0.009*5 #5km in degree
+min_dist <- 0    #minimum distance to start with
+step_dist <- 0.009 #iteration step to remove the stations
+target_range_day_nb <- c(target_min_nb,target_max_nb) #set in master script and read in database_preparation script..
+
+if(sub_sampling_day==TRUE){
+    
+  sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_day_nb,
+                                                   dist_range=dist_range,step_dist=step_dist,data_in=data_RST_SDF,
+                                                   sampling=T,combined=F)
+  #data_RST_SDF <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
+  data_test <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
+  
+  #save the information for later use (validation at monthly step!!)
+  save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_","daily_",interpolation_method,"_", out_prefix,".RData",sep="")))
+}
+
+#Checking if it worked...
+dim(data_test)
+#> length(unique(data_test$id))
+#[1] 600
+#> dim(data_test)
+#[1] 204444     72
+#unique(data_test$id) #this is 600 stations as requested!
+
+####
+#### now deal with monthly data
+
+#monthly_covariates_ghcn_data_TMAX_2000_201137.6_-89.5.shp
+dst <- readOGR(".","monthly_covariates_ghcn_data_TMAX_2000_201137.6_-89.5")
+dst$id <- dst$station #must have an id column, this was added in database prepration script
+
+#This must be set up in master script
+target_max_nb <- 100000 #this is not actually used yet in the current implementation,can be set to very high value...
+target_min_nb <- 2500 #this is the target number of stations we would like: to be set by Alberto...#THIS IS DIFFERENT THAN DAILY
+#max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
+max_dist <- 0.009*5 #5km in degree
+min_dist <- 0    #minimum distance to start with
+step_dist <- 0.009 #iteration step to remove the stations
+target_range_nb <- c(target_min_nb,target_max_nb)
+#note that  this is for monthly stations.
+  
+if(sub_sampling==TRUE){ #sub_sampling is an option for the monthly station
+  sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=dst,sampling=T,combined=F)
+  data_test_month <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
+  #save the information for later use (validation at monthly step!!)
+  save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_",interpolation_method,"_", out_prefix,".RData",sep="")))
+}
+
+#Ok worked too and very fast
+#> dim(data_test_month)
+#[1] 29450    68
+#> length(unique(data_test_month$id))
+#[1] 2500
+
 ############ END OF SCRIPT #########
