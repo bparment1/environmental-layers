@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data for the  paper are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2013  
-#MODIFIED ON: 10/23/2014            
+#MODIFIED ON: 01/06/2015            
 #Version: 6
 #PROJECT: Environmental Layers project                                     
 #################################################################################################
@@ -111,7 +111,7 @@ names(list_raster_obj_files)<- c("gam_daily","kriging_daily","gwr_daily_a","gwr_
                                  "gam_fss","kriging_fss","gwr_fss")
 
 y_var_name <- "dailyTmax"
-out_prefix<-"analyses_10062014"
+out_prefix<-"analyses_01062015"
 out_dir<-"/home/parmentier/Data/IPLANT_project/paper_multitime_scale__analyses_tables"
 create_out_dir_param = TRUE
 
@@ -430,12 +430,18 @@ png(paste("Figure_11_improvement_dure to LST and models_tmax_prediction_",out_pr
     height=500*layout_m[1],width=500*layout_m[2])
 
 p<-xyplot(data ~ month | interp_method, groups=which,dd,type="b",
-          par.settings = list(axis.text = list(font = 2, cex = 1.3),layout=layout_m,
-                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5),
+          par.settings = list(axis.text = list(font = 2, cex = 1.3),
+                              superpose.symbol = list( #allow changing symbol size, type and color
+                              pch=1:2,cex=1.5),
+                              layout=layout_m,
+                              par.main.text=list(font=2,cex=2),strip.background=list(col="white")),
+          par.strip.text=list(font=2,cex=1.5),
           #strip=strip.custom(factor.levels=names_layers),
           xlab=list(label="Month", cex=2,font=2),
           ylab=list(label="\u0394RMSE from model with elevation", cex=2, font=2),
-          auto.key=list(columns=2,space="top",cex=2.5,font=2),
+          #key = list(points=list(pch=1:2)), 
+      
+          auto.key=list(columns=2,space="top",cex=2.5,font=2,pch=1:2),
           
           #list(label="\u0394RMSE between mod1 and mod4",cex=1.5)
           as.table=TRUE) #as.table controls the order  of the pannels!!
@@ -444,19 +450,6 @@ p <- update(p, panel = function(...) {
             panel.xyplot(...)
         })
 print(p)
-
-#p_dif <- xyplot(rmse_dif ~ 1:12,
-#          col=c("black"),
-#          type="b",
-#          ylab=list(label="\u0394RMSE between mod1 and mod4",cex=1.5),
-#          xlab=list(label="Month",cex=1.5),
-#          main=list(label="(b) Monthly \u0394RMSE betwen mod1 and mod4",cex=1.8),
-#          par.settings = list(axis.text = list(font = 2, cex = 1.3),
-#          par.main.text=list(font=2,cex=2),strip.background=list(col="white")),par.strip.text=list(font=2,cex=1.5))
-#p_dif <- update(p_dif, panel = function(...) {
-#            panel.abline(h = 0, lty = 2, col = "gray")
-#            panel.xyplot(...)
-#        })
 
 dev.off()
 
