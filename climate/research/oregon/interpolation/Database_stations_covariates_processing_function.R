@@ -228,19 +228,25 @@ database_covariates_preparation<-function(list_param_prep){
     #This must be set up in master script
   #target_max_nb <- 100,000 #this is not actually used yet in the current implementation,can be set to very high value...
   #target_min_nb <- 600 #this is the target number of stations we would like for daily and 1000x3000 tiles   
-                        #to be set by Alberto...
+                        #to be set by Alberto...THIS differentent than monthly number!!!
+  
   ##max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m, this in degree...? 
   #max_dist <- 0.009*5 #5km in degree
   #min_dist <- 0    #minimum distance to start with
   #step_dist <- 0.009 #iteration step to remove the stations
 
   #test5 <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
+  
+  #Daily range set at the begining...line 199!
+  
+  #target_range_daily_nb <- list_param$target_range_daily_nb #desired number range of daily stations
+
   if(sub_sampling_day==TRUE){
     
     sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_day_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_RST_SDF,sampling=T,combined=F)
     data_RST_SDF <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
     #save the information for later use (validation at monthly step!!)
-    save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_","dayly_",interpolation_method,"_", out_prefix,".RData",sep="")))
+    save(sub_sampling_obj,file= file.path(out_path,paste("sub_sampling_obj_","daily_",interpolation_method,"_", out_prefix,".RData",sep="")))
   }
   
   #Make sure this is still a shapefile...!! This might need to be uncommented...
@@ -339,11 +345,14 @@ database_covariates_preparation<-function(list_param_prep){
   coordinates(dst)<-coords                    #Assign coordinates to the data frame
   proj4string(dst)<-CRS_interp        #Assign coordinates reference system in PROJ4 format
   
+  ##Added 01-07-2015
+  dst$id <- dst$station #the id field is needed for possible subsampling
+  
   ### ADD SCREENING HERE BEFORE WRITING OUT DATA
   #Covariates ok since screening done in covariate script
   #screening on var i.e. value, TMIN, TMAX...
   
-  #### Adding  subsampling for regions  that  have  too  many stations...
+  #### Adding  subsampling for regions  that  have  too  many stations...This is for monthly stations...
   
   #This must be set up in master script
   #target_max_nb <- 100,000 #this is not actually used yet in the current implementation,can be set to very high value...
@@ -354,7 +363,9 @@ database_covariates_preparation<-function(list_param_prep){
   #step_dist <- 0.009 #iteration step to remove the stations
 
   #test5 <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=data_month,sampling=T,combined=F)
-  if(sub_sampling==TRUE){
+  #note that  this is for monthly stations.
+  
+  if(sub_sampling==TRUE){ #sub_sampling is an option for the monthly station
     sub_sampling_obj <- sub_sampling_by_dist_nb_stat(target_range_nb=target_range_nb,dist_range=dist_range,step_dist=step_dist,data_in=dst,sampling=T,combined=F)
     dst <- sub_sampling_obj$data #get sub-sampled data...for monhtly stations
     #save the information for later use (validation at monthly step!!)
