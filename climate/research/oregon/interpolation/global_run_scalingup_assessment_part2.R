@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/02/2015            
+#MODIFIED ON: 01/20/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses, Europe, Australia, 1000x300km
@@ -64,6 +64,37 @@ create_dir_fun <- function(out_dir,out_suffix){
   return(out_dir)
 }
 
+ #Remove models that were not fitted from the list
+#All modesl that are "try-error" are removed
+remove_errors_list<-function(list_items){
+  
+  #This function removes "error" items in a list
+  list_tmp<-list_items
+    if(is.null(names(list_tmp))){
+    names(list_tmp) <- paste("l",1:length(list_tmp),sep="_")
+    names(list_items) <- paste("l",1:length(list_tmp),sep="_")
+  }
+
+  for(i in 1:length(list_items)){
+    if(inherits(list_items[[i]],"try-error")){
+      list_tmp[[i]]<-0
+    }else{
+    list_tmp[[i]]<-1
+   }
+  }
+  cnames<-names(list_tmp[list_tmp>0])
+  x <- list_items[match(cnames,names(list_items))]
+  return(x)
+}
+
+#turn term from list into data.frame
+#name_col<-function(i,x){
+#x_mat<-x[[i]]
+#x_df<-as.data.frame(x_mat)
+#x_df$mod_name<-rep(names(x)[i],nrow(x_df))
+#x_df$term_name <-row.names(x_df)
+#return(x_df)
+#}
 #Function to rasterize a table with coordinates and variables...,maybe add option for ref image??
 rasterize_df_fun <- function(data_tb,coord_names,proj_str,out_suffix,out_dir=".",file_format=".rst",NA_flag_val=-9999,tolerance_val= 0.000120005){
   data_spdf <- data_tb
@@ -228,6 +259,7 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   reg_name <- list_param_plot_daily_mosaics$reg_name
   out_dir_str <- list_param_plot_daily_mosaics$out_dir_str
   out_suffix <- list_param_plot_daily_mosaics$out_suffix
+  l_dates <- list_param_plot_daily_mosaics$l_dates
 
 
   #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str)
@@ -242,12 +274,14 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   rclmat <- matrix(m, ncol=3, byrow=TRUE)
   rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
   file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
-  date_proc <- file_name[7] #specific tot he current naming of files
+  
+  #date_proc <- file_name[7] #specific tot he current naming of files
+  date_proc <- l_dates[i]
   #paste(raster_name[1:7],collapse="_")
   #add filename option later
   extension_str <- extension(filename(r_test))
   raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
-  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",date_proc,"_masked.tif",sep=""))
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
   r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
   
   res_pix <- 1200
@@ -259,7 +293,7 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
+  plot(r_pred,main=paste("Predicted on ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
   dev.off()
   
   return(raster_name)
@@ -275,7 +309,6 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
 #in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_12232014/"
 # input dir containing shapefiles defining tiles
 #in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
@@ -288,8 +321,15 @@ out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_12
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_12232014"
+out_prefix<-"run10_global_analyses_01202015"
 mosaic_plot <- FALSE
+
+day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
+                   "20100301","20100302","20100303","20100304","20100305",
+                   "20100501","20100502","20100503","20100504","20100505",
+                   "20100701","20100702","20100703","20100704","20100705",
+                   "20100901","20100902","20100903","20100904","20100905",
+                   "20101101","20101102","20101103","20101104","20101105")
 
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -302,6 +342,7 @@ out_suffix <-out_prefix
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- FALSE
+out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_01202015/"
 
 if(create_out_dir_param==TRUE){
   out_dir <- create_dir_fun(out_dir,out_prefix)
@@ -316,32 +357,34 @@ CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #S
 CRS_WGS84<-c("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
 region_name <- "world"
-# 
+
 ###Table 1: Average accuracy metrics
 ###Table 2: daily accuracy metrics for all tiles
-#lf_tables <- list.files(out_dir,)
+
 summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
 #tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
 tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
 
 tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
-#tb_month_s <- read.table("tb_month_diagnostic_s_NA_run5_global_analyses_08252014.txt",sep=",")
 pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
 pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
-#in_dir_list <- file.path(in_dir1,read.table(file.path(in_dir1,"processed.txt"))$V1)
-#gam_diagnostic_df <- read.table(file=file.path(out_dir,"gam_diagnostic_df_run4_global_analyses_08142014.txt"),sep=",")
 
 ########################## START SCRIPT ##############################
+
 tb$pred_mod <- as.character(tb$pred_mod)
 summary_metrics_v$pred_mod <- as.character(summary_metrics_v$pred_mod)
+summary_metrics_v$tile_id <- as.character(summary_metrics_v$tile_id)
+df_tile_processed$tile_id <- as.character(df_tile_processed$tile_id)
 
 mulitple_region <- TRUE
 
 #multiple regions?
 if(mulitple_region==TRUE){
   df_tile_processed$reg <- basename(dirname(as.character(df_tile_processed$path_NEX)))
+  tb <- merge(tb,df_tile_processed,by="tile_id")
+  
 }
 
 
@@ -384,18 +427,35 @@ for(i in 1:length(list_shp_reg_files)){
   #path_to_shp <- dirname(list_shp_reg_files[[i]])
   path_to_shp <- file.path(out_dir,"/shapefiles")
   layer_name <- sub(".shp","",basename(list_shp_reg_files[[i]]))
-  shp1 <- readOGR(path_to_shp, layer_name)
+  shp1 <- try(readOGR(path_to_shp, layer_name)) #use try to resolve error below
+  #shp_61.0_-160.0
+  #Geographical CRS given to non-conformant data: -186.331747678
+ 
   #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
-  pt <- gCentroid(shp1)
-  centroids_pts[[i]] <-pt
+  if (!inherits(shp1,"try-error")) {
+      pt <- gCentroid(shp1)
+      centroids_pts[[i]] <- pt
+  }else{
+    centroids <- shp1
+  }
   shps_tiles[[i]] <- shp1
 }
+
 #coord_names <- c("lon","lat")
 #l_rast <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_prefix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
 
+#remove try-error polygons...we loose three tiles because they extend beyond -180 deg
+tmp <- shps_tiles
+shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
+#shps_tiles <- tmp
+
+tmp_pts <- centroids_pts 
+centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
+#centroids_pts <- tmp_pts 
+  
 #plot info: with labels
 res_pix <- 1200
-col_mfrow <- 1
+col_mfrow <- 1 
 row_mfrow <- 1
 
 png(filename=paste("Figure1_tile_processed_region_",region_name,"_",out_prefix,".png",sep=""),
@@ -403,15 +463,17 @@ png(filename=paste("Figure1_tile_processed_region_",region_name,"_",out_prefix,"
 
 plot(reg_layer)
 #Add polygon tiles...
-for(i in 1:length(list_shp_reg_files)){
+for(i in 1:length(shps_tiles)){
   shp1 <- shps_tiles[[i]]
   pt <- centroids_pts[[i]]
-  plot(shp1,add=T,border="blue")
-  #plot(pt,add=T,cex=2,pch=5)
-  label_id <- df_tile_processed$tile_id[i]
-  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
+  if(!inherits(shp1,"try-error")){
+    plot(shp1,add=T,border="blue")
+    #plot(pt,add=T,cex=2,pch=5)
+    label_id <- df_tile_processed$tile_id[i]
+    text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
+  }
 }
-title(paste("Tiles location 20x20 degrees for ", region_name,sep=""))
+title(paste("Tiles 1000x3000 ", region_name,sep=""))
 
 dev.off()
       
@@ -494,101 +556,36 @@ dev.off()
 #y_var_name <-"dailyTmax"
 #index <-244 #index corresponding to Sept 1
 
-if (mosaic_plot==TRUE){
-  index  <- 1 #index corresponding to Jan 1
-  date_selected <- "20100901"
-  name_method_var <- paste(interpolation_method,"_",y_var_name,"_",sep="")
+# if (mosaic_plot==TRUE){
+#   index  <- 1 #index corresponding to Jan 1
+#   date_selected <- "20100901"
+#   name_method_var <- paste(interpolation_method,"_",y_var_name,"_",sep="")
+# 
+#   pattern_str <- paste("mosaiced","_",name_method_var,"predicted",".*.",date_selected,".*.tif",sep="")
+#   lf_pred_list <- list.files(pattern=pattern_str)
+# 
+#   for(i in 1:length(lf_pred_list)){
+#     
+#   
+#     r_pred <- raster(lf_pred_list[i])
+#   
+#     res_pix <- 480
+#     col_mfrow <- 1
+#     row_mfrow <- 1
+#   
+#     png(filename=paste("Figure4_models_predicted_surfaces_",model_name[i],"_",name_method_var,"_",data_selected,"_",out_prefix,".png",sep=""),
+#        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+#   
+#     plot(r_pred)
+#     title(paste("Mosaiced",model_name[i],name_method_var,date_selected,sep=" "))
+#     dev.off()
+#   }
+#   #Plot Delta and clim...
+# 
+#    ## plotting of delta and clim for later scripts...
+# 
+# }
 
-  pattern_str <- paste("mosaiced","_",name_method_var,"predicted",".*.",date_selected,".*.tif",sep="")
-  lf_pred_list <- list.files(pattern=pattern_str)
-
-  for(i in 1:length(lf_pred_list)){
-    
-  
-    r_pred <- raster(lf_pred_list[i])
-  
-    res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-  
-    png(filename=paste("Figure4_models_predicted_surfaces_",model_name[i],"_",name_method_var,"_",data_selected,"_",out_prefix,".png",sep=""),
-       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-  
-    plot(r_pred)
-    title(paste("Mosaiced",model_name[i],name_method_var,date_selected,sep=" "))
-    dev.off()
-  }
-  #Plot Delta and clim...
-
-   ## plotting of delta and clim for later scripts...
-
-}
-
-####### Figure 5...
-### Adding tiles do a plot of mod1 with tiles
-
-#r_pred <- raster(lf_pred_list[i])
-  
-#res_pix <- 480
-#col_mfrow <- 1
-#row_mfrow <- 1
-#model_name <- as.character(model_name)
-
-#i<-2
-#png(filename=paste("Figure5_tiles_with_models_predicted_surfaces_",model_name[i],"_",name_method_var,out_prefix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-#  
-#plot(r_pred)
-#plot(reg_layer)
-
-#title(paste("Mosaiced",model_name[i],name_method_var,date_selected,"with tiles",sep=" "))
-
-#Add polygon tiles...
-#for(i in 1:length(list_shp_reg_files)){
-#  shp1 <- shps_tiles[[i]]
-#  pt <- centroids_pts[[i]]
-#  plot(shp1,add=T,border="blue")
-  #plot(pt,add=T,cex=2,pch=5)
-#  label_id <- df_tile_processed$tile_id[i]
-#  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1,col=c("red"))
-#}
-#title(paste("Prediction with tiles location 10x10 degrees for ", region_name,sep=""))
-#dev.off()
-
-### 
-
-#### Now combined plot...
-#Use the function to match extent...
-
-#pred_s <- stack(lf_list) #problem different extent!!
-#methods_names <-c("gam","kriging","gwr")
-#methods_names <- interpolation_method
-
-#names_layers<-methods_names[1]
-#names_layers <-c("mod1 = lat*long + elev","mod2 = lat*long + elev + LST",
-#                 "mod3 = lat*long + elev + LST*FOREST")#, "mod_kr")
-#nb_fig<- c("4a","4b")
-#list_plots_spt <- vector("list",length=length(lf))
-#png(filename=paste("Figure4_models_predicted_surfaces_",date_selected,"_",out_prefix,".png",sep=""),
-#    height=480*layout_m[1],width=480*layout_m[2])
-#  max_val <- 40
-#  min_val <- -40
-#  layout_m <- c(1,3) #one row two columns
-#  no_brks <- length(seq(min_val,max_val,by=0.1))-1
-#  #temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-#  #temp.colors <- colorRampPalette(c('blue', 'lightgoldenrodyellow', 'red'))
-#  #temp.colors <- matlab.like(no_brks)
-#  temp.colors <- colorRampPalette(c('blue', 'khaki', 'red'))
-#  
-#  p <- levelplot(pred_s,main=methods_names[i], 
-#                 ylab=NULL,xlab=NULL,
-#          par.settings = list(axis.text = list(font = 2, cex = 2),layout=layout_m,
-#                              par.main.text=list(font=2,cex=2.5),strip.background=list(col="white")),par.strip.text=list(font=2,cex=2),
-#          names.attr=names_layers,
-#                 col.regions=temp.colors(no_brks),at=seq(min_val,max_val,by=0.1))
-##col.regions=temp.colors(25))
-#print(p)
-#dev.off()
 
 ######################
 ### Figure 5: plot accuracy ranked 
@@ -700,8 +697,9 @@ for (i in 1:length(model_name)){
 }
 
 ## Number of tiles with information:
-
-sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #81.40%
+sum(df_tile_processed$metrics_v)
+length(df_tile_processed$metrics_v)
+sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #70.69%
 
 #coordinates
 coordinates(summary_metrics_v) <- c("lon","lat")
@@ -807,27 +805,32 @@ histogram(test$predicted~test$tile_id)
 ##########################################################
 ##### Figure 8: Breaking down accuaracy by regions!! #####
 
+summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+table(summary_metrics_v$reg)
 
-#This part is specifically related to this run : dropping model with elev
-#tb <- merge(tb,df_tile_processed,by="tile_id")
+## Figure 8a
+res_pix <- 480
+col_mfrow <- 1
+row_mfrow <- 1
 
-#tb_tmp_reg5 <- subset(tb,reg=="reg5")
-#tb_tmp_reg4 <- subset(tb,reg=="reg4")
-#tb_tmp_reg4 <- subset(tb_tmp_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
-#tb_tmp_reg4$pred_mod <- replace(tb_tmp_reg4$pred_mod, tb_tmp_reg4$pred_mod=="mod2", "mod1")
-#tb <- rbind(tb_tmp_reg4,tb_tmp_reg5)
+png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-#ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
-#summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
-#table(summary_metrics_v$reg)
+p<- bwplot(rmse~pred_mod | reg, data=tb,
+           main="RMSE per model and region over all tiles")
+print(p)
+dev.off()
 
-#summary_metrics_v_reg5 <- subset(summary_metrics_v,reg=="reg5")
-#summary_metrics_v_reg4 <- subset(summary_metrics_v,reg=="reg4")
-#summary_metrics_v_reg4 <- subset(summary_metrics_v_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
-#summary_metrics_v_reg4$pred_mod <- replace(summary_metrics_v_reg4$pred_mod, 
-#                                           summary_metrics_v_reg4$pred_mod=="mod2", "mod1")
-#summary_metrics_v <- rbind(summary_metrics_v_reg4,summary_metrics_v_reg5)
+## Figure 8b
+png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
+boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+title("RMSE per model over all tiles")
+p<- bwplot(rmse~pred_mod | reg, data=tb,ylim=c(0,5),
+           main="RMSE per model and region over all tiles")
+print(p)
+dev.off()
 
 #####################################################
 #### Figure 9: plotting mosaics of regions ###########
@@ -844,106 +847,28 @@ for(i in 1:length(l_reg_name)){
            full.names=T))
 }
 
-#r_reg5 <- stack(lf_mosaics_reg5)
-lf_m <- lf_mosaics_reg5[1:12]
-reg_name <- "reg5"
-for(i in 1:length(lf_m)){
-  r_test<- raster(lf_m[i])
-  #r_test <- subset(r_reg5,1)
+#plot Australia
+lf_m <- lf_mosaics_reg[[2]]
+out_dir_str <- out_dir
+reg_name <- "reg6_1000x3000"
+#lapply()
+#list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix)
+list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
 
-  r_test_mask_high <- r_test < 100
-  NAvalue(r_test_mask_high) <- 0
-  r_test_mask_low <- r_test > -100
-  NAvalue(r_test_mask_low) <- 0
-  r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
-  #writeRaster(r3,file=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
-  
-  res_pix <- 1200
-  #res_pix <- 480
+#lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
+#debug(plot_daily_mosaics)
+#lf_m_mask_reg6_1000x3000 <- plot_daily_mosaics(1,list_param=list_param_plot_daily_mosaics)
 
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png(filename=paste("Figure9_clim_mosaics_month","_",i,"_",reg_name,"_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
-  plot(r3,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
-  dev.off()
-}
+#### North America
+lf_m <- lf_mosaics_reg[[1]]
+out_dir_str <- out_dir
+reg_name <- "reg1_1000x3000"
+#lapply()
+list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
+#lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 
-####
-
-#Monthly
-lf_m <- lf_mosaics_reg2[13:15]
-lf_m <- lf_mosaics_reg2[1:12]
-
-reg_name <- "reg2"
-for(i in 1:length(lf_m)){
-  r_test<- raster(lf_m[i])
-  #r_test <- subset(r_reg5,1)
-
-  #r_test_mask_high <- r_test < 100
-  #r_test_mask_high <- r_test[r_test < 100]
-  
-  #r_test_mask_high <- r_test < 100
-
-  m <- c(-Inf, -100, NA,  
-         -100, 100, 1, 
-         100, Inf, NA)
-  rclmat <- matrix(m, ncol=3, byrow=TRUE)
-  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
-  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
-  #r <- raster(r_test_mask_high,dataType="INT2U")
-  #r3 <- clamp(r_test,-100,100)
-  #NAvalue(r_test_mask_high) <- 0
-  
-  #r_test_mask_low <- r_test > -100
-  #NAvalue(r_test_mask_low) <- 0
-  #r3 <- overlay(r_test, r_test_mask_high, r_test_mask_low, fun=function(x,y,z){return(x*y*z)})
-  #writeRaster(r3,file=paste("CAI_TMAX_clim_month_",i,"_mod1_all_",reg_name,"_masked.tif",sep=""),overwrite=TRUE)
-  
-  res_pix <- 1200
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png(filename=paste("Figure9_clim_mosaics_day_test","_",i,"_",reg_name,"_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r_pred,main=paste("climatology month ", i, " ", reg_name,sep=""),cex.main=1.5)
-  dev.off()
-}
-
-#daily
-lf_m <- lf_mosaics_reg2[13:length(lf_mosaics_reg2)]
-#lf_m <- lf_mosaics_reg2[1:12]
-
-reg_name <- "reg2"
-for(i in 1:length(lf_m)){
-  r_test<- raster(lf_m[i])
-
-  m <- c(-Inf, -100, NA,  
-         -100, 100, 1, 
-         100, Inf, NA)
-  rclmat <- matrix(m, ncol=3, byrow=TRUE)
-  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
-  raster_name <- unlist(strsplit(basename(lf_m[i]),"_"))
-  date_proc <- raster_name[5]
-  #paste(raster_name[1:7],collapse="_")
-  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_mod1_all_",reg_name,"_",date_proc,"_masked.tif",sep=""),overwrite=TRUE)
-  
-  res_pix <- 1200
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
-  dev.off()
-}
+lf_m_mask_reg1_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
 ##################### END OF SCRIPT ######################
