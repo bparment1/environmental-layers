@@ -5,15 +5,11 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/23/2014            
-#Version: 3
+#MODIFIED ON: 01/28/2015            
+#Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
 # - generate delta and clim mosaic
-# - generate monthly inputs data_month
-# - generate table of number of observations per tile for use in map part 2
-# - generate data_s and data_v inputs as giant table
-# - generate accuracy for mosaic (part 2 and part3)
 # - clean up
 
 #First source file:
@@ -468,9 +464,9 @@ create_raster_prediction_obj<- function(in_dir_list,interpolation_method, y_var_
 
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
-in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/"
 
-region_names <- c("reg2","reg6") #selected region names
+region_names <- c("reg1") #selected region names
 
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
@@ -499,10 +495,11 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_12232014"
+out_prefix<-"run10_global_analyses_01282015"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
+#out_dir <- "/nobackupp8/bparmen1/" #
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE
 
@@ -743,114 +740,48 @@ dates_l <- format(idx, "%Y%m%d") # interpolation date being processed
 y_var_name <- "dailyTmax" #set up in parameters of this script
 interpolation_method <- c("gam_CAI") #set up in parameters of the script
 name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
-#make it general using nb_mod!!
-#could be set up at the begining?
-
-mod_id <- c(1:(nb_mod-1),"_kr")
-pred_pattern_str <- paste(".*predicted_mod",mod_id,"_0_1.*",sep="")
-#,".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*")
-#l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*"),
-#                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-l_pattern_models <- lapply(pred_pattern_str,
-                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-#gam_CAI_dailyTmax_predicted_mod_kr_0_1_20101231_30_145.0_-120.0.tif
-#gam_CAI_dailyTmax_predicted_mod_kr_0_1_20101231_30_145.0_-120.0.tif                    
-
-##Get list of predicted tif across all tiles, models and dates...
-#this takes time, use mclapply!!
-lf_pred_tif <- vector("list",length=length(l_pattern_models)) #number of models is 3
-for (i in 1:length(l_pattern_models)){
-  l_pattern_mod <- l_pattern_models[[i]] #365 dates
-  #list_tif_files_dates <-lapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-  #                            in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]])
-  list_tif_files_dates <-mclapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]],mc.preschedule=FALSE,mc.cores = 6)
-  
-  lf_pred_tif[[i]] <- list_tif_files_dates
-}
-
-#Need to check how many dates were predicted (have tif) !!! make a table with that!! 
-
-#Now get the clim surfaces:
-month_l <- paste("clim_month_",1:12,sep="")
-#l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod3_0_1.*","_mod_kr_0_1.*"),
-#                           FUN=function(x){paste("*.",month_l,x,".*.tif",sep="")})
-#generate this automatically!!!
-l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod_kr_0_1.*"),
-                           FUN=function(x){paste("*.",month_l,x,".*.tif",sep="")})
-
-
-#"CAI_TMAX_clim_month_11_mod2_0_145.0_-120.0.tif"
-lf_clim_tif <- vector("list",length=nb_mod) #number of models is 3
-for (i in 1:length(l_pattern_models)){
-  l_pattern_mod <- l_pattern_models[[i]] #12 dates
-  list_tif_files_dates <- mclapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]],mc.preschedule=FALSE,mc.cores = 6)
-  lf_clim_tif[[i]] <- list_tif_files_dates
-}
-
-#Now get delta surfaces:
-
-#mod_id <- c(1:(nb_mod-1),"_kr")
-#pred_pattern_str <- paste(".*predicted_mod",mod_id,"_0_1.*",sep="")
-#,".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*")
-#l_pattern_models <- lapply(c(".*predicted_mod1_0_1.*",".*predicted_mod2_0_1.*",".*predicted_mod3_0_1.*",".*predicted_mod_kr_0_1.*"),
-#                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-#l_pattern_models <- lapply(pred_pattern_str,
-#                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-
-#date_l# <- paste("clim_month_",1:12,sep="")
-#l_pattern_models <- lapply(c("_mod1_0_1.*","_mod2_0_1.*","_mod3_0_1.*","_mod_kr_0_1.*"),
-#                           FUN=function(x){paste("*.",month_l,x,".*.tif",sep="")})
-#l_pattern_models <- lapply(c(".*delta_dailyTmax_mod1_del_0_1.*",".*delta_dailyTmax_mod2_del_0_1.*",".*delta_dailyTmax_mod3_del_0_1.*",".*delta_dailyTmax_mod_kr_del_0_1.*"),
-#                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-l_pattern_models <- lapply(c(".*delta_dailyTmax_mod1_del_0_1.*",".*delta_dailyTmax_mod2_del_0_1.*",".*delta_dailyTmax_mod_kr_del_0_1.*"),
-                           FUN=function(x){paste(x,dates_l,".*.tif",sep="")})
-
-lf_delta_tif <- vector("list",length=nb_mod) #number of models is 3
-for (i in 1:length(l_pattern_models)){
-  l_pattern_mod <- l_pattern_models[[i]]
-  list_tif_files_dates <- mclapply(1:length(l_pattern_mod),FUN=list_tif_fun, 
-                              in_dir_list=in_dir_list,pattern_str=l_pattern_models[[i]],mc.preschedule=FALSE,mc.cores = 6)
-  lf_delta_tif[[i]] <- list_tif_files_dates
-}
-
-
-#### NOW create mosaic images for daily prediction
-
-#out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod3_0_01","predicted_mod_kr_0_1"),sep="")
-out_prefix_s <- paste(name_method,c("predicted_mod1_0_01","predicted_mod2_0_01","predicted_mod_kr_0_1"),sep="")
-
-dates_l #list of predicted dates
-#l_out_rastnames_var <- paste(name_method,"predicted_mod1_0_01_",dates_l,sep="")
-l_out_rastnames_var <- lapply(out_prefix_s,
-                              FUN=function(x){paste(x,"_",dates_l,sep="")})
-
-#nb_mod <- 4 #this is set up earlier
-##Add option to specify wich dates to mosaic??
-day_to_mosaic <- c("20100101","20100901")
-if (!is.null(day_to_mosaic)){
-  list_days <-match(day_to_mosaic,dates_l)
-}else{
-  list_days <- 1:365 #should check for year in case it has 366, add later!!
-}
-
 ##Use python code written by Alberto Guzman
 
-system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
+#system("MODULEPATH=$MODULEPATH:/nex/modules/files")
+#system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
 
 module_path <- ""
 module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-in_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2/"
-out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2/mosaics"
 
-l_dates <- "20100101,20100102"
-cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
+#l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
+l_dates <- paste(day_to_mosaic,collapse=",")
+## use region 2 first
+
+#make this a function later...with following param
+#input:
+#region_names
+#in_dir1
+##out_dir , not ehta out_dir moasic s can be created in rhe future function
+#mod_str
+#For the time being use mean,median from python function by Alberto...
+
+for (i in 1:length(region_names)){
+  in_dir_mosaics <- file.path(in_dir1,region_names[i])
+  #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
+  #Can be changed to have mosaics in different dir..
+  out_dir_mosaics <- out_dir
+  #prefix_str <- "reg4_1500x4500"
+  #tile_size <- basename(dirname(in_dir[[i]]))
+  tile_size <- basename(in_dir1)
+
+  prefix_str <- paste(region_names[i],"_",tile_size,sep="")
+
+  mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
+
+  cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
                  in_dir_mosaics,
                  out_dir_mosaics,
+                 prefix_str,
+                 "--mods", mod_str,
                  "--date", l_dates,sep=" ")
-system(cmd_str)
+  system(cmd_str)
+
+}
 
 ### Now find out how many files were predicted
 # will be useful later on
@@ -870,34 +801,6 @@ robj1$clim_method_mod_obj[[1]]$data_month_v #zero rows for testing stations at m
 data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
 
 names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
-
-#problem with tile 12...the raster ojbect has missing sub object
-#data_month_list <- lapply(1:length(list_raster_obj_files),x=list_raster_obj_files,
-#                          FUN=function(i,x){x<-load_obj(x[[i]]);
-#                                            extract_from_list_obj(x$validation_mod_month_obj,"data_s")})                           
-
-### make this part a function:
-
-#create a table for every month, day and tiles...
-# data_month_list <- lapply(1:length(list_raster_obj_files),x=list_raster_obj_files,
-#                           FUN=function(i,x){x<-load_obj(x[[i]]);
-#                                             extract_from_list_obj(x$clim_method_mod_obj,"data_month")})                           
-# 
-# names(data_month_list) <- paste("tile","_",1:length(data_month_list),sep="")
-# 
-# #names(data_month_list) <- basename(in_dir_list) #use folder id instead
-# 
-# list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
-# 
-# #tile_id <- lapply(1:length(data_month_list),
-# #                  FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_list)
-# 
-# data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
-# data_month_NAM$tile_id <- unlist(tile_id)
-# 
-# names(robj1$validation_mod_day_obj[[1]]$data_s) # daily for January with predictions
-# dim(robj1$validation_mod_month_obj[[1]]$data_s) # daily for January with predictions
-# 
 
 use_day=TRUE
 use_month=TRUE
@@ -937,7 +840,7 @@ write.table(pred_data_day_info,
 #for i in 1:length(df_tiled_processed$tile_coord)
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
-output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014"
+output_atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",out_dir)
 #Make directories on ATLAS
 #for (i in 1:length(df_tile_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
@@ -948,12 +851,11 @@ output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run10_global_a
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i]),"/shapefiles"),out_suffix=NULL)
 #}  
 
-
-#Copy summary textfiles and mosaic back to atlas
+#Copy summary textfiles back to atlas
 
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir))#,"output/subset/shapefiles")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-lf_cp_f <- list.files(out_dir,full.names=T)#copy all files can filter later
+lf_cp_f <- list.files(out_dir,full.names=T,pattern="*.txt")#copy all files can filter later
 filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
@@ -979,62 +881,16 @@ system(cmd_str)
 
 ###### COPY MOSAIC files
 
-#> system("ls -ltr /nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg5")
-#Copy all mosaics related files in one unique directory called mosaics on Atlas
+#Copy region mosaics back to atlas
 
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"mosaics")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-#lf_reg4 <- list.files(path=file.path(dirname(in_dir_list[[2]]),"mosaics"),full.names=T)
-#lf_reg5 <- list.files(path=file.path(dirname(in_dir_list[[20]]),"mosaics"),full.names=T)
-lf_reg2 <- list.files(path=file.path("/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2","mosaics"),
-                      full.names=T)
-
-#lf_cp_mosaics <- c(lf_reg4,lf_reg5)
-#filenames_NEX <- paste(lf_cp_mosaics,collapse=" ")  #copy raster prediction object
-#cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
-#system(cmd_str)
-
-#since they have the same  name, must place them in separate dir...
-filenames_NEX <- paste(lf_reg2,collapse=" ")  #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,file.path(Atlas_dir,"reg2"),sep=":"), sep=" ")
+lf_cp_f <- list.files(out_dir,full.names=T,pattern="*.tif")#copy all files can filter later
+filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
+cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
-
-############# COPY FILES USED FOR DIFFERENCES OF IMAGES
-#copy mosaics from other tiles of 1,500x4,500
-
-
-lf_reg4_1500x4500 <- list.files(path="/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg4_1500x4500/",full.names=T)
-lf_reg5_1500x4500 <- list.files(path="/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg5_1500x4500/",full.names=T)
-lf_reg4_1000x3000 <- list.files(path="/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg4_1000x3000/",full.names=T)
-lf_reg5_1000x3000 <- list.files(path="/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg5_1000x3000/",full.names=T)
-
-Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"mosaics")
-Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-#lf_reg4 <- list.files(path=file.path(dirname(in_dir_list[[2]]),"mosaics"),full.names=T)
-
-#copy reg5_1000x3000
-filenames_NEX <- paste(lf_reg5_1000x3000,collapse=" ")  #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,file.path(Atlas_dir,"reg5_1000x3000"),sep=":"), sep=" ")
-system(cmd_str)
-
-#copy reg4_1000x3000
-filenames_NEX <- paste(lf_reg4_1000x3000,collapse=" ")  #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,file.path(Atlas_dir,"reg4_1000x3000"),sep=":"), sep=" ")
-system(cmd_str)
-
-#copy reg4_1500x4500
-filenames_NEX <- paste(lf_reg4_1500x4500,collapse=" ")  #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,file.path(Atlas_dir,"reg4_1500x4500"),sep=":"), sep=" ")
-system(cmd_str)
-
-#copy reg5_1500x4500
-filenames_NEX <- paste(lf_reg5_1500x4500,collapse=" ")  #copy raster prediction object
-cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,file.path(Atlas_dir,"reg5_1500x4500"),sep=":"), sep=" ")
-system(cmd_str)
-
 
 ##################### END OF SCRIPT ######################
-
 
 ###Mosaic ...
 #python mosaicUsingGdalMerge.py /nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/ /nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaics/
@@ -1046,125 +902,3 @@ system(cmd_str)
 #python /nobackupp6/aguzman4/climateLayers/sharedCode/mosaicUsingGdalMerge.py /nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2/ /nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2/mosaics/ --date 20100101,20100102,20100103,20100104
 #python /nobackupp6/aguzman4/climateLayers/sharedCode/mosaicUsingGdalMerge.py /nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2/ /nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg2/mosaics/ --m 1"
 
-# cmd_str <- paste("python", module_path,"mosaicUsingGdalMerge.py",
-#                  "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/"
-#                  "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaics/"
-#                  "--date 20100101,20100102,20100103,20100104",sep=" ")
-# cmd_str <- paste("python", module_path,"mosaicUsingGdalMerge.py",
-#                  "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/"
-#                  "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaics/"
-#                  "--date 20100101,20100102,20100103,20100104",sep=" ")
-# 
-# system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-# system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-# 
-# module_path <- ""
-#module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-#in_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg5/"
-#out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg5/mosaics"
-#l_dates <- "20100101,20100102,20100103,20100104,20100901,20100902,20100903,20100904"
-#cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
-#                  in_dir_mosaics,
-#                  out_dir_mosaics,
-#                  "--date", l_dates,sep=" ")
-#system(cmd_str)
-
-#module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-#in_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg4/"
-#out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg4/mosaics"
-#l_dates <- "20100101,20100102,20100103,20100104,20100901,20100902,20100903,20100904"
-#cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
-#                  in_dir_mosaics,
-#                  out_dir_mosaics,
-#                  "--date", l_dates,sep=" ")
-
-system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-
-module_path <- ""
-module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-in_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg4/"
-out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg4/mosaicsMean"
-out_dir_mosaics <- "/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg4_1000x3000"
-#/nobackup/bparmen1//output_run10_global_analyses_12152014
-prefix_str <- "reg4_1000x300"
-
-#l_dates <- "20100101,20100102"
-l_dates <- "20100101,20100102,20100103,20100104,20100301,20100501,20100701,20100901,20100902,20100903,20100904"
-cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
-                 in_dir_mosaics,
-                 out_dir_mosaics,
-                 prefix_str,
-                 "--date", l_dates,sep=" ")
-system(cmd_str)
-
-#reg5 100x3000
-
-system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-
-module_path <- ""
-module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-in_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/"
-#out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
-out_dir_mosaics <- "/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg5_1000x3000"
-#/nobackup/bparmen1//output_run10_global_analyses_12152014
-prefix_str <- "reg5_1000x300"
-
-#l_dates <- "20100101,20100102"
-l_dates <- "20100101,20100102,20100103,20100104,20100301,20100501,20100701,20100901,20100902,20100903,20100904"
-cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
-                 in_dir_mosaics,
-                 out_dir_mosaics,
-                 prefix_str,
-                 "--date", l_dates,sep=" ")
-system(cmd_str)
-
-#reg5 1500x4500
-
-#system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-#system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-
-module_path <- ""
-module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-in_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg5/"
-#out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
-out_dir_mosaics <- "/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg5_1500x4500"
-#/nobackup/bparmen1//output_run10_global_analyses_12152014
-prefix_str <- "reg5_1500x4500"
-
-#l_dates <- "20100101,20100102"
-l_dates <- "20100101,20100102,20100103,20100104,20100301,20100501,20100701,20100901,20100902,20100903,20100904"
-cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
-                 in_dir_mosaics,
-                 out_dir_mosaics,
-                 prefix_str,
-                 "--date", l_dates,sep=" ")
-system(cmd_str)
-
-#####
-#reg4 1500x4500: NEED TO USE MOD2!!! in this specific case...
-
-#system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-#system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-
-module_path <- ""
-module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-in_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/reg4/"
-#out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
-out_dir_mosaics <- "/nobackup/bparmen1//output_run10_global_analyses_12152014/mosaics/reg4_1500x4500"
-#/nobackup/bparmen1//output_run10_global_analyses_12152014
-prefix_str <- "reg4_1500x4500"
-mod_str <- "mod2" #use mod2 which corresponds to model with LST and elev
-
-#l_dates <- "20100101,20100102"
-l_dates <- "20100101,20100102,20100103,20100104,20100301,20100501,20100701,20100901,20100902,20100903,20100904"
-cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
-                 in_dir_mosaics,
-                 out_dir_mosaics,
-                 prefix_str,
-                 "--mods", mod_str,
-                 "--date", l_dates,sep=" ")
-system(cmd_str)
-
-###copy folder in mosaics...
