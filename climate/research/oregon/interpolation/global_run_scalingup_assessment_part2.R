@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/20/2015            
+#MODIFIED ON: 01/28/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses, Europe, Australia, 1000x300km
@@ -321,7 +321,7 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_01202015"
+out_prefix<-"run10_global_analyses_01282015"
 mosaic_plot <- FALSE
 
 day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
@@ -342,7 +342,7 @@ out_suffix <-out_prefix
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- FALSE
-out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_01202015/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_01282015/"
 
 if(create_out_dir_param==TRUE){
   out_dir <- create_dir_fun(out_dir,out_prefix)
@@ -697,9 +697,9 @@ for (i in 1:length(model_name)){
 }
 
 ## Number of tiles with information:
-sum(df_tile_processed$metrics_v)
-length(df_tile_processed$metrics_v)
-sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #70.69%
+sum(df_tile_processed$metrics_v) #number of tiles with raster object
+length(df_tile_processed$metrics_v) #number of tiles in the region
+sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #62.5% of tiles with info
 
 #coordinates
 coordinates(summary_metrics_v) <- c("lon","lat")
@@ -847,28 +847,29 @@ for(i in 1:length(l_reg_name)){
            full.names=T))
 }
 
+#This part should be automated...
 #plot Australia
-lf_m <- lf_mosaics_reg[[2]]
-out_dir_str <- out_dir
-reg_name <- "reg6_1000x3000"
+#lf_m <- lf_mosaics_reg[[2]]
+#out_dir_str <- out_dir
+#reg_name <- "reg6_1000x3000"
 #lapply()
 #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix)
-list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
+#list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
 
 #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 #debug(plot_daily_mosaics)
 #lf_m_mask_reg6_1000x3000 <- plot_daily_mosaics(1,list_param=list_param_plot_daily_mosaics)
 
-lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+#lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
 #### North America
 lf_m <- lf_mosaics_reg[[1]]
 out_dir_str <- out_dir
-reg_name <- "reg1_1000x3000"
+reg_name <- "reg1_1500x4500"
 #lapply()
 list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
 #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 
-lf_m_mask_reg1_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+lf_m_mask_reg1_1500x4500 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
 ##################### END OF SCRIPT ######################
