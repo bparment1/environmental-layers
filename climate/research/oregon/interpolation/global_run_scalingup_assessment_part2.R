@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/28/2015            
+#MODIFIED ON: 02/10/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses, Europe, Australia, 1000x300km
@@ -321,7 +321,10 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_01282015"
+#out_prefix<-"run10_global_analyses_01282015"
+#out_prefix <- "output_run10_1000x3000_global_analyses_02102015"
+out_prefix <- "run10_1000x3000_global_analyses_02102015"
+
 mosaic_plot <- FALSE
 
 day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
@@ -342,8 +345,8 @@ out_suffix <-out_prefix
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- FALSE
-out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_01282015/"
-
+#out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_01282015/"
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1000x3000_global_analyses_02102015"
 if(create_out_dir_param==TRUE){
   out_dir <- create_dir_fun(out_dir,out_prefix)
   setwd(out_dir)
@@ -362,6 +365,7 @@ region_name <- "world"
 ###Table 2: daily accuracy metrics for all tiles
 
 summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
+#fname <- file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep=""))
 tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
 #tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
 tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
@@ -387,6 +391,23 @@ if(mulitple_region==TRUE){
   
 }
 
+###
+"/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014/tb_diagnostic_v_NA_run8_global_analyses_10212014.txt"
+
+#drop 3b
+tb_all <- tb
+tb <- subset(tb,reg!="reg3b")
+
+summary_metrics_v_all <- summary_metrics_v 
+
+tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+#tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
+tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+
+tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
+pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
+df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 
 ###############
 ### Figure 1: plot location of the study area with tiles processed
@@ -423,6 +444,7 @@ shps_tiles <- vector("list",length(list_shp_reg_files))
 #collect info: read in all shapfiles
 #This is slow...make a function and use mclapply??
 #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
+
 for(i in 1:length(list_shp_reg_files)){
   #path_to_shp <- dirname(list_shp_reg_files[[i]])
   path_to_shp <- file.path(out_dir,"/shapefiles")
@@ -436,18 +458,22 @@ for(i in 1:length(list_shp_reg_files)){
       pt <- gCentroid(shp1)
       centroids_pts[[i]] <- pt
   }else{
-    centroids <- shp1
+    pt <- shp1
+    centroids_pts[[i]] <- pt
   }
   shps_tiles[[i]] <- shp1
+  #centroids_pts[[i]] <- centroids
 }
 
+#fun <- function(i,list_shp_files)
 #coord_names <- c("lon","lat")
-#l_rast <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_prefix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+#l_ras#t <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_prefix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
 
 #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
 tmp <- shps_tiles
 shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
 #shps_tiles <- tmp
+length(tmp)-length(shps_tiles) #number of tiles with error message
 
 tmp_pts <- centroids_pts 
 centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
@@ -483,6 +509,7 @@ dev.off()
 
 ###############
 ### Figure 2: boxplot of average accuracy by model and by tiles
+
 
 tb$tile_id <- factor(tb$tile_id, levels=unique(tb$tile_id))
 
@@ -803,7 +830,7 @@ histogram(test$predicted~test$tile_id)
 
 
 ##########################################################
-##### Figure 8: Breaking down accuaracy by regions!! #####
+##### Figure 8: Breaking down accuracy by regions!! #####
 
 summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
 table(summary_metrics_v$reg)
@@ -840,11 +867,13 @@ l_reg_name <- unique(df_tile_processed$reg)
 #           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
 lf_mosaics_reg <- vector("list",length=length(l_reg_name))
 for(i in 1:length(l_reg_name)){
-  lf_mosaics_reg[[i]] <- mixedsort(list.files(
-  path=file.path(out_dir,"mosaics"),
-           #pattern="reg6_.*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",
-           pattern=paste(l_reg_name[i],".*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",sep=""), 
-           full.names=T))
+    lf_mosaics_reg[[i]] <- try(mixedsort(
+    list.files(
+    path=file.path(out_dir,"mosaics"),
+    #pattern="reg6_.*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",
+    pattern=paste(l_reg_name[i],".*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",sep=""), 
+    full.names=T))
+  )
 }
 
 #This part should be automated...
