@@ -5,10 +5,10 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/23/2014            
-#Version: 3
+#MODIFIED ON: 01/02/2015            
+#Version: 4
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses for run 10 global analyses, Europe 1000x300km
+#COMMENTS: analyses for run 10 global analyses, Europe, Australia, 1000x300km
 #################################################################################################
 
 ### Loading R library and packages        
@@ -206,7 +206,67 @@ combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
   return(combined_spdf)
 }
 
-##############################
+plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
+  #Purpose:
+  #This functions mask mosaics files for a default range (-100,100 deg).
+  #It produces a masked tif in a given dataType format (FLT4S)
+  #It creates a figure of mosaiced region being interpolated.
+  #Author: Benoit Parmentier
+  #Parameters:
+  #lf_m: list of files 
+  #reg_name:region name with tile size included
+  #To do:
+  #Add filenames
+  #Add range
+  #Add output dir
+  #Add dataType_val option
+  
+  ##### BEGIN ########
+  
+  #Parse the list of parameters
+  lf_m <- list_param_plot_daily_mosaics$lf_m
+  reg_name <- list_param_plot_daily_mosaics$reg_name
+  out_dir_str <- list_param_plot_daily_mosaics$out_dir_str
+  out_suffix <- list_param_plot_daily_mosaics$out_suffix
+
+
+  #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str)
+
+  
+  #rast_list <- vector("list",length=length(lf_m))
+  r_test<- raster(lf_m[i])
+
+  m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA) #can change the thresholds later
+  rclmat <- matrix(m, ncol=3, byrow=TRUE)
+  rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
+  file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+  date_proc <- file_name[7] #specific tot he current naming of files
+  #paste(raster_name[1:7],collapse="_")
+  #add filename option later
+  extension_str <- extension(filename(r_test))
+  raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",date_proc,"_masked.tif",sep=""))
+  r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+  
+  return(raster_name)
+  
+}
+
+############################################
 #### Parameters and constants  
 
 #on ATLAS
@@ -215,7 +275,7 @@ combine_spatial_polygons_df_fun <- function(list_spdf_tmp,ID_str=NULL){
 #in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
 # parent output dir for the curent script analyes
 #out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/"
+out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_12232014/"
 # input dir containing shapefiles defining tiles
 #in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 
@@ -228,7 +288,7 @@ out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_12
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_12152014"
+out_prefix<-"run10_global_analyses_12232014"
 mosaic_plot <- FALSE
 
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -277,32 +337,13 @@ df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_
 tb$pred_mod <- as.character(tb$pred_mod)
 summary_metrics_v$pred_mod <- as.character(summary_metrics_v$pred_mod)
 
-mulitple_region <- FALSE
+mulitple_region <- TRUE
 
 #multiple regions?
 if(mulitple_region==TRUE){
   df_tile_processed$reg <- basename(dirname(as.character(df_tile_processed$path_NEX)))
 }
 
-#This part is specifically related to this run : dropping model with elev
-#tb <- merge(tb,df_tile_processed,by="tile_id")
-
-#tb_tmp_reg5 <- subset(tb,reg=="reg5")
-#tb_tmp_reg4 <- subset(tb,reg=="reg4")
-#tb_tmp_reg4 <- subset(tb_tmp_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
-#tb_tmp_reg4$pred_mod <- replace(tb_tmp_reg4$pred_mod, tb_tmp_reg4$pred_mod=="mod2", "mod1")
-#tb <- rbind(tb_tmp_reg4,tb_tmp_reg5)
-
-#ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
-#summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
-#table(summary_metrics_v$reg)
-
-#summary_metrics_v_reg5 <- subset(summary_metrics_v,reg=="reg5")
-#summary_metrics_v_reg4 <- subset(summary_metrics_v,reg=="reg4")
-#summary_metrics_v_reg4 <- subset(summary_metrics_v_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
-#summary_metrics_v_reg4$pred_mod <- replace(summary_metrics_v_reg4$pred_mod, 
-#                                           summary_metrics_v_reg4$pred_mod=="mod2", "mod1")
-#summary_metrics_v <- rbind(summary_metrics_v_reg4,summary_metrics_v_reg5)
 
 ###############
 ### Figure 1: plot location of the study area with tiles processed
@@ -666,9 +707,7 @@ sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #81.40%
 coordinates(summary_metrics_v) <- c("lon","lat")
 #coordinates(summary_metrics_v) <- c("lon.y","lat.y")
 
-summary_metrics_v$n_missing <- summary_metrics_v$n == 365
-summary_metrics_v$n_missing <- summary_metrics_v$n < 365
-summary_metrics_v$n_missing <- summary_metrics_v$n < 300
+threshold_missing_day <- c(367,365,300,200)
 
 nb<-nrow(subset(summary_metrics_v,model_name=="mod1"))  
 sum(subset(summary_metrics_v,model_name=="mod1")$n_missing)/nb #33/35
@@ -676,13 +715,39 @@ sum(subset(summary_metrics_v,model_name=="mod1")$n_missing)/nb #33/35
 ## Make this a figure...
 
 #plot(summary_metrics_v)
-i <- 1
-model_name[1]
-p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
-#title("(a) Mean for 1 January")
-p <- bubble(summary_metrics_v,"n_missing",main=paste("Missing per tile and by ",model_name[i]))
-p1 <- p+p_shp
-print(p1)
+#Make this a function later so that we can explore many thresholds...
+
+j<-1 #for model name 1
+for(i in 1:length(threshold_missing_day)){
+  
+  #summary_metrics_v$n_missing <- summary_metrics_v$n == 365
+  #summary_metrics_v$n_missing <- summary_metrics_v$n < 365
+  summary_metrics_v$n_missing <- summary_metrics_v$n < threshold_missing_day[i]
+  summary_metrics_v_subset <- subset(summary_metrics_v,model_name=="mod1")
+
+  #res_pix <- 1200
+  res_pix <- 960
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+
+  png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
+                     "_",out_prefix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  model_name[j]
+  
+  p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+  #title("(a) Mean for 1 January")
+  p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
+                                                              threshold_missing_day[i]))
+  p1 <- p+p_shp
+  print(p1)
+  #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
+  #title(paste("Averrage RMSE per tile and by ",model_name[i]))
+
+  dev.off()
+}
 
 ######################
 ### Figure 7: Number of predictions: daily and monthly
@@ -738,10 +803,46 @@ histogram(test$predicted~test$tile_id)
 #dev.off()
 #
 
-## plot mosaics...
 
-lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
-           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
+##########################################################
+##### Figure 8: Breaking down accuaracy by regions!! #####
+
+
+#This part is specifically related to this run : dropping model with elev
+#tb <- merge(tb,df_tile_processed,by="tile_id")
+
+#tb_tmp_reg5 <- subset(tb,reg=="reg5")
+#tb_tmp_reg4 <- subset(tb,reg=="reg4")
+#tb_tmp_reg4 <- subset(tb_tmp_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
+#tb_tmp_reg4$pred_mod <- replace(tb_tmp_reg4$pred_mod, tb_tmp_reg4$pred_mod=="mod2", "mod1")
+#tb <- rbind(tb_tmp_reg4,tb_tmp_reg5)
+
+#ac_mod <- summary_metrics_v[summary_metrics_v$pred_mod==model_name[i],]
+#summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+#table(summary_metrics_v$reg)
+
+#summary_metrics_v_reg5 <- subset(summary_metrics_v,reg=="reg5")
+#summary_metrics_v_reg4 <- subset(summary_metrics_v,reg=="reg4")
+#summary_metrics_v_reg4 <- subset(summary_metrics_v_reg4,pred_mod!="mod1") #remove mod1 because it is not in reg5
+#summary_metrics_v_reg4$pred_mod <- replace(summary_metrics_v_reg4$pred_mod, 
+#                                           summary_metrics_v_reg4$pred_mod=="mod2", "mod1")
+#summary_metrics_v <- rbind(summary_metrics_v_reg4,summary_metrics_v_reg5)
+
+
+#####################################################
+#### Figure 9: plotting mosaics of regions ###########
+## plot mosaics...
+l_reg_name <- unique(df_tile_processed$reg)
+#lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
+#           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
+lf_mosaics_reg <- vector("list",length=length(l_reg_name))
+for(i in 1:length(l_reg_name)){
+  lf_mosaics_reg[[i]] <- mixedsort(list.files(
+  path=file.path(out_dir,"mosaics"),
+           #pattern="reg6_.*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",
+           pattern=paste(l_reg_name[i],".*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",sep=""), 
+           full.names=T))
+}
 
 #r_reg5 <- stack(lf_mosaics_reg5)
 lf_m <- lf_mosaics_reg5[1:12]
@@ -819,178 +920,6 @@ lf_m <- lf_mosaics_reg2[13:length(lf_mosaics_reg2)]
 #lf_m <- lf_mosaics_reg2[1:12]
 
 reg_name <- "reg2"
-for(i in 1:length(lf_m)){
-  r_test<- raster(lf_m[i])
-
-  m <- c(-Inf, -100, NA,  
-         -100, 100, 1, 
-         100, Inf, NA)
-  rclmat <- matrix(m, ncol=3, byrow=TRUE)
-  rc <- reclassify(r_test, rclmat,filename="rc.tif",dataType="FLT4S",overwrite=T)
-  raster_name <- unlist(strsplit(basename(lf_m[i]),"_"))
-  date_proc <- raster_name[5]
-  #paste(raster_name[1:7],collapse="_")
-  r_pred <- mask(r_test,rc,filename=paste("CAI_TMAX_clim_month_mod1_all_",reg_name,"_",date_proc,"_masked.tif",sep=""),overwrite=TRUE)
-  
-  res_pix <- 1200
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_prefix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
-  dev.off()
-}
-
-#################### IMAGE DIFFERENCING BETWEEN 1000x3000 and 1500x4500 predictions for reg4 and reg5
-
-#### Use previous results for differencing
-### for reg4_1500x4500: use "mod2 in this case...
-
-out_prefix_str <- "reg4_1500x4500"
-lf_mosaics_reg4_1500x4500 <- mixedsort(
-           list.files(path=
-                        "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/reg4_1500x4500",
-           pattern=".*._mod2_all_mean.tif$",full.names=T)
-           )
-lf_m <- lf_mosaics_reg4_1500x4500
-out_dir_str <- "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/"
-
-reg_name <- "reg4_1500x4500"
-#lapply()
-#list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir=out_dir_str,out_suffix=out_prefix)
-list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix)
-
-#lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-#debug(plot_daily_mosaics)
-#test<- plot_daily_mosaics(1,list_param=list_param_plot_daily_mosaics)#,mc.preschedule)#=FALSE,mc.cores = 6)
-
-lf_m_mask_reg4_1500x4500 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-
-### for reg5_1500x4500: use "mod1 in this case
-
-out_prefix_str <- "reg5_1500x4500"
-lf_mosaics_reg5 <- mixedsort(
-           list.files(path=
-                        "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/reg5_1500x4500",
-           pattern=".*._mod1_all_mean.tif$",full.names=T)
-           )
-lf_m <- lf_mosaics_reg5
-out_dir_str <- "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/"
-reg_name <- "reg5_1500x4500"
-#lapply()
-list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix)
-#lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-
-lf_m_mask_reg5_1500x4500 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-
-### for reg5_1500x4500: use "mod1 in this case, this is Africa
-
-out_prefix_str <- "reg5_1000x3000"
-lf_mosaics_reg5 <- mixedsort(
-           list.files(path=
-                        "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/reg5_1000x4500",
-           pattern=".*._mod1_all_mean.tif$",full.names=T)
-           )
-lf_m <- lf_mosaics_reg5
-out_dir_str <- "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/"
-reg_name <- "reg5_1500x4500"
-#lapply()
-list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix)
-#lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-
-lf_m_mask_reg5_1500x4500 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-
-
-
-
-### for reg4_1000x3000: use "mod1 in this case
-
-out_prefix_str <- "reg4_1000x3000"
-lf_mosaics_reg5 <- mixedsort(
-           list.files(path=
-                        "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/reg5_1000x3000",
-           pattern=".*._mod1_all_mean.tif$",full.names=T)
-           )
-lf_m <- lf_mosaics_reg5
-out_dir_str <- "/data/project/layers/commons/NEX_data/output_run10_global_analyses_12152014/mosaics/"
-reg_name <- "reg5_1000x4500"
-#lapply()
-list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix)
-#lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-
-lf_m_mask_reg5_1000x4500 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-
-
-plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
-  #Purpose:
-  #This functions mask mosaics files for a default range (-100,100 deg).
-  #It produces a masked tif in a given dataType format (FLT4S)
-  #It creates a figure of mosaiced region being interpolated.
-  #Author: Benoit Parmentier
-  #Parameters:
-  #lf_m: list of files 
-  #reg_name:region name with tile size included
-  #To do:
-  #Add filenames
-  #Add range
-  #Add output dir
-  #Add dataType_val option
-  
-  ##### BEGIN ########
-  
-  #Parse the list of parameters
-  lf_m <- list_param_plot_daily_mosaics$lf_m
-  reg_name <- list_param_plot_daily_mosaics$reg_name
-  out_dir_str <- list_param_plot_daily_mosaics$out_dir_str
-  out_suffix <- list_param_plot_daily_mosaics$out_suffix
-
-
-  #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str)
-
-  
-  #rast_list <- vector("list",length=length(lf_m))
-  r_test<- raster(lf_m[i])
-
-  m <- c(-Inf, -100, NA,  
-         -100, 100, 1, 
-         100, Inf, NA) #can change the thresholds later
-  rclmat <- matrix(m, ncol=3, byrow=TRUE)
-  rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
-  file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
-  date_proc <- file_name[7] #specific tot he current naming of files
-  #paste(raster_name[1:7],collapse="_")
-  #add filename option later
-  extension_str <- extension(filename(r_test))
-  raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
-  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",date_proc,"_masked.tif",sep=""))
-  r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
-  
-  res_pix <- 1200
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r_pred,main=paste("climatology month ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
-  dev.off()
-  
-  return(raster_name)
-  
-}
-
-
-######################
-### Figure 10: Plot the difference in mosaics for processing tiles at 1500x4500 and 1000x3500
-
-
-reg_name <- "reg4"
 for(i in 1:length(lf_m)){
   r_test<- raster(lf_m[i])
 
