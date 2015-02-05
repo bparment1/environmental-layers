@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/20/2015            
+#MODIFIED ON: 02/05/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -57,18 +57,37 @@ library(colorRamps)
   
 #function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
 #function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
-#function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-function_assessment_part1 <-"global_run_scalingup_assessment_part1_01202015.R"
+function_analyses_paper1 <-"multi_timescales_paper_interpolation_functions_08132014.R"
   
-source(function_assessment_part1)
+load_obj <- function(f)
+{
+  env <- new.env()
+  nm <- load(f, env)[1]
+  env[[nm]]
+}
+  
+create_dir_fun <- function(out_dir,out_suffix){
+  if(!is.null(out_suffix)){
+    out_name <- paste("output_",out_suffix,sep="")
+    out_dir <- file.path(out_dir,out_name)
+  }
+  #create if does not exists: create the output dir as defined 
+  if(!file.exists(out_dir)){
+    dir.create(out_dir)
+  }
+  return(out_dir)
+}
+
+
+
 ##############################
 #### Parameters and constants  
 
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
-in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output1000x3000_km/"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
 
-region_names <- c("reg1","reg6") #selected region names
+region_names <- c("reg1") #selected region names
 
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
@@ -97,7 +116,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_01202015"
+out_prefix<-"run10_global_analyses_01282015"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -453,7 +472,7 @@ output_atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",out_dir)
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i]),"/shapefiles"),out_suffix=NULL)
 #}  
 
-#Copy summary textfiles and mosaic back to atlas
+#Copy summary textfiles back to atlas
 
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir))#,"output/subset/shapefiles")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
