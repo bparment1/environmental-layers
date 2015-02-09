@@ -5,14 +5,14 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/05/2015            
+#MODIFIED ON: 02/09/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
 # - generate delta and clim mosaic
 # - clean up
 
-#First source file:
+#First source these files:
 #source /nobackupp4/aguzman4/climateLayers/sharedModules/etc/environ.sh
 #MODULEPATH=$MODULEPATH:/nex/modules/files
 #module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex
@@ -55,29 +55,9 @@ library(colorRamps)
   
 #### FUNCTION USED IN SCRIPT
   
-#function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-#function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
-function_analyses_paper1 <-"multi_timescales_paper_interpolation_functions_08132014.R"
-  
-load_obj <- function(f)
-{
-  env <- new.env()
-  nm <- load(f, env)[1]
-  env[[nm]]
-}
-  
-create_dir_fun <- function(out_dir,out_suffix){
-  if(!is.null(out_suffix)){
-    out_name <- paste("output_",out_suffix,sep="")
-    out_dir <- file.path(out_dir,out_name)
-  }
-  #create if does not exists: create the output dir as defined 
-  if(!file.exists(out_dir)){
-    dir.create(out_dir)
-  }
-  return(out_dir)
-}
-
+function_analyses_paper1 <- "global_run_scalingup_assessment_part1_functions_02052015.R"
+script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
+source(file.path(script_path,function_analyses_paper1)) #source all functions used in this script 
 
 
 ##############################
@@ -85,9 +65,10 @@ create_dir_fun <- function(out_dir,out_suffix){
 
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
+#in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km"
 
-region_names <- c("reg1") #selected region names
+region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names
 
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
@@ -116,11 +97,11 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_global_analyses_01282015"
+out_prefix<-"run10_1500x4500_global_analyses_02092015"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
-out_dir <- "/nobackup/bparmen1/" #on NEX
-#out_dir <- "/nobackupp8/bparmen1/" #
+#out_dir <- "/nobackup/bparmen1/" #on NEX
+out_dir <- "/nobackupp8/bparmen1/" #
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE
 
@@ -344,6 +325,20 @@ df_tile_processed$lon <- long
 #put that list in the df_processed and also the centroids!!
 write.table(df_tile_processed,
             file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
+
+df_tiles_all <- as.data.frame(as.character(unlist(list_shp_world)))
+names(df_tiles_all) <- "list_shp_world"
+write.table(df_tiles_all,
+            file=file.path(out_dir,paste("df_tiles_all_",out_prefix,".txt",sep="")),sep=",")
+
+#Copy to local home directory on NAS-NEX
+#
+dir.create(file.path(out_dir,"shapefiles"))
+file.copy(list_shp_world,file.path(out_dir,"shapefiles"))
+
+#save a list of all files...
+write.table(df_tiles_all,
+            file=file.path(out_dir,"shapefiles",paste("df_tiles_all_",out_prefix,".txt",sep="")),sep=",")
 
 ######################################################
 ####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY, Delta surfaces and clim ###
