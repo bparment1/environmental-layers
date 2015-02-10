@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/09/2015            
+#MODIFIED ON: 02/10/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -14,8 +14,8 @@
 
 #First source these files:
 #source /nobackupp4/aguzman4/climateLayers/sharedModules/etc/environ.sh
-#MODULEPATH=$MODULEPATH:/nex/modules/files
-#module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex
+# MODULEPATH=$MODULEPATH:/nex/modules/files
+# module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex
 # These are the names and number for the current subset regions used for global runs:
 #reg1 - North America (NAM)
 #reg2 - Western Europe (WE)
@@ -66,9 +66,10 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km"
 
 region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names
+region_names <- c("reg1","reg2","reg3b","reg4","reg5","reg6") #selected region names
 
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
@@ -97,7 +98,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_1500x4500_global_analyses_02092015"
+out_prefix<-"run10_1000x3000_global_analyses_02102015"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 #out_dir <- "/nobackup/bparmen1/" #on NEX
