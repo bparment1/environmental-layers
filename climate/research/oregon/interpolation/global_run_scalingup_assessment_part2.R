@@ -360,6 +360,7 @@ CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #S
 CRS_WGS84<-c("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
 region_name <- "world"
+tile_size <- "1000x3000"
 
 ###Table 1: Average accuracy metrics
 ###Table 2: daily accuracy metrics for all tiles
@@ -371,24 +372,35 @@ tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefi
 tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
 
 tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
-pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
-pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
+#pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
+#pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 
 ########################## START SCRIPT ##############################
+
+#add column for tile size later on!!!
 
 tb$pred_mod <- as.character(tb$pred_mod)
 summary_metrics_v$pred_mod <- as.character(summary_metrics_v$pred_mod)
 summary_metrics_v$tile_id <- as.character(summary_metrics_v$tile_id)
 df_tile_processed$tile_id <- as.character(df_tile_processed$tile_id)
 
+tb_month_s$pred_mod <- as.character(tb_month_s$pred_mod)
+tb_month_s$tile_id<- as.character(tb_month_s$tile_id)
+tb_s$pred_mod <- as.character(tb_s$pred_mod)
+tb_s$tile_id <- as.character(tb_s$tile_id)
+
 mulitple_region <- TRUE
 
 #multiple regions?
 if(mulitple_region==TRUE){
   df_tile_processed$reg <- basename(dirname(as.character(df_tile_processed$path_NEX)))
-  tb <- merge(tb,df_tile_processed,by="tile_id")
   
+  tb <- merge(tb,df_tile_processed,by="tile_id")
+  tb_s <- merge(tb_s,df_tile_processed,by="tile_id")
+  tb_month_s<- merge(tb_month_s,df_tile_processed,by="tile_id")
+  summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+
 }
 
 ###
@@ -399,15 +411,31 @@ tb_all <- tb
 tb <- subset(tb,reg!="reg3b")
 
 summary_metrics_v_all <- summary_metrics_v 
+summary_metrics_v <- subset(summary_metrics_v,reg!="reg3b")
 
-tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
-#tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
-tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+tb_s_all <- tb_s
+tb_s_all <- subset(tb_s,reg!="reg3b")
 
-tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
-pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
-pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
-df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
+tb_month_s_all <- tb_month_s
+tb_month_s <- subset(tb_month_s,reg!="reg3b")
+
+df_tile_processed_all <- df_tile_processed
+df_tile_processed <- subset(df_tile_processed,reg!="reg3b")
+
+#pred_data_month_info_all <- pred_data_month_info
+#pred_data_month_info <- subset(pred_data_month_info,reg!="reg3b")
+
+#pred_data_month_info_all <- pred_data_month_info
+#pred_data_month_info <- subset(pred_data_month_info,reg!="reg3b")
+
+#path_reg3 <- "/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014"
+#summary_metrics_v_reg3 <- read.table(file.path(path_reg3,"summary_metrics_v2_NA_run8_global_analyses_10212014.txt"),sep=",")
+#tb_diagnostic_v_NA_run8_global_analyses_10212014.txt
+#tb_month_diagnostic_s_NA_run8_global_analyses_10212014.txt
+#tb_diagnostic_s_NA_run8_global_analyses_10212014.txt
+#pred_data_month_info_run8_global_analyses_10212014.txt
+#pred_data_day_info_run8_global_analyses_10212014.txt
+#df_tile_processed_run8_global_analyses_10212014.txt
 
 ###############
 ### Figure 1: plot location of the study area with tiles processed
@@ -706,8 +734,8 @@ for (i in 1:length(model_name)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
 
-  coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
-  #coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
+  #coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
+  coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
   p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   #title("(a) Mean for 1 January")
   p <- bubble(ac_mod,"rmse",main=paste("Averrage RMSE per tile and by ",model_name[i]))
@@ -729,8 +757,8 @@ length(df_tile_processed$metrics_v) #number of tiles in the region
 sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #62.5% of tiles with info
 
 #coordinates
-coordinates(summary_metrics_v) <- c("lon","lat")
-#coordinates(summary_metrics_v) <- c("lon.y","lat.y")
+#coordinates(summary_metrics_v) <- c("lon","lat")
+coordinates(summary_metrics_v) <- c("lon.y","lat.y")
 
 threshold_missing_day <- c(367,365,300,200)
 
@@ -832,7 +860,7 @@ histogram(test$predicted~test$tile_id)
 ##########################################################
 ##### Figure 8: Breaking down accuracy by regions!! #####
 
-summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+#summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
 table(summary_metrics_v$reg)
 
 ## Figure 8a
@@ -875,6 +903,7 @@ for(i in 1:length(l_reg_name)){
     full.names=T))
   )
 }
+names(lf_mosaics_reg) <- l_reg_name
 
 #This part should be automated...
 #plot Australia
@@ -891,14 +920,112 @@ for(i in 1:length(l_reg_name)){
 
 #lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
-#### North America
-lf_m <- lf_mosaics_reg[[1]]
-out_dir_str <- out_dir
-reg_name <- "reg1_1500x4500"
-#lapply()
-list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
-#lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
+lf_mosaics_mask_reg <- vector("list",length=length(l_reg_name))
+for(i in 1:length(l_reg_name)){
+  #
+  lf_m <- lf_mosaics_reg[[i]]
+  out_dir_str <- out_dir
+  reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
+  #lapply()
+  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
+  #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 
-lf_m_mask_reg1_1500x4500 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+  lf_mosaics_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+}
+################## WORLD MOSAICS NEEDS MAJOR CLEAN UP OF CODE HERE
+##make functions!!
+###Combine mosaics with modified code from Alberto
+
+#use list from above!!
+
+test_list <-list.files(path=out_dir,    
+           pattern=paste("reg.*._CAI_TMAX_clim_month_20100101_mod1_all_mean.tif",sep=""), 
+)
+
+test_list<-lapply(1:30,FUN=function(i){lapply(1:x[[i]]},x=lf_mosaics_mask_reg)
+test_list<-unlist(test_list)
+mosaic_list_mean <- vector("list",length=1)
+mosaic_list_mean[[1]] <- test_list 
+out_rastnames <- "world_test_mosaic_20100101"
+out_path <- out_dir
+
+list_param_mosaic<-list(mosaic_list_mean,out_path,out_rastnames,file_format,NA_flag_val,out_suffix)
+names(list_param_mosaic)<-c("mosaic_list","out_path","out_rastnames","file_format","NA_flag_val","out_suffix")
+#mean_m_list <-mclapply(1:12, list_param=list_param_mosaic, mosaic_m_raster_list,mc.preschedule=FALSE,mc.cores = 6) #This is the end bracket from mclapply(...) statement
+
+lf <- mosaic_m_raster_list(1,list_param_mosaic)
+
+debug(mosaic_m_raster_list)
+mosaic_list<-list_param$mosaic_list
+out_path<-list_param$out_path
+out_names<-list_param$out_rastnames
+file_format <- list_param$file_format
+NA_flag_val <- list_param$NA_flag_val
+out_suffix <- list_param$out_suffix
+
+##Now mosaic for mean: should reorder files!!
+#out_rastnames_mean<-paste("_",lst_pat,"_","mean",out_suffix,sep="")
+#list_date_names<-c("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec")
+#mosaic_list<-split(tmp_str1,list_date_names)
+#new_list<-vector("list",length(mosaic_list))
+# for (i in 1:length(list_date_names)){
+#    j<-grep(list_date_names[i],mosaic_list,value=FALSE)
+#    names(mosaic_list)[j]<-list_date_names[i]
+#    new_list[i]<-mosaic_list[j]
+#  }
+#  mosaic_list_mean <-new_list #list ready for mosaicing
+#  out_rastnames_mean<-paste(list_date_names,out_rastnames_mean,sep="")
+  
+  ### Now mosaic tiles...Note that function could be improved to use less memory
+
+
+################## PLOTTING WORLD MOSAICS ################
+
+lf_world_pred <- list.files(pattern="world.*2010090.*.tif$")
+
+r_test <- raster(lf_world_pred[6])
+m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA) #can change the thresholds later
+rclmat <- matrix(m, ncol=3, byrow=TRUE)
+rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
+#file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+  
+#date_proc <- file_name[7] #specific tot he current naming of files
+#date_proc <- l_dates[i]
+date_proc<- "2010010905"
+
+#paste(raster_name[1:7],collapse="_")
+#add filename option later
+extension_str <- extension(filename(r_test))
+raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
+raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
+r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
+
+res_pix <- 1200
+#res_pix <- 480
+
+col_mfrow <- 1
+row_mfrow <- 1
+  
+png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("Predicted on ",date_proc , " ", tile_size,sep=""),cex.main=1.5)
+dev.off()
+
+
+#lf_world_mask_reg <- vector("list",length=length(lf_world_pred))
+#for(i in 1:length(lf_world_pred)){
+  #
+#  lf_m <- lf_mosaics_reg[i]
+#  out_dir_str <- out_dir
+  #reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
+  #lapply()
+#  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=tile_size,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
+  #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
+
+  #lf_world_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+}
 
 ##################### END OF SCRIPT ######################
