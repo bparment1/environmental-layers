@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/10/2015            
+#MODIFIED ON: 02/16/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -55,7 +55,7 @@ library(colorRamps)
   
 #### FUNCTION USED IN SCRIPT
   
-function_analyses_paper1 <- "global_run_scalingup_assessment_part1_functions_02052015.R"
+function_analyses_paper1 <- "global_run_scalingup_assessment_part1_functions_02112015.R"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 source(file.path(script_path,function_analyses_paper1)) #source all functions used in this script 
 
@@ -69,7 +69,7 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km"
 
 region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names
-region_names <- c("reg1","reg2","reg3b","reg4","reg5","reg6") #selected region names
+#region_names <- c("reg1","reg2","reg3b","reg4","reg5","reg6") #selected region names
 
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
@@ -98,7 +98,7 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
 y_var_name <- "dailyTmax"
 interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_1000x3000_global_analyses_02102015"
+out_prefix<-"run10_1000x3000_global_analyses_02162015"
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 #out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -402,6 +402,34 @@ for (i in 1:length(region_names)){
 
 ### Now find out how many files were predicted
 # will be useful later on
+
+#sh /nobackupp6/aguzman4/climateLayers/sharedCode/shMergeFromFile.sh list_mosaics_20100901.txt world_mosaics_1000x3000_20100901.tif
+
+for (i in 1:length(day_to_mosaic)){
+  pattern_str <- paste("*.",day_to_mosaic[i],".*.tif",sep="")
+  lf_day_to_mosaic <- list.files(path=out_dir,pattern=pattern_str,full.names=T) 
+  #write.table(lf_day_to_mosaic,file=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
+  writeLines(lf_day_to_mosaic,con=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
+  in_file_to_mosaics <- file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep=""))        
+  #in_dir_mosaics <- file.path(in_dir1,region_names[i])
+  #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
+  #Can be changed to have mosaics in different dir..
+  #out_dir_mosaics <- out_dir
+  #prefix_str <- "reg4_1500x4500"
+  #tile_size <- basename(dirname(in_dir[[i]]))
+  tile_size <- basename(in_dir1)
+
+  #prefix_str <- paste(region_names[i],"_",tile_size,sep="")
+  mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
+  out_mosaic_name <- paste("world_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
+  module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode"
+  cmd_str <- paste("sh", file.path(module_path,"shMergeFromFile.sh"),
+                 in_file_to_mosaics,
+                 out_mosaic_name,
+                 sep=" ")
+  system(cmd_str)
+
+}
 
 ######################################################
 ####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
