@@ -993,8 +993,7 @@ names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_date
 
 #debug(plot_screen_raster_val)
 
-#plot_screen_raster_val(1,list_param_plot_scre
-en_raster)
+#plot_screen_raster_val(1,list_param_plot_screen_raster)
 world_m_list <- mclapply(1:10, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 5) #This is the end bracket from mclapply(...) statement
 world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 7) #This is the end bracket from mclapply(...) statement
 
