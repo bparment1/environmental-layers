@@ -2,27 +2,30 @@
 ############################  Script for assessment of scaling up on NEX: part 1 ##############################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
 #The purpose is to create as set of functions to diagnose and assess quickly a set of predictd tiles.
-#Part 1 create summary tables and inputs for figure in part 2 and part 3.
+#Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/16/2015            
+#MODIFIED ON: 03/05/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
 # - generate delta and clim mosaic
-# - clean up
-
+# - Wrap in function to be able to extract information via a job?
+# - Parallelize the region mosaics generation (by dates)?
+#
 #First source these files:
-#source /nobackupp4/aguzman4/climateLayers/sharedModules/etc/environ.sh
-# MODULEPATH=$MODULEPATH:/nex/modules/files
-# module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex
+#Resolved call issues from R.
+#source /nobackupp6/aguzman4/climateLayers/sharedModules/etc/environ.sh 
+#MODULEPATH=$MODULEPATH:/nex/modules/files
+#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
+
 # These are the names and number for the current subset regions used for global runs:
 #reg1 - North America (NAM)
-#reg2 - Western Europe (WE)
-#reg3 - Eastern Europe to East Asia (EE_EA)
+#reg2 - Europe (WE)
+#reg3 - Asia 
 #reg4 - South America (SAM)
 #reg5 - Africa (AF)
-#reg6 - South East Asia and Australia (SEA_AUS)
+#reg6 - East Asia and Australia 
 
 #################################################################################################
 
@@ -55,7 +58,7 @@ library(colorRamps)
   
 #### FUNCTION USED IN SCRIPT
   
-function_analyses_paper1 <- "global_run_scalingup_assessment_part1_functions_02112015.R"
+function_analyses_paper1 <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 source(file.path(script_path,function_analyses_paper1)) #source all functions used in this script 
 
@@ -63,13 +66,53 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 ##############################
 #### Parameters and constants  
 
+#Make this a function
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km" #PARAM1
 
-region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names
-#region_names <- c("reg1","reg2","reg3b","reg4","reg5","reg6") #selected region names
+region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
+y_var_name <- "dailyTmax" #PARAM3
+interpolation_method <- c("gam_CAI") #PARAM4
+out_prefix<-"run10_1500x4500_global_analyses_03052015" #PARAM5
+
+#out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
+#out_dir <- "/nobackup/bparmen1/" #on NEX
+out_dir <- "/nobackupp8/bparmen1/" #PARAM6
+#out_dir <-paste(out_dir,"_",out_prefix,sep="")
+create_out_dir_param <- TRUE #PARAM7
+
+CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
+
+#day_to_mosaic <- c("20100101","20100901") #PARAM9
+day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
+                   "20100301","20100302","20100303","20100304","20100305",
+                   "20100501","20100502","20100503","20100504","20100505",
+                   "20100701","20100702","20100703","20100704","20100705",
+                   "20100901","20100902","20100903","20100904","20100905",
+                   "20101101","20101102","20101103","20101104","20101105")
+#day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
+
+file_format <- ".tif" #format for mosaiced files #PARAM10
+NA_flag_val <- -9999  #No data value, #PARAM11
+num_cores <- 6 #number of cores used #PARAM13
+
+#Models used.
+#list_models<-c("y_var ~ s(lat,lon,k=4) + s(elev_s,k=3) + s(LST,k=3)",
+#               "y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)",
+#               "y_var ~ s(lat,lon,k=8) + s(elev_s,k=4) + s(LST,k=4)",
+                                  
+#module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/" #PARAM14
+#mosaics script #PARAM 15
+#shell global mosaic script #PARAM 16
+
+########################## START SCRIPT #########################################
+
+#Need to make this a function to run as a job...
+
+######################## PART0: Read content of predictions first.... #####
+
 
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
@@ -86,25 +129,10 @@ in_dir_shp <- file.path(in_dir_subset,"shapefiles")
 in_dir_reg <- in_dir_list[grep(".*._.*.",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
 #in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
 in_dir_list <- in_dir_reg
-
-#Models used.
-#list_models<-c("y_var ~ s(lat,lon,k=4) + s(elev_s,k=3) + s(LST,k=3)",
-#               "y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)",
-#               "y_var ~ s(lat,lon,k=8) + s(elev_s,k=4) + s(LST,k=4)",
     
 in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 #list of shapefiles used to define tiles
 in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
-
-y_var_name <- "dailyTmax"
-interpolation_method <- c("gam_CAI")
-out_prefix<-"run10_1000x3000_global_analyses_02162015"
-
-#out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
-#out_dir <- "/nobackup/bparmen1/" #on NEX
-out_dir <- "/nobackupp8/bparmen1/" #
-#out_dir <-paste(out_dir,"_",out_prefix,sep="")
-create_out_dir_param <- TRUE
 
 #system("ls /nobackup/bparmen1")
 
@@ -116,20 +144,6 @@ if(create_out_dir_param==TRUE){
 }
 
 setwd(out_dir)
-                                   
-CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-
-#day_to_mosaic <- c("20100101","20100901")
-day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
-                   "20100301","20100302","20100303","20100304","20100305",
-                   "20100501","20100502","20100503","20100504","20100505",
-                   "20100701","20100702","20100703","20100704","20100705",
-                   "20100901","20100902","20100903","20100904","20100905",
-                   "20101101","20101102","20101103","20101104","20101105")
-#day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
-
-file_format <- ".tif" #format for mosaiced files
-NA_flag_val <- -9999  #No data value
 
 ##raster_prediction object : contains testing and training stations with RMSE and model object
 
@@ -147,10 +161,8 @@ lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="co
 #out_prefix_str <- paste(basename(in_dir_list),out_prefix,sep="_") 
 #lf_raster_obj <- create_raster_prediction_obj(in_dir_list,interpolation_method, y_var_name,out_prefix_str,out_path_list=NULL)
 
-########################## START SCRIPT ##############################
-
 ################################################################
-######## PART 1: Generate tables to collect information 
+######## PART 1: Generate tables to collect information:
 ######## over all tiles in North America 
 
 ##Function to collect all the tables from tiles into a table
@@ -163,7 +175,8 @@ df_tile_processed$tile_id <- unlist(list_names_tile_id) #Arbitrary tiling number
 df_tile_processed$path_NEX <- in_dir_list
   
 ##Quick exploration of raster object
-robj1 <- load_obj(list_raster_obj_files[[3]]) #This is an example tile
+#Should be commented out to make this a function
+robj1 <- try(load_obj(list_raster_obj_files[[3]])) #This is an example tile
 #robj1 <- load_obj(lf_raster_obj[4]) #This is tile tile
 
 names(robj1)
@@ -188,7 +201,7 @@ list_formulas <- (robj1$clim_method_mod_obj[[1]]$formulas)
 #For 43 tiles but only xx RData boject it takes xxx min
 #summary_metrics_v_list <- mclapply(list_raster_obj_files[5:6],FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 2)                           
 
-summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = 6)                           
+summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = num_cores)                         
 #summary_metrics_v_list <- lapply(summary_metrics_v_list,FUN=function(x){try(x$avg)})
 names(summary_metrics_v_list) <- list_names_tile_id
 
@@ -220,7 +233,7 @@ write.table(as.data.frame(summary_metrics_v_NA),
 ###Table 2: daily accuracy metrics for all tiles
 #this takes about 25min
 #tb_diagnostic_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
-tb_diagnostic_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_v"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+tb_diagnostic_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)                           
 
 names(tb_diagnostic_v_list) <- list_names_tile_id
 tb_diagnostic_v_tmp <- remove_from_list_fun(tb_diagnostic_v_list)$list
@@ -241,7 +254,7 @@ write.table((tb_diagnostic_v_NA),
 ###Table 3: monthly station information with predictions for all tiles
 
 ## Monthly fitting information
-tb_month_diagnostic_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_month_diagnostic_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+tb_month_diagnostic_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_month_diagnostic_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)                           
 
 names(tb_month_diagnostic_s_list) <- list_names_tile_id
 tb_month_diagnostic_s_tmp <- remove_from_list_fun(tb_month_diagnostic_s_list)$list
@@ -282,7 +295,7 @@ write.table((tb_month_diagnostic_s_NA),
 
 ## daily fit info:
 
-tb_diagnostic_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+tb_diagnostic_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)                           
 
 names(tb_diagnostic_s_list) <- list_names_tile_id
 tb_diagnostic_s_tmp <- remove_from_list_fun(tb_diagnostic_s_list)$list
@@ -354,8 +367,8 @@ dates_l <- format(idx, "%Y%m%d") # interpolation date being processed
 ## make this a function? report on number of tiles used for mosaic...
 
 #inputs: build a pattern to find files
-y_var_name <- "dailyTmax" #set up in parameters of this script
-interpolation_method <- c("gam_CAI") #set up in parameters of the script
+#y_var_name <- "dailyTmax" #set up in parameters of this script
+#interpolation_method <- c("gam_CAI") #set up in parameters of the script
 name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
 ##Use python code written by Alberto Guzman
 
@@ -364,18 +377,24 @@ name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
 
 module_path <- ""
 module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-
+#/nobackupp6/aguzman4/climateLayers/sharedCode/mosaicUsingGdalMerge.py
 #l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
 l_dates <- paste(day_to_mosaic,collapse=",")
 ## use region 2 first
 
+### FIRST mosaics by processing region
 #make this a function later...with following param
 #input:
 #region_names
 #in_dir1
 ##out_dir , not ehta out_dir moasic s can be created in rhe future function
-#mod_str
+#mod_str <- mod1
 #For the time being use mean,median from python function by Alberto...
+#Solved issue about calls from R
+#First run 3 lines in the bash shell
+#source /nobackupp6/aguzman4/climateLayers/sharedModules/etc/environ.sh 
+#MODULEPATH=$MODULEPATH:/nex/modules/files
+#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 
 for (i in 1:length(region_names)){
   in_dir_mosaics <- file.path(in_dir1,region_names[i])
@@ -400,6 +419,7 @@ for (i in 1:length(region_names)){
 
 }
 
+### SECOND mosaics globally from regional mosaics...
 ### Now find out how many files were predicted
 # will be useful later on
 
@@ -422,7 +442,7 @@ for (i in 1:length(day_to_mosaic)){
   #prefix_str <- paste(region_names[i],"_",tile_size,sep="")
   mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
   out_mosaic_name <- paste("world_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
-  module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode"
+  module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode" #this should be a parameter for the function...
   cmd_str <- paste("sh", file.path(module_path,"shMergeFromFile.sh"),
                  in_file_to_mosaics,
                  out_mosaic_name,
@@ -462,7 +482,7 @@ names(list_param_training_testing_info) <- c("list_raster_obj_files","use_month"
 list_param <- list_param_training_testing_info
 #debug(extract_daily_training_testing_info)
 #pred_data_info <- extract_daily_training_testing_info(1,list_param=list_param_training_testing_info)
-pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = 6)
+pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = num_cores)
 #pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id][1:6]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = 6)
 #pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
 #pred_data_info <- lapply(1:length(list_raster_obj_files[1]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
@@ -480,6 +500,7 @@ write.table(pred_data_day_info,
             file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 
 ########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
+#this part cannot be automated...
 
 ### This assumes the tree structure has been replicated on Atlas:
 #for i in 1:length(df_tiled_processed$tile_coord)
@@ -530,7 +551,7 @@ system(cmd_str)
 
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"mosaics")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-lf_cp_f <- list.files(out_dir,full.names=T,pattern="*.tif")#copy all files can filter later
+lf_cp_f <- list.files(out_dir,full.names=T,pattern="*world*.tif")#copy all files can filter later
 filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
