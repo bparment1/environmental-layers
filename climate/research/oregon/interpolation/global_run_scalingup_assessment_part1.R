@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/11/2015            
+#MODIFIED ON: 03/23/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -15,9 +15,9 @@
 #
 #First source these files:
 #Resolved call issues from R.
-#source /nobackupp6/aguzman4/climateLayers/sharedModules/etc/environ.sh 
-#MODULEPATH=$MODULEPATH:/nex/modules/files
-#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
+source /nobackupp6/aguzman4/climateLayers/sharedModules/etc/environ.sh 
+MODULEPATH=$MODULEPATH:/nex/modules/files
+module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 
 # These are the names and number for the current subset regions used for global runs:
 #reg1 - North America (NAM)
@@ -75,7 +75,7 @@ in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km" #PARAM1
 region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_03112015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_03232015" #PARAM5
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 #out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -195,7 +195,7 @@ list_formulas <- (robj1$clim_method_mod_obj[[1]]$formulas)
 #names(list_tb_diagnostic_v) <- list_names_tile_id
 
 ################
-#### Table 1: Average accuracy metrics
+#### Table 1: Average accuracy metrics per tile and predictions
 
 #can use a maximum of 6 cores on the NEX Bridge
 #For 43 tiles but only xx RData boject it takes xxx min
@@ -230,7 +230,7 @@ write.table(as.data.frame(summary_metrics_v_NA),
             file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 
 #################
-###Table 2: daily accuracy metrics for all tiles
+###Table 2: daily validation/testing accuracy metrics for all tiles
 #this takes about 25min
 #tb_diagnostic_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
 tb_diagnostic_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)                           
@@ -251,7 +251,7 @@ write.table((tb_diagnostic_v_NA),
             file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
 
 #################
-###Table 3: monthly station information with predictions for all tiles
+###Table 3: monthly fit/training accuracy information for all tiles
 
 ## Monthly fitting information
 tb_month_diagnostic_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_month_diagnostic_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)                           
@@ -274,24 +274,8 @@ tb_month_diagnostic_s_NA$month<-strftime(date_f, "%m")          # current month 
 write.table((tb_month_diagnostic_s_NA),
             file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
 
-#load data_month for specific tiles
-# data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
-# names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
-# 
-# data_month_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_month_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
-# 
-# names(data_month_s_list) <- list_names_tile_id
-# 
-# data_month_tmp <- remove_from_list_fun(data_month_s_list)$list
-# #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
-# 
-# tile_id <- lapply(1:length(data_month_tmp),
-#                   FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_tmp)
-# data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
-# data_month_NAM$tile_id <- unlist(tile_id)
-# 
-# write.table((data_month_NAM),
-#             file=file.path(out_dir,paste("data_month_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
+#################
+###Table 4: daily fit/training accuracy information with predictions for all tiles
 
 ## daily fit info:
 
@@ -312,10 +296,81 @@ tb_diagnostic_s_NA <- merge(tb_diagnostic_s_NA,df_tile_processed[,1:2],by="tile_
 write.table((tb_diagnostic_s_NA),
             file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
 
-##### Table 4: Add later on: daily info
+##### Table 5: Add later on: daily info
 ### with also data_s and data_v saved!!!
 
 #Insert here...compute input and predicted ranges to spot potential errors?
+
+##### SPDF of Monhtly Station info
+#load data_month for specific tiles
+# data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
+# names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
+# 
+# data_month_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_month_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+# 
+# names(data_month_s_list) <- list_names_tile_id
+# 
+# data_month_tmp <- remove_from_list_fun(data_month_s_list)$list
+# #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
+# 
+# tile_id <- lapply(1:length(data_month_tmp),
+#                   FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_tmp)
+# data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
+# data_month_NAM$tile_id <- unlist(tile_id)
+# 
+# write.table((data_month_NAM),
+#             file=file.path(out_dir,paste("data_month_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
+
+##### SPDF of Daily Station info
+
+
+######################################################
+####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
+
+### Stations and model fitting ###
+#summarize location and number of training and testing used by tiles
+
+names(robj1$clim_method_mod_obj[[1]]$data_month) # monthly data for January
+#names(robj1$validation_mod_month_obj[[1]]$data_s) # daily for January with predictions
+#note that there is no holdout in the current run at the monthly time scale:
+
+robj1$clim_method_mod_obj[[1]]$data_month_v #zero rows for testing stations at monthly timescale
+#load data_month for specific tiles
+data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
+
+names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
+
+use_day=TRUE
+use_month=TRUE
+ 
+#list_raster_obj_files <- c("/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-100.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-100.0.RData",
+#                    "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-105.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-105.0.RData")
+
+list_names_tile_id <- df_tile_processed$tile_id
+list_raster_obj_files[list_names_tile_id]
+#list_names_tile_id <- c("tile_1","tile_2")
+list_param_training_testing_info <- list(list_raster_obj_files[list_names_tile_id],use_month,use_day,list_names_tile_id)
+names(list_param_training_testing_info) <- c("list_raster_obj_files","use_month","use_day","list_names_tile_id")
+ 
+list_param <- list_param_training_testing_info
+#debug(extract_daily_training_testing_info)
+#pred_data_info <- extract_daily_training_testing_info(1,list_param=list_param_training_testing_info)
+pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = num_cores)
+#pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id][1:6]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = 6)
+#pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
+#pred_data_info <- lapply(1:length(list_raster_obj_files[1]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
+
+pred_data_info_tmp <- remove_from_list_fun(pred_data_info)$list #remove data not predicted
+##Add tile nanmes?? it is alreaready there
+#names(pred_data_info)<-list_names_tile_id
+pred_data_month_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_month_info}))
+pred_data_day_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_day_info}))
+
+#putput inforamtion in csv !!
+write.table(pred_data_month_info,
+            file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
+write.table(pred_data_day_info,
+            file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 
 ######################################################
 ####### PART 4: Get shapefile tiling with centroids ###
@@ -451,53 +506,6 @@ for (i in 1:length(day_to_mosaic)){
 
 }
 
-######################################################
-####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
-
-### Stations and model fitting ###
-#summarize location and number of training and testing used by tiles
-
-names(robj1$clim_method_mod_obj[[1]]$data_month) # monthly data for January
-#names(robj1$validation_mod_month_obj[[1]]$data_s) # daily for January with predictions
-#note that there is no holdout in the current run at the monthly time scale:
-
-robj1$clim_method_mod_obj[[1]]$data_month_v #zero rows for testing stations at monthly timescale
-#load data_month for specific tiles
-data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
-
-names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
-
-use_day=TRUE
-use_month=TRUE
- 
-#list_raster_obj_files <- c("/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-100.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-100.0.RData",
-#                    "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-105.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-105.0.RData")
-
-list_names_tile_id <- df_tile_processed$tile_id
-list_raster_obj_files[list_names_tile_id]
-#list_names_tile_id <- c("tile_1","tile_2")
-list_param_training_testing_info <- list(list_raster_obj_files[list_names_tile_id],use_month,use_day,list_names_tile_id)
-names(list_param_training_testing_info) <- c("list_raster_obj_files","use_month","use_day","list_names_tile_id")
- 
-list_param <- list_param_training_testing_info
-#debug(extract_daily_training_testing_info)
-#pred_data_info <- extract_daily_training_testing_info(1,list_param=list_param_training_testing_info)
-pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = num_cores)
-#pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id][1:6]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = 6)
-#pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
-#pred_data_info <- lapply(1:length(list_raster_obj_files[1]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
-
-pred_data_info_tmp <- remove_from_list_fun(pred_data_info)$list #remove data not predicted
-##Add tile nanmes?? it is alreaready there
-#names(pred_data_info)<-list_names_tile_id
-pred_data_month_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_month_info}))
-pred_data_day_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_day_info}))
-
-#putput inforamtion in csv !!
-write.table(pred_data_month_info,
-            file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
-write.table(pred_data_day_info,
-            file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
 
 ########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
 #this part cannot be automated...
