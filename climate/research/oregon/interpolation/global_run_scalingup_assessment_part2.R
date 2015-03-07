@@ -5,10 +5,15 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/16/2015            
+#MODIFIED ON: 03/07/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses for run 10 global analyses, Europe, Australia, 1000x300km
+#COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
+#TODO:
+#1) Split functions and master script
+#2) Make this is a script/function callable from the shell/bash
+#3) Check image format for tif
+
 #################################################################################################
 
 ### Loading R library and packages        
@@ -160,7 +165,7 @@ plot_raster_tb_diagnostic <- function(reg_layer,tb_dat,df_tile_processed,date_se
   col_mfrow <- 1
   row_mfrow <- 1
 
-  png(filename=paste("Figure9_",names(r),"_map_processed_region_",region_name,"_",out_prefix,".png",sep=""),
+  png(filename=paste("Figure9_",names(r),"_map_processed_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   #plot(reg_layer)
@@ -319,64 +324,65 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
 #out_dir <- "/nobackup/bparmen1/" #on NEX
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
 
-y_var_name <- "dailyTmax"
-interpolation_method <- c("gam_CAI")
-#out_prefix<-"run10_global_analyses_01282015"
-#out_prefix <- "output_run10_1000x3000_global_analyses_02102015"
-out_prefix <- "run10_1000x3000_global_analyses_02162015"
+y_var_name <- "dailyTmax" #PARAM1
+interpolation_method <- c("gam_CAI") #PARAM2
+#out_suffix<-"run10_global_analyses_01282015"
+#out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
+out_suffix <- "run10_1500x4500_global_analyses_03052015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03052015" #PARAM4
+create_out_dir_param <- FALSE #PARAM 5
 
-mosaic_plot <- FALSE
+mosaic_plot <- FALSE #PARAM6
 
+#if daily mosaics NULL then mosaicas all days of the year
 day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
                    "20100301","20100302","20100303","20100304","20100305",
                    "20100501","20100502","20100503","20100504","20100505",
                    "20100701","20100702","20100703","20100704","20100705",
                    "20100901","20100902","20100903","20100904","20100905",
-                   "20101101","20101102","20101103","20101104","20101105")
-
+                   "20101101","20101102","20101103","20101104","20101105") #PARAM7
+  
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
+CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
-proj_str<- CRS_WGS84
-file_format <- ".rst"
-NA_value <- -9999
+proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
+file_format <- ".rst" #PARAM 9
+NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
-out_suffix <-out_prefix  
+                                   
+tile_size <- "1500x4500" #PARAM 11
+mulitple_region <- TRUE #PARAM 12
 
-#out_dir <-paste(out_dir,"_",out_prefix,sep="")
-create_out_dir_param <- FALSE
-#out_dir <-"/data/project/layers/commons/NEX_data/output_run10_global_analyses_01282015/"
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1000x3000_global_analyses_02162015"
+region_name <- "world" #PARAM 13
+
+########################## START SCRIPT ##############################
+
+
+####### PART 1: Read in data ########
+
 if(create_out_dir_param==TRUE){
-  out_dir <- create_dir_fun(out_dir,out_prefix)
+  out_dir <- create_dir_fun(out_dir,out_suffix)
   setwd(out_dir)
 }else{
   setwd(out_dir) #use previoulsy defined directory
 }
 
 setwd(out_dir)
-                                   
-CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-CRS_WGS84<-c("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-
-region_name <- "world"
-tile_size <- "1000x3000"
 
 ###Table 1: Average accuracy metrics
 ###Table 2: daily accuracy metrics for all tiles
 
-summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
-#fname <- file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep=""))
-tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+summary_metrics_v <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_suffix,".txt",sep="")),sep=",")
+#fname <- file.path(out_dir,paste("summary_metrics_v2_NA_",out_suffix,".txt",sep=""))
+tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_suffix,".txt",sep="")),sep=",")
 #tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
-tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
+tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
 
-tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_prefix,".txt",sep="")),sep=",")
-#pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_prefix,".txt",sep="")),sep=",")
-#pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_prefix,".txt",sep="")),sep=",")
-df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
-
-########################## START SCRIPT ##############################
+tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
+#pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_suffix,".txt",sep="")),sep=",")
+#pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_suffix,".txt",sep="")),sep=",")
+df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_suffix,".txt",sep="")),sep=",")
 
 #add column for tile size later on!!!
 
@@ -390,7 +396,6 @@ tb_month_s$tile_id<- as.character(tb_month_s$tile_id)
 tb_s$pred_mod <- as.character(tb_s$pred_mod)
 tb_s$tile_id <- as.character(tb_s$tile_id)
 
-mulitple_region <- TRUE
 
 #multiple regions?
 if(mulitple_region==TRUE){
@@ -403,41 +408,13 @@ if(mulitple_region==TRUE){
 
 }
 
-###
-"/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014/tb_diagnostic_v_NA_run8_global_analyses_10212014.txt"
-
-#drop 3b
 tb_all <- tb
-#tb <- subset(tb,reg!="reg3b")
 
 summary_metrics_v_all <- summary_metrics_v 
-#summary_metrics_v <- subset(summary_metrics_v,reg!="reg3b")
 
-#tb_s_all <- tb_s
-#tb_s_all <- subset(tb_s,reg!="reg3b")
+############ PART 2: PRODUCE FIGURES ################
 
-#tb_month_s_all <- tb_month_s
-#tb_month_s <- subset(tb_month_s,reg!="reg3b")
-
-#df_tile_processed_all <- df_tile_processed
-#df_tile_processed <- subset(df_tile_processed,reg!="reg3b")
-
-#pred_data_month_info_all <- pred_data_month_info
-#pred_data_month_info <- subset(pred_data_month_info,reg!="reg3b")
-
-#pred_data_month_info_all <- pred_data_month_info
-#pred_data_month_info <- subset(pred_data_month_info,reg!="reg3b")
-
-#path_reg3 <- "/data/project/layers/commons/NEX_data/output_run8_global_analyses_10212014"
-#summary_metrics_v_reg3 <- read.table(file.path(path_reg3,"summary_metrics_v2_NA_run8_global_analyses_10212014.txt"),sep=",")
-#tb_diagnostic_v_NA_run8_global_analyses_10212014.txt
-#tb_month_diagnostic_s_NA_run8_global_analyses_10212014.txt
-#tb_diagnostic_s_NA_run8_global_analyses_10212014.txt
-#pred_data_month_info_run8_global_analyses_10212014.txt
-#pred_data_day_info_run8_global_analyses_10212014.txt
-#df_tile_processed_run8_global_analyses_10212014.txt
-
-###############
+###########################
 ### Figure 1: plot location of the study area with tiles processed
 
 #df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
@@ -448,8 +425,13 @@ list_shp_reg_files<- as.character(df_tile_processed$shp_files)
 list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
           "shapefiles",basename(list_shp_reg_files))
 
+
+### Potential function starts here:
+#function(in_dir,out_dir,list_shp_reg_files,title_str,region_name,num_cores,out_suffix,out_suffix)
+
 ### First get background map to display where study area is located
-#can make this more general later on..       
+#can make this more general later on..should have this already in a local directory on Atlas or NEX!!!!
+
 if (region_name=="USA"){
   usa_map <- getData('GADM', country='USA', level=1) #Get US map
   #usa_map <- getData('GADM', country=region_name,level=1) #Get US map, this is not working right now
@@ -472,7 +454,7 @@ shps_tiles <- vector("list",length(list_shp_reg_files))
 #collect info: read in all shapfiles
 #This is slow...make a function and use mclapply??
 #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
-
+  
 for(i in 1:length(list_shp_reg_files)){
   #path_to_shp <- dirname(list_shp_reg_files[[i]])
   path_to_shp <- file.path(out_dir,"/shapefiles")
@@ -495,7 +477,7 @@ for(i in 1:length(list_shp_reg_files)){
 
 #fun <- function(i,list_shp_files)
 #coord_names <- c("lon","lat")
-#l_ras#t <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_prefix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+#l_ras#t <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_suffix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
 
 #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
 tmp <- shps_tiles
@@ -512,7 +494,7 @@ res_pix <- 1200
 col_mfrow <- 1 
 row_mfrow <- 1
 
-png(filename=paste("Figure1_tile_processed_region_",region_name,"_",out_prefix,".png",sep=""),
+png(filename=paste("Figure1_tile_processed_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 plot(reg_layer)
@@ -552,7 +534,7 @@ for(i in  1:length(model_name)){
   col_mfrow <- 1
   row_mfrow <- 1
 
-  png(filename=paste("Figure2a_boxplot_with_oultiers_by_tiles_",model_name[i],"_",out_prefix,".png",sep=""),
+  png(filename=paste("Figure2a_boxplot_with_oultiers_by_tiles_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod==model_name[i]))
@@ -568,7 +550,7 @@ for(i in  1:length(model_name)){
   res_pix <- 480
   col_mfrow <- 1
   row_mfrow <- 1
-  png(filename=paste("Figure2b_boxplot_scaling_by_tiles","_",model_name[i],"_",out_prefix,".png",sep=""),
+  png(filename=paste("Figure2b_boxplot_scaling_by_tiles","_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   model_name <- unique(tb$pred_mod)
@@ -587,7 +569,7 @@ res_pix <- 480
 col_mfrow <- 1
 row_mfrow <- 1
 
-png(filename=paste("Figure3a_boxplot_overall_region_with_oultiers_",model_name[i],"_",out_prefix,".png",sep=""),
+png(filename=paste("Figure3a_boxplot_overall_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 boxplot(rmse~pred_mod,data=tb)#,names=tb$pred_mod)
@@ -596,7 +578,7 @@ title("RMSE per model over all tiles")
 dev.off()
 
 ## Figure 3b
-png(filename=paste("Figure3b_boxplot_overall_region_scaling_",model_name[i],"_",out_prefix,".png",sep=""),
+png(filename=paste("Figure3b_boxplot_overall_region_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
@@ -628,7 +610,7 @@ dev.off()
 #     col_mfrow <- 1
 #     row_mfrow <- 1
 #   
-#     png(filename=paste("Figure4_models_predicted_surfaces_",model_name[i],"_",name_method_var,"_",data_selected,"_",out_prefix,".png",sep=""),
+#     png(filename=paste("Figure4_models_predicted_surfaces_",model_name[i],"_",name_method_var,"_",data_selected,"_",out_suffix,".png",sep=""),
 #        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 #   
 #     plot(r_pred)
@@ -659,7 +641,7 @@ for (i in 1:length(model_name)){
   col_mfrow <- 1
   row_mfrow <- 1
 
-  png(filename=paste("Figure5_ac_metrics_ranked_",model_name[i],"_",out_prefix,".png",sep=""),
+  png(filename=paste("Figure5_ac_metrics_ranked_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   x<- as.character(df_ac_mod$tile_id)
   barplot(df_ac_mod$rmse, names.arg=x)
@@ -689,7 +671,7 @@ for (i in 1:length(model_name)){
 #   col_mfrow <- 1
 #   row_mfrow <- 1
 # 
-#   png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_prefix,".png",sep=""),
+#   png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_suffix,".png",sep=""),
 #     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 # 
 #   plot(r_pred)  
@@ -726,7 +708,7 @@ for (i in 1:length(model_name)){
   col_mfrow <- 1
   row_mfrow <- 1
 
-  png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_prefix,".png",sep=""),
+  png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   #plot(r_pred)  
@@ -785,7 +767,7 @@ for(i in 1:length(threshold_missing_day)){
   row_mfrow <- 1
 
   png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
-                     "_",out_prefix,".png",sep=""),
+                     "_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   model_name[j]
@@ -815,7 +797,7 @@ for(i in 1:length(threshold_missing_day)){
 
 # 
 ## Figure 7a
-png(filename=paste("Figure7a_number_daily_predictions_per_models","_",out_prefix,".png",sep=""),
+png(filename=paste("Figure7a_number_daily_predictions_per_models","_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
@@ -844,7 +826,7 @@ table((subset(test, test$pred_mod=="mod1")$predicted))
 histogram(test$predicted~test$tile_id)
 #table(tb)
 ## Figure 7b
-#png(filename=paste("Figure7b_number_daily_predictions_per_models","_",out_prefix,".png",sep=""),
+#png(filename=paste("Figure7b_number_daily_predictions_per_models","_",out_suffix,".png",sep=""),
 #    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 #xyplot(n~month | tile_id + pred_mod,data=subset(as.data.frame(tb_month_s),
@@ -868,7 +850,7 @@ res_pix <- 480
 col_mfrow <- 1
 row_mfrow <- 1
 
-png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_prefix,".png",sep=""),
+png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 p<- bwplot(rmse~pred_mod | reg, data=tb,
@@ -877,7 +859,7 @@ print(p)
 dev.off()
 
 ## Figure 8b
-png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_prefix,".png",sep=""),
+png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
@@ -911,8 +893,8 @@ dev.off()
 #out_dir_str <- out_dir
 #reg_name <- "reg6_1000x3000"
 #lapply()
-#list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix)
-#list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
+#list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix)
+#list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
 
 #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 #debug(plot_daily_mosaics)
@@ -927,7 +909,7 @@ for(i in 1:length(l_reg_name)){
   out_dir_str <- out_dir
   reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
   #lapply()
-  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
+  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
   #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 
   lf_mosaics_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
@@ -1058,7 +1040,7 @@ plot_screen_raster_val<-function(i,list_param){
 #  out_dir_str <- out_dir
   #reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
   #lapply()
-#  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=tile_size,out_dir_str=out_dir_str,out_suffix=out_prefix,l_dates=day_to_mosaic)
+#  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=tile_size,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
   #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 
   #lf_world_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
