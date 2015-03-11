@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/05/2015            
+#MODIFIED ON: 03/11/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -75,7 +75,7 @@ in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km" #PARAM1
 region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_03052015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_03112015" #PARAM5
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 #out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -551,7 +551,7 @@ system(cmd_str)
 
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"mosaics")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-lf_cp_f <- list.files(out_dir,full.names=T,pattern="*world*.tif")#copy all files can filter later
+lf_cp_f <- list.files(out_dir,full.names=T,pattern="*world.*.tif")#copy all files can filter later
 filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
