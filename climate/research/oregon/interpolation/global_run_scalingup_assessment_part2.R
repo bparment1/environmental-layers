@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/07/2015            
+#MODIFIED ON: 03/11/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -328,8 +328,8 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_03052015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03052015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_03112015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03112015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
@@ -509,7 +509,7 @@ for(i in 1:length(shps_tiles)){
     text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
   }
 }
-title(paste("Tiles 1000x3000 ", region_name,sep=""))
+title(paste("Tiles ", tile_size,region_name,sep=""))
 
 dev.off()
       
@@ -716,8 +716,8 @@ for (i in 1:length(model_name)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
 
-  #coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
-  coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
+  coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
+  #coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
   p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   #title("(a) Mean for 1 January")
   p <- bubble(ac_mod,"rmse",main=paste("Averrage RMSE per tile and by ",model_name[i]))
@@ -739,8 +739,8 @@ length(df_tile_processed$metrics_v) #214,number of tiles in the region
 sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #87.85% of tiles with info
 
 #coordinates
-#coordinates(summary_metrics_v) <- c("lon","lat")
-coordinates(summary_metrics_v) <- c("lon.y","lat.y")
+coordinates(summary_metrics_v) <- c("lon","lat")
+#coordinates(summary_metrics_v) <- c("lon.y","lat.y")
 
 threshold_missing_day <- c(367,365,300,200)
 
@@ -902,17 +902,20 @@ dev.off()
 
 #lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
-lf_mosaics_mask_reg <- vector("list",length=length(l_reg_name))
-for(i in 1:length(l_reg_name)){
-  #
-  lf_m <- lf_mosaics_reg[[i]]
-  out_dir_str <- out_dir
-  reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
-  #lapply()
-  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
-  #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
+if(plot_region==TRUE){
+  lf_mosaics_mask_reg <- vector("list",length=length(l_reg_name))
+  for(i in 1:length(l_reg_name)){
+    d
+    #
+    lf_m <- lf_mosaics_reg[[i]]
+    out_dir_str <- out_dir
+    reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
+    #lapply()
+    list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
+    #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
 
-  lf_mosaics_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+    lf_mosaics_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+  }
 }
 
 ################## WORLD MOSAICS NEEDS MAJOR CLEAN UP OF CODE HERE
@@ -921,30 +924,31 @@ for(i in 1:length(l_reg_name)){
 
 #use list from above!!
 
-test_list <-list.files(path=out_dir,    
-           pattern=paste("reg.*._CAI_TMAX_clim_month_20100101_mod1_all_mean.tif",sep=""), 
-)
-
-test_list<-lapply(1:30,FUN=function(i){lapply(1:x[[i]]},x=lf_mosaics_mask_reg)
-test_list<-unlist(test_list)
-mosaic_list_mean <- vector("list",length=1)
-mosaic_list_mean[[1]] <- test_list 
-out_rastnames <- "world_test_mosaic_20100101"
-out_path <- out_dir
-
-list_param_mosaic<-list(mosaic_list_mean,out_path,out_rastnames,file_format,NA_flag_val,out_suffix)
-names(list_param_mosaic)<-c("mosaic_list","out_path","out_rastnames","file_format","NA_flag_val","out_suffix")
-#mean_m_list <-mclapply(1:12, list_param=list_param_mosaic, mosaic_m_raster_list,mc.preschedule=FALSE,mc.cores = 6) #This is the end bracket from mclapply(...) statement
-
-lf <- mosaic_m_raster_list(1,list_param_mosaic)
-
-debug(mosaic_m_raster_list)
-mosaic_list<-list_param$mosaic_list
-out_path<-list_param$out_path
-out_names<-list_param$out_rastnames
-file_format <- list_param$file_format
-NA_flag_val <- list_param$NA_flag_val
-out_suffix <- list_param$out_suffix
+# test_list <-list.files(path=file.path(out_dir,"mosaics"),    
+#            pattern=paste("^world_mosaics.*.tif$",sep=""), 
+# )
+# #world_mosaics_mod1_output1500x4500_km_20101105_run10_1500x4500_global_analyses_03112015.tif
+# 
+# #test_list<-lapply(1:30,FUN=function(i){lapply(1:x[[i]]},x=lf_mosaics_mask_reg)
+# #test_list<-unlist(test_list)
+# #mosaic_list_mean <- vector("list",length=1)
+# mosaic_list_mean <- test_list 
+# out_rastnames <- "world_test_mosaic_20100101"
+# out_path <- out_dir
+# 
+# list_param_mosaic<-list(mosaic_list_mean,out_path,out_rastnames,file_format,NA_flag_val,out_suffix)
+# names(list_param_mosaic)<-c("mosaic_list","out_path","out_rastnames","file_format","NA_flag_val","out_suffix")
+# #mean_m_list <-mclapply(1:12, list_param=list_param_mosaic, mosaic_m_raster_list,mc.preschedule=FALSE,mc.cores = 6) #This is the end bracket from mclapply(...) statement
+# 
+# lf <- mosaic_m_raster_list(1,list_param_mosaic)
+# 
+# debug(mosaic_m_raster_list)
+# mosaic_list<-list_param$mosaic_list
+# out_path<-list_param$out_path
+# out_names<-list_param$out_rastnames
+# file_format <- list_param$file_format
+# NA_flag_val <- list_param$NA_flag_val
+# out_suffix <- list_param$out_suffix
 
 ##Now mosaic for mean: should reorder files!!
 #out_rastnames_mean<-paste("_",lst_pat,"_","mean",out_suffix,sep="")
@@ -964,20 +968,28 @@ out_suffix <- list_param$out_suffix
 
 ################## PLOTTING WORLD MOSAICS ################
 
-lf_world_pred <- list.files(pattern="world.*2010090.*.tif$")
-lf_raster_fname <- list.files(pattern="world.*2010*.*02162015.tif$",full.names=T)
+lf_world_pred <-list.files(path=file.path(out_dir,"mosaics"),    
+           pattern=paste("^world_mosaics.*.tif$",sep=""),full.names=T) 
+)
 
+#mosaic_list_mean <- test_list 
+#out_rastnames <- "world_test_mosaic_20100101"
+#out_path <- out_dir
+
+#lf_world_pred <- list.files(pattern="world.*2010090.*.tif$")
+#lf_raster_fname <- list.files(pattern="world.*2010*.*02162015.tif$",full.names=T)
+lf_raster_fname <- lf_world_pred
 prefix_str <- "Figure10_clim_world_mosaics_day_"
 l_dates <-day_to_mosaic
 screenRast=TRUE
 list_param_plot_screen_raster <- list(lf_raster_fname,screenRast,l_dates,out_dir,prefix_str,out_suffix)
 names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_dates","out_dir_str","prefix_str","out_suffix_str")
 
-#debug(plot_screen_raster_val)
+undebug(plot_screen_raster_val)
 
-#plot_screen_raster_val(1,list_param_plot_screen_raster)
-world_m_list <- mclapply(1:10, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 5) #This is the end bracket from mclapply(...) statement
-world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 7) #This is the end bracket from mclapply(...) statement
+#world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
+#world_m_list <- mclapply(1:10, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 5) #This is the end bracket from mclapply(...) statement
+world_m_list <- mclapply(1:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 7) #This is the end bracket from mclapply(...) statement
 
 plot_screen_raster_val<-function(i,list_param){
   ##USAGE###
