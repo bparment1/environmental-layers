@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/11/2015            
+#MODIFIED ON: 03/23/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -305,6 +305,59 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   
 }
 
+plot_screen_raster_val<-function(i,list_param){
+  ##USAGE###
+  #Screen raster list and produced plot as png.
+  fname <-list_param$lf_raster_fname[i]
+  screenRast <- list_param$screenRast
+  l_dates<- list_param$l_dates
+  out_dir_str <- list_param$out_dir_str
+  prefix_str <-list_param$prefix_str
+  out_suffix_str <- list_param$out_suffix_str
+  
+  ### START SCRIPT ####
+  date_proc <- l_dates[i]
+  
+  if(screenRast==TRUE){
+    r_test <- raster(fname)
+
+    m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA) #can change the thresholds later
+    rclmat <- matrix(m, ncol=3, byrow=TRUE)
+    rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
+    #file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+    extension_str <- extension(filename(r_test))
+    raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
+    raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
+  
+    r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
+  }else{
+    r_pred <- raster(fname)
+  }
+  
+  #date_proc <- file_name[7] #specific tot he current naming of files
+  #date_proc<- "2010010101"
+
+  #paste(raster_name[1:7],collapse="_")
+  #add filename option later
+
+  res_pix <- 960
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+#  png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
+#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  png(filename=paste(prefix_str,"_",date_proc,"_",tile_size,"_",out_suffix_str,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("Predicted on ",date_proc , " ", tile_size,sep=""),cex.main=1.5)
+  dev.off()
+
+}
+
 ############################################
 #### Parameters and constants  
 
@@ -328,8 +381,8 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_03112015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03112015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_03232015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03232015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
@@ -355,6 +408,7 @@ tile_size <- "1500x4500" #PARAM 11
 mulitple_region <- TRUE #PARAM 12
 
 region_name <- "world" #PARAM 13
+plot_region <- FALSE
 
 ########################## START SCRIPT ##############################
 
@@ -716,8 +770,8 @@ for (i in 1:length(model_name)){
   #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
   #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
 
-  coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
-  #coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
+  #coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
+  coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
   p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   #title("(a) Mean for 1 January")
   p <- bubble(ac_mod,"rmse",main=paste("Averrage RMSE per tile and by ",model_name[i]))
@@ -739,8 +793,8 @@ length(df_tile_processed$metrics_v) #214,number of tiles in the region
 sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #87.85% of tiles with info
 
 #coordinates
-coordinates(summary_metrics_v) <- c("lon","lat")
-#coordinates(summary_metrics_v) <- c("lon.y","lat.y")
+#coordinates(summary_metrics_v) <- c("lon","lat")
+coordinates(summary_metrics_v) <- c("lon.y","lat.y")
 
 threshold_missing_day <- c(367,365,300,200)
 
@@ -970,7 +1024,7 @@ if(plot_region==TRUE){
 
 lf_world_pred <-list.files(path=file.path(out_dir,"mosaics"),    
            pattern=paste("^world_mosaics.*.tif$",sep=""),full.names=T) 
-)
+
 
 #mosaic_list_mean <- test_list 
 #out_rastnames <- "world_test_mosaic_20100101"
@@ -985,65 +1039,11 @@ screenRast=TRUE
 list_param_plot_screen_raster <- list(lf_raster_fname,screenRast,l_dates,out_dir,prefix_str,out_suffix)
 names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_dates","out_dir_str","prefix_str","out_suffix_str")
 
-undebug(plot_screen_raster_val)
+#undebug(plot_screen_raster_val)
 
 #world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
 #world_m_list <- mclapply(1:10, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 5) #This is the end bracket from mclapply(...) statement
-world_m_list <- mclapply(1:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 7) #This is the end bracket from mclapply(...) statement
-
-plot_screen_raster_val<-function(i,list_param){
-  ##USAGE###
-  #Screen raster list and produced plot as png.
-  fname <-list_param$lf_raster_fname[i]
-  screenRast <- list_param$screenRast
-  l_dates<- list_param$l_dates
-  out_dir_str <- list_param$out_dir_str
-  prefix_str <-list_param$prefix_str
-  out_suffix_str <- list_param$out_suffix_str
-  
-  ### START SCRIPT ####
-  date_proc <- l_dates[i]
-  
-  if(screenRast==TRUE){
-    r_test <- raster(fname)
-
-    m <- c(-Inf, -100, NA,  
-         -100, 100, 1, 
-         100, Inf, NA) #can change the thresholds later
-    rclmat <- matrix(m, ncol=3, byrow=TRUE)
-    rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
-    #file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
-    extension_str <- extension(filename(r_test))
-    raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
-    raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
-  
-    r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
-  }else{
-    r_pred <- raster(fname)
-  }
-  
-  #date_proc <- file_name[7] #specific tot he current naming of files
-  #date_proc<- "2010010101"
-
-  #paste(raster_name[1:7],collapse="_")
-  #add filename option later
-
-  res_pix <- 960
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-#  png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-  png(filename=paste(prefix_str,"_",date_proc,"_",tile_size,"_",out_suffix_str,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r_pred,main=paste("Predicted on ",date_proc , " ", tile_size,sep=""),cex.main=1.5)
-  dev.off()
-
-}
-
+world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 6) #This is the end bracket from mclapply(...) statement
 
 #lf_world_mask_reg <- vector("list",length=length(lf_world_pred))
 #for(i in 1:length(lf_world_pred)){
