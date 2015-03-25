@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/23/2015            
+#MODIFIED ON: 03/25/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -381,8 +381,8 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_03232015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03232015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_03252015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03252015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
