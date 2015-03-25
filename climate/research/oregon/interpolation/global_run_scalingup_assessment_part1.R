@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/23/2015            
+#MODIFIED ON: 03/25/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -15,9 +15,9 @@
 #
 #First source these files:
 #Resolved call issues from R.
-source /nobackupp6/aguzman4/climateLayers/sharedModules/etc/environ.sh 
-MODULEPATH=$MODULEPATH:/nex/modules/files
-module load pythonkits/gdal_1.10.0_python_2.7.3_nex
+#source /nobackupp6/aguzman4/climateLayers/sharedModules/etc/environ.sh 
+#MODULEPATH=$MODULEPATH:/nex/modules/files
+#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 
 # These are the names and number for the current subset regions used for global runs:
 #reg1 - North America (NAM)
@@ -71,11 +71,15 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km" #PARAM1
+in_dir1b <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/singles" #PARAM1, add for now in_dir1 can be a list...
+
 
 region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
+region_namesb <- c("reg_1b","reg_2b","reg_6b") #selected region names, #PARAM2
+
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_03232015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_03252015" #PARAM5
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 #out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -133,6 +137,36 @@ in_dir_list <- in_dir_reg
 in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 #list of shapefiles used to define tiles
 in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
+
+## load problematic tiles
+
+in_dir_listb <- list.dirs(path=in_dir1b,recursive=FALSE) #get the list regions processed for this run
+#basename(in_dir_list)
+in_dir_listb<- lapply(region_namesb,FUN=function(x,y){y[grep(x,basename(y),invert=FALSE)]},y=in_dir_listb) 
+
+in_dir_list_allb  <- lapply(in_dir_listb,function(x){list.dirs(path=x,recursive=F)})
+in_dir_listb <- unlist(in_dir_list_allb)
+#in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
+in_dir_subsetb <- in_dir_listb[grep("subset",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
+in_dir_shpb <- file.path(in_dir_subsetb,"shapefiles")
+
+#select only directories used for predictions
+in_dir_regb <- in_dir_listb[grep(".*._.*.",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
+#in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
+in_dir_listb <- in_dir_regb
+    
+in_dir_listb <- in_dir_listb[grep("bak",basename(basename(in_dir_listb)),invert=TRUE)] #the first one is the in_dir1
+#list of shapefiles used to define tiles
+in_dir_shp_listb <- list.files(in_dir_shpb,".shp",full.names=T)
+
+
+#### Combine now...
+
+in_dir_list <- c(in_dir_list,in_dir_listb)
+in_dir_reg <- c(in_dir_reg,in_dir_regb)
+in_dir_shp <- c(in_dir_shp,in_dir_shpb)
+in_dir_shp_list <- c(in_dir_shp_list,in_dir_shp_listb)
+#in_dir_list <- c(in_dir_list,in_dir_listb)
 
 #system("ls /nobackup/bparmen1")
 
@@ -231,7 +265,7 @@ write.table(as.data.frame(summary_metrics_v_NA),
 
 #################
 ###Table 2: daily validation/testing accuracy metrics for all tiles
-#this takes about 25min
+#this takes about 55min
 #tb_diagnostic_v_list <- lapply(list_raster_obj_files,FUN=function(x){x<-load_obj(x);x[["tb_diagnostic_v"]]})                           
 tb_diagnostic_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_diagnostic_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)                           
 
@@ -249,6 +283,18 @@ tb_diagnostic_v_NA <- merge(tb_diagnostic_v_NA,df_tile_processed[,1:2],by="tile_
 
 write.table((tb_diagnostic_v_NA),
             file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+
+##Take where shutdown took place after pathcing
+summary_metrics_v_NA <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
+#fname <- file.path(out_dir,paste("summary_metrics_v2_NA_",out_suffix,".txt",sep=""))
+tb_diagnostic_v_NA <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+#tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
+#tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
+
+#tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
+#pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_suffix,".txt",sep="")),sep=",")
+#pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_suffix,".txt",sep="")),sep=",")
+#df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_suffix,".txt",sep="")),sep=",")
 
 #################
 ###Table 3: monthly fit/training accuracy information for all tiles
@@ -378,9 +424,14 @@ write.table(pred_data_day_info,
 #get shape files for the region being assessed:
 
 list_shp_world <- list.files(path=in_dir_shp,pattern=".*.shp",full.names=T)
-l_shp <- unlist(lapply(1:length(list_shp_world),
-                       FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][3:4],collapse="_")}))
-l_shp <- gsub(".shp","",l_shp)
+l_shp <- gsub(".shp","",basename(list_shp_world))
+l_shp <- sub("shp_","",l_shp)
+
+#l_shp <- unlist(lapply(1:length(list_shp_world),
+#                       FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][3:4],collapse="_")}))
+l_shp <- unlist(lapply(1:length(l_shp),
+                       FUN=function(i){paste(strsplit(l_shp[i],"_")[[1]][1:2],collapse="_")}))
+
 matching_index <- match(basename(in_dir_list),l_shp)
 list_shp_reg_files <- list_shp_world[matching_index]
 df_tile_processed$shp_files <-list_shp_world[matching_index]
