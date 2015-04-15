@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/25/2015            
+#MODIFIED ON: 04/15/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -70,16 +70,15 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km" #PARAM1
-in_dir1b <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/singles" #PARAM1, add for now in_dir1 can be a list...
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45/" #PARAM1
+i#n_dir1b <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/singles" #PARAM1, add for now in_dir1 can be a list...
 
-
-region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
-region_namesb <- c("reg_1b","reg_2b","reg_6b") #selected region names, #PARAM2
+region_names <- c("reg5") #selected region names, #PARAM2
+#region_namesb <- c("reg_1b","reg_2b","reg_6b") #selected region names, #PARAM2
 
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_03252015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_pred_2003_04102015" #PARAM5
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 #out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -90,12 +89,14 @@ create_out_dir_param <- TRUE #PARAM7
 CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
 
 #day_to_mosaic <- c("20100101","20100901") #PARAM9
-day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
-                   "20100301","20100302","20100303","20100304","20100305",
-                   "20100501","20100502","20100503","20100504","20100505",
-                   "20100701","20100702","20100703","20100704","20100705",
-                   "20100901","20100902","20100903","20100904","20100905",
-                   "20101101","20101102","20101103","20101104","20101105")
+
+day_to_mosaic <- c("20030101","20030102","20030103","20030104","20030105",
+                   "20030301","20030302","20030303","20030304","20030305",
+                   "20030501","20030502","20030503","20030504","20030505",
+                   "20030701","20030702","20030703","20030704","20030705",
+                   "20030901","20030902","20030903","20030904","20030905",
+                   "20031101","20031102","20031103","20031104","20031105") #PARAM7
+
 #day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
 
 file_format <- ".tif" #format for mosaiced files #PARAM10
@@ -140,32 +141,32 @@ in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
 ## load problematic tiles
 
-in_dir_listb <- list.dirs(path=in_dir1b,recursive=FALSE) #get the list regions processed for this run
-#basename(in_dir_list)
-in_dir_listb<- lapply(region_namesb,FUN=function(x,y){y[grep(x,basename(y),invert=FALSE)]},y=in_dir_listb) 
-
-in_dir_list_allb  <- lapply(in_dir_listb,function(x){list.dirs(path=x,recursive=F)})
-in_dir_listb <- unlist(in_dir_list_allb)
-#in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
-in_dir_subsetb <- in_dir_listb[grep("subset",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
-in_dir_shpb <- file.path(in_dir_subsetb,"shapefiles")
-
-#select only directories used for predictions
-in_dir_regb <- in_dir_listb[grep(".*._.*.",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
-#in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
-in_dir_listb <- in_dir_regb
-    
-in_dir_listb <- in_dir_listb[grep("bak",basename(basename(in_dir_listb)),invert=TRUE)] #the first one is the in_dir1
-#list of shapefiles used to define tiles
-in_dir_shp_listb <- list.files(in_dir_shpb,".shp",full.names=T)
+# in_dir_listb <- list.dirs(path=in_dir1b,recursive=FALSE) #get the list regions processed for this run
+# #basename(in_dir_list)
+# in_dir_listb<- lapply(region_namesb,FUN=function(x,y){y[grep(x,basename(y),invert=FALSE)]},y=in_dir_listb) 
+# 
+# in_dir_list_allb  <- lapply(in_dir_listb,function(x){list.dirs(path=x,recursive=F)})
+# in_dir_listb <- unlist(in_dir_list_allb)
+# #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
+# in_dir_subsetb <- in_dir_listb[grep("subset",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
+# in_dir_shpb <- file.path(in_dir_subsetb,"shapefiles")
+# 
+# #select only directories used for predictions
+# in_dir_regb <- in_dir_listb[grep(".*._.*.",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
+# #in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
+# in_dir_listb <- in_dir_regb
+#     
+# in_dir_listb <- in_dir_listb[grep("bak",basename(basename(in_dir_listb)),invert=TRUE)] #the first one is the in_dir1
+# #list of shapefiles used to define tiles
+# in_dir_shp_listb <- list.files(in_dir_shpb,".shp",full.names=T)
 
 
 #### Combine now...
 
-in_dir_list <- c(in_dir_list,in_dir_listb)
-in_dir_reg <- c(in_dir_reg,in_dir_regb)
-in_dir_shp <- c(in_dir_shp,in_dir_shpb)
-in_dir_shp_list <- c(in_dir_shp_list,in_dir_shp_listb)
+#in_dir_list <- c(in_dir_list,in_dir_listb)
+#in_dir_reg <- c(in_dir_reg,in_dir_regb)
+#in_dir_shp <- c(in_dir_shp,in_dir_shpb)
+#in_dir_shp_list <- c(in_dir_shp_list,in_dir_shp_listb)
 #in_dir_list <- c(in_dir_list,in_dir_listb)
 
 #system("ls /nobackup/bparmen1")
