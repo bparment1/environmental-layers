@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 03/25/2015            
+#MODIFIED ON: 04/15/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -381,19 +381,19 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_03252015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_03252015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_pred_2003_04102015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_2003_04102015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
 
 #if daily mosaics NULL then mosaicas all days of the year
-day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
-                   "20100301","20100302","20100303","20100304","20100305",
-                   "20100501","20100502","20100503","20100504","20100505",
-                   "20100701","20100702","20100703","20100704","20100705",
-                   "20100901","20100902","20100903","20100904","20100905",
-                   "20101101","20101102","20101103","20101104","20101105") #PARAM7
+day_to_mosaic <- c("20030101","20030102","20030103","20030104","20030105",
+                   "20030301","20030302","20030303","20030304","20030305",
+                   "20030501","20030502","20030503","20030504","20030505",
+                   "20030701","20030702","20030703","20030704","20030705",
+                   "20030901","20030902","20030903","20030904","20030905",
+                   "20031101","20031102","20031103","20031104","20031105") #PARAM7
   
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
@@ -408,7 +408,8 @@ tile_size <- "1500x4500" #PARAM 11
 mulitple_region <- TRUE #PARAM 12
 
 region_name <- "world" #PARAM 13
-plot_region <- FALSE
+plot_region <- TRUE
+num_cores <- 10 #PARAM 14
 
 ########################## START SCRIPT ##############################
 
@@ -788,9 +789,9 @@ for (i in 1:length(model_name)){
 }
 
 ## Number of tiles with information:
-sum(df_tile_processed$metrics_v) #188,number of tiles with raster object
-length(df_tile_processed$metrics_v) #214,number of tiles in the region
-sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #87.85% of tiles with info
+sum(df_tile_processed$metrics_v) #20,number of tiles with raster object
+length(df_tile_processed$metrics_v) #25,number of tiles in the region
+sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #80 of tiles with info
 
 #coordinates
 #coordinates(summary_metrics_v) <- c("lon","lat")
@@ -926,19 +927,10 @@ dev.off()
 #####################################################
 #### Figure 9: plotting mosaics of regions ###########
 ## plot mosaics...
-#l_reg_name <- unique(df_tile_processed$reg)
-#lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
-#           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
-#lf_mosaics_reg <- vector("list",length=length(l_reg_name))
-#for(i in 1:length(l_reg_name)){
-#    lf_mosaics_reg[[i]] <- try(mixedsort(
-#    list.files(
-#    path=file.path(out_dir,"mosaics"),
-#    #pattern="reg6_.*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",
-#    pattern=paste(l_reg_name[i],".*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",sep=""), 
-#    full.names=T))
-#  )
-#}
+
+#First collect file names
+
+
 #names(lf_mosaics_reg) <- l_reg_name
 
 #This part should be automated...
@@ -957,9 +949,26 @@ dev.off()
 #lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
 if(plot_region==TRUE){
+  
+  #get the files
+  l_reg_name <- unique(df_tile_processed$reg)
+  #lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
+  #           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
+  lf_mosaics_reg <- vector("list",length=length(l_reg_name))
+  for(i in 1:length(l_reg_name)){
+    lf_mosaics_reg[[i]] <- try(mixedsort(
+    list.files(
+    path=file.path(out_dir,"mosaics"),
+    #pattern="reg6_.*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",
+    pattern=paste(l_reg_name[i],".*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",sep=""), 
+    full.names=T))
+    )
+  }
+  
+  #now mask and potl
   lf_mosaics_mask_reg <- vector("list",length=length(l_reg_name))
   for(i in 1:length(l_reg_name)){
-    d
+    
     #
     lf_m <- lf_mosaics_reg[[i]]
     out_dir_str <- out_dir
@@ -967,8 +976,9 @@ if(plot_region==TRUE){
     #lapply()
     list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
     #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
+    #lf_mosaics_mask_reg[[i]] <- lapply(1:1,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics)
 
-    lf_mosaics_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
+    lf_mosaics_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = num_cores)
   }
 }
 
