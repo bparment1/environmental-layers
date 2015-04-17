@@ -5,10 +5,10 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 04/15/2015            
+#MODIFIED ON: 04/27/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
+#COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
 #TODO:
 #1) Split functions and master script
 #2) Make this is a script/function callable from the shell/bash
@@ -381,19 +381,21 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_pred_2003_04102015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_2003_04102015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_04172015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_04172015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
 
 #if daily mosaics NULL then mosaicas all days of the year
-day_to_mosaic <- c("20030101","20030102","20030103","20030104","20030105",
-                   "20030301","20030302","20030303","20030304","20030305",
-                   "20030501","20030502","20030503","20030504","20030505",
-                   "20030701","20030702","20030703","20030704","20030705",
-                   "20030901","20030902","20030903","20030904","20030905",
-                   "20031101","20031102","20031103","20031104","20031105") #PARAM7
+
+day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
+                   "20100301","20100302","20100303","20100304","20100305",
+                   "20100501","20100502","20100503","20100504","20100505",
+                   "20100701","20100702","20100703","20100704","20100705",
+                   "20100901","20100902","20100903","20100904","20100905",
+                   "20101101","20101102","20101103","20101104","20101105") #PARAM7
+
   
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
@@ -410,6 +412,7 @@ mulitple_region <- TRUE #PARAM 12
 region_name <- "world" #PARAM 13
 plot_region <- TRUE
 num_cores <- 10 #PARAM 14
+reg_modified <- TRUE
 
 ########################## START SCRIPT ##############################
 
@@ -435,7 +438,7 @@ tb <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_suffi
 tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
 
 tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
-#pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_suffix,".txt",sep="")),sep=",")
+pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_suffix,".txt",sep="")),sep=",")
 #pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_suffix,".txt",sep="")),sep=",")
 df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_suffix,".txt",sep="")),sep=",")
 
@@ -466,6 +469,30 @@ if(mulitple_region==TRUE){
 tb_all <- tb
 
 summary_metrics_v_all <- summary_metrics_v 
+#deal with additional tiles...
+if(reg_modified==T){
+  
+  summary_metrics_v_tmp <- summary_metrics_v
+  summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_1b"] <- "reg1"
+  summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_1c"] <- "reg1"
+  summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_3b"] <- "reg3"
+  summary_metrics_v_tmp$reg_all <- summary_metrics_v$reg
+  ###
+  summary_metrics_v<- summary_metrics_v_tmp
+  
+  ###
+  tb_tmp <- tb
+  tb_tmp$reg[tb_tmp$reg=="reg_1b"] <- "reg1"
+  tb_tmp$reg[tb_tmp$reg=="reg_1c"] <- "reg1"
+  tb_tmp$reg[tb_tmp$reg=="reg_3b"] <- "reg3"
+  ###
+  tb <- tb_tmp
+}
+
+table(summary_metrics_v_all$reg)
+table(summary_metrics_v$reg)
+table(tb_all$reg)
+table(tb$reg)
 
 ############ PART 2: PRODUCE FIGURES ################
 
@@ -480,6 +507,8 @@ list_shp_reg_files<- as.character(df_tile_processed$shp_files)
 list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
           "shapefiles",basename(list_shp_reg_files))
 
+#table(summary_metrics_v$reg)
+#table(summary_metrics_v$reg)
 
 ### Potential function starts here:
 #function(in_dir,out_dir,list_shp_reg_files,title_str,region_name,num_cores,out_suffix,out_suffix)
@@ -871,7 +900,8 @@ xyplot(predicted~pred_mod | tile_id,data=subset(as.data.frame(test),
 
 test
 
-unique(test$tile_id) #72 tiles
+as.character(unique(test$tile_id)) #141 tiles
+
 dim(subset(test,test$predicted==365 & test$pred_mod=="mod1"))
 histogram(subset(test, test$pred_mod=="mod1")$predicted)
 unique(subset(test, test$pred_mod=="mod1")$predicted)
@@ -898,7 +928,6 @@ histogram(test$predicted~test$tile_id)
 ##### Figure 8: Breaking down accuracy by regions!! #####
 
 #summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
-table(summary_metrics_v$reg)
 
 ## Figure 8a
 res_pix <- 480
@@ -1052,8 +1081,8 @@ names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_date
 #undebug(plot_screen_raster_val)
 
 #world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
-#world_m_list <- mclapply(1:10, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 5) #This is the end bracket from mclapply(...) statement
-world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = 6) #This is the end bracket from mclapply(...) statement
+#world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
 
 #lf_world_mask_reg <- vector("list",length=length(lf_world_pred))
 #for(i in 1:length(lf_world_pred)){
