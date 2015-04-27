@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 04/24/2015            
+#MODIFIED ON: 04/27/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -90,13 +90,13 @@ create_out_dir_param <- TRUE #PARAM7
 CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
 
 #day_to_mosaic <- c("20100101","20100901") #PARAM9
-#day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
-#                   "20100301","20100302","20100303","20100304","20100305",
-#                   "20100501","20100502","20100503","20100504","20100505",
-#                   "20100701","20100702","20100703","20100704","20100705",
-#                   "20100901","20100902","20100903","20100904","20100905",
-#                   "20101101","20101102","20101103","20101104","20101105")
-day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
+day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
+                   "20100301","20100302","20100303","20100304","20100305",
+                   "20100501","20100502","20100503","20100504","20100505",
+                   "20100701","20100702","20100703","20100704","20100705",
+                   "20100901","20100902","20100903","20100904","20100905",
+                   "20101101","20101102","20101103","20101104","20101105")
+#day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
 
 file_format <- ".tif" #format for mosaiced files #PARAM10
 NA_flag_val <- -9999  #No data value, #PARAM11
@@ -110,6 +110,7 @@ num_cores <- 6 #number of cores used #PARAM13
 #module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/" #PARAM14
 #mosaics script #PARAM 15
 #shell global mosaic script #PARAM 16
+#gather station data
 
 ########################## START SCRIPT #########################################
 
@@ -369,6 +370,48 @@ write.table((tb_diagnostic_s_NA),
 # write.table((data_month_NAM),
 #             file=file.path(out_dir,paste("data_month_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
 
+##### SPDF of daily Station info
+#load data_month for specific tiles
+# data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
+# names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
+# 
+data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+
+data_day_s_list <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+
+data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_v"))},mc.preschedule=FALSE,mc.cores = num_cores)    
+data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = num_cores)    
+
+list_data_day_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_v"))
+list_data_day_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_s"))
+sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
+#debug(pred_data_info_fun)
+#list_pred_data_day_s_info <- pred_data_info_fun(1,list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+           list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+list_pred_data_day_v_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+           list_data=list_data_day_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+pred_data_day_s_info <- do.call(rbind,list_pred_data_day_s_info)
+pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
+pred_data_day_s_info$training <- rep(1,nrow(pred_data_day_s_info)) 
+pred_data_day_v_info$training <- rep(0,nrow(pred_data_day_v_info)) 
+pred_data_day_info <-rbind(pred_data_day_v_info,pred_data_day_s_info)
+
+# 
+ names(data_month_s_list) <- list_names_tile_id
+# 
+# data_month_tmp <- remove_from_list_fun(data_month_s_list)$list
+# #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
+# 
+# tile_id <- lapply(1:length(data_month_tmp),
+#                   FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_tmp)
+# data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
+# data_month_NAM$tile_id <- unlist(tile_id)
+# 
+# write.table((data_month_NAM),
+#             file=file.path(out_dir,paste("data_month_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
+
 ##### SPDF of Daily Station info
 
 
@@ -537,6 +580,7 @@ for (j in 1:length(region_names)){
 ### SECOND mosaics globally from regional mosaics...
 ### Now find out how many files were predicted
 # will be useful later on
+# Transform this into a function that takes in a list of files!!! We can skip the region stage to reduce the number of files..
 
 #sh /nobackupp6/aguzman4/climateLayers/sharedCode/shMergeFromFile.sh list_mosaics_20100901.txt world_mosaics_1000x3000_20100901.tif
 
