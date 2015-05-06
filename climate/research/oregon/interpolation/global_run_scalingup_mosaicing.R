@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/14/2015            
+#MODIFIED ON: 05/07/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -267,33 +267,76 @@ setwd(out_dir)
 lf_mosaic_pred_1500x4500 <-list.files(path=file.path(in_dir),    
            pattern=paste(".*.tif$",sep=""),full.names=T) 
 
-r1 <- raster(lf_mosaic_pred_1500x4500[11]) 
+r1 <- raster(lf_mosaic_pred_1500x4500[1]) 
 r2 <- raster(lf_mosaic_pred_1500x4500[2]) 
 
-assignVal<- function(x){rep(1,x)} 
-r_outline <- init(r2,fun=assignVal,filename="test.rst",overwrite=T)
-r_pol <- rasterToPolygons(r_outline,dissolve=T)
 
+lf <- sub(".tif","",lf_mosaic_pred_1500x4500)
+tx<-strsplit(as.character(lf),"_")
+
+lat<- as.character(lapply(1:length(tx),function(i,x){x[[i]][13]},x=tx))
+long<- as.character(lapply(1:length(tx),function(i,x){x[[i]][14]},x=tx))
+lat <- as.character(lapply(1:length(lat),function(i,x){substr(x[[i]],2,nchar(x[i]))},x=lat)) #first number not in the coordinates
+
+df_centroids <- data.frame(long=as.numeric(long),lat=as.numeric(lat))
+df_centroids$ID <- as.numeric(1:nrow(df_centroids))
+#
+extract(r1,)
+coordinates(df_centroids) <- cbind(df_centroids$long,df_centroids$lat)
+proj4string(df_centroids) <- projection(r1)
 #centroid distance
-c1 <- gCentroid(x,byid=TRUE) 
-pt <- gCentroid(shp1)
+#c1 <- gCentroid(x,byid=TRUE) 
+#pt <- gCentroid(shp1)
 
+#Make this a function later...
 #then distance...
-gDistance
+out_dir_str <- out_dir
+lf_r_weights <- vector("list",length=length(lf_mosaic_pred_1500x4500))
+  
+for(i in 1:length(lf)){
+  #
+  r1 <- raster(lf_mosaic_pred_1500x4500[i]) 
 
+  set1f <- function(x){rep(NA, x)}
+  r_init <- init(r1, fun=set1f, filename='test.grd', overwrite=TRUE)
+
+  cell_ID <- cellFromXY(r_init,xy=df_centroids[i,])
+  r_init[cell_ID] <- df_centroids$ID[i]
+
+  r_dist <- distance(r_init)
+  min_val <- cellStats(r_dist,min) 
+  max_val <- cellStats(r_dist,max)
+  r_dist_normalized <- abs(r_dist - max_val)/ (max_val - min_val)
+  
+  extension_str <- extension(lf_mosaic_pred_1500x4500[i])
+  raster_name_tmp <- gsub(extension_str,"",basename(lf_mosaic_pred_1500x4500[i]))
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_weights.tif",sep=""))
+  writeRaster(r_dist_normalized, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+
+  lf_r_weights[[i]] <- raster_name
+}
 
 #Then scale on 1 to zero? or 0 to 1000
 #e.g. for a specific pixel
 #weight_sum=0.2 +0.4 +0.4+0.2=1.2
-#sum_val (0.2*val1+0.4*val2+0.4*val3+0.2*val4)
-#m_val= /weight_sum 
+#val_w_sum= (0.2*val1+0.4*val2+0.4*val3+0.2*val4)
+#no_valid = 
+#m_val= sum_val/weight_sum #mean value
+#
 
+#in raster term
+#r_weights_sum <- ...
+#r_val_w_sum <-  
+#
+
+
+r1 <- raster(c)
 #can do mosaic with sum?? for both weighted sum and val
 #
 #can use gdal calc...
 
-r_m <- r1 + r2
-name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
+#r_m <- r1 + r2
+#name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
 ##Use python code written by Alberto Guzman
 
 #system("MODULEPATH=$MODULEPATH:/nex/modules/files")
@@ -302,26 +345,26 @@ lf1 <- lf_world_pred_1000x3000
 lf2 <- lf_world_pred_1500x4500
 
 #module_path <- ""
-module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+#module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
 #sh /nobackupp6/aguzman4/climateLayers/sharedCode/gdalCalDiff.sh file1.tif file2.tif output.tif
 #/nobackupp6/aguzman4/climateLayers/sharedCode/mosaicUsingGdalMerge.py
 #l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
-l_dates <- paste(day_to_mosaic,collapse=",")
+#l_dates <- paste(day_to_mosaic,collapse=",")
 ## use region 2 first
-lf_out <- paste("diff_world_","1000_3000","by1500_4500_","mod1","_",l_dates,out_suffix,"_",file_format,sep="")
+#lf_out <- paste("diff_world_","1000_3000","by1500_4500_","mod1","_",l_dates,out_suffix,"_",file_format,sep="")
 
 
-for (i in 1:length(lf_out)){
-  out_file <- lf_out[i]
-  in_file1 <- lf1[i]
-  in_file2 <- lf2[i]
-    
-  cmd_str <- paste("sh", file.path(module_path,"gdalCalDiff.sh"),
-                 in_file1,
-                 in_file2,
-                 out_file,sep=" ")
-  system(cmd_str)
-
-}
+#for (i in 1:length(lf_out)){
+#  out_file <- lf_out[i]
+#  in_file1 <- lf1[i]
+#  in_file2 <- lf2[i]
+#    
+#  cmd_str <- paste("sh", file.path(module_path,"gdalCalDiff.sh"),
+#                 in_file1,
+#                 in_file2,
+#                 out_file,sep=" ")
+#  system(cmd_str)
+#
+#}
 
 ##################### END OF SCRIPT ######################
