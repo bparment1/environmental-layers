@@ -312,9 +312,21 @@ for(i in 1:length(lf)){
   raster_name_tmp <- gsub(extension_str,"",basename(lf_mosaic_pred_1500x4500[i]))
   raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_weights.tif",sep=""))
   writeRaster(r_dist_normalized, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
-
+  
+  r_var_prod <- r1*r_dist_normalized
+  raster_name <- file.path(out_dir_str, paste(raster_name_tmp,"_prod_weights.tif"))
+  writeRaster(r_var_prod, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+  
   lf_r_weights[[i]] <- raster_name
 }
+
+l_inputs <- lapply(lf_mosaic_pred_1500x4500,raster) #list of raster
+lf_r_weights
+
+###Mosaic with do.call...
+#rasters1.mosaicargs <- rasters1
+#rasters1.mosaicargs$fun <- mean
+#mos2 <- do.call(mosaic, rasters1.mosaicargs)
 
 #Then scale on 1 to zero? or 0 to 1000
 #e.g. for a specific pixel
@@ -329,8 +341,61 @@ for(i in 1:length(lf)){
 #r_val_w_sum <-  
 #
 
+#################################################
+#Ok testing on fake data:
+vect_pred1 <- c(9,4,1,3,5,9,9,9,2)
+vect_pred2 <- c(10,3,1,2,4,8,7,8,2)
+vect_pred3 <- c(10,NA,NA,3,5,9,8,9,2)
+vect_pred4 <- c(9,3,2,NA,5,8,9,9,2)
+lf_vect_pred <- list(vect_pred1,vect_pred2,vect_pred3,vect_pred4)
 
-r1 <- raster(c)
+vect_w1 <- c(0.2,0.5,0.1,0.3,0.4,0.5,0.5,0.3,0.2)
+vect_w2 <- c(0.3,0.4,0.1,0.3,0.4,0.5,0.7,0.1,0.2)
+vect_w3 <- c(0.5,0.3,0.2,0.2,0.3,0.6,0.7,0.3,0.2)
+vect_w4 <- c(0.2,0.5,0.3,0.3,0.4,0.5,0.5,0.2,0.2)
+lf_vect_w <- list(vect_w1,vect_w2,vect_w3,vect_w4)
+test <-do.call(cbind,lf_vect_w)
+
+tr_ref <- raster(nrows=3,ncols=3)
+
+r_pred_l <- lapply(1:length(lf_vect_pred),FUN=make_raster_from_lf,list_lf=lf_vect_pred,r_ref=r_ref)
+r_w_l <- lapply(1:length(lf_vect_w),FUN=make_raster_from_lf,list_lf=lf_vect_w,r_ref=r_ref)
+
+#r_w1<- make_raster_from_lf(2,list_lf=lf_vect_w,r_ref)
+
+list_args <- r_pred_l
+list_args$fun <- "sum"
+
+list_args_w <- r_w_l
+list_args_w$fun <- prod
+
+r_test_val <-do.call(overlay,list_args) #sum
+r_test_w <-do.call(overlay,list_args_w) #prod
+
+#need to do sumprod
+r1<- r_w_l[[1]]*r_pred_l[[1]]
+r2<- r_w_l[[2]]*r_pred_l[[2]]
+r3<- r_w_l[[3]]*r_pred_l[[3]]
+r4<- r_w_l[[4]]*r_pred_l[[4]]
+
+list_args_w$fun <- sum
+r_sum_w <-do.call(overlay,list_args_w) #prod
+
+r_m_w <- ((r1+r2+r3+r4)/(r_sum_w)) #mean weiated
+#n33e to check the result!! especially the nubmer of valid pix val
+
+#r_test_val <-do.call(overlay,list_args) #sum
+
+
+##Quick function to generate test dataset
+make_raster_from_lf <- function(i,list_lf,r_ref){
+  vect_val <- list_lf[[i]]
+  r <-  r_ref
+  values(r) <-vect_val
+  #writeRaster...
+  return(r)
+}
+
 #can do mosaic with sum?? for both weighted sum and val
 #
 #can use gdal calc...
@@ -341,8 +406,8 @@ r1 <- raster(c)
 
 #system("MODULEPATH=$MODULEPATH:/nex/modules/files")
 #system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-lf1 <- lf_world_pred_1000x3000
-lf2 <- lf_world_pred_1500x4500
+#lf1 <- lf_world_pred_1000x3000
+#lf2 <- lf_world_pred_1500x4500
 
 #module_path <- ""
 #module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
