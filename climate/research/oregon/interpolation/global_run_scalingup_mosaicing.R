@@ -209,6 +209,49 @@ plot_screen_raster_val<-function(i,list_param){
 
 }
 
+create_weights_fun <- function(i, list_param){
+  #This function generates weights from a point location on a raster layer.
+  #Note that the weights are normatlized on 0-1 scale using max and min values.
+  #Inputs:
+  #lf: list of raster files
+  #df_points: 
+  #Outputs:
+  #
+  ############
+  
+  lf <- list_param$lf
+  df_centroids <- list_param$df_points
+  out_dir_str <- list_param$out_dir_str
+    
+  ####### START SCRIPT #####
+  
+  r1 <- raster(lf[i]) #input image
+
+  set1f <- function(x){rep(NA, x)}
+  r_init <- init(r1, fun=set1f)
+
+  cell_ID <- cellFromXY(r_init,xy=df_centroids[i,])
+  r_init[cell_ID] <- df_centroids$ID[i]
+
+  r_dist <- distance(r_init)
+  min_val <- cellStats(r_dist,min) 
+  max_val <- cellStats(r_dist,max)
+  r_dist_normalized <- abs(r_dist - max_val)/ (max_val - min_val)
+  
+  extension_str <- extension(lf_mosaic_pred_1500x4500[i])
+  raster_name_tmp <- gsub(extension_str,"",basename(lf_mosaic_pred_1500x4500[i]))
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_weights.tif",sep=""))
+  writeRaster(r_dist_normalized, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+  
+  r_var_prod <- r1*r_dist_normalized
+  raster_name_prod <- file.path(out_dir_str, paste(raster_name_tmp,"_prod_weights.tif"))
+  writeRaster(r_var_prod, NAflag=NA_flag_val,filename=raster_name_prod,overwrite=TRUE)  
+    
+  weights_obj <- list(raster_name,raster_name_prod)
+  names(weights_obj) <- c("r_weights","r_weights_prod")
+  return(weights_obj)
+}
+
 ############################################
 #### Parameters and constants  
 
@@ -292,36 +335,48 @@ proj4string(df_centroids) <- projection(r1)
 #then distance...
 out_dir_str <- out_dir
 lf_r_weights <- vector("list",length=length(lf_mosaic_pred_1500x4500))
-  
-for(i in 1:length(lf)){
-  #
-  r1 <- raster(lf_mosaic_pred_1500x4500[i]) 
 
-  set1f <- function(x){rep(NA, x)}
-  r_init <- init(r1, fun=set1f, filename='test.grd', overwrite=TRUE)
+list_param_create_weights <- list(lf_mosaic_pred_1500x4500,df_centroids,out_dir_str) 
+names(list_param_create_weights) <- c("lf","df_points","out_dir_str") 
 
-  cell_ID <- cellFromXY(r_init,xy=df_centroids[i,])
-  r_init[cell_ID] <- df_centroids$ID[i]
+create_weights_fun
+num_cores <- 6
 
-  r_dist <- distance(r_init)
-  min_val <- cellStats(r_dist,min) 
-  max_val <- cellStats(r_dist,max)
-  r_dist_normalized <- abs(r_dist - max_val)/ (max_val - min_val)
-  
-  extension_str <- extension(lf_mosaic_pred_1500x4500[i])
-  raster_name_tmp <- gsub(extension_str,"",basename(lf_mosaic_pred_1500x4500[i]))
-  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_weights.tif",sep=""))
-  writeRaster(r_dist_normalized, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
-  
-  r_var_prod <- r1*r_dist_normalized
-  raster_name <- file.path(out_dir_str, paste(raster_name_tmp,"_prod_weights.tif"))
-  writeRaster(r_var_prod, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
-  
-  lf_r_weights[[i]] <- raster_name
-}
+#debug(create_weights_fun)
+weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
-l_inputs <- lapply(lf_mosaic_pred_1500x4500,raster) #list of raster
-lf_r_weights
+weights_obj_list <- mclapply(1:length(lf_mosaic_pred_1500x4500),FUN=create_weights_fun,list_param=list_param_create_weights,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+list_args_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(x){raster(x[[i]]$r_weights_prod})}
+list_args_weights_prod$fun <- "sum"
+
+
+#"r_weights","r_weights_prod"
+
+list_args_weights <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights)},x=weights_obj_list)
+list_args_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights_prod)},x=weights_obj_list)
+
+list_args_weights$fun <- "sum"
+#list_args_weights$fun <- "mean"
+
+list_args_weights$na.rm <- TRUE
+list_args_weights$tolerance <- 1
+
+list_args_weights_prod$fun <- "sum"
+list_args_weights_prod$na.rm <- TRUE
+list_args_weights_prod$na.rm <- TRUE
+
+r_weights_sum <- do.call(mosaic,list_args_weights) #sum
+r_prod_sum <- do.call(mosaic,list_args_weights_prod) #sum
+
+r_weighted_mean <- r_weights_sum/r_prod_sum
+
+
+#r_weights_sum <- do.call(overlay,list_args_weights) #sum
+#r_weights_sum <- do.call(overlay,list_args_weights) #sum
+
+#r_test_w <-do.call(overlay,list_args_w) #prod
+
 
 ###Mosaic with do.call...
 #rasters1.mosaicargs <- rasters1
@@ -343,6 +398,16 @@ lf_r_weights
 
 #################################################
 #Ok testing on fake data:
+
+##Quick function to generate test dataset
+make_raster_from_lf <- function(i,list_lf,r_ref){
+  vect_val <- list_lf[[i]]
+  r <-  r_ref
+  values(r) <-vect_val
+  #writeRaster...
+  return(r)
+}
+
 vect_pred1 <- c(9,4,1,3,5,9,9,9,2)
 vect_pred2 <- c(10,3,1,2,4,8,7,8,2)
 vect_pred3 <- c(10,NA,NA,3,5,9,8,9,2)
@@ -354,7 +419,8 @@ vect_w2 <- c(0.3,0.4,0.1,0.3,0.4,0.5,0.7,0.1,0.2)
 vect_w3 <- c(0.5,0.3,0.2,0.2,0.3,0.6,0.7,0.3,0.2)
 vect_w4 <- c(0.2,0.5,0.3,0.3,0.4,0.5,0.5,0.2,0.2)
 lf_vect_w <- list(vect_w1,vect_w2,vect_w3,vect_w4)
-test <-do.call(cbind,lf_vect_w)
+df_vect_w <-do.call(cbind,lf_vect_w)
+df_vect_pred <-do.call(cbind,lf_vect_pred)
 
 tr_ref <- raster(nrows=3,ncols=3)
 
@@ -363,8 +429,8 @@ r_w_l <- lapply(1:length(lf_vect_w),FUN=make_raster_from_lf,list_lf=lf_vect_w,r_
 
 #r_w1<- make_raster_from_lf(2,list_lf=lf_vect_w,r_ref)
 
-list_args <- r_pred_l
-list_args$fun <- "sum"
+list_args_pred <- r_pred_l
+list_args_pred$fun <- "sum"
 
 list_args_w <- r_w_l
 list_args_w$fun <- prod
@@ -378,6 +444,22 @@ r2<- r_w_l[[2]]*r_pred_l[[2]]
 r3<- r_w_l[[3]]*r_pred_l[[3]]
 r4<- r_w_l[[4]]*r_pred_l[[4]]
 
+r_pred <- stack(r_pred_l)
+r_w <- stack(r_w_l)
+
+list_args_pred <- r_pred_l
+list_args_pred$fun <- mean
+list_args_pred$na.rm <- TRUE
+#r_sum_pred <-do.call(overlay,list_args_pred) #prod
+
+#r_sum_pred <-do.call(mean,list_args_pred) #prod
+r_sum_pred <-do.call(mosaic,list_args_pred) #prod
+
+list_args_pred$na.rm <- FALSE
+r_sum_pred <-do.call(overlay,list_args_pred) #prod
+
+r_sum_pred <-do.call(overlay,list_args_w) #prod
+
 list_args_w$fun <- sum
 r_sum_w <-do.call(overlay,list_args_w) #prod
 
@@ -385,16 +467,6 @@ r_m_w <- ((r1+r2+r3+r4)/(r_sum_w)) #mean weiated
 #n33e to check the result!! especially the nubmer of valid pix val
 
 #r_test_val <-do.call(overlay,list_args) #sum
-
-
-##Quick function to generate test dataset
-make_raster_from_lf <- function(i,list_lf,r_ref){
-  vect_val <- list_lf[[i]]
-  r <-  r_ref
-  values(r) <-vect_val
-  #writeRaster...
-  return(r)
-}
 
 #can do mosaic with sum?? for both weighted sum and val
 #
