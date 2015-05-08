@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 05/07/2015            
+#MODIFIED ON: 05/08/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -252,6 +252,68 @@ create_weights_fun <- function(i, list_param){
   return(weights_obj)
 }
 
+mosaic_m_raster_list<-function(j,list_param){
+  #This functions returns a subset of tiles from the modis grid.
+  #Arguments: modies grid tile,list of tiles
+  #Output: spatial grid data frame of the subset of tiles
+  #Note that rasters are assumed to be in the same projection system!!
+  #modified for global mosaic...still not working right now...
+  
+  #rast_list<-vector("list",length(mosaic_list))
+  #for (i in 1:length(mosaic_list)){  
+  # read the individual rasters into a list of RasterLayer objects
+  # this may be changed so that it is not read in the memory!!!
+  
+  #parse output...
+  
+  #j<-list_param$j
+  mosaic_list<-list_param$mosaic_list
+  out_path<-list_param$out_path
+  out_names<-list_param$out_rastnames
+  file_format <- list_param$file_format
+  NA_flag_val <- list_param$NA_flag_val
+  out_suffix <- list_param$out_suffix
+  ## Start
+  
+  if(class(mosaic_list[[j]])=="list"){
+    m_list <- unlist(mosaic_list[[j]])
+  }else{
+    m_list <- mosaic_list[[j]]
+  }
+  input.rasters <- lapply(m_list, raster) #create raster image for each element of the list
+  #inMemory(input.rasters[[1]])
+  #note that input.rasters are not stored in memory!!
+  mosaiced_rast<-input.rasters[[1]]
+  
+  for (k in 2:length(input.rasters)){
+    mosaiced_rast<-mosaic(mosaiced_rast,input.rasters[[k]], tolerance=1,fun=mean)
+    #mosaiced_rast<-mosaic(mosaiced_rast,raster(input.rasters[[k]]), fun=mean)
+  }
+  
+  data_name<-paste("mosaiced_",sep="") #can add more later...
+  #raster_name<-paste(data_name,out_names[j],".tif", sep="")
+  raster_name<-paste(data_name,out_names[j],file_format, sep="")
+  
+  writeRaster(mosaiced_rast, NAflag=NA_flag_val,filename=file.path(out_path,raster_name),overwrite=TRUE)  
+  #Writing the data in a raster file format...  
+  rast_list<-file.path(out_path,raster_name)
+  
+  ## The Raster and rgdal packages write temporary files on the disk when memory is an issue. This can potential build up
+  ## in long  loops and can fill up hard drives resulting in errors. The following  sections removes these files 
+  ## as they are created in the loop. This code section  can be transformed into a "clean-up function later on
+  ## Start remove
+  #tempfiles<-list.files(tempdir(),full.names=T) #GDAL transient files are not removed
+  #files_to_remove<-grep(out_suffix,tempfiles,value=T) #list files to remove
+  #if(length(files_to_remove)>0){
+  #  file.remove(files_to_remove)
+  #}
+  #now remove temp files from raster package located in rasterTmpDir
+  removeTmpFiles(h=0) #did not work if h is not set to 0
+  ## end of remove section
+  
+  return(rast_list)
+}
+
 ############################################
 #### Parameters and constants  
 
@@ -338,8 +400,6 @@ lf_r_weights <- vector("list",length=length(lf_mosaic_pred_1500x4500))
 
 list_param_create_weights <- list(lf_mosaic_pred_1500x4500,df_centroids,out_dir_str) 
 names(list_param_create_weights) <- c("lf","df_points","out_dir_str") 
-
-create_weights_fun
 num_cores <- 6
 
 #debug(create_weights_fun)
@@ -353,8 +413,14 @@ list_args_weights_prod$fun <- "sum"
 
 #"r_weights","r_weights_prod"
 
-list_args_weights <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights)},x=weights_obj_list)
-list_args_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights_prod)},x=weights_obj_list)
+#list_r_weights <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights)},x=weights_obj_list)
+#list_r_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights_prod)},x=weights_obj_list)
+
+list_r_weights <- lapply(1:length(weights_obj_list), FUN=function(i,x){x[[i]]$r_weights},x=weights_obj_list)
+list_r_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(i,x){x[[i]]$r_weights_prod},x=weights_obj_list)
+
+list_args_weights <- list_r_weights
+list_args_weights_prod <- list_r_weights_prod
 
 list_args_weights$fun <- "sum"
 #list_args_weights$fun <- "mean"
@@ -395,6 +461,37 @@ r_weighted_mean <- r_weights_sum/r_prod_sum
 #r_weights_sum <- ...
 #r_val_w_sum <-  
 #
+mosaic_list_var <- list(list_r_weights)
+#out_rastnames_var <- l_out_rastnames_var[[i]]
+out_rastnames_var <- c("reg2_mosaic_weights.tif")
+
+#list_param_mosaic <- list(list_r_weights,out_dir,outrastnames,file_format,NA_flag_val,out_suffix)
+
+file_format <- ".tif"
+NA_flag_val <- -9999
+
+j<-1 #date index for loop
+list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
+names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
+debug(mosaic_m_raster_list)
+mosaic_m_raster_list(1,list_param_mosaic)
+
+
+#list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+list_var_mosaiced <- mclapply(1,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
+#list_var_mosaiced <- mclapply(1:1,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
+#list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
+
+outrastnames <- "reg2_mosaic_weights.tif"
+
+list_param_mosaic <- list(list_r_weights,out_dir,outrastnames,file_format,NA_flag_val,out_suffix)
+
+#mosaic_list<-list_param$mosaic_list
+#out_path<-list_param$out_path
+#  out_names<-list_param$out_rastnames
+#  file_format <- list_param$file_format
+#  NA_flag_val <- list_param$NA_flag_val
+#  out_suffix <- list_param$out_suffix
 
 #################################################
 #Ok testing on fake data:
