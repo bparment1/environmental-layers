@@ -319,7 +319,8 @@ mosaic_m_raster_list<-function(j,list_param){
 
 #on ATLAS
 
-in_dir <- "~/Data/IPLANT_project/mosaicing_data_test/reg2"
+#in_dir <- "~/Data/IPLANT_project/mosaicing_data_test/reg2"
+in_dir <- "~/Data/IPLANT_project/mosaicing_data_test/reg1"
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
@@ -374,7 +375,9 @@ lf_mosaic_pred_1500x4500 <-list.files(path=file.path(in_dir),
 
 r1 <- raster(lf_mosaic_pred_1500x4500[1]) 
 r2 <- raster(lf_mosaic_pred_1500x4500[2]) 
-
+r5
+plot(r1)
+plot(r2)
 
 lf <- sub(".tif","",lf_mosaic_pred_1500x4500)
 tx<-strsplit(as.character(lf),"_")
@@ -386,7 +389,7 @@ lat <- as.character(lapply(1:length(lat),function(i,x){substr(x[[i]],2,nchar(x[i
 df_centroids <- data.frame(long=as.numeric(long),lat=as.numeric(lat))
 df_centroids$ID <- as.numeric(1:nrow(df_centroids))
 #
-extract(r1,)
+#extract(r1,)
 coordinates(df_centroids) <- cbind(df_centroids$long,df_centroids$lat)
 proj4string(df_centroids) <- projection(r1)
 #centroid distance
@@ -403,12 +406,12 @@ names(list_param_create_weights) <- c("lf","df_points","out_dir_str")
 num_cores <- 6
 
 #debug(create_weights_fun)
-weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
+#weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
 weights_obj_list <- mclapply(1:length(lf_mosaic_pred_1500x4500),FUN=create_weights_fun,list_param=list_param_create_weights,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
-list_args_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(x){raster(x[[i]]$r_weights_prod})}
-list_args_weights_prod$fun <- "sum"
+#list_args_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(x){raster(x[[i]]$r_weights_prod})}
+#list_args_weights_prod$fun <- "sum"
 
 
 #"r_weights","r_weights_prod"
@@ -419,23 +422,6 @@ list_args_weights_prod$fun <- "sum"
 list_r_weights <- lapply(1:length(weights_obj_list), FUN=function(i,x){x[[i]]$r_weights},x=weights_obj_list)
 list_r_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(i,x){x[[i]]$r_weights_prod},x=weights_obj_list)
 
-list_args_weights <- list_r_weights
-list_args_weights_prod <- list_r_weights_prod
-
-list_args_weights$fun <- "sum"
-#list_args_weights$fun <- "mean"
-
-list_args_weights$na.rm <- TRUE
-list_args_weights$tolerance <- 1
-
-list_args_weights_prod$fun <- "sum"
-list_args_weights_prod$na.rm <- TRUE
-list_args_weights_prod$na.rm <- TRUE
-
-r_weights_sum <- do.call(mosaic,list_args_weights) #sum
-r_prod_sum <- do.call(mosaic,list_args_weights_prod) #sum
-
-r_weighted_mean <- r_weights_sum/r_prod_sum
 
 
 #r_weights_sum <- do.call(overlay,list_args_weights) #sum
@@ -462,8 +448,9 @@ r_weighted_mean <- r_weights_sum/r_prod_sum
 #r_val_w_sum <-  
 #
 mosaic_list_var <- list(list_r_weights)
+mosaic_list_var <- list(lf_mosaic_pred_1500x4500)
 #out_rastnames_var <- l_out_rastnames_var[[i]]
-out_rastnames_var <- c("reg2_mosaic_weights.tif")
+out_rastnames_var <- c("reg1_mosaic_mean.tif")
 
 #list_param_mosaic <- list(list_r_weights,out_dir,outrastnames,file_format,NA_flag_val,out_suffix)
 
@@ -473,8 +460,8 @@ NA_flag_val <- -9999
 j<-1 #date index for loop
 list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
 names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
-debug(mosaic_m_raster_list)
-mosaic_m_raster_list(1,list_param_mosaic)
+#undebug(mosaic_m_raster_list)
+r_mosaiced <- mosaic_m_raster_list(1,list_param_mosaic)
 
 
 #list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
@@ -482,16 +469,50 @@ list_var_mosaiced <- mclapply(1,FUN=mosaic_m_raster_list,list_param=list_param_m
 #list_var_mosaiced <- mclapply(1:1,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
 #list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
 
-outrastnames <- "reg2_mosaic_weights.tif"
+outrastnames <- "reg1_mosaic_weights.tif"
 
 list_param_mosaic <- list(list_r_weights,out_dir,outrastnames,file_format,NA_flag_val,out_suffix)
 
-#mosaic_list<-list_param$mosaic_list
-#out_path<-list_param$out_path
-#  out_names<-list_param$out_rastnames
-#  file_format <- list_param$file_format
-#  NA_flag_val <- list_param$NA_flag_val
-#  out_suffix <- list_param$out_suffix
+r1_projected <- projectRaster(raster(list_r_weights[[1]]),r)
+
+cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o avg.tif",paste(lf_mosaic_pred_1500x4500,collapse=" ")) 
+system(cmd_str)
+
+lf_files <- list_r_weights
+r_m <- raster("avg.tif")
+
+for (i in 1:length(lf_files)){
+  set1f <- function(x){rep(NA, x)}
+  r_ref <- init(r_m, fun=set1f, filename=paste('r_weigts_m_',i,'.tif',sep=""), overwrite=TRUE)
+  #NAvalue(r_ref) <- -9999
+
+  cmd_str <- paste("/usr/bin/gdalwarp",list_r_weights[[i]],paste('r_weights_m_',i,'.tif',sep=""),sep=" ") 
+  #gdalwarp -t_srs '+proj=utm +zone=11 +datum=WGS84' raw_spot.tif utm11.tif
+
+  system(cmd_str)
+  #r_ref <-raster("r_ref.tif")
+  #plot(r_ref)
+}
+
+list_args_weights <- (mixedsort(list.files(pattern="r_weigts_m_.*.tif")))
+list_args_weights <- lapply(1:length(list_args_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_weights)
+
+#list_args_weights_prod <- list_r_weights_prod
+
+list_args_weights$fun <- "sum"
+#list_args_weights$fun <- "mean"
+
+list_args_weights$na.rm <- TRUE
+#list_args_weights$tolerance <- 1
+
+#l#ist_args_weights_prod$fun <- "sum"
+#list_args_weights_prod$na.rm <- TRUE
+#list_args_weights_prod$na.rm <- TRUE
+
+r_weights_sum <- do.call(mosaic,list_args_weights) #sum
+#r_prod_sum <- do.call(mosaic,list_args_weights_prod) #sum
+
+r_weighted_mean <- r_weights_sum/r_prod_sum
 
 #################################################
 #Ok testing on fake data:
