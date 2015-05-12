@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 04/27/2015            
+#MODIFIED ON: 05/12/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -70,16 +70,18 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km" #PARAM1
-in_dir1b <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/singles" #PARAM1, add for now in_dir1 can be a list...
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45" #PARAM1
+#in_dir1b <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/singles" #PARAM1, add for now in_dir1 can be a list...
 
+region_names <- c("reg5","reg5b") #selected region names, #PARAM2
 
-region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
-region_namesb <- c("reg_1b","reg_1c","reg_2b","reg_3b","reg_6b") #selected region names, #PARAM2
+#region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
+#region_namesb <- c("reg_1b","reg_1c","reg_2b","reg_3b","reg_6b") #selected region names, #PARAM2
 
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_04172015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_pred_2003_05122015" #PARAM5
+#output_run10_1500x4500_global_analyses_pred_2003_04102015/
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
 #out_dir <- "/nobackup/bparmen1/" #on NEX
@@ -90,12 +92,12 @@ create_out_dir_param <- TRUE #PARAM7
 CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
 
 #day_to_mosaic <- c("20100101","20100901") #PARAM9
-day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
-                   "20100301","20100302","20100303","20100304","20100305",
-                   "20100501","20100502","20100503","20100504","20100505",
-                   "20100701","20100702","20100703","20100704","20100705",
-                   "20100901","20100902","20100903","20100904","20100905",
-                   "20101101","20101102","20101103","20101104","20101105")
+day_to_mosaic <- c("20030101","20030102","20030103","20030104","20030105",
+                   "20030301","20030302","20030303","20030304","20030305",
+                   "20030501","20030502","20030503","20030504","20030505",
+                   "20030701","20030702","20030703","20030704","20030705",
+                   "20030901","20030902","20030903","20030904","20030905",
+                   "20031101","20031102","20031103","20031104","20031105")
 #day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
 
 file_format <- ".tif" #format for mosaiced files #PARAM10
@@ -139,34 +141,34 @@ in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRU
 #list of shapefiles used to define tiles
 in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
 
-## load problematic tiles
+## load problematic tiles or additional runs
 
-in_dir_listb <- list.dirs(path=in_dir1b,recursive=FALSE) #get the list regions processed for this run
+#in_dir_listb <- list.dirs(path=in_dir1b,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
-in_dir_listb<- lapply(region_namesb,FUN=function(x,y){y[grep(x,basename(y),invert=FALSE)]},y=in_dir_listb) 
+#in_dir_listb<- lapply(region_namesb,FUN=function(x,y){y[grep(x,basename(y),invert=FALSE)]},y=in_dir_listb) 
 
-in_dir_list_allb  <- lapply(in_dir_listb,function(x){list.dirs(path=x,recursive=F)})
-in_dir_listb <- unlist(in_dir_list_allb)
+#in_dir_list_allb  <- lapply(in_dir_listb,function(x){list.dirs(path=x,recursive=F)})
+#in_dir_listb <- unlist(in_dir_list_allb)
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
-in_dir_subsetb <- in_dir_listb[grep("subset",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
-in_dir_shpb <- file.path(in_dir_subsetb,"shapefiles")
+#in_dir_subsetb <- in_dir_listb[grep("subset",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
+#in_dir_shpb <- file.path(in_dir_subsetb,"shapefiles")
 
 #select only directories used for predictions
-in_dir_regb <- in_dir_listb[grep(".*._.*.",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
+#in_dir_regb <- in_dir_listb[grep(".*._.*.",basename(in_dir_listb),invert=FALSE)] #select directory with shapefiles...
 #in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
-in_dir_listb <- in_dir_regb
+#in_dir_listb <- in_dir_regb
     
-in_dir_listb <- in_dir_listb[grep("bak",basename(basename(in_dir_listb)),invert=TRUE)] #the first one is the in_dir1
+#in_dir_listb <- in_dir_listb[grep("bak",basename(basename(in_dir_listb)),invert=TRUE)] #the first one is the in_dir1
 #list of shapefiles used to define tiles
-in_dir_shp_listb <- list.files(in_dir_shpb,".shp",full.names=T)
+#in_dir_shp_listb <- list.files(in_dir_shpb,".shp",full.names=T)
 
 
 #### Combine now...
 
-in_dir_list <- c(in_dir_list,in_dir_listb)
-in_dir_reg <- c(in_dir_reg,in_dir_regb)
-in_dir_shp <- c(in_dir_shp,in_dir_shpb)
-in_dir_shp_list <- c(in_dir_shp_list,in_dir_shp_listb)
+#in_dir_list <- c(in_dir_list,in_dir_listb)
+#in_dir_reg <- c(in_dir_reg,in_dir_regb)
+#in_dir_shp <- c(in_dir_shp,in_dir_shpb)
+#in_dir_shp_list <- c(in_dir_shp_list,in_dir_shp_listb)
 #in_dir_list <- c(in_dir_list,in_dir_listb)
 
 #system("ls /nobackup/bparmen1")
@@ -288,9 +290,9 @@ write.table((tb_diagnostic_v_NA),
             file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
 
 ##Take where shutdown took place after pathcing
-summary_metrics_v_NA <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
+#summary_metrics_v_NA <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
 #fname <- file.path(out_dir,paste("summary_metrics_v2_NA_",out_suffix,".txt",sep=""))
-tb_diagnostic_v_NA <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
+#tb_diagnostic_v_NA <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
 #tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
 #tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
 
@@ -375,17 +377,17 @@ write.table((tb_diagnostic_s_NA),
 # data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
 # names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
 # 
-data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
-data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+#data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+#data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
 
-data_day_s_list <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+#data_day_s_list <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
 
-data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_v"))},mc.preschedule=FALSE,mc.cores = num_cores)    
-data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = num_cores)    
+#data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_v"))},mc.preschedule=FALSE,mc.cores = num_cores)    
+#data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = num_cores)    
 
-list_data_day_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_v"))
-list_data_day_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_s"))
-sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
+#list_data_day_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_v"))
+#list_data_day_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_s"))
+#sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
 #debug(pred_data_info_fun)
 #list_pred_data_day_s_info <- pred_data_info_fun(1,list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
 list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
@@ -554,8 +556,15 @@ l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
 #MODULEPATH=$MODULEPATH:/nex/modules/files
 #module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 
-for (j in 1:length(region_names)){
-  in_dir_mosaics <- file.path(in_dir1,region_names[j])
+#recombine region first:
+region_names_mosaic <- list(region_names)
+names(region_names_mosaic) <- "reg5"
+in_dir_mosaics <- lapply(region_names_mosaic,FUN=function(x){file.path(in_dir1,x)})
+
+for (j in 1:length(region_names_mosaic)){
+  #for(i in 1:length(region_names))
+  in_dir_mosaics <- lapply(region_names_mosaic,FUN=function(x){file.path(in_dir1,x)})
+  in_dir_mosaics <- paste(region_names_mosaic,collapse=" ")
   #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
   #Can be changed to have mosaics in different dir..
   out_dir_mosaics <- out_dir
@@ -563,7 +572,7 @@ for (j in 1:length(region_names)){
   #tile_size <- basename(dirname(in_dir[[i]]))
   tile_size <- basename(in_dir1)
 
-  prefix_str <- paste(region_names[j],"_",tile_size,sep="")
+  prefix_str <- paste(names(region_names_mosaic)[j],"_",tile_size,sep="")
 
   mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
 
@@ -583,10 +592,12 @@ for (j in 1:length(region_names)){
 # Transform this into a function that takes in a list of files!!! We can skip the region stage to reduce the number of files..
 
 #sh /nobackupp6/aguzman4/climateLayers/sharedCode/shMergeFromFile.sh list_mosaics_20100901.txt world_mosaics_1000x3000_20100901.tif
-
+in_dir_str <- in_dir_mosaics
+region <- "reg5"  #can be the world...
 for (i in 1:length(day_to_mosaic)){
-  pattern_str <- paste("*.",day_to_mosaic[i],".*.tif",sep="")
-  lf_day_to_mosaic <- list.files(path=out_dir,pattern=pattern_str,full.names=T) 
+  pattern_str <- paste("*.","predicted_mod1",".*.",day_to_mosaic[i],".*.tif",sep="")
+  lf_day_to_mosaic <- lapply(1:length(unlist(in_dir_mosaics)),FUN=function(k){list.files(path=unlist(in_dir_mosaics)[k],pattern=pattern_str,full.names=T,recursive=T)}) 
+  lf_day_to_mosaic <- unlist(lf_day_to_mosaic)
   #write.table(lf_day_to_mosaic,file=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
   writeLines(lf_day_to_mosaic,con=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
   in_file_to_mosaics <- file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep=""))        
@@ -600,7 +611,7 @@ for (i in 1:length(day_to_mosaic)){
 
   #prefix_str <- paste(region_names[i],"_",tile_size,sep="")
   mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
-  out_mosaic_name <- paste("world_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
+  out_mosaic_name <- paste(region,"_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
   module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode" #this should be a parameter for the function...
   cmd_str <- paste("sh", file.path(module_path,"shMergeFromFile.sh"),
                  in_file_to_mosaics,
@@ -663,7 +674,7 @@ system(cmd_str)
 
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"mosaics")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
-lf_cp_f <- list.files(out_dir,full.names=T,pattern="*world.*.tif")#copy all files can filter later
+lf_cp_f <- list.files(out_dir,full.names=T,pattern="*reg.*.tif")#copy all files can filter later
 filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
