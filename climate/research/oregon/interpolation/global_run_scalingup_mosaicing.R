@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 05/11/2015            
+#MODIFIED ON: 05/18/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -69,146 +69,6 @@ create_dir_fun <- function(out_dir,out_suffix){
   return(out_dir)
 }
 
- #Remove models that were not fitted from the list
-#All modesl that are "try-error" are removed
-remove_errors_list<-function(list_items){
-  
-  #This function removes "error" items in a list
-  list_tmp<-list_items
-    if(is.null(names(list_tmp))){
-    names(list_tmp) <- paste("l",1:length(list_tmp),sep="_")
-    names(list_items) <- paste("l",1:length(list_tmp),sep="_")
-  }
-
-  for(i in 1:length(list_items)){
-    if(inherits(list_items[[i]],"try-error")){
-      list_tmp[[i]]<-0
-    }else{
-    list_tmp[[i]]<-1
-   }
-  }
-  cnames<-names(list_tmp[list_tmp>0])
-  x <- list_items[match(cnames,names(list_items))]
-  return(x)
-}
-
-
-plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
-  #Purpose:
-  #This functions mask mosaics files for a default range (-100,100 deg).
-  #It produces a masked tif in a given dataType format (FLT4S)
-  #It creates a figure of mosaiced region being interpolated.
-  #Author: Benoit Parmentier
-  #Parameters:
-  #lf_m: list of files 
-  #reg_name:region name with tile size included
-  #To do:
-  #Add filenames
-  #Add range
-  #Add output dir
-  #Add dataType_val option
-  
-  ##### BEGIN ########
-  
-  #Parse the list of parameters
-  lf_m <- list_param_plot_daily_mosaics$lf_m
-  reg_name <- list_param_plot_daily_mosaics$reg_name
-  out_dir_str <- list_param_plot_daily_mosaics$out_dir_str
-  out_suffix <- list_param_plot_daily_mosaics$out_suffix
-  l_dates <- list_param_plot_daily_mosaics$l_dates
-
-
-  #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str)
-
-  
-  #rast_list <- vector("list",length=length(lf_m))
-  r_test<- raster(lf_m[i])
-
-  m <- c(-Inf, -100, NA,  
-         -100, 100, 1, 
-         100, Inf, NA) #can change the thresholds later
-  rclmat <- matrix(m, ncol=3, byrow=TRUE)
-  rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
-  file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
-  
-  #date_proc <- file_name[7] #specific tot he current naming of files
-  date_proc <- l_dates[i]
-  #paste(raster_name[1:7],collapse="_")
-  #add filename option later
-  extension_str <- extension(filename(r_test))
-  raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
-  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
-  r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
-  
-  res_pix <- 1200
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r_pred,main=paste("Predicted on ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
-  dev.off()
-  
-  return(raster_name)
-  
-}
-
-plot_screen_raster_val<-function(i,list_param){
-  ##USAGE###
-  #Screen raster list and produced plot as png.
-  fname <-list_param$lf_raster_fname[i]
-  screenRast <- list_param$screenRast
-  l_dates<- list_param$l_dates
-  out_dir_str <- list_param$out_dir_str
-  prefix_str <-list_param$prefix_str
-  out_suffix_str <- list_param$out_suffix_str
-  
-  ### START SCRIPT ####
-  date_proc <- l_dates[i]
-  
-  if(screenRast==TRUE){
-    r_test <- raster(fname)
-
-    m <- c(-Inf, -100, NA,  
-         -100, 100, 1, 
-         100, Inf, NA) #can change the thresholds later
-    rclmat <- matrix(m, ncol=3, byrow=TRUE)
-    rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
-    #file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
-    extension_str <- extension(filename(r_test))
-    raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
-    raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
-  
-    r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
-  }else{
-    r_pred <- raster(fname)
-  }
-  
-  #date_proc <- file_name[7] #specific tot he current naming of files
-  #date_proc<- "2010010101"
-
-  #paste(raster_name[1:7],collapse="_")
-  #add filename option later
-
-  res_pix <- 960
-  #res_pix <- 480
-
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-#  png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-  png(filename=paste(prefix_str,"_",date_proc,"_",tile_size,"_",out_suffix_str,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-  plot(r_pred,main=paste("Predicted on ",date_proc , " ", tile_size,sep=""),cex.main=1.5)
-  dev.off()
-
-}
-
 create_weights_fun <- function(i, list_param){
   #This function generates weights from a point location on a raster layer.
   #Note that the weights are normatlized on 0-1 scale using max and min values.
@@ -216,7 +76,7 @@ create_weights_fun <- function(i, list_param){
   #lf: list of raster files
   #df_points: 
   #Outputs:
-  #
+  #TODO: add options to generate weights from edges/reference image rather than reference centroids points...
   ############
   
   lf <- list_param$lf
@@ -233,6 +93,7 @@ create_weights_fun <- function(i, list_param){
   cell_ID <- cellFromXY(r_init,xy=df_centroids[i,])
   r_init[cell_ID] <- df_centroids$ID[i]
 
+  #change here to distance from edges...
   r_dist <- distance(r_init)
   min_val <- cellStats(r_dist,min) 
   max_val <- cellStats(r_dist,max)
@@ -314,50 +175,84 @@ mosaic_m_raster_list<-function(j,list_param){
   return(rast_list)
 }
 
+raster_match <- function(i,list_param){
+  ### Read in parameters/arguments
+  lf_files <- list_param$lf_files
+  rast_ref <- list_param$rast_ref #name of reference file
+  file_format <- list_param$file_format #".tif",".rst" or others
+  out_suffix <- list_param$out_suffix
+  out_dir_str <- list_param$out_dir_str
+    
+  ### START SCRIPT ##
+  
+  r_m <- raster(rast_ref) #ref image with resolution and extent to match
+
+  set1f <- function(x){rep(NA, x)}
+  
+  inFilename <- lf_files[i]
+  
+  extension_str <- extension(inFilename)
+  raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
+  #outFilename <- file.path(out_dir,paste(raster_name_tmp,"_","m_",out_suffix,file_format,sep="")) #for use in function later...
+  
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_","m_",out_suffix,file_format,sep=""))#output file
+  r_ref <- init(r_m, fun=set1f, filename=raster_name, overwrite=TRUE)
+  #NAvalue(r_ref) <- -9999
+
+  cmd_str <- paste("/usr/bin/gdalwarp",inFilename,raster_name,sep=" ") 
+  #gdalwarp -t_srs '+proj=utm +zone=11 +datum=WGS84' raw_spot.tif utm11.tif
+
+  system(cmd_str)
+  
+  ##return name of file created
+  return(raster_name)
+}
+
+
 ############################################
 #### Parameters and constants  
 
-#on ATLAS
+#Data is on ATLAS
 
-#in_dir <- "~/Data/IPLANT_project/mosaicing_data_test/reg2"
-in_dir <- "~/Data/IPLANT_project/mosaicing_data_test/reg1"
+in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is North America and reg5 is Africa
+#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1"
+#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg2" #Europe
+#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg5" #Africa
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
-out_suffix <- "mosaic_run10_1500x4500_global_analyses_03252015" #PARAM3
+out_suffix <- "mosaic_run10_1500x4500_global_analyses_05172015" #PARAM3
 out_dir <- in_dir #PARAM4
 create_out_dir_param <- TRUE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
 
 #if daily mosaics NULL then mosaicas all days of the year
-day_to_mosaic <- c("20100101","20100102","20100103","20100104","20100105",
-                   "20100301","20100302","20100303","20100304","20100305",
-                   "20100501","20100502","20100503","20100504","20100505",
-                   "20100701","20100702","20100703","20100704","20100705",
-                   "20100901","20100902","20100903","20100904","20100905",
-                   "20101101","20101102","20101103","20101104","20101105") #PARAM7
+day_to_mosaic <- c("20100831",
+                   "20100901") #PARAM7
   
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
 proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
-file_format <- ".rst" #PARAM 9
+file_format <- ".tif" #PARAM 9
 NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
                                    
 tile_size <- "1500x4500" #PARAM 11
 mulitple_region <- TRUE #PARAM 12
 
-region_name <- "world" #PARAM 13
+region_name <- "reg1" #PARAM 13 #reg1 is North America
 plot_region <- FALSE
 
 ########################## START SCRIPT ##############################
 
 
-####### PART 1: Read in data ########
+####### PART 1: Read in data and process data ########
 
+in_dir <- file.path(in_dir,region_name)
+out_dir <- in_dir
 if(create_out_dir_param==TRUE){
   out_dir <- create_dir_fun(out_dir,out_suffix)
   setwd(out_dir)
@@ -367,191 +262,114 @@ if(create_out_dir_param==TRUE){
 
 setwd(out_dir)
 
-###Table 1: Average accuracy metrics
-################## PLOTTING WORLD MOSAICS ################
 
-lf_mosaic_pred_1500x4500 <-list.files(path=file.path(in_dir),    
-           pattern=paste(".*.tif$",sep=""),full.names=T) 
+lf_mosaic <-list.files(path=file.path(in_dir),    
+           pattern=paste(".*.",day_to_mosaic[2],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
 
-r1 <- raster(lf_mosaic_pred_1500x4500[1]) 
-r2 <- raster(lf_mosaic_pred_1500x4500[2]) 
+r1 <- raster(lf_mosaic[1]) 
+r2 <- raster(lf_mosaic[2]) 
 
 plot(r1)
 plot(r2)
 
-lf <- sub(".tif","",lf_mosaic_pred_1500x4500)
+lf <- sub(".tif","",lf_mosaic)
 tx<-strsplit(as.character(lf),"_")
 
 lat<- as.character(lapply(1:length(tx),function(i,x){x[[i]][13]},x=tx))
 long<- as.character(lapply(1:length(tx),function(i,x){x[[i]][14]},x=tx))
 lat <- as.character(lapply(1:length(lat),function(i,x){substr(x[[i]],2,nchar(x[i]))},x=lat)) #first number not in the coordinates
 
+#Produce data.frame with centroids of each tiles...
+
 df_centroids <- data.frame(long=as.numeric(long),lat=as.numeric(lat))
 df_centroids$ID <- as.numeric(1:nrow(df_centroids))
-#
-#extract(r1,)
 coordinates(df_centroids) <- cbind(df_centroids$long,df_centroids$lat)
 proj4string(df_centroids) <- projection(r1)
-#centroid distance
-#c1 <- gCentroid(x,byid=TRUE) 
-#pt <- gCentroid(shp1)
 
-#Make this a function later...
-#then distance...
+###############
+### PART 2: prepare weights using tile rasters ############
+
 out_dir_str <- out_dir
-lf_r_weights <- vector("list",length=length(lf_mosaic_pred_1500x4500))
+lf_r_weights <- vector("list",length=length(lf_mosaic))
 
-list_param_create_weights <- list(lf_mosaic_pred_1500x4500,df_centroids,out_dir_str) 
+list_param_create_weights <- list(lf_mosaic,df_centroids,out_dir_str) 
 names(list_param_create_weights) <- c("lf","df_points","out_dir_str") 
-num_cores <- 6
+num_cores <- 11
 
 #debug(create_weights_fun)
 #weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
-weights_obj_list <- mclapply(1:length(lf_mosaic_pred_1500x4500),FUN=create_weights_fun,list_param=list_param_create_weights,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-#list_args_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(x){raster(x[[i]]$r_weights_prod})}
-#list_args_weights_prod$fun <- "sum"
-
-#"r_weights","r_weights_prod"
-
-#list_r_weights <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights)},x=weights_obj_list)
-#list_r_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(i,x){raster(x[[i]]$r_weights_prod)},x=weights_obj_list)
+#This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
+#the edges...can use rows and columsn to set edges to 1 and 0 for the others.
+weights_obj_list <- mclapply(1:length(lf_mosaic),FUN=create_weights_fun,list_param=list_param_create_weights,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
 list_r_weights <- lapply(1:length(weights_obj_list), FUN=function(i,x){x[[i]]$r_weights},x=weights_obj_list)
 list_r_weights_prod <- lapply(1:length(weights_obj_list), FUN=function(i,x){x[[i]]$r_weights_prod},x=weights_obj_list)
-
-#r_weights_sum <- do.call(overlay,list_args_weights) #sum
-#r_weights_sum <- do.call(overlay,list_args_weights) #sum
-
-#r_test_w <-do.call(overlay,list_args_w) #prod
-
-
-###Mosaic with do.call...
-#rasters1.mosaicargs <- rasters1
-#rasters1.mosaicargs$fun <- mean
-#mos2 <- do.call(mosaic, rasters1.mosaicargs)
 
 #Then scale on 1 to zero? or 0 to 1000
 #e.g. for a specific pixel
 #weight_sum=0.2 +0.4 +0.4+0.2=1.2
 #val_w_sum= (0.2*val1+0.4*val2+0.4*val3+0.2*val4)
-#no_valid = 
+#no_valid = number of valid observation, needs to be added in the function
 #m_val= sum_val/weight_sum #mean value
 #
 
-#in raster term
-#r_weights_sum <- ...
-#r_val_w_sum <-  
-#
-#mosaic_list_var <- list(list_r_weights)
-#mosaic_list_var <- list(lf_mosaic_pred_1500x4500)
-#out_rastnames_var <- l_out_rastnames_var[[i]]
-#out_rastnames_var <- c("reg1_mosaic_mean.tif")
-
+## Rasters tiles vary slightly in resolution, they need to be matched for the mosaic. Resolve issue in the 
+#mosaic funciton using gdal_merge to compute a reference image to mach.
+#outrastnames <- "reg1_mosaic_weights.tif"
 #list_param_mosaic <- list(list_r_weights,out_dir,outrastnames,file_format,NA_flag_val,out_suffix)
+#r1_projected <- projectRaster(raster(list_r_weights[[1]]),r)
 
-#file_format <- ".tif"
-#NA_flag_val <- -9999
-
-#j<-1 #date index for loop
-#list_param_mosaic<-list(j,mosaic_list_var,out_rastnames_var,out_dir,file_format,NA_flag_val)
-#names(list_param_mosaic)<-c("j","mosaic_list","out_rastnames","out_path","file_format","NA_flag_val")
-#undebug(mosaic_m_raster_list)
-#r_mosaiced <- mosaic_m_raster_list(1,list_param_mosaic)
-
-
-#list_var_mosaiced <- mclapply(1:2,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
-#list_var_mosaiced <- mclapply(1,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
-#list_var_mosaiced <- mclapply(1:1,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 1)
-#list_var_mosaiced <- mclapply(1:365,FUN=mosaic_m_raster_list,list_param=list_param_mosaic,mc.preschedule=FALSE,mc.cores = 2)
-
-outrastnames <- "reg1_mosaic_weights.tif"
-
-list_param_mosaic <- list(list_r_weights,out_dir,outrastnames,file_format,NA_flag_val,out_suffix)
-
-r1_projected <- projectRaster(raster(list_r_weights[[1]]),r)
-
-cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o avg.tif",paste(lf_mosaic_pred_1500x4500,collapse=" ")) 
+cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o avg.tif",paste(lf_mosaic,collapse=" ")) 
 system(cmd_str)
 
-##Create raster image for weights matching resolution and extent to the mosaic
-lf_files <- list_r_weights
-r_m <- raster("avg.tif")
-
-for (i in 1:length(lf_files)){
-  set1f <- function(x){rep(NA, x)}
-  r_ref <- init(r_m, fun=set1f, filename=paste('r_weights_m_',i,'.tif',sep=""), overwrite=TRUE)
-  #NAvalue(r_ref) <- -9999
-
-  cmd_str <- paste("/usr/bin/gdalwarp",list_r_weights[[i]],paste('r_weights_m_',i,'.tif',sep=""),sep=" ") 
-  #gdalwarp -t_srs '+proj=utm +zone=11 +datum=WGS84' raw_spot.tif utm11.tif
-
-  system(cmd_str)
-  #r_ref <-raster("r_ref.tif")
-  #plot(r_ref)
-}
-
-##Create raster image for prod weights matching resolution and extent to the mosaic
-
-lf_files <- list_r_weights_prod
-r_m <- raster("avg.tif")
-
-for (i in 1:length(lf_files)){
-  set1f <- function(x){rep(NA, x)}
-  r_ref <- init(r_m, fun=set1f, filename=paste('r_weights_prod_m_',i,'.tif',sep=""), overwrite=TRUE)
-  #NAvalue(r_ref) <- -9999
-
-  cmd_str <- paste("/usr/bin/gdalwarp",lf_files[[i]],paste('r_weights_prod_m_',i,'.tif',sep=""),sep=" ") 
-  #gdalwarp -t_srs '+proj=utm +zone=11 +datum=WGS84' raw_spot.tif utm11.tif
-
-  system(cmd_str)
-  #r_ref <-raster("r_ref.tif")
-  #plot(r_ref)
-}
-
 ## Create raster image for original predicted images with matching resolution and extent to the mosaic (reference image)
-lf_files <- lf_mosaic_pred_1500x4500
-lf_out <- vector("list",length(lf_files))
-r_m <- raster("avg.tif") #ref image
 
-#Make this a full function...
-for (i in 1:length(lf_files)){
-  set1f <- function(x){rep(NA, x)}
-  
-  inFilename <- lf_files[i]
-  extension_str <- extension(inFilename)
-  raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
-  #outFilename <- file.path(out_dir,paste(raster_name_tmp,"_","m_",out_suffix,file_format,sep="")) #for use in function later...
-  
-  r_ref <- init(r_m, fun=set1f, filename=paste(raster_name_tmp,"_","m_",out_suffix,file_format,sep=""), overwrite=TRUE)
-  #NAvalue(r_ref) <- -9999
+rast_ref <- file.path(out_dir,"avg.tif")
+lf_files <- unlist(list_r_weights)
 
-  cmd_str <- paste("/usr/bin/gdalwarp",inFilename,paste(raster_name_tmp,"_","m_",out_suffix,file_format,sep=""),sep=" ") 
-  #gdalwarp -t_srs '+proj=utm +zone=11 +datum=WGS84' raw_spot.tif utm11.tif
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
 
-  system(cmd_str)
-  #r_ref <-raster("r_ref.tif")
-  #plot(r_ref)
-  lf_out <- ""
-}
+#debug(raster_match)
+#r_test <- raster(raster_match(1,list_param_raster_match))
 
-list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
-list_args_weights_prod <- lapply(1:length(list_args_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_weights_prod)
+list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
-list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
+lf_files <- unlist(list_r_weights_prod)
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+num_cores <-11
+list_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+#macth file to mosaic extent using the original predictions
+lf_files <- lf_mosaic
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+list_pred_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+#####################
+###### PART 3: compute the weighted mean with the mosaic function #####
+
+#get the list of weights into raster objects
+list_args_weights <- list_weights_m
+#list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
 list_args_weights <- lapply(1:length(list_args_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_weights)
 
-#lf_mosaic_pred_1500x4500 <-list.files(path=file.path(in_dir),    
-#           pattern=paste(".*.tif$",sep=""),full.names=T) 
+#get the list of weights product into raster objects
+list_args_weights_prod <- list_weights_prod_m
+#list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
+list_args_weights_prod <- lapply(1:length(list_args_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_weights_prod)
 
-list_args_pred_m <- (mixedsort(list.files(pattern="^gam_CAI.*.m_mosaic_run10_1500x4500_global_analyses_03252015.tif")))
+#get the original predicted image to raster (matched previously to the mosaic extent)
+list_args_pred_m <- list_pred_m
+#list_args_pred_m <- (mixedsort(list.files(pattern="^gam_CAI.*.m_mosaic_run10_1500x4500_global_analyses_03252015.tif")))
 list_args_pred_m <- lapply(1:length(list_args_pred_m), FUN=function(i,x){raster(x[[i]])},x=list_args_pred_m)
 
-list_args_weights$fun <- "sum"
-#list_args_weights$fun <- "mean"
+list_args_weights$fun <- "sum" #we want the sum to compute the weighted mean
 list_args_weights$na.rm <- TRUE
-#list_args_weights$tolerance <- 1
 
 list_args_weights_prod$fun <- "sum"
 list_args_weights_prod$na.rm <- TRUE
@@ -559,27 +377,25 @@ list_args_weights_prod$na.rm <- TRUE
 list_args_pred_m$fun <- "mean"
 list_args_pred_m$na.rm <- TRUE
 
-#l#ist_args_weights_prod$fun <- "sum"
-#list_args_weights_prod$na.rm <- TRUE
-#list_args_weights_prod$na.rm <- TRUE
-
-r_weights_sum <- do.call(mosaic,list_args_weights) #sum
-r_prod_sum <- do.call(mosaic,list_args_weights_prod) #sum
+#Mosaic files
+r_weights_sum <- do.call(mosaic,list_args_weights) #weights sum image mosaiced
+r_prod_sum <- do.call(mosaic,list_args_weights_prod) #weights sum product image mosacied
 
 r_m_weighted_mean <- r_prod_sum/r_weights_sum #this is the mosaic using weighted mean...
 
-#extension_str <- extension(lf[i])
-#raster_name_tmp <- gsub(extension_str,"",basename(lf[i]))
 raster_name <- file.path(out_dir,paste("r_m_weighted_mean",out_suffix,".tif",sep=""))
 writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
 
-r_m_mean <- do.call(mosaic,list_args_pred_m) #this is unweighted mean
+r_m_mean <- do.call(mosaic,list_args_pred_m) #this is unweighted mean from the predicted raster
+
+raster_name <- file.path(out_dir,paste("r_m_mean",out_suffix,".tif",sep=""))
+writeRaster(r_m_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  #unweighted mean
 
 res_pix <- 1200
 col_mfrow <- 1 
 row_mfrow <- 0.8
 
-png(filename=paste("Figure2_mean_for_region_",region_names[1],"_",out_suffix,".png",sep=""),
+png(filename=paste("Figure2_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 plot(r_m_mean)
@@ -590,7 +406,7 @@ res_pix <- 1200
 col_mfrow <- 1 
 row_mfrow <- 0.8
 
-png(filename=paste("Figure2_weigthed_mean_for_region_",region_names[1],"_",out_suffix,".png",sep=""),
+png(filename=paste("Figure2_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 plot(r_m_weighted_mean)
@@ -600,9 +416,8 @@ dev.off()
 
 ##################### END OF SCRIPT ######################
 
-
 #################################################
-#Ok testing on fake data:
+#Ok testing on fake data to experiment and check methods:
 
 ##Quick function to generate test dataset
 # make_raster_from_lf <- function(i,list_lf,r_ref){
