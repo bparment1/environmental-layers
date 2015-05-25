@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 05/18/2015            
+#MODIFIED ON: 05/25/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -81,6 +81,8 @@ create_weights_fun <- function(i, list_param){
   
   lf <- list_param$lf
   df_centroids <- list_param$df_points
+  feature_raster <- list_param$feature_raster
+  use_edge <- list_param$use_edge
   out_dir_str <- list_param$out_dir_str
     
   ####### START SCRIPT #####
@@ -90,10 +92,31 @@ create_weights_fun <- function(i, list_param){
   set1f <- function(x){rep(NA, x)}
   r_init <- init(r1, fun=set1f)
 
-  cell_ID <- cellFromXY(r_init,xy=df_centroids[i,])
-  r_init[cell_ID] <- df_centroids$ID[i]
+  if(!is.null(df_centroids)){
+    cell_ID <- cellFromXY(r_init,xy=df_centroids[i,])
+    r_init[cell_ID] <- df_centroids$ID[i]
+  }
+
+  if(!is.null(feature_raster)){
+    cell_ID <- cellFromXY(r_init,xy=df_centroids[i,])
+    r_init[cell_ID] <- df_centroids$ID[i]
+  }
 
   #change here to distance from edges...
+
+  #if(use_edge==T){
+  #    n_col <- ncol(r_init)
+  #    n_row <- nrow(r_init)
+  #  
+  #    #xfrom
+  #    r_init[1,1:n_col] <- 1
+  #    r_init[n_row,1:n_col] <- 1
+  #    r_init[1:n_row,1] <- 1
+  #    r_init[1:n_row,n_col] <- 1
+
+  #} too slow
+  
+  #plot(r_init)
   r_dist <- distance(r_init)
   min_val <- cellStats(r_dist,min) 
   max_val <- cellStats(r_dist,max)
@@ -221,7 +244,7 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is N
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
-out_suffix <- "mosaic_run10_1500x4500_global_analyses_05172015" #PARAM3
+out_suffix <- "mosaic_run10_1500x4500_global_analyses_05252015" #PARAM3
 out_dir <- in_dir #PARAM4
 create_out_dir_param <- TRUE #PARAM 5
 
@@ -297,7 +320,7 @@ names(list_param_create_weights) <- c("lf","df_points","out_dir_str")
 num_cores <- 11
 
 #debug(create_weights_fun)
-#weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
+weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
 #This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
 #the edges...can use rows and columsn to set edges to 1 and 0 for the others.
