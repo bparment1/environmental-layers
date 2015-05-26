@@ -1,11 +1,11 @@
-##############################  INTERPOLATION OF TEMPERATURES  #######################################
+  ##############################  INTERPOLATION OF TEMPERATURES  #######################################
 #######################  Script for assessment of scaling up on NEX : part2 ##############################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
 #Accuracy methods are added in the the function scripts to evaluate results.
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/13/2015            
+#MODIFIED ON: 05/26/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -381,23 +381,17 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_pred_2003_05122015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_2003_05122015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_pred_2010_05262015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_2010_05262015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
 
 #if daily mosaics NULL then mosaicas all days of the year
 
-day_to_mosaic <- c("20030101","20030102","20030103","20030104","20030105",
-                   "20030301","20030302","20030303","20030304","20030305",
-                   "20030501","20030502","20030503","20030504","20030505",
-                   "20030701","20030702","20030703","20030704","20030705",
-                   "20030901","20030902","20030903","20030904","20030905",
-                   "20031101","20031102","20031103","20031104","20031105") #PARAM7
+day_to_mosaic <- c("20100829","20100830","20100831",
+                   "20100901","20100902","20100903")
 
-  
-#CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
@@ -471,28 +465,28 @@ tb_all <- tb
 
 summary_metrics_v_all <- summary_metrics_v 
 #deal with additional tiles...
-if(reg_modified==T){
-  
-  summary_metrics_v_tmp <- summary_metrics_v
-  #summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_1b"] <- "reg1"
-  #summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_1c"] <- "reg1"
-  #summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_3b"] <- "reg3"
-  summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg5b"] <- "reg5"
-
-  summary_metrics_v_tmp$reg_all <- summary_metrics_v$reg
-  ###
-  summary_metrics_v<- summary_metrics_v_tmp
-  
-  ###
-  tb_tmp <- tb
-  #tb_tmp$reg[tb_tmp$reg=="reg_1b"] <- "reg1"
-  #tb_tmp$reg[tb_tmp$reg=="reg_1c"] <- "reg1"
-  #tb_tmp$reg[tb_tmp$reg=="reg_3b"] <- "reg3"
-  tb_tmp$reg[tb_tmp$reg=="reg5b"] <- "reg5"
-
-  ###
-  tb <- tb_tmp
-}
+# if(reg_modified==T){
+#   
+#   summary_metrics_v_tmp <- summary_metrics_v
+#   #summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_1b"] <- "reg1"
+#   #summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_1c"] <- "reg1"
+#   #summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg_3b"] <- "reg3"
+#   summary_metrics_v_tmp$reg[summary_metrics_v_tmp$reg=="reg5b"] <- "reg5"
+# 
+#   summary_metrics_v_tmp$reg_all <- summary_metrics_v$reg
+#   ###
+#   summary_metrics_v<- summary_metrics_v_tmp
+#   
+#   ###
+#   tb_tmp <- tb
+#   #tb_tmp$reg[tb_tmp$reg=="reg_1b"] <- "reg1"
+#   #tb_tmp$reg[tb_tmp$reg=="reg_1c"] <- "reg1"
+#   #tb_tmp$reg[tb_tmp$reg=="reg_3b"] <- "reg3"
+#   tb_tmp$reg[tb_tmp$reg=="reg5b"] <- "reg5"
+# 
+#   ###
+#   tb <- tb_tmp
+# }
 
 table(summary_metrics_v_all$reg)
 table(summary_metrics_v$reg)
@@ -823,8 +817,8 @@ for (i in 1:length(model_name)){
 }
 
 ## Number of tiles with information:
-sum(df_tile_processed$metrics_v) #20,number of tiles with raster object
-length(df_tile_processed$metrics_v) #25,number of tiles in the region
+sum(df_tile_processed$metrics_v) #26,number of tiles with raster object
+length(df_tile_processed$metrics_v) #26,number of tiles in the region
 sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #80 of tiles with info
 
 #coordinates
@@ -1071,7 +1065,7 @@ if(plot_region==TRUE){
 #           pattern=paste("^world_mosaics.*.tif$",sep=""),full.names=T) 
 
 lf_world_pred <-list.files(path=file.path(out_dir,"mosaics"),    
-           pattern=paste("^reg5.*.",out_suffix,".tif$",sep=""),full.names=T) 
+           pattern=paste("^reg4.*.",".tif$",sep=""),full.names=T) 
 
 #mosaic_list_mean <- test_list 
 #out_rastnames <- "world_test_mosaic_20100101"
@@ -1091,6 +1085,27 @@ names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_date
 #world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
 #world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
 world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+
+s_pred <- stack(lf_raster_fname)
+
+res_pix <- 1500
+col_mfrow <- 3 
+row_mfrow <- 2
+
+png(filename=paste("Figure10_levelplot_combined_",region_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+levelplot(s_pred,layers=1:6,col.regions=rev(terrain.colors(255)),cex=4)
+
+dev.off()
+
+#   blues<- designer.colors(6, c( "blue", "white") )
+# reds <- designer.colors(6, c( "white","red")  )
+# colorTable<- c( blues[-6], reds)
+# breaks with a gap of 10 to 17 assigned the white color
+# brks<- c(seq( 1, 10,,6), seq( 17, 25,,6)) 
+# image.plot( x,y,z,breaks=brks, col=colorTable)
+#
 
 #lf_world_mask_reg <- vector("list",length=length(lf_world_pred))
 #for(i in 1:length(lf_world_pred)){
