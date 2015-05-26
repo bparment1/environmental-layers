@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/12/2015            
+#MODIFIED ON: 05/26/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -70,17 +70,18 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45" #PARAM1
+#in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45" #PARAM1
 #in_dir1b <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/singles" #PARAM1, add for now in_dir1 can be a list...
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/" #PARAM1, add for now in_dir1 can be a list...
 
-region_names <- c("reg5","reg5b") #selected region names, #PARAM2
+region_names <- c("reg4") #selected region names, #PARAM2
 
 #region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 #region_namesb <- c("reg_1b","reg_1c","reg_2b","reg_3b","reg_6b") #selected region names, #PARAM2
 
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_pred_2003_05122015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_pred_2010_05262015" #PARAM5
 #output_run10_1500x4500_global_analyses_pred_2003_04102015/
 
 #out_dir<-"/data/project/layers/commons/NEX_data/" #On NCEAS Atlas
@@ -92,12 +93,9 @@ create_out_dir_param <- TRUE #PARAM7
 CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
 
 #day_to_mosaic <- c("20100101","20100901") #PARAM9
-day_to_mosaic <- c("20030101","20030102","20030103","20030104","20030105",
-                   "20030301","20030302","20030303","20030304","20030305",
-                   "20030501","20030502","20030503","20030504","20030505",
-                   "20030701","20030702","20030703","20030704","20030705",
-                   "20030901","20030902","20030903","20030904","20030905",
-                   "20031101","20031102","20031103","20031104","20031105")
+day_to_mosaic <- c("20100829","20100830","20100831",
+                   "20100901","20100902","20100903")
+
 #day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
 
 file_format <- ".tif" #format for mosaiced files #PARAM10
@@ -390,18 +388,18 @@ write.table((tb_diagnostic_s_NA),
 #sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
 #debug(pred_data_info_fun)
 #list_pred_data_day_s_info <- pred_data_info_fun(1,list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
-list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
-           list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
-list_pred_data_day_v_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
-           list_data=list_data_day_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
-pred_data_day_s_info <- do.call(rbind,list_pred_data_day_s_info)
-pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
-pred_data_day_s_info$training <- rep(1,nrow(pred_data_day_s_info)) 
-pred_data_day_v_info$training <- rep(0,nrow(pred_data_day_v_info)) 
-pred_data_day_info <-rbind(pred_data_day_v_info,pred_data_day_s_info)
+#list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+#           list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+#list_pred_data_day_v_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
+#           list_data=list_data_day_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
+#pred_data_day_s_info <- do.call(rbind,list_pred_data_day_s_info)
+#pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
+#pred_data_day_s_info$training <- rep(1,nrow(pred_data_day_s_info)) 
+#pred_data_day_v_info$training <- rep(0,nrow(pred_data_day_v_info)) 
+#pred_data_day_info <-rbind(pred_data_day_v_info,pred_data_day_s_info)
 
 # 
- names(data_month_s_list) <- list_names_tile_id
+#names(data_month_s_list) <- list_names_tile_id
 # 
 # data_month_tmp <- remove_from_list_fun(data_month_s_list)$list
 # #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
@@ -558,13 +556,13 @@ l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
 
 #recombine region first:
 region_names_mosaic <- list(region_names)
-names(region_names_mosaic) <- "reg5"
+names(region_names_mosaic) <- "reg4"
 in_dir_mosaics <- lapply(region_names_mosaic,FUN=function(x){file.path(in_dir1,x)})
 
 for (j in 1:length(region_names_mosaic)){
   #for(i in 1:length(region_names))
   in_dir_mosaics <- lapply(region_names_mosaic,FUN=function(x){file.path(in_dir1,x)})
-  in_dir_mosaics <- paste(region_names_mosaic,collapse=" ")
+  #in_dir_mosaics <- paste(region_names_mosaic,collapse=" ")
   #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
   #Can be changed to have mosaics in different dir..
   out_dir_mosaics <- out_dir
