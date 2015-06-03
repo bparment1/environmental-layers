@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 05/27/2015            
+#MODIFIED ON: 06/03/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -312,7 +312,7 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is N
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
-out_suffix <- "mosaic_run10_1500x4500_global_analyses_05272015" #PARAM3
+out_suffix <- "mosaic_run10_1500x4500_global_analyses_06032015" #PARAM3
 out_dir <- in_dir #PARAM4
 create_out_dir_param <- TRUE #PARAM 5
 
@@ -334,7 +334,7 @@ NA_flag_val <- NA_value
 tile_size <- "1500x4500" #PARAM 11
 mulitple_region <- TRUE #PARAM 12
 
-region_name <- "reg1" #PARAM 13 #reg1 is North America
+region_name <- "reg5" #PARAM 13 #reg1 is North America, Africa Region 5
 plot_region <- FALSE
 
 ########################## START SCRIPT ##############################
@@ -353,10 +353,9 @@ if(create_out_dir_param==TRUE){
 
 setwd(out_dir)
 
-
 lf_mosaic <-list.files(path=file.path(in_dir),    
            pattern=paste(".*.",day_to_mosaic[2],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
-
+lf_mosaic <- lf_mosaic[1:20]
 r1 <- raster(lf_mosaic[1]) 
 r2 <- raster(lf_mosaic[2]) 
 
@@ -450,7 +449,8 @@ system(cmd_str)
 ## Create raster image for original predicted images with matching resolution and extent to the mosaic (reference image)
 
 rast_ref <- file.path(out_dir,"avg.tif") #this is a the ref
-
+r_ref <- raster(rast_ref)
+plot(r_ref)
 
 ### First match weights from linear option
 lf_files <- unlist(list_linear_r_weights)
@@ -469,7 +469,6 @@ names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suf
 
 num_cores <-11
 list_linear_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
 
 ### Second match wegihts from sine option
 
@@ -569,6 +568,10 @@ r_diff_weighted_mean <- r_m_linear_weighted_mean - r_m_sine_weighted_mean
 r_diff_mean_linear <- r_m_mean - r_m_linear_weighted_mean 
 r_diff_mean_sine <- r_m_mean - r_m_sine_weighted_mean 
 
+r_m_mean_terrain <- terrain(r_m_mean,opt=c("slope","aspect"),unit="degrees")
+r_m_sine_weighted_mean_terrain <- terrain(r_m_sine_weighted_mean,opt=c("slope","aspect"),unit="degrees")
+r_m_linear_weighted_mean_terrain <- terrain(r_m_linear_weighted_mean,opt=c("slope","aspect"),unit="degrees")
+
 #####################
 ###### PART 5: Now plot of the weighted mean and unweighted mean with the mosaic function #####
 
@@ -635,6 +638,54 @@ png(filename=paste("Figure2_diff_mean_sine_for_region_",region_name,"_",out_suff
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
 plot(r_diff_mean_sine)
+
+dev.off()
+
+
+#### plot terrain to emphasize possible edges..
+res_pix <- 1200
+col_mfrow <- 1 
+row_mfrow <- 0.8
+
+png(filename=paste("Figure2_slope_mean_linear_for_region_",region_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+plot(r_m_linear_weighted_mean_terrain,y=1)
+
+dev.off()
+
+png(filename=paste("Figure2_aspect_mean_linear_for_region_",region_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+plot(r_m_linear_weighted_mean_terrain,y=2)
+
+dev.off()
+
+png(filename=paste("Figure2_slope_mean_sine_for_region_",region_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+plot(r_m_sine_weighted_mean_terrain,y=1)
+
+dev.off()
+
+png(filename=paste("Figure2_aspect_mean_sine_for_region_",region_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+plot(r_m_sine_weighted_mean_terrain,y=2)
+
+dev.off()
+
+png(filename=paste("Figure2_slope_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+plot(r_m_mean_terrain,y=1)
+
+dev.off()
+
+png(filename=paste("Figure2_aspect_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+plot(r_m_mean_terrain,y=2)
 
 dev.off()
 
