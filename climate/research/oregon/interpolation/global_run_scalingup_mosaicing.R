@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/04/2015            
+#MODIFIED ON: 06/05/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -312,7 +312,10 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is N
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
-out_suffix <- "mosaic_run10_1500x4500_global_analyses_06042015" #PARAM3
+region_name <- "reg2" #PARAM 13 #reg1 is North America, Africa Region 5
+
+out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06052015",sep="") 
+#PARAM3
 out_dir <- in_dir #PARAM4
 create_out_dir_param <- TRUE #PARAM 5
 
@@ -334,7 +337,6 @@ NA_flag_val <- NA_value
 tile_size <- "1500x4500" #PARAM 11
 mulitple_region <- TRUE #PARAM 12
 
-region_name <- "reg5" #PARAM 13 #reg1 is North America, Africa Region 5
 plot_region <- FALSE
 
 ########################## START SCRIPT ##############################
