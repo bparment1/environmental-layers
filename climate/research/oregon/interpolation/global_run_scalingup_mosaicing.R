@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/05/2015            
+#MODIFIED ON: 06/09/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
@@ -116,7 +116,8 @@ create_weights_fun <- function(i, list_param){
   ####### START SCRIPT #####
   
   r_in <- raster(lf[i]) #input image
-
+  tile_no <- i
+  
   set1f <- function(x){rep(NA, x)}
   r_init <- init(r_in, fun=set1f)
 
@@ -154,7 +155,7 @@ create_weights_fun <- function(i, list_param){
     phase <- 0
     use_cos <- FALSE
     vx <- sine_structure_fun(v,T,phase,a,b,use_cos)
-    vx_rep <- unlist((lapply(1:n_row,FUN=function(i){rep(vx[i],time=n_col)})))  
+    vx_rep <- unlist((lapply(1:n_row,FUN=function(j){rep(vx[j],time=n_col)})))  
   
     r2 <-setValues(r_init,vx_rep)  
     #plot(r2)
@@ -174,13 +175,20 @@ create_weights_fun <- function(i, list_param){
       r_init[n_row,1:n_col] <- 1
       r_init[1:n_row,1] <- 1
       r_init[1:n_row,n_col] <- 1
-      r_dist <- distance(r_init)
+      #r_dist <- distance(r_init)
+      srcfile <- file.path(out_dir,paste("feature_target_",tile_no,".tif",sep=""))
+
+      writeRaster(r_init,filename=srcfile,overwrite=T)
+      dstfile <- file.path(out_dir,paste("feature_target_edge_distance",tile_no,".tif",sep=""))
+      n_values <- "1"
+        
+      cmd_str <- paste("gdal_proximity.py", srcfile, dstfile,"-values",n_values,sep=" ")
+      system(cmd_str)
+      r_dist<- raster(dstfile)
       min_val <- cellStats(r_dist,min) 
       max_val <- cellStats(r_dist,max)
-      r <- abs(r_dist - max_val)/ (max_val - min_val)
-  } #too slow with R use http://www.gdal.org/gdal_proximity.html
-  
-  #plot(r_init)
+      r <- abs(r_dist - min_val)/ (max_val - min_val) #no need to inverse...
+  } #too slow with R so used http://www.gdal.org/gdal_proximity.html
   
   if(method=="use_linear_weights"){
     #
@@ -314,7 +322,7 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 region_name <- "reg2" #PARAM 13 #reg1 is North America, Africa Region 5
 
-out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06052015",sep="") 
+out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06072015",sep="") 
 #PARAM3
 out_dir <- in_dir #PARAM4
 create_out_dir_param <- TRUE #PARAM 5
@@ -387,6 +395,7 @@ lf_r_weights <- vector("list",length=length(lf_mosaic))
 #methods availbable:use_sine_weights,use_edge,use_linear_weights
 
 ### First use linear weights
+
 method <- "use_linear_weights"
 df_points <- df_centroids
 #df_points <- NULL
@@ -406,7 +415,25 @@ linear_weights_obj_list <- mclapply(1:length(lf_mosaic),FUN=create_weights_fun,l
 list_linear_r_weights <- lapply(1:length(linear_weights_obj_list), FUN=function(i,x){x[[i]]$r_weights},x=linear_weights_obj_list)
 list_linear_r_weights_prod <- lapply(1:length(linear_weights_obj_list), FUN=function(i,x){x[[i]]$r_weights_prod},x=linear_weights_obj_list)
 
-### Second use sine weights
+### Second use distance from edge weights
+
+method <- "use_edge"
+df_points <- NULL
+r_feature <- NULL
+list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
+names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
+num_cores <- 11
+
+weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
+
+#This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
+#the edges...can use rows and columsn to set edges to 1 and 0 for the others.
+use_edge_weights_obj_list <- mclapply(1:length(lf_mosaic),FUN=create_weights_fun,list_param=list_param_create_weights,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+list_edge_r_weights <- lapply(1:length(use_edge_weights_obj_list), FUN=function(i,x){x[[i]]$r_weights},x=use_edge_weights_obj_list)
+list_edge_r_weights_prod <- lapply(1:length(use_edge_weights_obj_list), FUN=function(i,x){x[[i]]$r_weights_prod},x=use_edge_weights_obj_list)
+
+### Third use sine weights
 method <- "use_sine_weights"
 #df_points <- df_centroids
 df_points <- NULL
@@ -472,7 +499,27 @@ names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suf
 num_cores <-11
 list_linear_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
-### Second match wegihts from sine option
+#### Second use use edge (dist) images
+
+lf_files <- unlist(list_edge_r_weights)
+
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+#debug(raster_match)
+#r_test <- raster(raster_match(1,list_param_raster_match))
+
+list_edge_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+lf_files <- unlist(list_edge_r_weights_prod)
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+num_cores <-11
+list_edge_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+
+### third match wegihts from sine option
 
 lf_files <- unlist(list_sine_r_weights)
 
@@ -491,7 +538,7 @@ names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suf
 num_cores <-11
 list_sine_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
-#### Third use original images
+#### Fourth use original images
 #macth file to mosaic extent using the original predictions
 lf_files <- lf_mosaic
 list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
@@ -502,6 +549,45 @@ list_pred_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_para
 #####################
 ###### PART 4: compute the weighted mean with the mosaic function #####
 
+##Make this a function later
+
+list_weights_m <- list(list_linear_weights_m,list_edge_weights_m,list_sine_weights_m)
+list_weights_prod_m <- list(list_linear_weights_prod_m,list_edge_weights_prod_m,list_sine_weights_prod_m)
+list_methods <- c("linear","edge","sine")
+list_mosaiced_files <- vector("list",length=length(list_methods))
+
+for(k in 1:length(list_methods)){
+  
+  list_args_weights <- list_weights_m[[k]]
+  list_args_weights_prod <- list_weights_prod_m[[k]]
+  method_str <- list_methods[[k]]
+  
+  #list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
+  list_args_weights <- lapply(1:length(list_args_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_weights)
+
+  #get the list of weights product into raster objects
+  #list_args_weights_prod <- list_weights_prod_m
+  #list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
+  list_args_weights_prod <- lapply(1:length(list_args_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_weights_prod)
+
+  list_args_weights_prod$fun <- "sum"
+  list_args_weights_prod$na.rm <- TRUE
+  
+  list_args_weights$fun <- "sum" #we want the sum to compute the weighted mean
+  list_args_weights$na.rm <- TRUE
+
+   #Mosaic files
+   r_weights_sum <- do.call(mosaic,list_args_weights) #weights sum image mosaiced
+   r_prod_sum <- do.call(mosaic,list_args_weights_prod) #weights sum product image mosacied
+
+   r_m_weighted_mean <- r_prod_sum/r_weights_sum #this is the mosaic using weighted mean...
+   raster_name <- file.path(out_dir,paste("r_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+   writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+
+}
+
+list_mosaiced_files <- list.files(pattern="r_m.*._weighted_mean_.*.tif")
+
 #get the list of weights into raster objects
 list_args_linear_weights <- list_linear_weights_m
 #list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
@@ -511,6 +597,19 @@ list_args_linear_weights <- lapply(1:length(list_args_linear_weights), FUN=funct
 list_args_linear_weights_prod <- list_linear_weights_prod_m
 #list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
 list_args_linear_weights_prod <- lapply(1:length(list_args_linear_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_linear_weights_prod)
+
+###
+#get the list of edge weights into raster objects
+list_args_edge_weights <- list_linear_weights_m
+#list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
+list_args_edge_weights <- lapply(1:length(list_args_edge_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_linear_weights)
+
+#get the list of weights product into raster objects
+list_args_linear_weights_prod <- list_linear_weights_prod_m
+#list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
+list_args_linear_weights_prod <- lapply(1:length(list_args_linear_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_linear_weights_prod)
+
+
 
 #get the list of sine weights into raster objects
 list_args_sine_weights <- list_sine_weights_m
