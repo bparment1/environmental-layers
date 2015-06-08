@@ -433,6 +433,8 @@ use_edge_weights_obj_list <- mclapply(1:length(lf_mosaic),FUN=create_weights_fun
 list_edge_r_weights <- lapply(1:length(use_edge_weights_obj_list), FUN=function(i,x){x[[i]]$r_weights},x=use_edge_weights_obj_list)
 list_edge_r_weights_prod <- lapply(1:length(use_edge_weights_obj_list), FUN=function(i,x){x[[i]]$r_weights_prod},x=use_edge_weights_obj_list)
 
+#r_test <- raster(list_edge_r_weights[[1]])
+
 ### Third use sine weights
 method <- "use_sine_weights"
 #df_points <- df_centroids
@@ -468,9 +470,6 @@ list_sine_r_weights_prod <- lapply(1:length(sine_weights_obj_list), FUN=function
 
 ## Rasters tiles vary slightly in resolution, they need to be matched for the mosaic. Resolve issue in the 
 #mosaic funciton using gdal_merge to compute a reference image to mach.
-#outrastnames <- "reg1_mosaic_weights.tif"
-#list_param_mosaic <- list(list_r_weights,out_dir,outrastnames,file_format,NA_flag_val,out_suffix)
-#r1_projected <- projectRaster(raster(list_r_weights[[1]]),r)
 
 cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o avg.tif",paste(lf_mosaic,collapse=" ")) 
 system(cmd_str)
@@ -480,63 +479,6 @@ system(cmd_str)
 rast_ref <- file.path(out_dir,"avg.tif") #this is a the ref
 r_ref <- raster(rast_ref)
 plot(r_ref)
-
-### First match weights from linear option
-lf_files <- unlist(list_linear_r_weights)
-
-list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-#debug(raster_match)
-#r_test <- raster(raster_match(1,list_param_raster_match))
-
-list_linear_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-lf_files <- unlist(list_linear_r_weights_prod)
-list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-num_cores <-11
-list_linear_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-#### Second use use edge (dist) images
-
-lf_files <- unlist(list_edge_r_weights)
-
-list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-#debug(raster_match)
-#r_test <- raster(raster_match(1,list_param_raster_match))
-
-list_edge_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-lf_files <- unlist(list_edge_r_weights_prod)
-list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-num_cores <-11
-list_edge_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-
-### third match wegihts from sine option
-
-lf_files <- unlist(list_sine_r_weights)
-
-list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-#debug(raster_match)
-#r_test <- raster(raster_match(1,list_param_raster_match))
-
-list_sine_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-lf_files <- unlist(list_sine_r_weights_prod)
-list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-num_cores <-11
-list_sine_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
 #### Fourth use original images
 #macth file to mosaic extent using the original predictions
@@ -588,126 +530,80 @@ for(k in 1:length(list_methods)){
 
 list_mosaiced_files <- list.files(pattern="r_m.*._weighted_mean_.*.tif")
 
-#get the list of weights into raster objects
-list_args_linear_weights <- list_linear_weights_m
-#list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
-list_args_linear_weights <- lapply(1:length(list_args_linear_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_linear_weights)
-
-#get the list of weights product into raster objects
-list_args_linear_weights_prod <- list_linear_weights_prod_m
-#list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
-list_args_linear_weights_prod <- lapply(1:length(list_args_linear_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_linear_weights_prod)
-
-###
-#get the list of edge weights into raster objects
-list_args_edge_weights <- list_linear_weights_m
-#list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
-list_args_edge_weights <- lapply(1:length(list_args_edge_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_linear_weights)
-
-#get the list of weights product into raster objects
-list_args_linear_weights_prod <- list_linear_weights_prod_m
-#list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
-list_args_linear_weights_prod <- lapply(1:length(list_args_linear_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_linear_weights_prod)
-
-
-
-#get the list of sine weights into raster objects
-list_args_sine_weights <- list_sine_weights_m
-#list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
-list_args_sine_weights <- lapply(1:length(list_args_sine_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_sine_weights)
-
-#get the list of weights product into raster objects
-list_args_sine_weights_prod <- list_sine_weights_prod_m
-#list_args_weights_prod <- (mixedsort(list.files(pattern="r_weights_prod_m_.*.tif")))
-list_args_sine_weights_prod <- lapply(1:length(list_args_sine_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_sine_weights_prod)
+names(list_mosaiced_files) <- c("edge","linear","sine")
+  
+#### NOW unweighted mean mosaic
 
 #get the original predicted image to raster (matched previously to the mosaic extent)
 list_args_pred_m <- list_pred_m
 #list_args_pred_m <- (mixedsort(list.files(pattern="^gam_CAI.*.m_mosaic_run10_1500x4500_global_analyses_03252015.tif")))
 list_args_pred_m <- lapply(1:length(list_args_pred_m), FUN=function(i,x){raster(x[[i]])},x=list_args_pred_m)
 
-list_args_linear_weights$fun <- "sum" #we want the sum to compute the weighted mean
-list_args_linear_weights$na.rm <- TRUE
-
-list_args_linear_weights_prod$fun <- "sum"
-list_args_linear_weights_prod$na.rm <- TRUE
-
-list_args_sine_weights$fun <- "sum" #we want the sum to compute the weighted mean
-list_args_sine_weights$na.rm <- TRUE
-
-list_args_sine_weights_prod$fun <- "sum"
-list_args_sine_weights_prod$na.rm <- TRUE
-
 list_args_pred_m$fun <- "mean"
 list_args_pred_m$na.rm <- TRUE
 
 #Mosaic files
-r_linear_weights_sum <- do.call(mosaic,list_args_linear_weights) #weights sum image mosaiced
-r_linear_prod_sum <- do.call(mosaic,list_args_linear_weights_prod) #weights sum product image mosacied
-
-r_m_linear_weighted_mean <- r_linear_prod_sum/r_linear_weights_sum #this is the mosaic using weighted mean...
-
-r_sine_weights_sum <- do.call(mosaic,list_args_sine_weights) #weights sum image mosaiced
-r_sine_prod_sum <- do.call(mosaic,list_args_sine_weights_prod) #weights sum product image mosacied
-
-r_m_sine_weighted_mean <- r_sine_prod_sum/r_sine_weights_sum #this is the mosaic using weighted mean...
-
-raster_name <- file.path(out_dir,paste("r_m_linear_weighted_mean_",out_suffix,".tif",sep=""))
-writeRaster(r_m_linear_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
-
-raster_name <- file.path(out_dir,paste("r_m_sine_weighted_mean_",out_suffix,".tif",sep=""))
-writeRaster(r_m_sine_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
-
 r_m_mean <- do.call(mosaic,list_args_pred_m) #this is unweighted mean from the predicted raster
 
 raster_name <- file.path(out_dir,paste("r_m_mean_",out_suffix,".tif",sep=""))
 writeRaster(r_m_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  #unweighted mean
 
-r_diff_weighted_mean <- r_m_linear_weighted_mean - r_m_sine_weighted_mean
-#r_diff_weighted_mean<-r_diff_weighted_meam
-
-r_diff_mean_linear <- r_m_mean - r_m_linear_weighted_mean 
-r_diff_mean_sine <- r_m_mean - r_m_sine_weighted_mean 
-
-r_m_mean_terrain <- terrain(r_m_mean,opt=c("slope","aspect"),unit="degrees")
-r_m_sine_weighted_mean_terrain <- terrain(r_m_sine_weighted_mean,opt=c("slope","aspect"),unit="degrees")
-r_m_linear_weighted_mean_terrain <- terrain(r_m_linear_weighted_mean,opt=c("slope","aspect"),unit="degrees")
+r_m_mean_unweighted <- paste("r_m_mean_",out_suffix,".tif",sep="")
 
 #####################
 ###### PART 5: Now plot of the weighted mean and unweighted mean with the mosaic function #####
 
-res_pix <- 1200
-col_mfrow <- 1 
-row_mfrow <- 0.8
+#### compute and aspect and slope with figures
 
-png(filename=paste("Figure2_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
+list_mosaiced_files2 <- c(list_mosaiced_files,r_m_mean_unweighted)
+names(list_mosaiced_files2) <- c(names(list_mosaiced_files),"unweighted")
+
+for(k in 1:length(list_mosaiced_files)){
+  
+  method_str <- names(list_mosaiced_files)[k]
+  r_mosaic <- raster(list_mosaiced_files[k])
+
+  r_mosaic_terrain <- terrain(r_mosaic,opt=c("slope","aspect"),unit="degrees")
+
+  res_pix <- 1200
+  col_mfrow <- 1 
+  row_mfrow <- 0.8
+
+  png(filename=paste("Figure2_mosaic_mean_",method_str,region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_m_mean)
+  plot(r_mosaic,main=paste("mosaic mean ",method_str,sep=""))
 
-dev.off()
+  dev.off()
+  
+  #### plot terrain to emphasize possible edges..
+  res_pix <- 1200
+  col_mfrow <- 1 
+  row_mfrow <- 0.8
 
-res_pix <- 1200
-col_mfrow <- 1 
-row_mfrow <- 0.8
-
-png(filename=paste("Figure2_linear_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure2_slope_mean_",method_str,region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_m_linear_weighted_mean )
+  plot(r_mosaic_terrain,y=1,main=paste("slope mosaic mean ",method_str,sep=""))
 
-dev.off()
+  dev.off()
 
-res_pix <- 1200
-col_mfrow <- 1 
-row_mfrow <- 0.8
-
-png(filename=paste("Figure2_sine_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure2_aspect_mean_",method_str,region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_m_sine_weighted_mean)
+  plot(r_mosaic_terrain,y=2,main=paste("aspect mean ",method_str,sep=""))
 
-dev.off()
+  dev.off()
+}
+
+####################
+#### Now difference figures...
+r_m_edge_weighted_mean <- raster(list_mosaiced_files2[1])#edge
+r_m_linear_weighted_mean <- raster(list_mosaiced_files2[2])#linear
+r_m_sine_weighted_mean <- raster(list_mosaiced_files2[3])#sine  
+r_m_unweighted_mean <- raster(list_mosaiced_files2[4])#unweighted
+
+r_diff_linear_sine_weighted_mean <- r_m_linear_weighted_mean - r_m_sine_weighted_mean
 
 res_pix <- 1200
 col_mfrow <- 1 
@@ -716,186 +612,59 @@ row_mfrow <- 0.8
 png(filename=paste("Figure2_diff_linear_sine_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_diff_weighted_mean)
+plot(r_diff_linear_sine_weighted_mean)
 
 dev.off()
 
-res_pix <- 1200
-col_mfrow <- 1 
-row_mfrow <- 0.8
+r_diff_linear_edge_weighted_mean <- r_m_linear_weighted_mean - r_m_edge_weighted_mean
 
-png(filename=paste("Figure2_diff_mean_linear_for_region_",region_name,"_",out_suffix,".png",sep=""),
+png(filename=paste("Figure2_diff_linear_edge_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_diff_mean_linear)
+plot(r_diff_linear_edge_weighted_mean)
 
 dev.off()
 
-res_pix <- 1200
-col_mfrow <- 1 
-row_mfrow <- 0.8
 
-png(filename=paste("Figure2_diff_mean_sine_for_region_",region_name,"_",out_suffix,".png",sep=""),
+#r_diff_linear_edge_weighted_mean <- r_m_linear_weighted_mean - r_m_edge_weighted_mean
+r_diff_edge_sine_weighted_mean <- r_m_edge_weighted_mean - r_m_sine_weighted_mean
+
+png(filename=paste("Figure2_diff_edge_sine_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_diff_mean_sine)
+plot(r_diff_edge_sine_weighted_mean)
 
 dev.off()
 
+###############
+##### Now compare to unweighted values
 
-#### plot terrain to emphasize possible edges..
-res_pix <- 1200
-col_mfrow <- 1 
-row_mfrow <- 0.8
+r_diff_unweighted_linear_weighted_mean <- r_m_mean - r_m_linear_weighted_mean 
+r_diff_unweighted_sine_weighted_mean <- r_m_mean - r_m_sine_weighted_mean 
+r_diff_unweighted_edge_weighted_mean <- r_m_mean - r_m_edge_weighted_mean 
 
-png(filename=paste("Figure2_slope_mean_linear_for_region_",region_name,"_",out_suffix,".png",sep=""),
+png(filename=paste("Figure2_diff_unweighted_edge_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_m_linear_weighted_mean_terrain,y=1)
+plot(r_diff_unweighted_edge_weighted_mean)
 
 dev.off()
 
-png(filename=paste("Figure2_aspect_mean_linear_for_region_",region_name,"_",out_suffix,".png",sep=""),
+png(filename=paste("Figure2_diff_unweighted_linear_weighted_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_m_linear_weighted_mean_terrain,y=2)
+plot(r_diff_unweighted_linear_weighted_mean)
 
 dev.off()
 
-png(filename=paste("Figure2_slope_mean_sine_for_region_",region_name,"_",out_suffix,".png",sep=""),
+png(filename=paste("Figure2_diff_unweighted_sine_weigthed_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_m_sine_weighted_mean_terrain,y=1)
+plot(r_diff_unweighted_sine_weighted_mean)
 
 dev.off()
 
-png(filename=paste("Figure2_aspect_mean_sine_for_region_",region_name,"_",out_suffix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-plot(r_m_sine_weighted_mean_terrain,y=2)
-
-dev.off()
-
-png(filename=paste("Figure2_slope_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-plot(r_m_mean_terrain,y=1)
-
-dev.off()
-
-png(filename=paste("Figure2_aspect_mean_for_region_",region_name,"_",out_suffix,".png",sep=""),
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-
-plot(r_m_mean_terrain,y=2)
-
-dev.off()
 
 ##################### END OF SCRIPT ######################
 
-#################################################
-#Ok testing on fake data to experiment and check methods:
-
-##Quick function to generate test dataset
-# make_raster_from_lf <- function(i,list_lf,r_ref){
-#   vect_val <- list_lf[[i]]
-#   r <-  r_ref
-#   values(r) <-vect_val
-#   #writeRaster...
-#   return(r)
-# }
-# 
-# vect_pred1 <- c(9,4,1,3,5,9,9,9,2)
-# vect_pred2 <- c(10,3,1,2,4,8,7,8,2)
-# vect_pred3 <- c(10,NA,NA,3,5,9,8,9,2)
-# vect_pred4 <- c(9,3,2,NA,5,8,9,9,2)
-# lf_vect_pred <- list(vect_pred1,vect_pred2,vect_pred3,vect_pred4)
-# 
-# vect_w1 <- c(0.2,0.5,0.1,0.3,0.4,0.5,0.5,0.3,0.2)
-# vect_w2 <- c(0.3,0.4,0.1,0.3,0.4,0.5,0.7,0.1,0.2)
-# vect_w3 <- c(0.5,0.3,0.2,0.2,0.3,0.6,0.7,0.3,0.2)
-# vect_w4 <- c(0.2,0.5,0.3,0.3,0.4,0.5,0.5,0.2,0.2)
-# lf_vect_w <- list(vect_w1,vect_w2,vect_w3,vect_w4)
-# df_vect_w <-do.call(cbind,lf_vect_w)
-# df_vect_pred <-do.call(cbind,lf_vect_pred)
-# 
-# tr_ref <- raster(nrows=3,ncols=3)
-# 
-# r_pred_l <- lapply(1:length(lf_vect_pred),FUN=make_raster_from_lf,list_lf=lf_vect_pred,r_ref=r_ref)
-# r_w_l <- lapply(1:length(lf_vect_w),FUN=make_raster_from_lf,list_lf=lf_vect_w,r_ref=r_ref)
-# 
-# #r_w1<- make_raster_from_lf(2,list_lf=lf_vect_w,r_ref)
-# 
-# list_args_pred <- r_pred_l
-# list_args_pred$fun <- "sum"
-# 
-# list_args_w <- r_w_l
-# list_args_w$fun <- prod
-# 
-# r_test_val <-do.call(overlay,list_args) #sum
-# r_test_w <-do.call(overlay,list_args_w) #prod
-# 
-# #need to do sumprod
-# r1<- r_w_l[[1]]*r_pred_l[[1]]
-# r2<- r_w_l[[2]]*r_pred_l[[2]]
-# r3<- r_w_l[[3]]*r_pred_l[[3]]
-# r4<- r_w_l[[4]]*r_pred_l[[4]]
-# 
-# r_pred <- stack(r_pred_l)
-# r_w <- stack(r_w_l)
-# 
-# list_args_pred <- r_pred_l
-# list_args_pred$fun <- mean
-# list_args_pred$na.rm <- TRUE
-# #r_sum_pred <-do.call(overlay,list_args_pred) #prod
-# 
-# #r_sum_pred <-do.call(mean,list_args_pred) #prod
-# r_sum_pred <-do.call(mosaic,list_args_pred) #prod
-# 
-# list_args_pred$na.rm <- FALSE
-# r_sum_pred <-do.call(overlay,list_args_pred) #prod
-# 
-# r_sum_pred <-do.call(overlay,list_args_w) #prod
-# 
-# list_args_w$fun <- sum
-# r_sum_w <-do.call(overlay,list_args_w) #prod
-# 
-# r_m_w <- ((r1+r2+r3+r4)/(r_sum_w)) #mean weiated
-#n33e to check the result!! especially the nubmer of valid pix val
-
-#r_test_val <-do.call(overlay,list_args) #sum
-
-#can do mosaic with sum?? for both weighted sum and val
-#
-#can use gdal calc...
-
-#r_m <- r1 + r2
-#name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
-##Use python code written by Alberto Guzman
-
-#system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-#system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-#lf1 <- lf_world_pred_1000x3000
-#lf2 <- lf_world_pred_1500x4500
-
-#module_path <- ""
-#module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-#sh /nobackupp6/aguzman4/climateLayers/sharedCode/gdalCalDiff.sh file1.tif file2.tif output.tif
-#/nobackupp6/aguzman4/climateLayers/sharedCode/mosaicUsingGdalMerge.py
-#l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
-#l_dates <- paste(day_to_mosaic,collapse=",")
-## use region 2 first
-#lf_out <- paste("diff_world_","1000_3000","by1500_4500_","mod1","_",l_dates,out_suffix,"_",file_format,sep="")
-
-
-#for (i in 1:length(lf_out)){
-#  out_file <- lf_out[i]
-#  in_file1 <- lf1[i]
-#  in_file2 <- lf2[i]
-#    
-#  cmd_str <- paste("sh", file.path(module_path,"gdalCalDiff.sh"),
-#                 in_file1,
-#                 in_file2,
-#                 out_file,sep=" ")
-#  system(cmd_str)
-#
-#}
