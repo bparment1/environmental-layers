@@ -5,14 +5,15 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/09/2015            
+#MODIFIED ON: 06/10/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km and other tiles
+#COMMENTS: analyses run for reg5 for test of mosaicing using 1500x4500km and other tiles
 #TODO:
 #1) Split functions and master script
 #2) Make this is a script/function callable from the shell/bash
 #3) Check image format for tif
+#4) generalize to run dates and region fast
 
 #################################################################################################
 
@@ -320,9 +321,9 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is N
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
-region_name <- "reg2" #PARAM 13 #reg1 is North America, Africa Region 5
+region_name <- "reg5" #PARAM 13 #reg1 is North America, Africa Region 5
 
-out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06072015",sep="") 
+out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06102015",sep="") 
 #PARAM3
 out_dir <- in_dir #PARAM4
 create_out_dir_param <- TRUE #PARAM 5
@@ -480,6 +481,63 @@ rast_ref <- file.path(out_dir,"avg.tif") #this is a the ref
 r_ref <- raster(rast_ref)
 plot(r_ref)
 
+### First match weights from linear option
+lf_files <- unlist(list_linear_r_weights)
+
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+#debug(raster_match)
+#r_test <- raster(raster_match(1,list_param_raster_match))
+
+list_linear_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+lf_files <- unlist(list_linear_r_weights_prod)
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+num_cores <-11
+list_linear_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+#### Second use use edge (dist) images
+
+lf_files <- unlist(list_edge_r_weights)
+
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+#debug(raster_match)
+#r_test <- raster(raster_match(1,list_param_raster_match))
+
+list_edge_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+lf_files <- unlist(list_edge_r_weights_prod)
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+num_cores <-11
+list_edge_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+
+### third match wegihts from sine option
+
+lf_files <- unlist(list_sine_r_weights)
+
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+#debug(raster_match)
+#r_test <- raster(raster_match(1,list_param_raster_match))
+
+list_sine_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+lf_files <- unlist(list_sine_r_weights_prod)
+list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+
+num_cores <-11
+list_sine_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
 #### Fourth use original images
 #macth file to mosaic extent using the original predictions
 lf_files <- lf_mosaic
@@ -492,7 +550,6 @@ list_pred_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_para
 ###### PART 4: compute the weighted mean with the mosaic function #####
 
 ##Make this a function later
-
 list_weights_m <- list(list_linear_weights_m,list_edge_weights_m,list_sine_weights_m)
 list_weights_prod_m <- list(list_linear_weights_prod_m,list_edge_weights_prod_m,list_sine_weights_prod_m)
 list_methods <- c("linear","edge","sine")
