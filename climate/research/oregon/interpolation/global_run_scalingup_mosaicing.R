@@ -313,7 +313,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
   out_dir_str <- out_dir
 
   lf_r_weights <- vector("list",length=length(lf_mosaic))
-
+  
   ###############
   ### PART 2: prepare weights using tile rasters ############
   #methods availbable:use_sine_weights,use_edge,use_linear_weights
@@ -400,18 +400,20 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
   ## Rasters tiles vary slightly in resolution, they need to be matched for the mosaic. Resolve issue in the 
   #mosaic funciton using gdal_merge to compute a reference image to mach.
 
-  cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o avg.tif",paste(lf_mosaic,collapse=" ")) 
+  rast_ref <- file.path(out_dir,paste("avg_",out_suffix,file_format,sep="")) #this is a the ref
+
+  cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o ",rast_ref,paste(lf_mosaic,collapse=" ")) 
   system(cmd_str)
 
   ## Create raster image for original predicted images with matching resolution and extent to the mosaic (reference image)
 
-  rast_ref <- file.path(out_dir,"avg",out_suffix,file_format) #this is a the ref
+  #rast_ref <- file.path(out_dir,"avg.tif")
   r_ref <- raster(rast_ref)
   #plot(r_ref)
   
-  if(method_str%in%c("use_linear_weights","use_sine_weights","use_edge_weights")){
+  if(mosaic_method%in%c("use_linear_weights","use_sine_weights","use_edge_weights")){
     
-    lf_files <- unlist(list_r_weights)
+    lf_files <- unlist(list_weights)
 
     list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
     names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
@@ -419,31 +421,14 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
     #debug(raster_match)
     #r_test <- raster(raster_match(1,list_param_raster_match))
 
-    list_linear_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+    list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
-    lf_files <- unlist(list_r_weights_prod)
+    lf_files <- unlist(list_weights_prod)
     list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
     names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
 
     #num_cores <-11
-    list_linear_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-    lf_files <- unlist(list_linear_r_weights)
-
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-    #debug(raster_match)
-    #r_test <- raster(raster_match(1,list_param_raster_match))
-
-    list_linear_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-    lf_files <- unlist(list_linear_r_weights_prod)
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-    num_cores <-11
-    list_linear_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
+    list_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
     #####################
     ###### PART 4: compute the weighted mean with the mosaic function #####
@@ -456,7 +441,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
 
     list_args_weights <- list_weights_m
     list_args_weights_prod <- list_weights_prod_m
-    method_str <- list_methods
+    method_str <- method
   
     #list_args_weights <- (mixedsort(list.files(pattern="r_weights_m_.*.tif")))
     list_args_weights <- lapply(1:length(list_args_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_weights)
@@ -482,7 +467,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
     
   }
 
-  if(method_mosaic=="unweighted"){
+  if(mosaic_method=="unweighted"){
     #### Fourth use original images
     #macth file to mosaic extent using the original predictions
     lf_files <- lf_mosaic
@@ -511,12 +496,14 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
     raster_name <- file.path(out_dir,paste("r_m_mean_",out_suffix,".tif",sep=""))
     writeRaster(r_m_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  #unweighted mean
 
-    r_m_mean_unweighted <- paste("r_m_mean_",out_suffix,".tif",sep="")
+    #r_m_mean_unweighted <- paste("r_m_mean_",out_suffix,".tif",sep="")
+    list_weights <- NULL
+    list_weights_prod <- NULL
 
   }
   
   #Create return object
-  mosaic_obj <- list(raster_name,list_r_weights,list_r_weights_prod,method)
+  mosaic_obj <- list(raster_name,list_weights,list_weights_prod,mosaic_method)
   names(mosaic_obj) <- c("mean_mosaic","r_weights","r_weigths_prod","method")
   return(mosaic_obj)
 }
@@ -535,7 +522,7 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is N
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
-region_name <- "reg4" #PARAM 13 #reg4 is South America, Africa Region 5
+region_name <- "reg2" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
 
 out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06152015",sep="") 
 #PARAM3
@@ -556,7 +543,8 @@ proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
 file_format <- ".tif" #PARAM 9
 NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
-                                   
+     
+num_cores <- 11                              
 tile_size <- "1500x4500" #PARAM 11
 mulitple_region <- TRUE #PARAM 12
 
@@ -566,6 +554,9 @@ plot_region <- FALSE
 
 
 ####### PART 1: Read in data and process data ########
+
+#make this a loop?, fistt use sept 1, 2010 data
+#out_suffix <- paste(day_to_mosaic[2],out_suffix,sep="_")
 
 in_dir <- file.path(in_dir,region_name)
 out_dir <- in_dir
@@ -578,16 +569,19 @@ if(create_out_dir_param==TRUE){
 
 setwd(out_dir)
 
-lf_mosaic <-list.files(path=file.path(in_dir),    
+lf_mosaic1 <-list.files(path=file.path(in_dir),    
+           pattern=paste(".*.",day_to_mosaic[1],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
+
+lf_mosaic2 <-list.files(path=file.path(in_dir),    
            pattern=paste(".*.",day_to_mosaic[2],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
 #lf_mosaic <- lf_mosaic[1:20]
-r1 <- raster(lf_mosaic[1]) 
-r2 <- raster(lf_mosaic[2]) 
+r1 <- raster(lf_mosaic1[1]) 
+r2 <- raster(lf_mosaic2[2]) 
 
 plot(r1)
 plot(r2)
 
-lf <- sub(".tif","",lf_mosaic)
+lf <- sub(".tif","",lf_mosaic2)
 tx<-strsplit(as.character(lf),"_")
 
 lat<- as.character(lapply(1:length(tx),function(i,x){x[[i]][13]},x=tx))
@@ -602,9 +596,43 @@ coordinates(df_centroids) <- cbind(df_centroids$long,df_centroids$lat)
 proj4string(df_centroids) <- projection(r1)
 df_points <- df_centroids
 #methods availbable:use_sine_weights,use_edge,use_linear_weights
+out_suffix_str <- paste(day_to_mosaic[2],out_suffix,sep="_")
 
-debug(mosaicFiles)
-mosaic_edge_20100901_obj <- mosaicFiles(lf_mosaic,mosaic_method="use_edge_weights",python_bin=NULL,NA_flag,file_format,num_cores,out_suffix=out_suffix)
+#debug(mosaicFiles)
+mosaic_edge_20100901_obj <- mosaicFiles(lf_mosaic2,mosaic_method="use_edge_weights",
+                                        num_cores=num_cores,
+                                        python_bin=NULL,
+                                        df_points=NULL,NA_flag=NA_flag_val,
+                                        file_format=file_format,out_suffix=out_suffix_str,
+                                        out_dir=out_dir)
+#debug(mosaicFiles)
+
+mosaic_unweighted_20100901_obj <- mosaicFiles(lf_mosaic2,mosaic_method="unweighted",
+                                        num_cores=num_cores,
+                                        python_bin=NULL,
+                                        df_points=NULL,NA_flag=NA_flag_val,
+                                        file_format=file_format,out_suffix=out_suffix_str,
+                                        out_dir=out_dir)
+
+r2_unweighted <-raster(mosaic_unweighted_20100901_obj$mean_mosaic)
+r2_edge <-raster(mosaic_edge_20100901_obj$mean_mosaic)
+
+#plot(r2_edge)
+
+mosaic_edge_20100831_obj <- mosaicFiles(lf_mosaic1,mosaic_method="use_edge_weights",
+                                        num_cores=num_cores,
+                                        python_bin=NULL,
+                                        df_points=NULL,NA_flag=NA_flag_val,
+                                        file_format=file_format,out_suffix=out_suffix_str,
+                                        out_dir=out_dir)
+
+mosaic_edge_20100831_obj <- mosaicFiles(lf_mosaic1,mosaic_method="unweighted",
+                                        num_cores=num_cores,
+                                        python_bin=NULL,
+                                        df_points=NULL,NA_flag=NA_flag_val,
+                                        file_format=file_format,out_suffix=out_suffix_str,
+                                        out_dir=out_dir)
+
 
 ##
 
@@ -616,12 +644,9 @@ mosaic_edge_20100901_obj <- mosaicFiles(lf_mosaic,mosaic_method="use_edge_weight
 #m_val= sum_val/weight_sum #mean value
 #
 
-#### Now run unweighted
-
-#....
 
 #####################
-###### PART 5: Now plot of the weighted mean and unweighted mean with the mosaic function #####
+###### PART 2: Analysis and figures for the outputs of mosaic function #####
 
 #### compute and aspect and slope with figures
 
