@@ -152,8 +152,10 @@ mosaic_edge_20100901_obj <- mosaicFiles(lf_mosaic2,mosaic_method="use_edge_weigh
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
 #debug(mosaicFiles)
+mosaic_method <- "edge"
 save(mosaic_unweighted_20100901_obj,file=file.path(out_dir,
-                                                   paste(mosaic_method,"_","mosaic_obj_","20100901_",out_suffix,".RData",sep="")))
+                                                   paste(mosaic_method,"_","mosaic_obj_",
+                                                         "20100901_",out_suffix,".RData",sep="")))
 
 mosaic_unweighted_20100901_obj <- mosaicFiles(lf_mosaic2,mosaic_method="unweighted",
                                         num_cores=num_cores,
@@ -162,14 +164,20 @@ mosaic_unweighted_20100901_obj <- mosaicFiles(lf_mosaic2,mosaic_method="unweight
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
 mosaic_method <- "unweighted"
-save(mosaic_edge_20100901_obj,file=file.path(out_dir,paste(mosaic_method,"_","mosaic_obj_","20100901",out_suffix,".RData")))
+save(mosaic_unweighted_20100901_obj,file=file.path(out_dir,paste(mosaic_method,"_","mosaic_obj_",
+                                                           "20100901_",out_suffix,".RData",sep="")))
 
+mosaic_method <- "edge"
 mosaic_edge_20100831_obj <- mosaicFiles(lf_mosaic1,mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         python_bin=NULL,
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
+mosaic_method <- "edge"
+save(mosaic_edge_20100831_obj,file=file.path(out_dir,
+                                                   paste(mosaic_method,"_","mosaic_obj_",
+                                                         "20100831_",out_suffix,".RData",sep="")))
 
 mosaic_unweighted_20100831_obj <- mosaicFiles(lf_mosaic1,mosaic_method="unweighted",
                                         num_cores=num_cores,
@@ -177,6 +185,9 @@ mosaic_unweighted_20100831_obj <- mosaicFiles(lf_mosaic1,mosaic_method="unweight
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
+mosaic_method <- "unweighted"
+save(mosaic_unweighted_20100831_obj,file=file.path(out_dir,paste(mosaic_method,"_","mosaic_obj_",
+                                                           "20100831_",out_suffix,".RData",sep="")))
 
 r2_unweighted <-raster(mosaic_unweighted_20100901_obj$mean_mosaic)
 r2_edge <-raster(mosaic_edge_20100901_obj$mean_mosaic)
@@ -195,6 +206,7 @@ list_mosaic_edge <- list(mosaic_unweighted_20100901_obj,mosaic_edge_20100901_obj
 list_mosaiced_files <- c(list_mosaiced_files,r_m_mean_unweighted)
 names(list_mosaiced_files2) <- c(names(list_mosaiced_files),"unweighted")
 
+plot_mosaic(list_)
 plot_mosaic <- function(f_mosaic,method,out_dir,out_stuffix){
 
   method_str <- method
