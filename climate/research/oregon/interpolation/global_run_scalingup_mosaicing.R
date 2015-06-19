@@ -189,36 +189,58 @@ mosaic_method <- "unweighted"
 save(mosaic_unweighted_20100831_obj,file=file.path(out_dir,paste(mosaic_method,"_","mosaic_obj_",
                                                            "20100831_",out_suffix,".RData",sep="")))
 
-r2_unweighted <-raster(mosaic_unweighted_20100901_obj$mean_mosaic)
-r2_edge <-raster(mosaic_edge_20100901_obj$mean_mosaic)
+#r2_unweighted <-raster(mosaic_unweighted_20100901_obj$mean_mosaic)
+#r2_edge <-raster(mosaic_edge_20100901_obj$mean_mosaic)
 
-r1_unweighted <-raster(mosaic_unweighted_20100831_obj$mean_mosaic)
-r1_edge <-raster(mosaic_edge_20100831_obj$mean_mosaic)
-plot(r1_edge)
+#r1_unweighted <-raster(mosaic_unweighted_20100831_obj$mean_mosaic)
+#r1_edge <-raster(mosaic_edge_20100831_obj$mean_mosaic)
+#plot(r1_edge)
 
 #####################
 ###### PART 2: Analysis and figures for the outputs of mosaic function #####
 
 #### compute and aspect and slope with figures
-list_mosaic_unweighted <- list(mosaic_unweighted_20100831_obj,mosaic_edge_20100831_obj)
-list_mosaic_edge <- list(mosaic_unweighted_20100901_obj,mosaic_edge_20100901_obj)
 
-list_mosaiced_files <- c(list_mosaiced_files,r_m_mean_unweighted)
-names(list_mosaiced_files2) <- c(names(list_mosaiced_files),"unweighted")
+lf_mosaic_obj1 <- list.files(path=out_dir,pattern="*20100831_.*.RData")
+lf_mosaic_obj2 <- list.files(path=out_dir,pattern="*20100901_20100901.*.RData")
+lf_mosaic_obj <- unlist(list(lf_mosaic_obj1,lf_mosaic_obj2))
+lf_mean_mosaic1 <- unlist(lapply(lf_mosaic_obj2,function(x){load_obj(x)[["mean_mosaic"]]}))
+l_method_mosaic <- unlist(lapply(lf_mosaic_obj,function(x){load_obj(x)[["method"]]}))
 
-plot_mosaic(list_)
-plot_mosaic <- function(f_mosaic,method,out_dir,out_stuffix){
+out_suffix_tmp <- paste(c("edge","unweighted"),"20100831",sep="_")
+#list_mosaic_unweighted <- list(mosaic_unweighted_20100831_obj,mosaic_edge_20100831_obj)
+#list_mosaic_edge <- list(mosaic_unweighted_20100901_obj,mosaic_edge_20100901_obj)
 
-  method_str <- method
-  r_mosaic <- raster(f_mosaiced)
+#list_mosaiced_files <- c(list_mosaiced_files,r_m_mean_unweighted)
+#names(list_mosaiced_files2) <- c(names(list_mosaiced_files),"unweighted")
+
+#debug(plot_mosaic)
+#lf_mean_mosaic1[1]
+#plot_mosaic(lf_mean_mosaic1[1],method="edge",out_suffix="20100831")
+list_param_plot_mosaic <- list(lf_mosaic=lf_mean_mosaic1,method=c("edge","unweighted"),out_suffix=c("20100831","20100831"))
+#l_png_files <- lapply(1:length(lf_mean_mosaic1),FUN=plot_mosaic,list_param= list_param_plot_mosaic)
+l_png_files <- mclapply(1:length(lf_mean_mosaic1),FUN=plot_mosaic,list_param= list_param_plot_mosaic,
+                        mc.preschedule=FALSE,mc.cores = num_cores)
+
+plot_mosaic <- function(i,list_param){
+  #Plot for mosaic list assess via slope as well
+  #Inputs:
+  #
+  
+  method_str <- list_param$method[i]
+  f_mosaic <- list_param$lf_mosaic[i]
+  out_suffix_str <- list_param$out_suffix[i]
+  
+  r_mosaic <- raster(f_mosaic)
 
   r_mosaic_terrain <- terrain(r_mosaic,opt=c("slope","aspect"),unit="degrees")
 
   res_pix <- 1200
   col_mfrow <- 1 
   row_mfrow <- 0.8
-
-  png(filename=paste("Figure2_mosaic_mean_",method_str,"_",out_suffix,".png",sep=""),
+  
+  out_file1 <- paste("Figure2_mosaic_mean_",method_str,"_",out_suffix_str,".png",sep="")
+  png(filename= out_file1,
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_mosaic,main=paste("mosaic mean ",method_str,sep=""))
@@ -230,19 +252,24 @@ plot_mosaic <- function(f_mosaic,method,out_dir,out_stuffix){
   col_mfrow <- 1 
   row_mfrow <- 0.8
 
-  png(filename=paste("Figure2_slope_mean_",method_str,"_",out_suffix,".png",sep=""),
+  out_file2 <- paste("Figure2_slope_mean_",method_str,"_",out_suffix_str,".png",sep="")
+  png(filename= out_file2,
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_mosaic_terrain,y=1,main=paste("slope mosaic mean ",method_str,sep=""))
 
   dev.off()
 
-  png(filename=paste("Figure2_aspect_mean_",method_str,"_",out_suffix,".png",sep=""),
+  out_file3 <- paste("Figure2_aspect_mean_",method_str,"_",out_suffix_str,".png",sep="")
+  png(filename= out_file3,
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_mosaic_terrain,y=2,main=paste("aspect mean ",method_str,sep=""))
 
   dev.off()
+  
+  l_out_files <- list(out_file1,out_file2,out_file3)
+  return(l_out_files)
 }
 
 ####################
