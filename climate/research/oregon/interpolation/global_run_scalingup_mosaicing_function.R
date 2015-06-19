@@ -512,6 +512,55 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
   return(mosaic_obj)
 }
 
+plot_mosaic <- function(i,list_param){
+  #Plot for mosaic list assess via slope as well
+  #Inputs:
+  #
+  
+  method_str <- list_param$method[i]
+  f_mosaic <- list_param$lf_mosaic[i]
+  out_suffix_str <- list_param$out_suffix[i]
+  
+  r_mosaic <- raster(f_mosaic)
+
+  r_mosaic_terrain <- terrain(r_mosaic,opt=c("slope","aspect"),unit="degrees")
+
+  res_pix <- 1200
+  col_mfrow <- 1 
+  row_mfrow <- 0.8
+  
+  out_file1 <- paste("Figure2_mosaic_mean_",method_str,"_",out_suffix_str,".png",sep="")
+  png(filename= out_file1,
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_mosaic,main=paste("mosaic mean ",method_str,sep=""))
+
+  dev.off()
+  
+  #### plot terrain to emphasize possible edges..
+  res_pix <- 1200
+  col_mfrow <- 1 
+  row_mfrow <- 0.8
+
+  out_file2 <- paste("Figure2_slope_mean_",method_str,"_",out_suffix_str,".png",sep="")
+  png(filename= out_file2,
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_mosaic_terrain,y=1,main=paste("slope mosaic mean ",method_str,sep=""))
+
+  dev.off()
+
+  out_file3 <- paste("Figure2_aspect_mean_",method_str,"_",out_suffix_str,".png",sep="")
+  png(filename= out_file3,
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_mosaic_terrain,y=2,main=paste("aspect mean ",method_str,sep=""))
+
+  dev.off()
+  
+  l_out_files <- list(out_file1,out_file2,out_file3)
+  return(l_out_files)
+}
 
 ##################### END OF SCRIPT ######################
 
