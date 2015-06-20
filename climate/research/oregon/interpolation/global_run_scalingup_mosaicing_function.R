@@ -513,9 +513,11 @@ mosaicFiles <- function(lf_mosaic,mosaic_method,num_cores,python_bin=NULL,df_poi
 }
 
 plot_mosaic <- function(i,list_param){
-  #Plot for mosaic list assess via slope as well
+  #Plot for mosaic test
   #Inputs:
-  #
+  #method_str: method used in mosaicing
+  #lf_mosaic: list of raster files from mosaicing
+  #out_suffix: output suffix 
   
   method_str <- list_param$method[i]
   f_mosaic <- list_param$lf_mosaic[i]
@@ -560,6 +562,41 @@ plot_mosaic <- function(i,list_param){
   
   l_out_files <- list(out_file1,out_file2,out_file3)
   return(l_out_files)
+}
+
+plot_diff_raster <- function(i,list_param){
+  #Plot for mosaic differences
+  #Inputs:
+  #lf1: list of raster files used as reference
+  #lf2: list of raster files used as second image
+  #out_suffix: output suffix
+  
+  ### Read in parameters
+  #method_str <- list_param$method[i]
+  f_r1 <- list_param$lf1[i] #e.g. unweighted
+  f_r2<- list_param$lf2[i] #e.g. weighted
+  out_suffix_str <- list_param$out_suffix[i]
+  
+  ### BEGIN ####
+  
+  r1 <- raster(f_r1)
+  r2 <- raster(f_r2)
+
+  r_diff_raster <- r1 - r2
+
+  res_pix <- 1200
+  col_mfrow <- 1 
+  row_mfrow <- 0.8
+  
+  out_file <- paste("Figure2_diff_raster","_",out_suffix_str,".png",sep="")
+  png(filename = out_file,
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_diff_raster,main=out_suffix_str)
+
+  dev.off()
+  
+  return(out_file)
 }
 
 ##################### END OF SCRIPT ######################
