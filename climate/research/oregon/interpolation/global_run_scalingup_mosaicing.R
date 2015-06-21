@@ -5,8 +5,8 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/20/2015            
-#Version: 4
+#MODIFIED ON: 06/21/2015            
+#Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg5 for test of mosaicing using 1500x4500km and other tiles
 #TODO:
@@ -49,7 +49,7 @@ library(xts)
 #function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
 #function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
 
-function_mosaicing <-"multi_timescales_paper_interpolation_functions_08132014.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_06212015.R"
 
 in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 source(file.path(in_dir_script,function_mosaicing))
@@ -67,40 +67,26 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is N
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 region_name <- "reg2" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
-
-out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06152015",sep="") 
+mosaicing_method <- c("unweighted","use_edge_weights")
+out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06212015",sep="") 
 #PARAM3
 out_dir <- in_dir #PARAM4
 create_out_dir_param <- TRUE #PARAM 5
-
-mosaic_plot <- FALSE #PARAM6
 
 #if daily mosaics NULL then mosaicas all days of the year
 day_to_mosaic <- c("20100831",
                    "20100901") #PARAM7
   
-#CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
-CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-
-proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
 file_format <- ".tif" #PARAM 9
 NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
      
 num_cores <- 11                              
-tile_size <- "1500x4500" #PARAM 11
-mulitple_region <- TRUE #PARAM 12
-
-plot_region <- FALSE
 
 ########################## START SCRIPT ##############################
 
 
 ####### PART 1: Read in data and process data ########
-
-#make this a loop?, fistt use sept 1, 2010 data
-#out_suffix <- paste(day_to_mosaic[2],out_suffix,sep="_")
 
 in_dir <- file.path(in_dir,region_name)
 out_dir <- in_dir
@@ -125,107 +111,72 @@ r2 <- raster(lf_mosaic2[2])
 plot(r1)
 plot(r2)
 
-lf <- sub(".tif","",lf_mosaic2)
-tx<-strsplit(as.character(lf),"_")
-
-lat<- as.character(lapply(1:length(tx),function(i,x){x[[i]][13]},x=tx))
-long<- as.character(lapply(1:length(tx),function(i,x){x[[i]][14]},x=tx))
-lat <- as.character(lapply(1:length(lat),function(i,x){substr(x[[i]],2,nchar(x[i]))},x=lat)) #first number not in the coordinates
-
-#Produce data.frame with centroids of each tiles...
-
-df_centroids <- data.frame(long=as.numeric(long),lat=as.numeric(lat))
-df_centroids$ID <- as.numeric(1:nrow(df_centroids))
-coordinates(df_centroids) <- cbind(df_centroids$long,df_centroids$lat)
-proj4string(df_centroids) <- projection(r1)
-df_points <- df_centroids
 #methods availbable:use_sine_weights,use_edge,use_linear_weights
-out_suffix_str <- paste(day_to_mosaic[2],out_suffix,sep="_")
-
-#debug(mosaicFiles)
-mosaic_edge_20100901_obj <- mosaicFiles(lf_mosaic2,mosaic_method="use_edge_weights",
+#only use edge method for now
+#loop to dates...
+list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
+for(i in 1:length(day_to_mosaic)){
+  
+  mosaic_method <- "use_edge_weights"
+  out_suffix_str <- paste(day_to_mosaic[i],out_suffix,sep="_")
+  #undebug(mosaicFiles)
+  #can also loop through methods!!!
+  mosaic_edge_obj <- mosaicFiles(lf_mosaic1,mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         python_bin=NULL,
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
-#debug(mosaicFiles)
-mosaic_method <- "edge"
-save(mosaic_unweighted_20100901_obj,file=file.path(out_dir,
-                                                   paste(mosaic_method,"_","mosaic_obj_",
-                                                         "20100901_",out_suffix,".RData",sep="")))
 
-mosaic_unweighted_20100901_obj <- mosaicFiles(lf_mosaic2,mosaic_method="unweighted",
+  mosaic_unweighted_obj <- mosaicFiles(lf_mosaic1,mosaic_method="unweighted",
                                         num_cores=num_cores,
                                         python_bin=NULL,
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
-mosaic_method <- "unweighted"
-save(mosaic_unweighted_20100901_obj,file=file.path(out_dir,paste(mosaic_method,"_","mosaic_obj_",
-                                                           "20100901_",out_suffix,".RData",sep="")))
 
-mosaic_method <- "edge"
-mosaic_edge_20100831_obj <- mosaicFiles(lf_mosaic1,mosaic_method="use_edge_weights",
-                                        num_cores=num_cores,
-                                        python_bin=NULL,
-                                        df_points=NULL,NA_flag=NA_flag_val,
-                                        file_format=file_format,out_suffix=out_suffix_str,
-                                        out_dir=out_dir)
-mosaic_method <- "edge"
-save(mosaic_edge_20100831_obj,file=file.path(out_dir,
-                                                   paste(mosaic_method,"_","mosaic_obj_",
-                                                         "20100831_",out_suffix,".RData",sep="")))
-
-mosaic_unweighted_20100831_obj <- mosaicFiles(lf_mosaic1,mosaic_method="unweighted",
-                                        num_cores=num_cores,
-                                        python_bin=NULL,
-                                        df_points=NULL,NA_flag=NA_flag_val,
-                                        file_format=file_format,out_suffix=out_suffix_str,
-                                        out_dir=out_dir)
-mosaic_method <- "unweighted"
-save(mosaic_unweighted_20100831_obj,file=file.path(out_dir,paste(mosaic_method,"_","mosaic_obj_",
-                                                           "20100831_",out_suffix,".RData",sep="")))
+  list_mosaic_obj[[i]] <- list(unweighted=mosaic_unweighted_obj,edge=mosaic_edge_obj)
+}
 
 #####################
 ###### PART 2: Analysis and figures for the outputs of mosaic function #####
 
 #### compute and aspect and slope with figures
+list_lf_mosaic_obj <- vector("list",length(day_to_mosaic))
+lf_mean_mosaic <- vector("list",length(mosaicing_method))#2methods only
+l_method_mosaic <- vector("list",length(mosaicing_method))
+list_out_suffix <- vector("list",length(mosaicing_method))
 
-lf_mosaic_obj1 <- list.files(path=out_dir,pattern="*20100831_.*.RData")
-lf_mosaic_obj2 <- list.files(path=out_dir,pattern="*20100901_20100901.*.RData")
-lf_mosaic_obj <- unlist(list(lf_mosaic_obj1,lf_mosaic_obj2))
-lf_mean_mosaic1 <- unlist(lapply(lf_mosaic_obj2,function(x){load_obj(x)[["mean_mosaic"]]}))
-l_method_mosaic <- unlist(lapply(lf_mosaic_obj,function(x){load_obj(x)[["method"]]}))
+for(i in 1:length(day_to_mosaic)){
+  list_lf_mosaic_obj[[i]] <- list.files(path=out_dir,pattern=paste("*",day_to_mosaic[i],
+                                                                   "_.*.RData",sep=""))
+  lf_mean_mosaic[[i]] <- unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["mean_mosaic"]]}))
+  l_method_mosaic[[i]] <- paste(unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["method"]]})),day_to_mosaic[i],sep="_")
+  list_out_suffix[[i]] <- unlist(paste(l_method_mosaic[[i]],day_to_mosaic[[i]],out_suffix,sep="_"))
+}
 
-out_suffix_tmp <- paste(c("edge","unweighted"),"20100831",sep="_")
-#list_mosaic_unweighted <- list(mosaic_unweighted_20100831_obj,mosaic_edge_20100831_obj)
-#list_mosaic_edge <- list(mosaic_unweighted_20100901_obj,mosaic_edge_20100901_obj)
 
-#list_mosaiced_files <- c(list_mosaiced_files,r_m_mean_unweighted)
-#names(list_mosaiced_files2) <- c(names(list_mosaiced_files),"unweighted")
-
-#debug(plot_mosaic)
-#lf_mean_mosaic1[1]
-#plot_mosaic(lf_mean_mosaic1[1],method="edge",out_suffix="20100831")
-list_param_plot_mosaic <- list(lf_mosaic=lf_mean_mosaic1,method=c("edge","unweighted"),out_suffix=c("20100831","20100831"))
-#l_png_files <- lapply(1:length(lf_mean_mosaic1),FUN=plot_mosaic,list_param= list_param_plot_mosaic)
-num_cores <- 2
-l_png_files <- mclapply(1:length(lf_mean_mosaic1),FUN=plot_mosaic,list_param= list_param_plot_mosaic,
+list_param_plot_mosaic <- list(lf_mosaic=unlist(lf_mean_mosaic),
+                               method=unlist(l_method_mosaic),
+                               out_suffix=unlist(list_out_suffix))
+#undebug(plot_mosaic)
+#plot_mosaic(1,list_param=list_param_plot_mosaic)
+num_cores <- 4
+l_png_files <- mclapply(1:length(lf_mean_mosaic),FUN=plot_mosaic,list_param= list_param_plot_mosaic,
                         mc.preschedule=FALSE,mc.cores = num_cores)
 
 ####################
 #### Now difference figures...
 
-lf_obj2 <- list.files(path=out_dir,pattern="*edge_.*.RData")
 lf_obj1 <- list.files(path=out_dir,pattern="*unweighted.*.RData")
+lf_obj2 <- list.files(path=out_dir,pattern="*edge_.*.RData")
 
-lf1 <- unlist(lapply(lf_mosaic_obj2,function(x){load_obj(x)[["mean_mosaic"]]}))
-lf2 <- unlist(lapply(lf_mosaic_obj1,function(x){load_obj(x)[["mean_mosaic"]]}))
+lf1 <- unlist(lapply(lf_obj1,function(x){load_obj(x)[["mean_mosaic"]]}))
+lf2 <- unlist(lapply(lf_obj2,function(x){load_obj(x)[["mean_mosaic"]]}))
 
-list_param_plot_diff <- list(lf1=lf1,lf2=lf2,out_suffix=c("20100831","20100901"))
-#l_png_files <- lapply(1:length(lf_mean_mosaic1),FUN=plot_mosaic,list_param= list_param_plot_mosaic)
-num_cores <- 2
+out_suffix_str <- paste(paste(mosaicing_method,collapse="_"),day_to_mosaic,out_suffix,sep="_")
+
+list_param_plot_diff <- list(lf1=lf1,lf2=lf2,out_suffix=out_suffix_str)
 
 #debug(plot_diff_raster)
 #plot_diff_raster(1,list_param=list_param_plot_diff)
