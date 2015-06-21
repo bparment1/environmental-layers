@@ -46,9 +46,6 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-#function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-#function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
-
 function_mosaicing <-"global_run_scalingup_mosaicing_function_06212015.R"
 
 in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts"
@@ -59,14 +56,15 @@ source(file.path(in_dir_script,function_mosaicing))
 
 #Data is on ATLAS: reg4 (South America)
 
-in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #reg1 is North America and reg5 is Africa
-#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1"
+in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" 
+#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1" #North America
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg2" #Europe
+#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg4" #South America
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg5" #Africa
 
 y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
-region_name <- "reg2" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+region_name <- "reg4" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
 mosaicing_method <- c("unweighted","use_edge_weights")
 out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06212015",sep="") 
 #PARAM3
@@ -162,7 +160,8 @@ list_param_plot_mosaic <- list(lf_mosaic=unlist(lf_mean_mosaic),
 #undebug(plot_mosaic)
 #plot_mosaic(1,list_param=list_param_plot_mosaic)
 num_cores <- 4
-l_png_files <- mclapply(1:length(lf_mean_mosaic),FUN=plot_mosaic,list_param= list_param_plot_mosaic,
+l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)),FUN=plot_mosaic,
+                        list_param= list_param_plot_mosaic,
                         mc.preschedule=FALSE,mc.cores = num_cores)
 
 ####################
