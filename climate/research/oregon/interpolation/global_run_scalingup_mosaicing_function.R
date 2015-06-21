@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/16/2015            
+#MODIFIED ON: 06/21/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -536,7 +536,7 @@ plot_mosaic <- function(i,list_param){
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_mosaic,main=paste("mosaic mean ",method_str,sep=""))
-
+  
   dev.off()
   
   #### plot terrain to emphasize possible edges..
@@ -549,7 +549,7 @@ plot_mosaic <- function(i,list_param){
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_mosaic_terrain,y=1,main=paste("slope mosaic mean ",method_str,sep=""))
-
+  
   dev.off()
 
   out_file3 <- paste("Figure2_aspect_mean_",method_str,"_",out_suffix_str,".png",sep="")
@@ -557,7 +557,7 @@ plot_mosaic <- function(i,list_param){
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_mosaic_terrain,y=2,main=paste("aspect mean ",method_str,sep=""))
-
+  title(paste("aspect mean ",method_str,sep=""))
   dev.off()
   
   l_out_files <- list(out_file1,out_file2,out_file3)
