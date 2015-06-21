@@ -532,8 +532,7 @@ plot_mosaic <- function(i,list_param){
   row_mfrow <- 0.8
   
   out_file1 <- paste("Figure2_mosaic_mean_",method_str,"_",out_suffix_str,".png",sep="")
-  png(filename= out_file1,
-    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  png(filename= out_file1,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_mosaic,main=paste("mosaic mean ",method_str,sep=""))
   
