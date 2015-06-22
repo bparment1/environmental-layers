@@ -1,0 +1,48 @@
+---
+title       : Mosaicing test summary
+subtitle    : Global assessment interpolation
+author      : Benoit Parmentier
+job         : NEX
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
+---
+
+## Read-And-Delete
+
+
+1. Edit YAML front matter
+2. Write using R Markdown
+3. Use an empty line followed by three dashes to separate slides!
+
+--- .class #id 
+
+<!-- Limit image width and height -->
+<style type="text/css">
+img {     
+  max-height: 560px;     
+  max-width: 964px; 
+}
+</style>
+ 
+<!-- Center image on slide -->
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+<script type="text/javascript">
+$(function() {     
+  $("p:has(img)").addClass('centered'); 
+});
+</script>
+
+## Unweighted mean reg1
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+## Edge weigted mean reg1
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
