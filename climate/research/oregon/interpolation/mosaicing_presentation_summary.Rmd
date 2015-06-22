@@ -11,12 +11,15 @@ mode        : selfcontained # {standalone, draft}
 knit        : slidify::knit2slides
 ---
 
-## Read-And-Delete
+## Mosaicing with two methods
 
 
-1. Edit YAML front matter
-2. Write using R Markdown
-3. Use an empty line followed by three dashes to separate slides!
+1. Unweighted mean
+2. distance from edge
+
+This was done for two dates:
+- 20100831
+- 20100901
 
 --- .class #id 
 
