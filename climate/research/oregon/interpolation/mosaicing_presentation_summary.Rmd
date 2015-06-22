@@ -2,7 +2,7 @@
 title       : Mosaicing test summary
 subtitle    : Global assessment interpolation
 author      : Benoit Parmentier
-job         : NEX
+job         : NEX job
 framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
 highlighter : highlight.js  # {highlight.js, prettify, highlight}
 hitheme     : tomorrow      # 
@@ -39,13 +39,71 @@ $(function() {
 });
 </script>
 
-## Unweighted mean reg1
+# Unweighted mean reg1: 20100831
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_unweighted_20100831_unweighted_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Edge weigted mean reg1:20100831
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Unweighted mean reg1: 20100901
 ![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
 
 ---
 
-## Edge weigted mean reg1
+# Edge weigted mean reg1: 20100901
 ![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
 
 ---
+
+# Unweigted mean reg1 slope: 20100831
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_slope_mean_unweighted_20100831_unweighted_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Edge weigted mean reg1 slope: 20100831
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_slope_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Unweigted mean reg1 slope: 20100901
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_slope_mean_unweighted_20100901_unweighted_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Edge weigted mean reg1 slope: 20100901
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_slope_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Unweigted mean reg1 aspect: 20100831
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_aspect_mean_unweighted_20100831_unweighted_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Edge weigted mean reg1 aspect: 20100831
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_aspect_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Unweigted mean reg1 aspect: 20100901
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_aspect_mean_unweighted_20100901_unweighted_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Edge weigted mean reg1 aspect: 20100901
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_aspect_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Unweigted - edge weighted diff reg1 diff: 20100831
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_diff_raster_unweighted_use_edge_weights_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+
+---
+
+# Unweigted - edge weighted diff reg1 diff: 20100901
+![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_diff_raster_unweighted_use_edge_weights_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
 
