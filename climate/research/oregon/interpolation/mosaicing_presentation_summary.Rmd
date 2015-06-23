@@ -11,15 +11,38 @@ mode        : selfcontained # {standalone, draft}
 knit        : slidify::knit2slides
 ---
 
+```{r,echo=F}
+#First let's set up the input director
+in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg6/output_reg6_mosaic_run10_1500x4500_global_analyses_06212015"
+
+region_name <- "reg6" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+mosaicing_method <- c("unweighted","use_edge_weights")
+out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06212015",sep="") 
+
+png_files <- list.files(path=in_dir,pattern=paste("*",out_suffix,".png",sep=""))
+
+```
+
 ## Mosaicing with two methods
 
 
-1. Unweighted mean
-2. distance from edge
+1. Unweighted mean: each image a pixel has no specific weight
+2. distance from edge: weights of pixels depends on distance to edges for each tiles
 
 This was done for two dates:
 - 20100831
 - 20100901
+
+---
+
+## Region 6
+
+This presentation display mosaicing results for reg6: North America.
+
+Show number of tiles:
+```{r}
+length(list.files(path=in_dir,pattern="*_use_edge_prod_weights_m_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.tif"))
+```
 
 --- .class #id 
 
@@ -39,28 +62,68 @@ $(function() {
 });
 </script>
 
-# Unweighted mean reg1: 20100831
-![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_unweighted_20100831_unweighted_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+# Unweighted mean reg: 20100831
+
+```{r, echo=FALSE}
+image_file1 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100831_unweighted_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+```
+
+```{r image_file1, echo = F, results = 'asis'}
+md_str <- paste('\n![This is it](',image_file1,')\n',sep="") 
+cat(md_str)
+```
 
 ---
 
-# Edge weigted mean reg1:20100831
-![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+# Edge weigted mean :20100831
+
+```{r, echo=FALSE}
+image_file2 <- file.path(in_dir,"Figure2_mosaic_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+```
+
+```{r image_file2, echo = F, results = 'asis'}
+md_str <- paste('\n![This is it](',image_file2,')\n',sep="") 
+cat(md_str)
+```
 
 ---
 
-# Unweighted mean reg1: 20100901
-![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+# Unweighted mean : 20100901
+
+```{r, echo=FALSE}
+image_file3 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+```
+
+```{r image_file3, echo = F, results = 'asis'}
+md_str <- paste('\n![This is it](',image_file3,')\n',sep="") 
+cat(md_str)
+```
 
 ---
 
-# Edge weigted mean reg1: 20100901
-![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_mosaic_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+# Edge weigted mean : 20100901
+
+```{r, echo=FALSE}
+image_file4 <- file.path(in_dir,"Figure2_mosaic_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+```
+
+```{r image_file4, echo = F, results = 'asis'}
+md_str <- paste('\n![This is it](',image_file4,')\n',sep="") 
+cat(md_str)
+```
 
 ---
 
-# Unweigted mean reg1 slope: 20100831
-![Caption for the picture.](/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1/output_reg1_mosaic_run10_1500x4500_global_analyses_06212015/Figure2_slope_mean_unweighted_20100831_unweighted_20100831_20100831_reg1_mosaic_run10_1500x4500_global_analyses_06212015.png)
+# Unweigted mean  slope: 20100831
+
+```{r, echo=FALSE}
+image_file5 <- file.path(in_dir,"Figure2_slope_mean_unweighted_20100831_unweighted_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+```
+
+```{r image_file5, echo = F, results = 'asis'}
+md_str <- paste('\n![This is it](',image_file5,')\n',sep="") 
+cat(md_str)
+```
 
 ---
 
