@@ -1,8 +1,8 @@
 ---
-title       : Mosaicing test summary
+title       : Mosaicing test summary region 4,South America 
 subtitle    : Global assessment interpolation
 author      : Benoit Parmentier
-job         : NEX job reg6
+job         : NEX job reg4
 framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
 highlighter : highlight.js  # {highlight.js, prettify, highlight}
 hitheme     : tomorrow      # 
@@ -12,14 +12,18 @@ knit        : slidify::knit2slides
 ---
 
 ```{r,echo=F}
-#First let's set up the input director
-in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg6/output_reg6_mosaic_run10_1500x4500_global_analyses_06212015"
 
-region_name <- "reg6" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+#First let's set up the input parameters for the script in R:
+
+in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg4/output_reg4_mosaic_run10_1500x4500_global_analyses_06212015"
+
+region_name <- "reg4" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
 mosaicing_method <- c("unweighted","use_edge_weights")
 out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06212015",sep="") 
+day_to_mosaic <- c("20100831",
+                   "20100901") #PARAM7
 
-png_files <- list.files(path=in_dir,pattern=paste("*",out_suffix,".png",sep=""))
+png_files <- mixedsort(list.files(path=in_dir,pattern=paste("*",out_suffix,".png",sep="")))
 
 ```
 
@@ -35,13 +39,14 @@ This was done for two dates:
 
 ---
 
-## Region 6
+## Region 4
 
-This presentation display mosaicing results for reg6: Oceania and South East Asia
+This presentation display mosaicing results for reg4: South America
 
-Show number of tiles:
+This regions contains the following number of tiles:
 ```{r}
-length(list.files(path=in_dir,pattern="*_use_edge_prod_weights_m_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.tif"))
+pattern_str<- paste("*",mosaicing_method[2],"_m_",day_to_mosaic[1],"_",out_suffix,".tif",sep="")
+length(list.files(path=in_dir,pattern=pattern_str))
 ```
 
 --- .class #id 
@@ -65,11 +70,14 @@ $(function() {
 # Unweighted mean reg: 20100831
 
 ```{r, echo=FALSE}
-image_file1 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100831_unweighted_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file1 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100831_unweighted_20100831_20100831_reg6_mosaic_r#un10_1500x4500_global_analyses_06212015.png")
+
+image_file1 <- file.path(in_dir,paste("Figure2_mosaic_mean_unweighted_20100831_unweighted_20100831_20100831_",out_suffix,".png",sep=""))
+
 ```
 
 ```{r image_file1, echo = F, results = 'asis'}
-md_str <- paste('\n![This is it](',image_file1,')\n',sep="") 
+md_str <- paste('\n![unweighted](',image_file1,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -78,11 +86,11 @@ cat(md_str)
 # Edge weigted mean :20100831
 
 ```{r, echo=FALSE}
-image_file2 <- file.path(in_dir,"Figure2_mosaic_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+image_file2 <- file.path(in_dir,"Figure2_mosaic_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg4_mosaic_run10_1500x4500_global_analyses_06212015.png")
 ```
 
 ```{r image_file2, echo = F, results = 'asis'}
-md_str <- paste('\n![This is it](',image_file2,')\n',sep="") 
+md_str <- paste('\n![](',image_file2,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -91,11 +99,11 @@ cat(md_str)
 # Unweighted mean : 20100901
 
 ```{r, echo=FALSE}
-image_file3 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+image_file3 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg4_mosaic_run10_1500x4500_global_analyses_06212015.png")
 ```
 
 ```{r image_file3, echo = F, results = 'asis'}
-md_str <- paste('\n![This is it](',image_file3,')\n',sep="") 
+md_str <- paste('\n![](',image_file3,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -104,11 +112,11 @@ cat(md_str)
 # Edge weigted mean : 20100901
 
 ```{r, echo=FALSE}
-image_file4 <- file.path(in_dir,"Figure2_mosaic_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+image_file4 <- file.path(in_dir,"Figure2_mosaic_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg4_mosaic_run10_1500x4500_global_analyses_06212015.png")
 ```
 
 ```{r image_file4, echo = F, results = 'asis'}
-md_str <- paste('\n![This is it](',image_file4,')\n',sep="") 
+md_str <- paste('\n![](',image_file4,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -117,11 +125,13 @@ cat(md_str)
 # Unweigted mean  slope: 20100831
 
 ```{r, echo=FALSE}
-image_file5 <- file.path(in_dir,"Figure2_slope_mean_unweighted_20100831_unweighted_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+fname <- paste("Figure2_slope_mean_unweighted_20100831_unweighted_20100831_20100831_",out_suffix,".png",sep="")
+image_file5 <- file.path(in_dir,fname)
 ```
 
 ```{r image_file5, echo = F, results = 'asis'}
-md_str <- paste('\n![This is it](',image_file5,')\n',sep="") 
+#should make this a function!!!
+md_str <- paste('\n![](',image_file5,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -130,11 +140,14 @@ cat(md_str)
 # Edge weigted mean slope: 20100831
 
 ```{r, echo=FALSE}
-image_file6 <- file.path(in_dir,"Figure2_slope_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file6 <- file.path(in_dir,"Figure2_slope_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_re#g4_mosaic_run10_1500x4500_global_analyses_06212015.png")
+fname <- paste("Figure2_slope_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_",out_suffix,".png",sep="")
+image_file6 <- file.path(in_dir,fname)
+
 ```
 
 ```{r image_file6, echo = F, results = 'asis'}
-md_str <- paste('\n![slope](',image_file6,')\n',sep="") 
+md_str <- paste('\n![](',image_file6,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -143,11 +156,14 @@ cat(md_str)
 # Unweigted mean slope: 20100901
 
 ```{r, echo=FALSE}
-image_file7 <- file.path(in_dir,"Figure2_slope_mean_unweighted_20100901_unweighted_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+fname <- paste("Figure2_slope_mean_unweighted_20100901_unweighted_20100901_20100901_",out_suffix,".png",sep="")
+
+image_file7 <- file.path(in_dir,fname)
+
 ```
 
 ```{r image_file7, echo = F, results = 'asis'}
-md_str <- paste('\n![slope](',image_file7,')\n',sep="") 
+md_str <- paste('\n![](',image_file7,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -155,12 +171,17 @@ cat(md_str)
 
 # Edge weigted mean slope: 20100901
 
+
 ```{r, echo=FALSE}
-image_file8 <- file.path(in_dir,"Figure2_slope_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#fname <- paste("Figure2_slope_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_",out_suffix,".png"#,sep="")
+#fname <- "Figure2_slope_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg4_mosaic_run10_1500x45#00_global_analyses_06212015.png"
+fname <- paste("Figure2_slope_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_",out_suffix,".png",sep="")
+image_file8 <- file.path(in_dir,fname)
+
 ```
 
 ```{r image_file8, echo = F, results = 'asis'}
-md_str <- paste('\n![slope](',image_file8,')\n',sep="") 
+md_str <- paste('\n![](',image_file7,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -169,11 +190,14 @@ cat(md_str)
 # Unweigted mean aspect: 20100831
 
 ```{r, echo=FALSE}
-image_file9 <- file.path(in_dir,"Figure2_aspect_mean_unweighted_20100831_unweighted_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+
+fname <- paste("Figure2_aspect_mean_unweighted_20100831_unweighted_20100831_20100831_",out_suffix,".png",sep="")
+image_file9 <- file.path(in_dir,fname)
+
 ```
 
 ```{r image_file9, echo = F, results = 'asis'}
-md_str <- paste('\n![This is it](',image_file9,')\n',sep="") 
+md_str <- paste('\n![](',image_file9,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -182,11 +206,14 @@ cat(md_str)
 # Edge weigted mean aspect: 20100831
 
 ```{r, echo=FALSE}
-image_file10 <- file.path(in_dir,"Figure2_aspect_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file10 <- file.path(in_dir,"Figure2_aspect_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_#reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+fname <- paste("Figure2_aspect_mean_use_edge_weights_20100831_use_edge_weights_20100831_20100831_",out_suffix,".png",sep="")
+image_file10 <- file.path(in_dir,fname)
+
 ```
 
 ```{r image_file10, echo = F, results = 'asis'}
-md_str <- paste('\n![This is it](',image_file10,')\n',sep="") 
+md_str <- paste('\n![](',image_file10,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -195,11 +222,14 @@ cat(md_str)
 # Unweigted mean aspect: 20100901
 
 ```{r, echo=FALSE}
-image_file11 <- file.path(in_dir,"Figure2_aspect_mean_unweighted_20100901_unweighted_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file11 <- file.path(in_dir,"Figure2_aspect_mean_unweighted_20100901_unweighted_20100901_20100901_reg6_mosaic_#run10_1500x4500_global_analyses_06212015.png")
+fname <- paste("Figure2_aspect_mean_unweighted_20100901_unweighted_20100901_20100901_",out_suffix,".png",sep="")
+image_file11 <- file.path(in_dir,fname)
+
 ```
 
 ```{r image_file11, echo = F, results = 'asis'}
-md_str <- paste('\n![Aspect](',image_file11,')\n',sep="") 
+md_str <- paste('\n![](',image_file11,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -208,11 +238,13 @@ cat(md_str)
 # Edge weigted mean aspect: 20100901
 
 ```{r, echo=FALSE}
-image_file12 <- file.path(in_dir,"Figure2_aspect_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file12 <- file.path(in_dir,"Figure2_aspect_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_#reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+fname <- paste("Figure2_aspect_mean_use_edge_weights_20100901_use_edge_weights_20100901_20100901_",out_suffix,".png",sep="")
+image_file12 <- file.path(in_dir,fname)
 ```
 
 ```{r image_file12, echo = F, results = 'asis'}
-md_str <- paste('\n![Aspect](',image_file12,')\n',sep="") 
+md_str <- paste('\n![](',image_file12,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -221,11 +253,14 @@ cat(md_str)
 # Unweigted - edge weighted diff: 20100831
 
 ```{r, echo=FALSE}
-image_file13 <- file.path(in_dir,"Figure2_diff_raster_unweighted_use_edge_weights_20100831_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file13 <- file.path(in_dir,"Figure2_diff_raster_unweighted_use_edge_weights_20100831_reg6_mosaic_run10_1500x4#500_global_analyses_06212015.png")
+
+fname <- paste("Figure2_diff_raster_unweighted_use_edge_weights_20100831_",out_suffix,".png",sep="")
+image_file13 <- file.path(in_dir,fname)
 ```
 
 ```{r image_file13, echo = F, results = 'asis'}
-md_str <- paste('\n![Aspect](',image_file13,')\n',sep="") 
+md_str <- paste('\n![](',image_file13,')\n',sep="") 
 cat(md_str)
 ```
 
@@ -234,11 +269,15 @@ cat(md_str)
 # Unweigted - edge weighted diff : 20100901
 
 ```{r, echo=FALSE}
-image_file14 <- file.path(in_dir,"Figure2_diff_raster_unweighted_use_edge_weights_20100901_reg6_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file14 <- file.path(in_dir,"Figure2_diff_raster_unweighted_use_edge_weights_20100901_reg6_mosaic_run10_1500x4#500_global_analyses_06212015.png")
+
+fname <- paste("Figure2_diff_raster_unweighted_use_edge_weights_20100901_",out_suffix,".png",sep="")
+image_file14 <- file.path(in_dir,fname)
+
 ```
 
 ```{r image_file14, echo = F, results = 'asis'}
-md_str <- paste('\n![Aspect](',image_file14,')\n',sep="") 
+md_str <- paste('\n![](',image_file14,')\n',sep="") 
 cat(md_str)
 ```
 
