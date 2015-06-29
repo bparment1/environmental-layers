@@ -1,8 +1,8 @@
 ---
-title       : Mosaicing test summary region 2, Europe 
+title       : Mosaicing test summary region 5, Africa 
 subtitle    : Global assessment interpolation
 author      : Benoit Parmentier
-job         : NEX job reg2
+job         : NEX job reg5
 framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
 highlighter : highlight.js  # {highlight.js, prettify, highlight}
 hitheme     : tomorrow      # 
@@ -15,11 +15,11 @@ knit        : slidify::knit2slides
 
 #First let's set up the input parameters for the script in R:
 
-in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg2/output_reg2_mosaic_run10_1500x4500_global_analyses_06212015"
+in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg5/output_reg5_mosaic_run10_1500x4500_global_analyses_06262015"
 
-region_name <- "reg2" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+region_name <- "reg5" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
 mosaicing_method <- c("unweighted","use_edge_weights")
-out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06212015",sep="") 
+out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06262015",sep="") 
 #_mosaic_run10_1500x4500_global_analyses_06212015
 day_to_mosaic <- c("20100831",
                    "20100901") #PARAM7
@@ -40,9 +40,9 @@ This was done for two dates:
 
 ---
 
-## Region 2
+## Region 5
 
-This presentation display mosaicing results for reg1: Europe
+This presentation display mosaicing results for reg5: Africa
 
 This regions contains the following number of tiles:
 ```{r}
@@ -107,7 +107,11 @@ cat(md_str)
 # Unweighted mean : 20100901
 
 ```{r, echo=FALSE}
-image_file3 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg2_mosaic_run10_1500x4500_global_analyses_06212015.png")
+#image_file3 <- file.path(in_dir,"Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_reg2_mosaic_r#un10_1500x4500_global_analyses_06212015.png")
+
+fname <- paste("Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_",out_suffix,".png",sep="")
+
+image_file3 <- file.path(in_dir,fname)
 
 #fname <- paste("Figure2_mosaic_mean_unweighted_20100901_unweighted_20100901_20100901_",out_suffix,".png",sep="")
 #image_file3 <- file.path(in_dir,fname)
@@ -197,7 +201,7 @@ image_file8 <- file.path(in_dir,fname)
 ```
 
 ```{r image_file8, echo = F, results = 'asis'}
-md_str <- paste('\n![](',image_file7,')\n',sep="") 
+md_str <- paste('\n![](',image_file8,')\n',sep="") 
 cat(md_str)
 ```
 
