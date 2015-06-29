@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/26/2015            
+#MODIFIED ON: 06/29/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg5 for test of mosaicing using 1500x4500km and other tiles
@@ -64,9 +64,9 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
 
 y_var_name <- "dailyTmax" #PARAM2
 interpolation_method <- c("gam_CAI") #PARAM3
-region_name <- "reg5" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+region_name <- "reg23" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
 mosaicing_method <- c("unweighted","use_edge_weights") #PARAM5
-out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06262015",sep="") #PARAM 6
+out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_06292015",sep="") #PARAM 6
 #PARAM3
 out_dir <- in_dir #PARAM 7
 create_out_dir_param <- TRUE #PARAM 8
