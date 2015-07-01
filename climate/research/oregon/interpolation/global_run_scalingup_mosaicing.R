@@ -210,10 +210,10 @@ for(i in 1:length(output_fnames)){
   system(cmd_str)
 }
  
-list_lf_m <- list.files(path=out_dir_str,pattern="mean.*.world.*.global_analyses_07012015.tif",full.names=T)
+list_lf_m <- mixedsort(list.files(path=out_dir_str,pattern="mean.*.world.*.global_analyses_07012015.tif",full.names=T))
 
 reg_name <- "world"
-l_dates <- c("unweighted_20100831","edge_weighted_20100831","unweighted_20100901","edge_weighted_20100901")
+l_dates <- c("edge_20100901","edge_weighted_20100831","unweighted_20100831","unweighted_20100901")
 list_param_plot_daily_mosaics <- list(list_lf_m,reg_name,out_dir_str,out_suffix,l_dates)
 names(list_param_plot_daily_mosaics) <- c("lf_m","reg_name","out_dir_str","out_suffix","l_dates")
 
