@@ -598,5 +598,69 @@ plot_diff_raster <- function(i,list_param){
   return(out_file)
 }
 
+plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
+  #Purpose:
+  #This functions mask mosaics files for a default range (-100,100 deg).
+  #It produces a masked tif in a given dataType format (FLT4S)
+  #It creates a figure of mosaiced region being interpolated.
+  #Author: Benoit Parmentier
+  #Parameters:
+  #lf_m: list of files 
+  #reg_name:region name with tile size included
+  #To do:
+  #Add filenames
+  #Add range
+  #Add output dir
+  #Add dataType_val option
+  
+  ##### BEGIN ########
+  
+  #Parse the list of parameters
+  lf_m <- list_param_plot_daily_mosaics$lf_m
+  reg_name <- list_param_plot_daily_mosaics$reg_name
+  out_dir_str <- list_param_plot_daily_mosaics$out_dir_str
+  out_suffix <- list_param_plot_daily_mosaics$out_suffix
+  l_dates <- list_param_plot_daily_mosaics$l_dates
+
+
+  #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str)
+
+  
+  #rast_list <- vector("list",length=length(lf_m))
+  r_test<- raster(lf_m[i])
+
+  m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA) #can change the thresholds later
+  rclmat <- matrix(m, ncol=3, byrow=TRUE)
+  rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
+  file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+  
+  #date_proc <- file_name[7] #specific tot he current naming of files
+  date_proc <- l_dates[i]
+  #paste(raster_name[1:7],collapse="_")
+  #add filename option later
+  extension_str <- extension(filename(r_test))
+  raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
+  r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("Predicted on ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
+  dev.off()
+  
+  return(raster_name)
+  
+}
+
+
 ##################### END OF SCRIPT ######################
 
