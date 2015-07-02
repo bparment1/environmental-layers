@@ -651,7 +651,8 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png(filename=paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep=""),
+  png(filename=file.path(out_dir_str,
+                         paste("Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep="")),
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
   plot(r_pred,main=paste("Predicted on ",date_proc , " ", reg_name,sep=""),cex.main=1.5)
