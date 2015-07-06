@@ -190,34 +190,37 @@ l_diff_png_files <- mclapply(1:length(lf1),FUN=plot_diff_raster,list_param= list
 
 #ls -ltr ./reg*/*/*mean*.tif | wc
 in_dir1 <- "/data/project/layers/commons/NEX_data/mosaicing_data_test"
-lf_unweighted_20100831<- list.files(path=in_dir1,pattern="r_m_mean_20100831.*.tif",recursive=T,full.names=T)
-lf_edge_weighted_20100831<- list.files(path=in_dir1,pattern="r_.*.edge.*._mean_20100831.*.tif",recursive=T,full.names=T)
-lf_unweighted_20100901<- list.files(path=in_dir1,pattern="r_m_mean_20100901.*.tif",recursive=T,full.names=T)
-lf_edge_weighted_20100901<- list.files(path=in_dir1,pattern="r_.*.edge.*.mean_20100901.*.tif",recursive=T,full.names=T)
+lf_unweighted_20100831 <- list.files(path=in_dir1,pattern="r_m_mean_20100831.*.tif",recursive=T,full.names=T)
+lf_edge_weighted_20100831 <- list.files(path=in_dir1,pattern="r_.*.edge.*._mean_20100831.*.tif",recursive=T,full.names=T)
+lf_unweighted_20100901 <- list.files(path=in_dir1,pattern="r_m_mean_20100901.*.tif",recursive=T,full.names=T)
+lf_edge_weighted_20100901 <- list.files(path=in_dir1,pattern="r_.*.edge.*.mean_20100901.*.tif",recursive=T,full.names=T)
 
 output_fnames <- c("mean_unweighted_world_20100831_global_analyses_07012015.tif",
-                   "mean_eged_weighted_world_20100831_global_analyses_07012015.tif",
+                   "mean_edge_weighted_world_20100831_global_analyses_07012015.tif",
                    "mean_unweighted_world_20100901_global_analyses_07012015.tif",
                    "mean_edge_weighted_world_20100901_global_analyses_07012015.tif"
                    )
 
 list_lf <- list(lf_unweighted_20100831,lf_edge_weighted_20100831,lf_unweighted_20100901,lf_edge_weighted_20100901)
 out_dir_str <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/mosaic_world_07012015"
+list_output_fnames <- vector("list",length=length(output_fnames))
 for(i in 1:length(output_fnames)){
   rast_ref <- file.path(out_dir_str,output_fnames[i]) #this is a the ref ouput file
   lf_to_mosaic <- list_lf[[i]]
   cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o ",rast_ref,paste(lf_to_mosaic,collapse=" ")) 
   system(cmd_str)
+  list_output_fnames[[i]] <- rast_ref
 }
  
-list_lf_m <- mixedsort(list.files(path=out_dir_str,pattern="mean.*.world.*.global_analyses_07012015.tif",full.names=T))
-
+#list_lf_m <- mixedsort(list.files(path=out_dir_str,pattern="mean.*.world.*.global_analyses_07012015.tif",full.names=T))
+list_lf_m <- unlist(list_output_fnames)
 reg_name <- "world"
-l_dates <- c("edge_20100901","edge_weighted_20100831","unweighted_20100831","unweighted_20100901")
-list_param_plot_daily_mosaics <- list(list_lf_m,reg_name,out_dir_str,out_suffix,l_dates)
+out_suffix_str <- "mosaic_07092015"
+l_dates <- c("unweighted_20100831","edge_weighted_20100831","unweighted_20100901","edge_weighted_20100901")
+list_param_plot_daily_mosaics <- list(list_lf_m,reg_name,out_dir_str,out_suffix_str,l_dates)
 names(list_param_plot_daily_mosaics) <- c("lf_m","reg_name","out_dir_str","out_suffix","l_dates")
 
-#debug(plot_daily_mosaics)
+#undebug(plot_daily_mosaics)
 #test<- plot_daily_mosaics(1,list_param_plot_daily_mosaics)
 num_cores <- 4
 lf_plot <- mclapply(1:length(l_dates),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,
