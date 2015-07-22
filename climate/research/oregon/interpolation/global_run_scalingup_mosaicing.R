@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/29/2015            
+#MODIFIED ON: 07/22/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg5 for test of mosaicing using 1500x4500km and other tiles
