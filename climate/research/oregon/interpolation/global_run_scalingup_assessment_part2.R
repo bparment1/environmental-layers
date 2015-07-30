@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 05/26/2015            
+#MODIFIED ON: 07/30/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -381,8 +381,8 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_pred_2010_05262015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_2010_05262015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_pred_2010_testelev_07302015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_2010_testelev_07302015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
@@ -401,7 +401,7 @@ NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
                                    
 tile_size <- "1500x4500" #PARAM 11
-mulitple_region <- TRUE #PARAM 12
+multiple_region <- TRUE #PARAM 12
 
 region_name <- "world" #PARAM 13
 plot_region <- TRUE
@@ -451,7 +451,7 @@ tb_s$tile_id <- as.character(tb_s$tile_id)
 
 
 #multiple regions?
-if(mulitple_region==TRUE){
+if(multiple_region==TRUE){
   df_tile_processed$reg <- basename(dirname(as.character(df_tile_processed$path_NEX)))
   
   tb <- merge(tb,df_tile_processed,by="tile_id")
@@ -980,7 +980,7 @@ if(plot_region==TRUE){
   
   #get the files
   l_reg_name <- unique(df_tile_processed$reg)
-  l_reg_name <- c("reg5")
+  #l_reg_name <- c("reg5")
   #lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
   #           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
   lf_mosaics_reg <- vector("list",length=length(l_reg_name))
@@ -1066,6 +1066,9 @@ if(plot_region==TRUE){
 
 lf_world_pred <-list.files(path=file.path(out_dir,"mosaics"),    
            pattern=paste("^reg4.*.",".tif$",sep=""),full.names=T) 
+l_reg_name <- unique(df_tile_processed$reg)
+lf_world_pred <-list.files(path=file.path(out_dir,l_reg_name[[i]]),    
+           pattern=paste(".tif$",sep=""),full.names=T) 
 
 #mosaic_list_mean <- test_list 
 #out_rastnames <- "world_test_mosaic_20100101"
@@ -1120,4 +1123,55 @@ dev.off()
   #lf_world_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 }
 
+############# NEW MASK AND DATA
+## Plot areas and day predicted as first check
+  
+l_reg_name <- unique(df_tile_processed$reg)
+#(subset(df_tile_processed$reg == l_reg_name[i],date)
+
+for(i in 1:length(l_reg_name)){
+  lf_world_pred <-list.files(path=file.path(out_dir,l_reg_name[[i]]),    
+           pattern=paste(".tif$",sep=""),full.names=T) 
+
+  #mosaic_list_mean <- test_list 
+  #out_rastnames <- "world_test_mosaic_20100101"
+  #out_path <- out_dir
+
+  #lf_world_pred <- list.files(pattern="world.*2010090.*.tif$")
+  #lf_raster_fname <- list.files(pattern="world.*2010*.*02162015.tif$",full.names=T)
+  lf_raster_fname <- lf_world_pred
+  prefix_str <- paste("Figure10_",l_reg_name[i],sep="")
+
+  l_dates <- basename(lf_raster_fname)
+  tmp_name <- gsub(".tif","",l_dates)
+  tmp_name <- gsub("gam_CAI_dailyTmax_predicted_mod1_0_1_","",tmp_name)
+  #l_dates <- tmp_name
+  l_dates <- paste(l_reg_name[i],"_",tmp_name,sep="")
+
+  screenRast=TRUE
+  list_param_plot_screen_raster <- list(lf_raster_fname,screenRast,l_dates,out_dir,prefix_str,out_suffix)
+  names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_dates","out_dir_str","prefix_str","out_suffix_str")
+
+  #undebug(plot_screen_raster_val)
+
+  #world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
+  #world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+  world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
+
+  #s_pred <- stack(lf_raster_fname)
+
+  #res_pix <- 1500
+  #col_mfrow <- 3 
+  #row_mfrow <- 2
+
+  #png(filename=paste("Figure10_levelplot_combined_",region_name,"_",out_suffix,".png",sep=""),
+  #  width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  #levelplot(s_pred,layers=1:6,col.regions=rev(terrain.colors(255)),cex=4)
+
+  #dev.off()
+}
+
+
+  
 ##################### END OF SCRIPT ######################
