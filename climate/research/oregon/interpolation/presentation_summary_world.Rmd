@@ -1,0 +1,281 @@
+---
+title       : New elevation layer test summary world 
+subtitle    : Global assessment interpolation
+author      : Benoit Parmentier and Alberto Guzman
+job         : NEX job world
+framework   : io2012        # {io2012, html5slides, shower, dzslides, ...}
+highlighter : highlight.js  # {highlight.js, prettify, highlight}
+hitheme     : tomorrow      # 
+widgets     : []            # {mathjax, quiz, bootstrap}
+mode        : selfcontained # {standalone, draft}
+knit        : slidify::knit2slides
+---
+
+```{r,echo=F}
+
+#First let's set up the input parameters for the script in R:
+
+in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_2010_testelev_07302015"
+
+#region_name <- "world" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+#mosaicing_method <- c("unweighted","use_edge_weights")
+out_suffix <- paste(region_name,"_","mosaic_07092015",sep="") 
+#_mosaic_run10_1500x4500_global_analyses_06212015
+#day_to_mosaic <- c("20100831",
+#                   "20100901") #PARAM7
+
+#png_files <- mixedsort(list.files(path=in_dir,pattern=paste("*",out_suffix,".png",sep="")))
+
+```
+
+## Testing elevation layers and masks
+
+
+Two tiles were predicted for 10 dates:
+
+1. Combined mask no buffer
+2. Buffered 1km
+3. Buffered 2km
+
+
+--- .class #id 
+
+<!-- Limit image width and height -->
+<style type="text/css">
+img {     
+  max-height: 560px;     
+  max-width: 964px; 
+}
+</style>
+ 
+<!-- Center image on slide -->
+<script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.7.min.js"></script>
+<script type="text/javascript">
+$(function() {     
+  $("p:has(img)").addClass('centered'); 
+});
+</script>
+
+# Combined mask Asia: 201000101
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- paste("Figure10_combined_combined_20100101_30_111.6_94.1_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file1 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file1, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file1,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 1km mask Asia: 201000101
+
+```{r, echo=FALSE}
+#image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
+
+
+fname <- paste("Figure10_1kmBuff_1kmBuff_20100101_30_111.6_94.1_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+image_file2 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file2, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file2,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 2km mask Asia: 201000101
+
+```{r, echo=FALSE}
+#image_file3 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100901_world_mosaic_07092015.png")
+
+fname <- paste("Figure10_2kmBuff_2kmBuff_20100101_30_111.6_94.1_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file3 <- file.path(in_dir,fname)
+
+
+```
+
+```{r image_file3, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file3,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Combined mask Asia: 201000901
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure10_combined_combined_20100901_30_111.6_94.1_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+image_file4 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file4, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file4,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 1km mask Asia: 201000901
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure10_1kmBuff_1kmBuff_20100901_30_111.6_94.1_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+image_file5 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file5, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file5,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 2km mask Asia: 201000901
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure10_2kmBuff_2kmBuff_20100901_30_111.6_94.1_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file6 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file6, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file6,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Combined mask Europe: 201000101
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- paste("Figure10_combined_combined_20100101_30_151.5_23.7_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file7 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file7, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file7,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 1km mask Europe: 201000101
+
+```{r, echo=FALSE}
+#image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
+
+
+fname <- paste("Figure10_1kmBuff_1kmBuff_20100101_30_151.5_23.7_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+image_file8 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file8, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file8,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 2km mask Europe: 201000101
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure10_2kmBuff_2kmBuff_20100101_30_151.5_23.7_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file9 <- file.path(in_dir,fname)
+
+
+```
+
+```{r image_file9, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file9,')\n',sep="") 
+cat(md_str)
+```
+---
+
+# Combined mask Europe: 201000901
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure10_combined_combined_20100901_30_151.5_23.7_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file10 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file10, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file10,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 1km mask Europe: 201000901
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure10_1kmBuff_1kmBuff_20100901_30_151.5_23.7_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+image_file11 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file11, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file11,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffered 2km mask Europe: 201000901
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure10_2kmBuff_2kmBuff_20100901_30_151.5_23.7_1500x4500_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file12 <- file.path(in_dir,fname)
+
+
+```
+
+```{r image_file12, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file12,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Boxplot Asia and Europe summarized
+
+```{r, echo=FALSE}
+
+fname <- paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_NA_run10_1500x4500_global_analyses_pred_2010_testelev_07302015.png")
+
+image_file13 <- file.path(in_dir,fname)
+
+
+```
+```{r image_file13, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file13,')\n',sep="") 
+cat(md_str)
+```
+
