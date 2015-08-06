@@ -278,4 +278,125 @@ image_file13 <- file.path(in_dir,fname)
 md_str <- paste('\n![](',image_file13,')\n',sep="") 
 cat(md_str)
 ```
+---
+---
 
+
+# Combined Zoom in 1: Asia 
+
+```{r, echo=FALSE}
+
+fname <- paste("zoom_in_1_vietnam_combined_20100101.png")
+
+image_file14 <- file.path(in_dir,fname)
+
+
+```
+```{r image_file14, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file14,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+
+# Combined Zoom in 1: Asia 
+
+```{r, echo=FALSE}
+
+fname <- paste("zoom_in_1_vietnam_combined_20100101.png")
+
+image_file14b <- file.path(in_dir,fname)
+
+
+```
+```{r image_file14b, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file14b,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# 1km Buffer Zoom in 1: Asia 
+
+```{r, echo=FALSE}
+
+fname <- paste("zoom_in_1_vietnam_1kmbuff_20100101.png")
+
+image_file15 <- file.path(in_dir,fname)
+
+
+```
+```{r image_file15, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file15,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffer 2km Zoom in 1: Asia 
+
+```{r, echo=FALSE}
+
+fname <- paste("zoom_in_1_vietnam_2kmbuff_20100101.png")
+
+image_file16 <- file.path(in_dir,fname)
+
+
+```
+```{r image_file16, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file16,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+
+# Combined Zoom in 2: Europe
+
+```{r, echo=FALSE}
+
+fname <- paste("zoom_in_2_Netherlands_combined_20100101.png")
+
+image_file17 <- file.path(in_dir,fname)
+
+
+```
+```{r image_file17, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file17,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# 1km Buffer Zoom in 2: Europe 
+
+```{r, echo=FALSE}
+
+fname <- paste("zoom_in_2_Netherlands_1kmbuff_20100101.png")
+
+image_file18 <- file.path(in_dir,fname)
+
+
+```
+```{r image_file18, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file18,')\n',sep="") 
+cat(md_str)
+```
+
+---
+
+# Buffer 2km Zoom in 2: Europe
+
+```{r, echo=FALSE}
+
+fname <- paste("zoom_in_2_Netherlands_2kmbuff_20100101.png")
+
+image_file19 <- file.path(in_dir,fname)
+
+
+```
+```{r image_file19, echo = F, results = 'asis'}
+md_str <- paste('\n![](',image_file19,')\n',sep="") 
+cat(md_str)
+```
