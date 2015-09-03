@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 07/30/2015            
+#MODIFIED ON: 09/01/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -74,16 +74,16 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 #in_dir1b <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/singles" #PARAM1, add for now in_dir1 can be a list...
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/" #PARAM1, add for now in_dir1 can be a list...
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/elevTest/1kmBuff/"
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/elevTest/"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45/"
 
 #region_names <- c("reg4") #selected region names, #PARAM2
-region_names <- c("1kmBuff","2kmBuff","combined")
+region_names <- c("1992") #no specific region here so use date
 #region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 #region_namesb <- c("reg_1b","reg_1c","reg_2b","reg_3b","reg_6b") #selected region names, #PARAM2
 
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_pred_2010_testelev_07302015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_pred_1992_09012015" #PARAM5
 
 #output_run10_1500x4500_global_analyses_pred_2003_04102015/
 
