@@ -98,24 +98,56 @@ cat(md_str)
 
 ```
 
-# ACCUARY OVERALL FOR MODEL 1
+---
+
+# ACCURACY OVERALL FOR MODEL 1
 
 ```{r, echo=FALSE}
 #image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
 
 
 fname <- paste("Figure3a_boxplot_overall_region_with_oultiers_mod_kr_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-image_file2 <- file.path(in_dir,fname)
+image_file4 <- file.path(in_dir,fname)
 
 fname <- paste("Figure3b_boxplot_overall_region_scaling_mod_kr_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-image_file3 <- file.path(in_dir,fname)
+image_file5 <- file.path(in_dir,fname)
 
 ```
 
 
-```{r image_file2, echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
+```{r image_file4,image_file5, echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
 
-md_str <- paste('\n![](',image_file2,') ','![](',image_file3,')\n',sep="") 
+md_str <- paste('\n![](',image_file4,') ','![](',image_file5,')\n',sep="") 
+cat(md_str)
+#md_str <- paste('\n![](',image_file2,')\n',sep="") 
+#cat(md_str)
+
+#![alt-text-1](image1.png "title-1") ![alt-text-2](image2.png "title-2")
+
+cat("Mod1: tmax <- s(lat,long,k=5) + s(elev_s,k=5)")
+
+```
+
+---
+
+# AVERAGE ACCURACY RANKED BY TILES 
+
+```{r, echo=FALSE}
+#image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
+
+
+fname <- paste("Figure5_ac_metrics_ranked_mod1_run10_1500x4500_global_analyses_pred_1992_09012015.png")
+image_file6 <- file.path(in_dir,fname)
+
+fname <- paste("Figure5_ac_metrics_ranked_mod_kr_run10_1500x4500_global_analyses_pred_1992_09012015.png")
+image_file7 <- file.path(in_dir,fname)
+
+```
+
+
+```{r image_file6,image_file7, echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
+
+md_str <- paste('\n![](',image_file6,') ','![](',image_file7,')\n',sep="") 
 cat(md_str)
 #md_str <- paste('\n![](',image_file2,')\n',sep="") 
 #cat(md_str)
@@ -123,10 +155,105 @@ cat(md_str)
 #![alt-text-1](image1.png "title-1") ![alt-text-2](image2.png "title-2")
 
 
+
 ```
 
+---
+
+# Averae RMSE mod1 for 1500x4500km 
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- paste("Figure6_ac_metrics_map_centroids_tile_mod1_run10_1500x4500_global_analyses_pred_1992_09012015.png")
+
+image_file8 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file8, echo = F, results = 'asis'}
+#| I am text to the left  | ![Flowers](/flowers.jpeg) |
+#md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
+#md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
+#<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
+md_str <- paste('\n<center>![](',image_file8,')<center>\n',sep="")
+#md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
+#fig.align = "center"
+cat(md_str)
+```
 
 ---
+
+# Predicted less than 367
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- paste("Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_367_run10_1500x4500_global_analyses_pred_1992_09012015.png")
+
+image_file9 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file9, echo = F, results = 'asis'}
+#| I am text to the left  | ![Flowers](/flowers.jpeg) |
+#md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
+#md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
+#<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
+md_str <- paste('\n<center>![](',image_file9,')<center>\n',sep="")
+#md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
+#fig.align = "center"
+cat(md_str)
+```
+
+---
+
+# Predicted less than 365
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- paste("Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_365_run10_1500x4500_global_analyses_pred_1992_09012015.png")
+
+image_file10 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file10, echo = F, results = 'asis'}
+#| I am text to the left  | ![Flowers](/flowers.jpeg) |
+#md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
+#md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
+#<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
+md_str <- paste('\n<center>![](',image_file10,')<center>\n',sep="")
+#md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
+#fig.align = "center"
+cat(md_str)
+```
+
+---
+
+# Predicted less than 300
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- paste("Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_300_run10_1500x4500_global_analyses_pred_1992_09012015.png")
+
+image_file11 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file11, echo = F, results = 'asis'}
+#| I am text to the left  | ![Flowers](/flowers.jpeg) |
+#md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
+#md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
+#<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
+md_str <- paste('\n<center>![](',image_file11,')<center>\n',sep="")
+#md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
+#fig.align = "center"
+cat(md_str)
+```
+
 
 
 #########
