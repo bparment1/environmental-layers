@@ -232,30 +232,6 @@ cat(md_str)
 
 ---
 
-# Predicted less than 300
-
-```{r, echo=FALSE}
-#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
-
-fname <- paste("Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_300_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-
-image_file11 <- file.path(in_dir,fname)
-
-```
-
-```{r image_file11, echo = F, results = 'asis'}
-#| I am text to the left  | ![Flowers](/flowers.jpeg) |
-#md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
-#md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
-#<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
-md_str <- paste('\n<center>![](',image_file11,')<center>\n',sep="")
-#md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
-#fig.align = "center"
-cat(md_str)
-```
-
----
-
 # Predicted surface 19920101 
 
 ```{r, echo=FALSE}
@@ -311,7 +287,7 @@ cat(md_str)
 
 fname <- paste("Figure10_clim_reg4_mosaics_day__19920103_1500x4500_run10_1500x4500_global_analyses_pred_1992_09012015.png")
 
-image_file11 <- file.path(in_dir,fname)
+image_file14 <- file.path(in_dir,fname)
 
 ```
 
