@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 09/01/2015            
+#MODIFIED ON: 09/15/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -75,15 +75,16 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/" #PARAM1, add for now in_dir1 can be a list...
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/output1500x4500_km/elevTest/1kmBuff/"
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45/"
+#/nobackupp6/aguzman4/climateLayers/out_15x45/1982
 
 #region_names <- c("reg4") #selected region names, #PARAM2
-region_names <- c("1992") #no specific region here so use date
+region_names <- c("1982") #no specific region here so use date
 #region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 #region_namesb <- c("reg_1b","reg_1c","reg_2b","reg_3b","reg_6b") #selected region names, #PARAM2
 
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_pred_1992_09012015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_pred_1982_09152015" #PARAM5
 
 #output_run10_1500x4500_global_analyses_pred_2003_04102015/
 
@@ -98,6 +99,9 @@ CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") 
 #day_to_mosaic <- c("20100101","20100901") #PARAM9
 #day_to_mosaic <- c("20100829","20100830","20100831",
 #                   "20100901","20100902","20100903")
+day_to_mosaic <- c("19820101","19820102","19820103","19820104","19820105",
+                   "19820106","19820107","19820108","19820109","19820110",
+                   "19820111")
 
 #day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
 
@@ -564,7 +568,7 @@ l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
 
 #recombine region first:
 region_names_mosaic <- list(region_names)
-names(region_names_mosaic) <- "reg4"
+names(region_names_mosaic) <- "reg5"
 in_dir_mosaics <- lapply(region_names_mosaic,FUN=function(x){file.path(in_dir1,x)})
 
 for (j in 1:length(region_names_mosaic)){
