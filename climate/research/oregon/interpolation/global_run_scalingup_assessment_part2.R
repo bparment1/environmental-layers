@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 09/03/2015            
+#MODIFIED ON: 09/21/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -381,17 +381,17 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_pred_1992_09012015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_09012015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_pred_1982_09152015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1982_09152015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
 
 #if daily mosaics NULL then mosaicas all days of the year
 
-day_to_mosaic <- c("19920101","19920102","19920103","19920104","19920105",
-                   "19920106","19920107","19920108","19920109","19920110",
-                   "19920111")
+day_to_mosaic <- c("19820101","19820102","19820103","19820104","19820105",
+                   "19820106","19820107","19820108","19820109","19820110",
+                   "1982011")
 
 CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -574,7 +574,7 @@ centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-
 #centroids_pts <- tmp_pts 
   
 #plot info: with labels
-res_pix <- 1200
+res_pix <-1200
 col_mfrow <- 1 
 row_mfrow <- 1
 
@@ -593,7 +593,7 @@ for(i in 1:length(shps_tiles)){
     text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
   }
 }
-title(paste("Tiles ", tile_size,region_name,sep=""))
+#title(paste("Tiles ", tile_size,region_name,sep=""))
 
 dev.off()
       
