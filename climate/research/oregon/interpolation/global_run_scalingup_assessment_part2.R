@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 09/21/2015            
+#MODIFIED ON: 09/22/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -406,7 +406,7 @@ multiple_region <- TRUE #PARAM 12
 
 region_name <- "world" #PARAM 13
 plot_region <- TRUE
-num_cores <- 10 #PARAM 14
+num_cores <- 6 #PARAM 14
 reg_modified <- TRUE
 region <- c("reg4") #reference region to merge if necessary #PARAM 16
 
@@ -977,73 +977,6 @@ dev.off()
 
 #lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
 
-plot_screen_raster_val<-function(i,list_param){
-  ##USAGE###
-  #Screen raster list and produced plot as png.
-  fname <-list_param$lf_raster_fname[i]
-  screenRast <- list_param$screenRast
-  l_dates<- list_param$l_dates
-  out_dir_str <- list_param$out_dir_str
-  prefix_str <-list_param$prefix_str
-  out_suffix_str <- list_param$out_suffix_str
-  
-if(is.null(day_to_mosaic)){
-  
-  #idx <- seq(as.Date('2010-01-01'), as.Date('2010-12-31'), 'day')
-  #idx <- seq(as.Date('20100101'), as.Date('20101231'), 'day')
-  #date_l <- strptime(idx[1], "%Y%m%d") # interpolation date being processed
-  #dates_l <- format(idx, "%Y%m%d") # interpolation date being processed
-  day_to_mosaic <- dates_predicted #should be 365 days...
-  #l_dates <- day_to_mosaic
-}
-  
-if(plot_region==TRUE){
-  
-  #get the files
-  l_reg_name <- unique(df_tile_processed$reg)
-  l_reg_name <- c("reg4") #use this for the time
-  #lf_mosaics_reg5 <- mixedsort(list.files(path="/data/project/layers/commons/NEX_data/output_run10_global_analyses_11302014/mosaics/reg5",
-  #           pattern="CAI_TMAX_clim_month_.*_mod1_all.tif", full.names=T))
-  lf_mosaics_reg <- vector("list",length=length(l_reg_name))
-  for(i in 1:length(l_reg_name)){
-    lf_mosaics_reg[[i]] <- try(mixedsort(
-    list.files(
-    path=file.path(out_dir,"mosaics"),
-    #pattern="reg6_.*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",
-    pattern=paste(l_reg_name[i],".*._CAI_TMAX_clim_month_.*._mod1_all_mean.tif",sep=""), 
-    full.names=T))
-    )
-  }
-  
-  #now mask and potl
-  lf_mosaics_mask_reg <- vector("list",length=length(l_reg_name))
-  for(i in 1:length(l_reg_name)){
-    
-    #
-    lf_m <- lf_mosaics_reg[[i]]
-    out_dir_str <- out_dir
-    reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
-    #lapply()
-    #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
-    #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-    #lf_mosaics_mask_reg[[i]] <- lapply(1:1,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics)
-    lf_raster_fname <- lf_m
-    prefix_str <- "Figure10_clim_reg4_mosaics_day_"
-    l_dates <-day_to_mosaic
-    screenRast=FALSE
-    list_param_plot_screen_raster <- list(lf_raster_fname,screenRast,l_dates,out_dir,prefix_str,out_suffix)
-    names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_dates","out_dir_str","prefix_str","out_suffix_str")
-
-    #undebug(plot_screen_raster_val)
-
-    #world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
-    #world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-    lf_mosaics_mask_reg[[i]] <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-
-
-    #lf_mosaics_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = num_cores)
-  }
-}
 
 ################## WORLD MOSAICS NEEDS MAJOR CLEAN UP OF CODE HERE
 ##make functions!!
@@ -1099,7 +1032,7 @@ if(plot_region==TRUE){
 #           pattern=paste("^world_mosaics.*.tif$",sep=""),full.names=T) 
 
 lf_world_pred <-list.files(path=file.path(out_dir,"mosaics"),    
-           pattern=paste("^reg4.*.",".tif$",sep=""),full.names=T) 
+           pattern=paste("^reg5.*.",".tif$",sep=""),full.names=T) 
 l_reg_name <- unique(df_tile_processed$reg)
 lf_world_pred <-list.files(path=file.path(out_dir,l_reg_name[[i]]),    
            pattern=paste(".tif$",sep=""),full.names=T) 
@@ -1113,13 +1046,13 @@ lf_world_pred <-list.files(path=file.path(out_dir,l_reg_name[[i]]),
 lf_raster_fname <- lf_world_pred
 prefix_str <- "Figure10_clim_world_mosaics_day_"
 l_dates <-day_to_mosaic
-screenRast=TRUE
+screenRast=FALSE
 list_param_plot_screen_raster <- list(lf_raster_fname,screenRast,l_dates,out_dir,prefix_str,out_suffix)
 names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_dates","out_dir_str","prefix_str","out_suffix_str")
 
-#undebug(plot_screen_raster_val)
+debug(plot_screen_raster_val)
 
-#world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
+world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
 #world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
 world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
 
