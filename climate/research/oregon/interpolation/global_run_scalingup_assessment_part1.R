@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 09/15/2015            
+#MODIFIED ON: 10/05/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -77,14 +77,14 @@ source(file.path(script_path,function_analyses_paper1)) #source all functions us
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45/"
 #/nobackupp6/aguzman4/climateLayers/out_15x45/1982
 
-#region_names <- c("reg4") #selected region names, #PARAM2
-region_names <- c("1982") #no specific region here so use date
+region_names <- c("reg4") #selected region names, #PARAM2
+#region_names <- c("1992") #no specific region here so use date
 #region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 #region_namesb <- c("reg_1b","reg_1c","reg_2b","reg_3b","reg_6b") #selected region names, #PARAM2
 
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_pred_1982_09152015" #PARAM5
+out_prefix<-"run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM5
 
 #output_run10_1500x4500_global_analyses_pred_2003_04102015/
 
@@ -99,9 +99,10 @@ CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") 
 #day_to_mosaic <- c("20100101","20100901") #PARAM9
 #day_to_mosaic <- c("20100829","20100830","20100831",
 #                   "20100901","20100902","20100903")
-day_to_mosaic <- c("19820101","19820102","19820103","19820104","19820105",
-                   "19820106","19820107","19820108","19820109","19820110",
-                   "19820111")
+day_to_mosaic <- c("19920101","19920102","19920103")
+#,"19820104","19820105",
+#                   "19820106","19820107","19820108","19820109","19820110",
+#                   "19820111")
 
 #day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
 
@@ -128,17 +129,21 @@ num_cores <- 6 #number of cores used #PARAM13
 
 in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
 #basename(in_dir_list)
-in_dir_list<- lapply(region_names,FUN=function(x,y){y[grep(x,basename(y),invert=FALSE)]},
+in_dir_list<- lapply(region_names,FUN=function(x,y){y[grep(paste(x,"$",sep=""),basename(y),invert=FALSE)]},
                                                y=in_dir_list) 
 
-in_dir_list_all  <- lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)})
-in_dir_list <- unlist(in_dir_list_all)
+in_dir_list_all  <- unlist(lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)}))
+in_dir_list <- in_dir_list_all
 #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
 
-#this was changed
-in_dir_list_tmp <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
-in_dir_subset <- in_dir_list_tmp[grep("subset",basename(in_dir_list_tmp),invert=FALSE)] #select directory with shapefiles...
+#this was changed on 10052015 because the shapefiles were not matching!!!
+#in_dir_list_tmp <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
+#in_dir_subset <- in_dir_list_tmp[grep("subset",basename(in_dir_list_tmp),invert=FALSE)] #select directory with shapefiles...
+#in_dir_shp <- file.path(in_dir_subset,"shapefiles")
+#in_dir_list_tmp <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
+in_dir_subset <- in_dir_list_all[grep("subset",basename(in_dir_list_all),invert=FALSE)] #select directory with shapefiles...
 in_dir_shp <- file.path(in_dir_subset,"shapefiles")
+
 
 #select only directories used for predictions
 in_dir_reg <- in_dir_list[grep(".*._.*.",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
@@ -489,9 +494,20 @@ l_shp <- sub("shp_","",l_shp)
 l_shp <- unlist(lapply(1:length(l_shp),
                        FUN=function(i){paste(strsplit(l_shp[i],"_")[[1]][1:2],collapse="_")}))
 
+df_tiles_all <- as.data.frame(as.character(unlist(list_shp_world)))
+df_tiles_all$tile_coord <- l_shp
+#names(df_tiles_all) <- "list_shp_world"
+names(df_tiles_all) <- c("shp_files","tile_coord")
 matching_index <- match(basename(in_dir_list),l_shp)
 list_shp_reg_files <- list_shp_world[matching_index]
-df_tile_processed$shp_files <-list_shp_world[matching_index]
+df_tile_processed$shp_files <-list_shp_reg_files
+#df_tile_processed$shp_files <- ""
+#df_tile_processed$tile_coord <- as.character(df_tile_processed$tile_coord)
+#test <- df_tile_processed
+#test$shp_files <- NULL
+#test3 <- merge(test,df_tiles_all,by=c("tile_coord"))
+#test3 <- merge(df_tiles_all,test,by=c("tile_coord"))
+#merge(df_tile_processed,df_tiles_all,by="shp_files")
 
 tx<-strsplit(as.character(df_tile_processed$tile_coord),"_")
 lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
@@ -503,8 +519,7 @@ df_tile_processed$lon <- long
 write.table(df_tile_processed,
             file=file.path(out_dir,paste("df_tile_processed_",out_prefix,".txt",sep="")),sep=",")
 
-df_tiles_all <- as.data.frame(as.character(unlist(list_shp_world)))
-names(df_tiles_all) <- "list_shp_world"
+
 write.table(df_tiles_all,
             file=file.path(out_dir,paste("df_tiles_all_",out_prefix,".txt",sep="")),sep=",")
 
@@ -640,6 +655,8 @@ for (i in 1:length(day_to_mosaic)){
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1"
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
 output_atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",out_dir)
+
+output_run10_1500x4500_global_analyses_pred_1992_10052015
 #Make directories on ATLAS
 #for (i in 1:length(df_tile_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
@@ -650,6 +667,29 @@ output_atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",out_dir)
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i]),"/shapefiles"),out_suffix=NULL)
 #}  
 
+### Create dir locally and on Atlas
+
+Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir))#,"output/subset/shapefiles")
+#Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+#cmd_str <- paste("ssh ",Atlas_hostname,"mkdir",Atlas_dir, sep=" ")
+
+#Atlas_dir_mosaic <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"mosaics")
+#Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+#cmd_str <- paste("ssh ",Atlas_hostname,"mkdir",Atlas_dir_mosaic, sep=" ")
+
+#Atlas_dir_shapefiles <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"shapefiles")
+#Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+#cmd_str <- paste("ssh ",Atlas_hostname,"mkdir",Atlas_dir_shapefiles, sep=" ")
+
+#locally on NEX
+#cmd_str <- paste(" mkdir ",out_dir,"/{mosaic,shapefiles,tiles}", sep="")
+cmd_str <- paste(" mkdir ",out_dir,"/{mosaic,tiles}", sep="") #create both dir 
+system(cmd_str)
+
+#remotely on Atlas
+cmd_str <- paste("ssh ",Atlas_hostname," mkdir ",Atlas_dir,"/{mosaic,shapefiles,tiles}", sep="")
+system(cmd_str)
+
 #Copy summary textfiles back to atlas
 
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir))#,"output/subset/shapefiles")
@@ -659,6 +699,7 @@ filenames_NEX <- paste(lf_cp_f,collapse=" ")  #copy raster prediction object
 cmd_str <- paste("scp -p",filenames_NEX,paste(Atlas_hostname,Atlas_dir,sep=":"), sep=" ")
 system(cmd_str)
 
+#cp -rp ./*/gam_CAI_dailyTmax_predicted_mod1_0_1_19920103_30_*.tif /nobackupp8/bparmen1//output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles
 #system("scp -p ./*.txt parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014")
 #system("scp -p ./*.txt ./*.tif parmentier@atlas.nceas.ucsb.edu:/data/project/layers/commons/NEX_data/output_run2_global_analyses_05122014")
 
@@ -669,7 +710,7 @@ system(cmd_str)
 Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"shapefiles")
 Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
 lf_cp_shp <- df_tile_processed$shp_files #get all the files...
-
+list_shp_world
 lf_cp_shp_pattern <- gsub(".shp","*",basename(lf_cp_shp))
 lf_cp_shp_pattern <- file.path(dirname(lf_cp_shp),lf_cp_shp_pattern)
 
