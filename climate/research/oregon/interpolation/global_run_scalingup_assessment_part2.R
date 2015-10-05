@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 09/23/2015            
+#MODIFIED ON: 10/05/2015            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -85,7 +85,7 @@ create_dir_fun <- function(out_dir,out_suffix){
 
 #On NEX
 #contains all data from the run by Alberto
-#in_dir1 <- "/nobackupp4/aguzman4/climateLayers/output4" #On NEX
+#in_dir1 <- " /nobackupp6/aguzman4/climateLayers/out_15x45/" #On NEX
 #parent output dir for the current script analyes
 #out_dir <- "/nobackup/bparmen1/" #on NEX
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
@@ -94,17 +94,16 @@ y_var_name <- "dailyTmax" #PARAM1
 interpolation_method <- c("gam_CAI") #PARAM2
 #out_suffix<-"run10_global_analyses_01282015"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-out_suffix <- "run10_1500x4500_global_analyses_pred_1982_09152015" #PARAM3
-out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1982_09152015" #PARAM4
+out_suffix <- "run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM3
+out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
 create_out_dir_param <- FALSE #PARAM 5
 
 mosaic_plot <- FALSE #PARAM6
 
 #if daily mosaics NULL then mosaicas all days of the year
 
-day_to_mosaic <- c("19820101","19820102","19820103","19820104","19820105",
-                   "19820106","19820107","19820108","19820109","19820110",
-                   "1982011")
+day_to_mosaic <- c("19920101","19920102","19920103")
+
 
 CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -574,7 +573,7 @@ for(i in 1:length(threshold_missing_day)){
   p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
                                                               threshold_missing_day[i]))
   p1 <- p+p_shp
-  print(p1)
+  try(print(p1)) #error raised if number of missing values below a threshold does not exist
   #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
   #title(paste("Averrage RMSE per tile and by ",model_name[i]))
 
