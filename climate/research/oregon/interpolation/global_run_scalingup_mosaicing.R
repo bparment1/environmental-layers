@@ -5,10 +5,10 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/25/2015            
+#MODIFIED ON: 10/05/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses run for reg5 for test of mosaicing using 1500x4500km and other tiles
+#COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
 #TODO:
 #1) Make this is a script/function callable from the shell/bash
 #2) generalize to run dates and region fast
@@ -56,7 +56,9 @@ source(file.path(in_dir_script,function_mosaicing))
 
 #Data is on ATLAS: reg4 (South America)
 
-in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
+#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
+in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
+in_dir_tiles <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles"
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1" #North America
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg2" #Europe
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg4" #South America
@@ -64,29 +66,34 @@ in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
 
 y_var_name <- "dailyTmax" #PARAM2
 interpolation_method <- c("gam_CAI") #PARAM3
-region_name <- "reg5" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+region_name <- "reg4" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
 mosaicing_method <- c("unweighted","use_edge_weights") #PARAM5
-out_suffix <- paste(region_name,"_","mosaic_run10_1500x4500_global_analyses_10152015",sep="") #PARAM 6
+out_suffix <- paste(region_name,"_","run10_1500x4500_global_analyses_pred_1992_10052015",sep="") #PARAM 6
+out_suffix_str <- "run10_1500x4500_global_analyses_pred_1992_10052015"
+
 #PARAM3
 out_dir <- in_dir #PARAM 7
-create_out_dir_param <- TRUE #PARAM 8
+create_out_dir_param <- FALSE #PARAM 8
 
 #if daily mosaics NULL then mosaicas all days of the year
-day_to_mosaic <- c("20100831",
-                   "20100901") #PARAM 9
-  
+day_to_mosaic <- c("19920101","19920102","19920103") #PARAM9
+
+#CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
+#CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+#proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
+ 
 file_format <- ".tif" #PARAM 10
 NA_value <- -9999 #PARAM 11
 NA_flag_val <- NA_value
      
-num_cores <- 11 #PARAM 12                  
+num_cores <- 6 #PARAM 12                  
 
 ########################## START SCRIPT ##############################
 
 
 ####### PART 1: Read in data and process data ########
 
-in_dir <- file.path(in_dir,region_name)
+#in_dir <- file.path(in_dir,region_name)
 out_dir <- in_dir
 if(create_out_dir_param==TRUE){
   out_dir <- create_dir_fun(out_dir,out_suffix)
@@ -97,10 +104,62 @@ if(create_out_dir_param==TRUE){
 
 setwd(out_dir)
 
-lf_mosaic1 <-list.files(path=file.path(in_dir),    
+
+
+
+tb <- read.table(file=file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep="")),sep=",")
+#tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt
+
+### Start new function here
+
+#tb
+date_processed <- day_to_mosaic[i]
+lf_to_mosaic <-list.files(path=file.path(in_dir_tiles),    
+           pattern=paste(".*.",date_processed,".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
+
+lf<- gsub(file_format,"",lf_to_mosaic)
+tx<-strsplit(as.character(lf),"_")
+#deal with the fact that we have number "1" attached to the out_suffix (centroids of tiles)
+pos_lat <- lapply(1:length(tx),function(i,x){length(x[[i]])-1},x=tx)
+pos_lon <- lapply(1:length(tx),function(i,x){length(x[[i]])},x=tx)
+lat_val <- unlist(lapply(1:length(tx),function(i,x,y){x[[i]][pos_lat[[i]]]},x=tx,y=pos_lat))
+lat <- as.character(lapply(1:length(lat_val),function(i,x){substr(x[[i]],2,nchar(x[i]))},x=lat_val)) #first number not in the coordinates
+long <- as.character(lapply(1:length(tx),function(i,x,y){x[[i]][pos_lon[[i]]]},x=tx,y=lon_lat))
+
+df_centroids <- data.frame(long=as.numeric(long),lat=as.numeric(lat))
+df_centroids$ID <- as.numeric(1:nrow(df_centroids))
+df_centroids$tile_coord <- paste(lat,long,sep="_")
+df_centroids$files <- lf_to_mosaic
+df_centroids$date <- date_processed
+write.table(df_centroids,paste("df_centroids_",out_suffix,".txt",sep="_"),sep=',')
+
+#sprintf(" %3.1f", df_centroids$lat)
+
+#merge()
+df_centroids
+tb_date <- subset(tb,date==date_processed & pred_mod=="mod1")
+tb_date$tile_coord <- as.character(tb_date$tile_coord)
+df_centroids <- merge(df_centroids,tb_date,by="tile_coord")
+
+r1 <- raster(lf_to_mosaic[i])
+r1 <- raster(df_centroids$files[i])
+r1[] <- df_centroids$rmse[i]
+writeRaster()
+
+#### end of function
+
+#extract(r1,)
+#coordinates(df_centroids) <- cbind(df_centroids$long,df_centroids$lat)
+#proj4string(df_centroids) <- projection(r1)
+
+
+#df_tile_processed$lat <- lat
+#df_tile_processed$lon <- long
+
+lf_mosaic1 <-list.files(path=file.path(in_dir_tiles),    
            pattern=paste(".*.",day_to_mosaic[1],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
 
-lf_mosaic2 <-list.files(path=file.path(in_dir),    
+lf_mosaic2 <-list.files(path=file.path(in_dir_tiles),    
            pattern=paste(".*.",day_to_mosaic[2],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
 #lf_mosaic <- lf_mosaic[1:20]
 r1 <- raster(lf_mosaic1[1]) 
@@ -109,13 +168,14 @@ r2 <- raster(lf_mosaic2[2])
 plot(r1)
 plot(r2)
 
+
 #methods availbable:use_sine_weights,use_edge,use_linear_weights
 #only use edge method for now
-#loop to dates...
+#loop to dates..., make this a function...
 list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
 for(i in 1:length(day_to_mosaic)){
   
-  mosaic_method <- "use_edge_weights"
+  mosaic_method <- "use_edge_weights" #this is distance from edge
   out_suffix_str <- paste(day_to_mosaic[i],out_suffix,sep="_")
   #undebug(mosaicFiles)
   #can also loop through methods!!!
@@ -125,7 +185,8 @@ for(i in 1:length(day_to_mosaic)){
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
-
+  
+  
   #mosaic_unweighted_obj <- mosaicFiles(lf_mosaic1,mosaic_method="unweighted",
   #                                      num_cores=num_cores,
   #                                      python_bin=NULL,
@@ -226,6 +287,9 @@ names(list_param_plot_daily_mosaics) <- c("lf_m","reg_name","out_dir_str","out_s
 num_cores <- 4
 lf_plot <- mclapply(1:length(l_dates),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,
                     mc.preschedule=FALSE,mc.cores = num_cores)
+
+r_test <- raster("r_m_use_edge_weighted_mean_19920101_reg4_mosaic_run10_1500x4500_global_analyses_10052015.tif")
+plot(r_test)
 
 ##################### END OF SCRIPT ######################
 
