@@ -106,61 +106,125 @@ setwd(out_dir)
 
 
 
-
+#must be cleaned up
 tb <- read.table(file=file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep="")),sep=",")
 #tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt
 
 ### Start new function here
 
-#tb
-date_processed <- day_to_mosaic[i]
-lf_to_mosaic <-list.files(path=file.path(in_dir_tiles),    
-           pattern=paste(".*.",date_processed,".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
+create_accuracy_metric_raster <- function(i, list_param){
+  #This function generates weights from a point location on a raster layer.
+  #Note that the weights are normatlized on 0-1 scale using max and min values.
+  #Inputs:
+  #lf: list of raster files
+  #tb: data.frame table #fitting or validation table with all days
+  #metric_name <- list_param$metric_name #RMSE, MAE etc.
+  #pred_mod_name <- list_param$pred_mod_name #mod1, mod_kr etc.
+  #y_var_name <- list_param$y_var_name #"dailyTmax" #PARAM2
+  #interpolation_method <- list_param$interpolation_method #c("gam_CAI") #PARAM3
+  #date_processed <- list_param$days_to_process[i]
+  #NA_flag_val <- list_param$NA_flag_val
+  #NAflag,file_format,out_suffix etc...
+  #file_format <- list_param$file_format
+  #out_dir_str <- list_param$out_dir
+  #out_suffix_str <- list_param$out_suffix
+  #Outputs:
+  #raster list of weights and product of wegihts and inuts
+  #TODO: 
 
-lf<- gsub(file_format,"",lf_to_mosaic)
-tx<-strsplit(as.character(lf),"_")
-#deal with the fact that we have number "1" attached to the out_suffix (centroids of tiles)
-pos_lat <- lapply(1:length(tx),function(i,x){length(x[[i]])-1},x=tx)
-pos_lon <- lapply(1:length(tx),function(i,x){length(x[[i]])},x=tx)
-lat_val <- unlist(lapply(1:length(tx),function(i,x,y){x[[i]][pos_lat[[i]]]},x=tx,y=pos_lat))
-lat <- as.character(lapply(1:length(lat_val),function(i,x){substr(x[[i]],2,nchar(x[i]))},x=lat_val)) #first number not in the coordinates
-long <- as.character(lapply(1:length(tx),function(i,x,y){x[[i]][pos_lon[[i]]]},x=tx,y=lon_lat))
+  # - improve efficiency
+  #
+  ############
+  
+  lf <- list_param$lf #list of files to mosaic
+  tb <- list_param$tb #fitting or validation table with all days
+  metric_name <- list_param$metric_name #RMSE, MAE etc.
+  pred_mod_name <- list_param$pred_mod_name #mod1, mod_kr etc.
+  y_var_name <- list_param$y_var_name #"dailyTmax" #PARAM2
+  interpolation_method <- list_param$interpolation_method #c("gam_CAI") #PARAM3
+  date_processed <- list_param$days_to_process[i]
+  NA_flag_val <- list_param$NA_flag_val
+  #NAflag,file_format,out_suffix etc...
+  file_format <- list_param$file_format
+  out_dir_str <- list_param$out_dir
+  out_suffix_str <- list_param$out_suffix
+   
+  ####### START SCRIPT #####
+  
+  #r_in <- raster(lf[i]) #input image
 
-df_centroids <- data.frame(long=as.numeric(long),lat=as.numeric(lat))
-df_centroids$ID <- as.numeric(1:nrow(df_centroids))
-df_centroids$tile_coord <- paste(lat,long,sep="_")
-df_centroids$files <- lf_to_mosaic
-df_centroids$date <- date_processed
-write.table(df_centroids,paste("df_centroids_",out_suffix,".txt",sep="_"),sep=',')
+  #date_processed <- day_to_mosaic[i]
+  #lf_to_mosaic <-list.files(path=file.path(in_dir_tiles),    
+  #         pattern=paste(".*.",date_processed,".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
 
-#sprintf(" %3.1f", df_centroids$lat)
+  lf_tmp <- gsub(file_format,"",lf)
+  tx<-strsplit(as.character(lf_tmp),"_")
+  #deal with the fact that we have number "1" attached to the out_suffix (centroids of tiles)
+  pos_lat <- lapply(1:length(tx),function(i,x){length(x[[i]])-1},x=tx)
+  pos_lon <- lapply(1:length(tx),function(i,x){length(x[[i]])},x=tx)
+  lat_val <- unlist(lapply(1:length(tx),function(i,x,y){x[[i]][pos_lat[[i]]]},x=tx,y=pos_lat))
+  lat <- as.character(lapply(1:length(lat_val),function(i,x){substr(x[[i]],2,nchar(x[i]))},x=lat_val)) #first number not in the coordinates
+  long <- as.character(lapply(1:length(tx),function(i,x,y){x[[i]][pos_lon[[i]]]},x=tx,y=lon_lat))
 
-#merge()
-df_centroids
-tb_date <- subset(tb,date==date_processed & pred_mod=="mod1")
-tb_date$tile_coord <- as.character(tb_date$tile_coord)
-df_centroids <- merge(df_centroids,tb_date,by="tile_coord")
+  df_centroids <- data.frame(long=as.numeric(long),lat=as.numeric(lat))
+  df_centroids$ID <- as.numeric(1:nrow(df_centroids))
+  df_centroids$tile_coord <- paste(lat,long,sep="_")
+  df_centroids$files <- lf
+  df_centroids$date <- date_processed
+  write.table(df_centroids,paste("df_centroids_",date_processed,"_",out_suffix,".txt",sep=""),sep=',')
 
-r1 <- raster(lf_to_mosaic[i])
-r1 <- raster(df_centroids$files[i])
-r1[] <- df_centroids$rmse[i]
-writeRaster()
+  #sprintf(" %3.1f", df_centroids$lat)
+
+  tb_date <- subset(tb,date==date_processed & pred_mod==pred_mod_name)
+  tb_date$tile_coord <- as.character(tb_date$tile_coord)
+  df_centroids <- merge(df_centroids,tb_date,by="tile_coord")
+
+  #r1 <- raster(lf[i])
+  r1 <- raster(df_centroids$files[i])
+  r1[] <- df_centroids[[metric_name]][i] #improve this
+  #set1f <- function(x){rep(NA, x)}
+  #r_init <- init(r_in, fun=set1f)
+
+  raster_name_tmp <- paste("r_",metric_name,"_",interpolation_method,"_",date_processed,"_",out_suffix_str,sep="")
+  raster_name <- file.path(out_dir_str,raster_name_tmp)
+  writeRaster(r1, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+    
+  raster_created_obj <- list(raster_name,df_centroids)
+  names(raster_created_obj) <- c("raster_name","df_centroids")
+  return(raster_created_obj)
+
+}
 
 #### end of function
 
-#extract(r1,)
-#coordinates(df_centroids) <- cbind(df_centroids$long,df_centroids$lat)
-#proj4string(df_centroids) <- projection(r1)
 
-
-#df_tile_processed$lat <- lat
-#df_tile_processed$lon <- long
 
 lf_mosaic1 <-list.files(path=file.path(in_dir_tiles),    
            pattern=paste(".*.",day_to_mosaic[1],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
 
 lf_mosaic2 <-list.files(path=file.path(in_dir_tiles),    
            pattern=paste(".*.",day_to_mosaic[2],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
+
+lf <- lf_mosaic1 #list of files to mosaic
+#tb <- list_param$tb #fitting or validation table with all days
+metric_name <- "rmse" #RMSE, MAE etc.
+pred_mod_name <- "mod1"
+#y_var_name 
+#interpolation_method #c("gam_CAI") #PARAM3
+days_to_process <- day_to_mosaic
+#NA_flag_val <- list_param$NA_flag_val
+#file_format <- list_param$file_format
+out_dir_str <- out_dir
+out_suffix_str <- out_suffix
+
+list_param_accuracy_metric_raster <- list(lf,tb,metric_name,pred_mod_name,y_var_name,interpolation_method,
+                    days_to_process,NA_flag_val,file_format,out_dir_str,out_suffix_str) 
+
+names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
+                       "days_to_process","NA_flag_val","file_format","out_dir_str","out_suffix_str") 
+debug(create_accuracy_metric_raster)
+test <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
+
 #lf_mosaic <- lf_mosaic[1:20]
 r1 <- raster(lf_mosaic1[1]) 
 r2 <- raster(lf_mosaic2[2]) 
