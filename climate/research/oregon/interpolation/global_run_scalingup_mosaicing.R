@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/05/2015            
+#MODIFIED ON: 10/09/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -112,6 +112,8 @@ tb <- read.table(file=file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix
 
 ### Start new function here
 
+## Add numcores
+## use mclapply
 create_accuracy_metric_raster <- function(i, list_param){
   #This function generates weights from a point location on a raster layer.
   #Note that the weights are normatlized on 0-1 scale using max and min values.
@@ -180,24 +182,41 @@ create_accuracy_metric_raster <- function(i, list_param){
   df_centroids <- merge(df_centroids,tb_date,by="tile_coord")
 
   #r1 <- raster(lf[i])
-  r1 <- raster(df_centroids$files[i])
-  r1[] <- df_centroids[[metric_name]][i] #improve this
-  #set1f <- function(x){rep(NA, x)}
-  #r_init <- init(r_in, fun=set1f)
-
-  raster_name_tmp <- paste("r_",metric_name,"_",interpolation_method,"_",date_processed,"_",out_suffix_str,sep="")
-  raster_name <- file.path(out_dir_str,raster_name_tmp)
-  writeRaster(r1, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+  
+  #function(j,df_centroids,metric_name,date_processed,interpolation,)
+  #loop over files, make this a function later, works for now
+  #use mclapply  
+  list_raster_name <- vector("list",length=length(lf))
+  
+  for(j in 1:length(lf)){ 
     
-  raster_created_obj <- list(raster_name,df_centroids)
-  names(raster_created_obj) <- c("raster_name","df_centroids")
+    inFilename <- df_centroids$files[j]
+    r1 <- raster(inFilename)
+    r1[] <- df_centroids[[metric_name]][j] #improve this
+    #set1f <- function(x){rep(NA, x)}
+    #r_init <- init(r_in, fun=set1f)
+    lf_tmp <- gsub(file_format,"",lf)
+  
+    extension_str <- extension(inFilename)
+    raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
+    outFilename <- file.path(out_dir,paste(raster_name_tmp,"_",metric_name,"_",out_suffix,file_format,sep="")) #for use in function later...
+  
+    #raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",out_suffix,file_format,sep=""))#output file
+
+    #raster_name_tmp <- paste("r_",metric_name,"_",interpolation_method,"_",date_processed,"_",out_suffix_str,sep="")
+    #raster_name <- file.path(out_dir_str,raster_name_tmp)
+    writeRaster(r1, NAflag=NA_flag_val,filename=outFilename,overwrite=TRUE)  
+    list_raster_name[[j]] <- outFilename
+  }
+  
+    
+  raster_created_obj <- list(list_raster_name,df_centroids)
+  names(raster_created_obj) <- c("list_raster_name","df_centroids")
   return(raster_created_obj)
 
 }
 
 #### end of function
-
-
 
 lf_mosaic1 <-list.files(path=file.path(in_dir_tiles),    
            pattern=paste(".*.",day_to_mosaic[1],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
@@ -223,7 +242,11 @@ list_param_accuracy_metric_raster <- list(lf,tb,metric_name,pred_mod_name,y_var_
 names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
                        "days_to_process","NA_flag_val","file_format","out_dir_str","out_suffix_str") 
 debug(create_accuracy_metric_raster)
-test <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
+raster_created_obj <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
+
+lf_accuracy_raster <- unlist(raster_created_obj$list_raster_name)
+
+lf_r_rmse <- mclapply(1:length(days_to_process),FUN=create_accuracy_metric_raster,list_param=list_param_accuracy_metric_raster,mc.preschedule=FALSE,mc.cores = 3)                           
 
 #lf_mosaic <- lf_mosaic[1:20]
 r1 <- raster(lf_mosaic1[1]) 
@@ -243,13 +266,23 @@ for(i in 1:length(day_to_mosaic)){
   out_suffix_str <- paste(day_to_mosaic[i],out_suffix,sep="_")
   #undebug(mosaicFiles)
   #can also loop through methods!!!
-  mosaic_edge_obj <- mosaicFiles(lf_mosaic1,mosaic_method="use_edge_weights",
+  mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic1,mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         python_bin=NULL,
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
                                         out_dir=out_dir)
   
+  mosaic_method <- "use_edge_weights" #this is distance from edge
+  out_suffix_str <- paste(day_to_mosaic[i],out_suffix,sep="_")
+  #undebug(mosaicFiles)
+  #can also loop through methods!!!
+  mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster,mosaic_method="use_edge_weights",
+                                        num_cores=num_cores,
+                                        python_bin=NULL,
+                                        df_points=NULL,NA_flag=NA_flag_val,
+                                        file_format=file_format,out_suffix=out_suffix_str,
+                                        out_dir=out_dir)
   
   #mosaic_unweighted_obj <- mosaicFiles(lf_mosaic1,mosaic_method="unweighted",
   #                                      num_cores=num_cores,
@@ -259,7 +292,9 @@ for(i in 1:length(day_to_mosaic)){
   #                                      out_dir=out_dir)
 
   #list_mosaic_obj[[i]] <- list(unweighted=mosaic_unweighted_obj,edge=mosaic_edge_obj)
-  list_mosaic_obj[[i]] <- list(unweighted=mosaic_unweighted_obj,edge=mosaic_edge_obj)
+  #list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_accuracy,accuracy=mosaic_edge_obj_accuracy)
+
+  list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
 }
 
 #####################
@@ -290,70 +325,11 @@ l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)),FUN=plot_mosaic,
                         list_param= list_param_plot_mosaic,
                         mc.preschedule=FALSE,mc.cores = num_cores)
 
-####################
-#### Now difference figures...
-
-lf_obj1 <- list.files(path=out_dir,pattern="*unweighted.*.RData")
-lf_obj2 <- list.files(path=out_dir,pattern="*edge_.*.RData")
-
-lf1 <- unlist(lapply(lf_obj1,function(x){load_obj(x)[["mean_mosaic"]]}))
-lf2 <- unlist(lapply(lf_obj2,function(x){load_obj(x)[["mean_mosaic"]]}))
-
-out_suffix_str <- paste(paste(mosaicing_method,collapse="_"),day_to_mosaic,out_suffix,sep="_")
-
-list_param_plot_diff <- list(lf1=lf1,lf2=lf2,out_suffix=out_suffix_str)
-
-#debug(plot_diff_raster)
-#plot_diff_raster(1,list_param=list_param_plot_diff)
-
 num_cores <- 2
 l_diff_png_files <- mclapply(1:length(lf1),FUN=plot_diff_raster,list_param= list_param_plot_diff,
                         mc.preschedule=FALSE,mc.cores = num_cores)
 
-
 ###############
-##### Get all the tiles togheter merged
-
-#ls -ltr ./reg*/*/*mean*.tif | wc
-in_dir1 <- "/data/project/layers/commons/NEX_data/mosaicing_data_test"
-lf_unweighted_20100831 <- list.files(path=in_dir1,pattern="r_m_mean_20100831.*.tif",recursive=T,full.names=T)
-lf_edge_weighted_20100831 <- list.files(path=in_dir1,pattern="r_.*.edge.*._mean_20100831.*.tif",recursive=T,full.names=T)
-lf_unweighted_20100901 <- list.files(path=in_dir1,pattern="r_m_mean_20100901.*.tif",recursive=T,full.names=T)
-lf_edge_weighted_20100901 <- list.files(path=in_dir1,pattern="r_.*.edge.*.mean_20100901.*.tif",recursive=T,full.names=T)
-
-output_fnames <- c("mean_unweighted_world_20100831_global_analyses_07012015.tif",
-                   "mean_edge_weighted_world_20100831_global_analyses_07012015.tif",
-                   "mean_unweighted_world_20100901_global_analyses_07012015.tif",
-                   "mean_edge_weighted_world_20100901_global_analyses_07012015.tif"
-                   )
-
-list_lf <- list(lf_unweighted_20100831,lf_edge_weighted_20100831,lf_unweighted_20100901,lf_edge_weighted_20100901)
-out_dir_str <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/mosaic_world_07012015"
-list_output_fnames <- vector("list",length=length(output_fnames))
-for(i in 1:length(output_fnames)){
-  rast_ref <- file.path(out_dir_str,output_fnames[i]) #this is a the ref ouput file
-  lf_to_mosaic <- list_lf[[i]]
-  cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o ",rast_ref,paste(lf_to_mosaic,collapse=" ")) 
-  system(cmd_str)
-  list_output_fnames[[i]] <- rast_ref
-}
- 
-#list_lf_m <- mixedsort(list.files(path=out_dir_str,pattern="mean.*.world.*.global_analyses_07012015.tif",full.names=T))
-list_lf_m <- unlist(list_output_fnames)
-reg_name <- "world"
-out_suffix_str <- "mosaic_07092015"
-l_dates <- c("unweighted_20100831","edge_weighted_20100831","unweighted_20100901","edge_weighted_20100901")
-list_param_plot_daily_mosaics <- list(list_lf_m,reg_name,out_dir_str,out_suffix_str,l_dates)
-names(list_param_plot_daily_mosaics) <- c("lf_m","reg_name","out_dir_str","out_suffix","l_dates")
-
-#undebug(plot_daily_mosaics)
-#test<- plot_daily_mosaics(1,list_param_plot_daily_mosaics)
-num_cores <- 4
-lf_plot <- mclapply(1:length(l_dates),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,
-                    mc.preschedule=FALSE,mc.cores = num_cores)
-
-r_test <- raster("r_m_use_edge_weighted_mean_19920101_reg4_mosaic_run10_1500x4500_global_analyses_10052015.tif")
-plot(r_test)
 
 ##################### END OF SCRIPT ######################
 
