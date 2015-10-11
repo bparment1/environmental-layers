@@ -403,8 +403,15 @@ raster_match <- function(i,list_param){
   raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_","m_",out_suffix,file_format,sep=""))#output file
   r_ref <- init(r_m, fun=set1f, filename=raster_name, overwrite=TRUE)
   #NAvalue(r_ref) <- -9999
+  python_cmd <- file.path(python_bin,"gdalwarp")
 
-  cmd_str <- paste("/usr/bin/gdalwarp",inFilename,raster_name,sep=" ") #this may be a problem
+  #cmd_str <- paste("/usr/bin/gdalwarp",inFilename,raster_name,sep=" ") #this may be a problem
+  cmd_str <- paste(python_cmd,inFilename,raster_name,sep=" ") #this may be a problem
+      
+      
+      
+      
+      
   #gdalwarp -t_srs '+proj=utm +zone=11 +datum=WGS84' raw_spot.tif utm11.tif
 
   system(cmd_str)
@@ -435,7 +442,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #9)out_dir: output directory, default is NULL
   #
   #OUTPUT:
-  # Ojbec is produced with 3 components:
+  # Object is produced with 3 components:
   # 1) mean_mosaic: list of raster files from produced mosaic ,
   # 2) r_weights: list of raster files from weights 
   # 3) r_weights_prod: list of raster files from product weights (weights*value)
