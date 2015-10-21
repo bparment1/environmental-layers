@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/10/2015            
+#MODIFIED ON: 10/21/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -385,6 +385,7 @@ raster_match <- function(i,list_param){
   lf_files <- list_param$lf_files
   rast_ref <- list_param$rast_ref #name of reference file
   file_format <- list_param$file_format #".tif",".rst" or others
+  python_bin <- list_param$python_bin
   out_suffix <- list_param$out_suffix
   out_dir_str <- list_param$out_dir_str
     
@@ -407,13 +408,7 @@ raster_match <- function(i,list_param){
 
   #cmd_str <- paste("/usr/bin/gdalwarp",inFilename,raster_name,sep=" ") #this may be a problem
   cmd_str <- paste(python_cmd,inFilename,raster_name,sep=" ") #this may be a problem
-      
-      
-      
-      
-      
   #gdalwarp -t_srs '+proj=utm +zone=11 +datum=WGS84' raw_spot.tif utm11.tif
-
   system(cmd_str)
   
   ##return name of file created
@@ -433,13 +428,13 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #2)mosaic_method: mosaic methods availbable:use_sine_weights,use_edge,use_linear_weights
   #3)num_cores: number of cores used in parallilization in mclapply
   #4)r_mask_raster_name: mask rference raster image
-  #4)python_bin: location of python executables, defaut is NULL
-  #5)df_points: point location used in weighting, defaul is NULL
-  #6)NA_flag_val: raster flag values, e.g. -9999
-  #7)file_format: raster format used, default is ".tif"
-  #8)out_suffix: output suffix, default is NULL, it is recommended to add the variable name
+  #5)python_bin: location of python executables, defaut is NULL
+  #6)df_points: point location used in weighting, defaul is NULL
+  #7)NA_flag_val: raster flag values, e.g. -9999
+  #8)file_format: raster format used, default is ".tif"
+  #9)out_suffix: output suffix, default is NULL, it is recommended to add the variable name
   #             here e.g. dailyTmax and date!!
-  #9)out_dir: output directory, default is NULL
+  #10)out_dir: output directory, default is NULL
   #
   #OUTPUT:
   # Object is produced with 3 components:
@@ -545,7 +540,12 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #mosaic function using gdal_merge to compute a reference image to mach.
 
   rast_ref <- file.path(out_dir,paste("avg_",out_suffix,file_format,sep="")) #this is a the ref
-  cmd_str <- paste("python","/usr/bin/gdal_merge.py","-o ",rast_ref,paste(lf_mosaic,collapse=" ")) 
+  if(is.null(python_bin)){
+      python_bin=""
+  }
+    
+  python_cmd <- file.path(python_bin,"gdal_merge.py")  
+  cmd_str <- paste("python",python_cmd,"-o ",rast_ref,paste(lf_mosaic,collapse=" ")) 
   system(cmd_str)
 
   ## Create raster image for original predicted images with matching resolution and extent to the mosaic (reference image)
@@ -558,8 +558,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     
     lf_files <- unlist(list_weights)
 
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+    list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
     #debug(raster_match)
     #r_test <- raster(raster_match(1,list_param_raster_match))
@@ -567,8 +567,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
     lf_files <- unlist(list_weights_prod)
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+    list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
     #num_cores <-11
     list_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
@@ -597,7 +597,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
     list_args_weights$filename <- r_weights_sum_raster_name
     list_args_weights$overwrite<- TRUE
-    
+    list_args_weights_prod$overwrite<- TRUE  #add to overwrite existing image  
     
     list_args_weights$fun <- "sum" #we want the sum to compute the weighted mean
     list_args_weights$na.rm <- TRUE
@@ -635,10 +635,13 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
     #now use the mask
-    r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",method_str,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
-
-    #mask(raster(r_m_weighted_mean_raster_name),mask=r_mask_raster_name,filename=r_m_weighted_mean_mask_raster_name)
-    
+    if(!is.null(r_mask_raster_name)){
+      r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",method_str,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
+      mask(raster(r_m_weighted_mean_raster_name),mask=r_mask_raster_name,filename=r_m_weighted_mean_mask_raster_name)
+      raster_name <- r_m_weighted_mean_mask_raster_name
+    }else{
+      raster_name <- r_m_weighted_mean_raster_name
+    }
   }
 
   if(mosaic_method=="unweighted"){
@@ -663,17 +666,27 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
     list_args_pred_m$fun <- "mean"
     list_args_pred_m$na.rm <- TRUE
+    list_args_pred_m$overwrite<- TRUE  #add to overwrite existing image 
     #list_args_pred_m$filename <- 
 
-    #Mosaic files
+    #Mosaic files using R raster mosaic 
     r_m_mean <- do.call(mosaic,list_args_pred_m) #this is unweighted mean from the predicted raster
 
-    raster_name <- file.path(out_dir,paste("r_m_mean_",out_suffix,".tif",sep=""))
-    writeRaster(r_m_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  #unweighted mean
+    r_m_mean_raster_name <- file.path(out_dir,paste("r_m_mean_",out_suffix,".tif",sep=""))
+    writeRaster(r_m_mean, NAflag=NA_flag_val,filename=r_m_mean_raster_name,overwrite=TRUE)  #unweighted mean
 
     #r_m_mean_unweighted <- paste("r_m_mean_",out_suffix,".tif",sep="")
-    list_weights <- NULL
-    list_weights_prod <- NULL
+    #list_weights <- NULL
+    #list_weights_prod <- NULL
+
+    
+    if(!is.null(r_mask_raster_name)){
+      r_m_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",method_str,"_unweighted_mean_mask_",out_suffix,".tif",sep=""))
+      mask(raster(r_m_mean_raster_name),mask=r_mask_raster_name,filename=r_m_mean_mask_raster_name)
+      raster_name <- r_m_mean_mask_raster_name
+    }else{
+      raster_name <- r_m_mean_raster_name
+    }
 
   }
   
