@@ -5,13 +5,16 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/10/2015            
+#MODIFIED ON: 10/23/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
 #TODO:
 #1) Make this is a script/function callable from the shell/bash
-#2) generalize to run dates and region fast
+#2) generalize to run dates and region fast (use python mosaic Alberto code)
+#3) clean up temporary files, it builds currently on the disk
+#4) fix output folder for some of output files
+#
 
 #################################################################################################
 
@@ -46,7 +49,7 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_10102015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_10232015.R"
 
 in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 source(file.path(in_dir_script,function_mosaicing))
@@ -89,6 +92,8 @@ NA_value <- -9999 #PARAM 11
 NA_flag_val <- NA_value
      
 num_cores <- 6 #PARAM 12                  
+
+infile_mask <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
 
 ########################## START SCRIPT ##############################
 
@@ -152,6 +157,8 @@ r1 <- raster(lf_mosaic1[1])
 
 plot(r1)
 #plot(r2)
+r1_ac <- raster(lf_accuracy_raster[1]) 
+plot(r1_ac)
 
 #################################
 #### Second mosaic tiles for the variable and accuracy metrid
@@ -167,9 +174,11 @@ for(i in 1:length(day_to_mosaic)){
   out_suffix_str <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
   #debug(mosaicFiles)
   #can also loop through methods!!!
-  python_bin <- "/usr/bin/" #python gdal bin
-  mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic1,mosaic_method="use_edge_weights",
+  python_bin <- "/usr/bin/" #python gdal bin, this may change on NEX!
+  mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic1,
+                                        mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
+                                        r_mask_raster_name=infile_mask,
                                         python_bin=python_bin,
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
@@ -180,8 +189,10 @@ for(i in 1:length(day_to_mosaic)){
 
   #debug(mosaicFiles)
   #can also loop through methods!!!
-  mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster,mosaic_method="use_edge_weights",
+  mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster,
+                                        mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
+                                        r_mask_raster_name=infile_mask,
                                         python_bin=python_bin,
                                         df_points=NULL,NA_flag=NA_flag_val,
                                         file_format=file_format,out_suffix=out_suffix_str,
