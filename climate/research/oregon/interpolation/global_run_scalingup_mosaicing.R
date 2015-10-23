@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/23/2015            
+#MODIFIED ON: 10/26/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -95,6 +95,9 @@ num_cores <- 6 #PARAM 12
 
 infile_mask <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
 
+#tb_accuracy_name <- file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep=""))
+tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
+
 ########################## START SCRIPT ##############################
 
 
@@ -112,22 +115,19 @@ if(create_out_dir_param==TRUE){
 setwd(out_dir)
 
 
-tb <- read.table(file=file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep="")),sep=",")
+tb <- read.table(file=tb_accuracy_name,sep=",")
 
-
-lf_mosaic1 <-list.files(path=file.path(in_dir_tiles),    
-           pattern=paste(".*.",day_to_mosaic[1],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
-
-lf_mosaic2 <-list.files(path=file.path(in_dir_tiles),    
-           pattern=paste(".*.",day_to_mosaic[2],".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
-
-
+#list all files to mosaic for a list of day
+lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles),    
+           pattern=paste(".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T)})
+       
 ##################### PART 2: produce the mosaic ##################
 
 ##########################
 #### First generate rmse images for each date and tile for the region
 
-lf <- lf_mosaic1 #list of files to mosaic for date 1, there a 28 files for reg4, South America
+#lf <- lf_mosaic1 #list of files to mosaic for date 1, there a 28 files for reg4, South America
+lf <- lf_mosaic #list of files to mosaic for date 1, there a 28 files for reg4, South America
 
 #tb <- list_param$tb #fitting or validation table with all days
 #metric_name <- "rmse" #RMSE, MAE etc.
@@ -140,29 +140,33 @@ days_to_process <- day_to_mosaic
 out_dir_str <- out_dir
 out_suffix_str <- out_suffix
 
+#Improve by adding multicores option
 list_param_accuracy_metric_raster <- list(lf,tb,metric_name,pred_mod_name,y_var_name,interpolation_method,
                     days_to_process,NA_flag_val,file_format,out_dir_str,out_suffix_str) 
-
 names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
                        "days_to_process","NA_flag_val","file_format","out_dir_str","out_suffix_str") 
+list_raster_created_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_metric_raster,
+                                  list_param=list_param_accuracy_metric_raster)
 #debug(create_accuracy_metric_raster)
-raster_created_obj <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
+#list_raster_created_obj <- lapply(1:1,FUN=create_accuracy_metric_raster,
+#                                  list_param=list_param_accuracy_metric_raster)
+
+#raster_created_obj <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
 
 #Extract list of files for rmse and date 1 (19920101), there should be 28 raster images
-lf_accuracy_raster <- unlist(raster_created_obj$list_raster_name) 
+lf_accuracy_raster <- lapply(1:length(list_raster_created_obj),FUN=function(i){unlist(list_raster_created_obj[[i]]$list_raster_name)}) 
 
 #Plot as quick check
-r1 <- raster(lf_mosaic1[1]) 
+r1 <- raster(lf_mosaic[[1]][1]) 
 #r2 <- raster(lf_mosaic2[2]) 
 
 plot(r1)
 #plot(r2)
-r1_ac <- raster(lf_accuracy_raster[1]) 
+r1_ac <- raster(lf_accuracy_raster[[1]][1]) 
 plot(r1_ac)
 
 #################################
 #### Second mosaic tiles for the variable and accuracy metrid
-
 
 #methods availbable:use_sine_weights,use_edge,use_linear_weights
 #only use edge method for now
@@ -171,31 +175,31 @@ list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
 for(i in 1:length(day_to_mosaic)){
   
   mosaic_method <- "use_edge_weights" #this is distance from edge
-  out_suffix_str <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
+  out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
   #debug(mosaicFiles)
   #can also loop through methods!!!
   python_bin <- "/usr/bin/" #python gdal bin, this may change on NEX!
-  mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic1,
+  mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic[[i]],
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
                                         python_bin=python_bin,
                                         df_points=NULL,NA_flag=NA_flag_val,
-                                        file_format=file_format,out_suffix=out_suffix_str,
+                                        file_format=file_format,out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
   mosaic_method <- "use_edge_weights" #this is distance from edge
-  out_suffix_str <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
+  out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
 
   #debug(mosaicFiles)
   #can also loop through methods!!!
-  mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster,
+  mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster[[i]],
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
                                         python_bin=python_bin,
                                         df_points=NULL,NA_flag=NA_flag_val,
-                                        file_format=file_format,out_suffix=out_suffix_str,
+                                        file_format=file_format,out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
   list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
