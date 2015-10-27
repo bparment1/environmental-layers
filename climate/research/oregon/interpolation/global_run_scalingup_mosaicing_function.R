@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/26/2015            
+#MODIFIED ON: 10/27/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -24,7 +24,7 @@ library(mgcv)                                # GAM package by Simon Wood
 library(sp)                                  # Spatial pacakge with class definition by Bivand et al.
 library(spdep)                               # Spatial pacakge with methods and spatial stat. by Bivand et al.
 library(rgdal)                               # GDAL wrapper for R, spatial utilities
-library(gstat)                               # Kriging and co-kriging by Pebesma et al.
+#library(gstat)                               # Kriging and co-kriging by Pebesma et al., not on NEX
 library(fields)                              # NCAR Spatial Interpolation methods such as kriging, splines
 library(raster)                              # Hijmans et al. package for raster processing
 library(gdata)                               # various tools with xls reading, cbindX
@@ -35,9 +35,9 @@ library(maps)                                # Tools and data for spatial/geogra
 library(reshape)                             # Change shape of object, summarize results 
 library(plotrix)                             # Additional plotting functions
 library(plyr)                                # Various tools including rbind.fill
-library(spgwr)                               # GWR method
-library(automap)                             # Kriging automatic fitting of variogram using gstat
-library(rgeos)                               # Geometric, topologic library of functions
+#library(spgwr)                               # GWR method, not on NEX
+#library(automap)                             # Kriging automatic fitting of variogram using gstat, not on NEX
+#library(rgeos)                               # Geometric, topologic library of functions
 #RPostgreSQL                                 # Interface R and Postgres, not used in this script
 library(gridExtra)
 #Additional libraries not used in workflow
@@ -414,7 +414,7 @@ raster_match <- function(i,list_param){
   return(raster_name)
 }
 
-mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
+mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py",algorithm="R",df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
   #This functions mosaics tiles/files give a list of files
   #There are four options to mosaic:   use_sine_weights,use_edge,use_linear_weights, unweighted
   #Sine weights fits sine fuctions across rows and column producing elliptical/spherical patterns from center
@@ -434,6 +434,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #9)out_suffix: output suffix, default is NULL, it is recommended to add the variable name
   #             here e.g. dailyTmax and date!!
   #10)out_dir: output directory, default is NULL
+  #11)algorithm: use R or python function
   #
   #OUTPUT:
   # Object is produced with 3 components:
@@ -565,7 +566,6 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     
     lf_files <- unlist(list_weights)
 
-    
     ##Maching resolution is probably only necessary for the r mosaic function
     #MOdify later to take into account option R or python...
     list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
@@ -586,44 +586,116 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #####################
     ###### PART 4: compute the weighted mean with the mosaic function #####
 
-    ##Make this a function later
-    #list_weights_m <- list(list_linear_weights_m,list_edge_weights_m,list_sine_weights_m)
-    #list_weights_prod_m <- list(list_linear_weights_prod_m,list_edge_weights_prod_m,list_sine_weights_prod_m)
-    #list_methods <- c("linear","edge","sine")
-    list_mosaiced_files <- vector("list",length=1)
+    if(algorithm=="python"){
+      
+      #The file to do the merge is /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py. Sample call below.
+      #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
+      #lf_day_to_mosaic <- list_weights_m
+      
+      #pattern_str <- paste("*.","predicted_mod1",".*.",day_to_mosaic[i],".*.tif",sep="")
+      #lf_day_to_mosaic <- lapply(1:length(unlist(in_dir_mosaics)),FUN=function(k){list.files(path=unlist(in_dir_mosaics)[k],pattern=pattern_str,full.names=T,recursive=T)}) 
+      #lf_day_to_mosaic <- unlist(lf_day_to_mosaic)
+      #write.table(lf_day_to_mosaic,file=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
+      #filename_list_mosaics <- file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep=""))
+      filename_list_mosaics_weights_m <- file.path(out_dir,paste("list_to_mosaics_","weights_m_",mosaic_method,"_",out_suffix,".txt",sep=""))
+      filename_list_mosaics_prod_weights_m <- file.path(out_dir,paste("list_to_mosaics_","prod_weights_m_",mosaic_method,"_",out_suffix,".txt",sep=""))
+      
+      writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
+      writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
 
-    list_args_weights <- list_weights_m
-    list_args_weights_prod <- list_weights_prod_m
-    method_str <- method
-  
-    #making a list of raster object before mosaicing
-    list_args_weights <- lapply(1:length(list_args_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_weights)
+      #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+      #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+      out_mosaic_name_weights_m  <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+      out_mosaic_name_prod_weights_m <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
 
-    #get the list of weights product into raster objects
+      #in_file_to_mosaics <- filename_list_mosaics        
+      #in_dir_mosaics <- file.path(in_dir1,region_names[i])
+      #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
+      #Can be changed to have mosaics in different dir..
+      #out_dir_mosaics <- out_dir
+      #prefix_str <- "reg4_1500x4500"
+      #tile_size <- basename(dirname(in_dir[[i]]))
+      #tile_size <- basename(in_dir1)
 
-    list_args_weights_prod <- lapply(1:length(list_args_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_weights_prod)
-    list_args_weights_prod$fun <- "sum" #use sum while mosaicing
-    list_args_weights_prod$na.rm <- TRUE #deal with NA by removal
-    r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
-    list_args_weights$filename <- r_weights_sum_raster_name
-    list_args_weights$overwrite<- TRUE
-    list_args_weights_prod$overwrite<- TRUE  #add to overwrite existing image  
+      #prefix_str <- paste(region_names[i],"_",tile_size,sep="")
+      #mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
+      #out_mosaic_name <- paste(region,"_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
+      
+      ## Mosaic sum weights...
+      input_file <- filename_list_mosaics_weights_m
+      module_path <- mosaic_python #this should be a parameter for the function...
+
+      mosaic_python_merge <- function(module_path,module_name,input_file,out_mosaic_name){
+        #d
+        #out_mosaic_name <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+        cmd_str <- paste("python", file.path(module_path,module_name),
+                         "--config GDAL_CACHEMAX=1500",
+                         "--overwrite=TRUE",
+                         paste("-o",out_mosaic_name,sep=" "),
+                         paste("--optfile", input_file,sep=" "))
+        system(cmd_str)
+        #list(out_mosaic_name,cmd_str)
+        return(out_mosaic_name)
+      }
+      #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py 
+      #--config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
+      r_weights_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
+                                                       module_name="gdal_merge_sum.py",
+                                                       input_file=filename_list_mosaics_weights_m,
+                                                       out_mosaic_name=out_mosaic_name_weights_m)
+
+      r_prod_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
+                                                    module_name="gdal_merge_sum.py",
+                                                    input_file=filename_list_mosaics_prod_weights_m,
+                                                    out_mosaic_name=out_mosaic_name_prod_weights_m)
+      
+    }
     
-    list_args_weights$fun <- "sum" #we want the sum to compute the weighted mean
-    list_args_weights$na.rm <- TRUE
-    r_prod_sum_raster_name <- file.path(out_dir,paste("r_prod_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
-    list_args_weights_prod$filename <- r_prod_sum_raster_name
+    if(algorithm=="R"){
+      
+      #The file to do the merge is /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py. Sample call below.
+      #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
+          ##Make this a function later
+      #list_weights_m <- list(list_linear_weights_m,list_edge_weights_m,list_sine_weights_m)
+      #list_weights_prod_m <- list(list_linear_weights_prod_m,list_edge_weights_prod_m,list_sine_weights_prod_m)
+      #list_methods <- c("linear","edge","sine")
+      list_mosaiced_files <- vector("list",length=1)
 
-    #Mosaic files: this is where we can use Alberto Python function but modified with option for
-    #sum in addition ot the current option for mean.
-    #This took 23 minutes!
-    r_weights_sum <- do.call(mosaic,list_args_weights) #weights sum image mosaiced
-    #This took 23 minutes with the R function
-    r_prod_sum <- do.call(mosaic,list_args_weights_prod) #weights sum product image mosacied
+      list_args_weights <- list_weights_m
+      list_args_weights_prod <- list_weights_prod_m
+      method_str <- method
+  
+      #making a list of raster object before mosaicing
+      list_args_weights <- lapply(1:length(list_args_weights), FUN=function(i,x){raster(x[[i]])},x=list_args_weights)
+
+      #get the list of weights product into raster objects
+
+      list_args_weights_prod <- lapply(1:length(list_args_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_weights_prod)
+      list_args_weights_prod$fun <- "sum" #use sum while mosaicing
+      list_args_weights_prod$na.rm <- TRUE #deal with NA by removal
+      r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+      list_args_weights$filename <- r_weights_sum_raster_name
+      list_args_weights$overwrite<- TRUE
+      list_args_weights_prod$overwrite<- TRUE  #add to overwrite existing image  
+    
+      list_args_weights$fun <- "sum" #we want the sum to compute the weighted mean
+      list_args_weights$na.rm <- TRUE
+      r_prod_sum_raster_name <- file.path(out_dir,paste("r_prod_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+      list_args_weights_prod$filename <- r_prod_sum_raster_name
+
+      #Mosaic files: this is where we can use Alberto Python function but modified with option for
+      #sum in addition ot the current option for mean.
+      #This took 23 minutes!
+      r_weights_sum <- do.call(mosaic,list_args_weights) #weights sum image mosaiced
+      #This took 23 minutes with the R function
+      r_prod_sum <- do.call(mosaic,list_args_weights_prod) #weights sum product image mosacied
+
+    }
+    
 
     #r_m_weighted_mean <- r_prod_sum/r_weights_sum #this is the mosaic using weighted mean...
 
-    r_m_weighted_mean_raster_name <- file.path(out_dir,paste("r_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+    r_m_weighted_mean_raster_name <- file.path(out_dir,paste("r_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
 
     if(is.null(python_bin)){
       python_bin=""
@@ -640,7 +712,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
     #now use the mask
     if(!is.null(r_mask_raster_name)){
-      r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",method_str,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
+      r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",method_mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
       mask(raster(r_m_weighted_mean_raster_name),mask=raster(r_mask_raster_name),
            filename=r_m_weighted_mean_mask_raster_name,overwrite=TRUE)
       raster_name <- r_m_weighted_mean_mask_raster_name
@@ -852,6 +924,61 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   return(raster_name)
   
 }
+
+
+plot_screen_raster_val<-function(i,list_param){
+  ##USAGE###
+  #Screen raster list and produced plot as png.
+  fname <-list_param$lf_raster_fname[i]
+  screenRast <- list_param$screenRast
+  l_dates<- list_param$l_dates
+  out_dir_str <- list_param$out_dir_str
+  prefix_str <-list_param$prefix_str
+  out_suffix_str <- list_param$out_suffix_str
+  
+  ### START SCRIPT ####
+  date_proc <- l_dates[i]
+  
+  if(screenRast==TRUE){
+    r_test <- raster(fname)
+
+    m <- c(-Inf, -100, NA,  
+         -100, 100, 1, 
+         100, Inf, NA) #can change the thresholds later
+    rclmat <- matrix(m, ncol=3, byrow=TRUE)
+    rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
+    #file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
+    extension_str <- extension(filename(r_test))
+    raster_name_tmp <- gsub(extension_str,"",basename(filename(r_test)))
+    raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_masked.tif",sep=""))
+  
+    r_pred <- mask(r_test,rc,filename=raster_name,overwrite=TRUE)
+  }else{
+    r_pred <- raster(fname)
+  }
+  
+  #date_proc <- file_name[7] #specific tot he current naming of files
+  #date_proc<- "2010010101"
+
+  #paste(raster_name[1:7],collapse="_")
+  #add filename option later
+
+  res_pix <- 960
+  #res_pix <- 480
+
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+#  png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
+#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  png(filename=paste(prefix_str,"_",date_proc,"_","_",out_suffix_str,".png",sep=""),
+    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  plot(r_pred,main=paste("Predicted on ",date_proc , " ", sep=""),cex.main=1.5)
+  dev.off()
+
+}
+
 
 
 ##################### END OF SCRIPT ######################
