@@ -430,7 +430,7 @@ raster_match <- function(i,list_param){
   return(raster_name)
 }
 
-mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py",algorithm="R",df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
+mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
   #This functions mosaics tiles/files give a list of files. 
   #There are four options to mosaic:   use_sine_weights,use_edge,use_linear_weights, unweighted
   #Sine weights fits sine fuctions across rows and column producing elliptical/spherical patterns from center
@@ -453,6 +453,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #             here e.g. dailyTmax and date!!
   #11)out_dir: output directory, default is NULL
   #12)algorithm: use R or python function
+  #13)match extent: if TRUE match extent before mosaicing
   #
   #OUTPUT:
   # Object is produced with 3 components:
@@ -587,6 +588,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     ###### PART 4: compute the weighted mean with the mosaic function #####
 
     if(algorithm=="python"){
+      
 
 
       #The file to do the merge is /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py. Sample call below.
@@ -651,14 +653,13 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                                                     module_name="gdal_merge_sum.py",
                                                     input_file=filename_list_mosaics_prod_weights_m,
                                                     out_mosaic_name=out_mosaic_name_prod_weights_m)
-      r_weights_sum_raster_name <- mosaic_prod_weights_obj$out_mosaic_name
+      r_prod_sum_raster_name <- mosaic_prod_weights_obj$out_mosaic_name
       cmd_str2 <- mosaic_prod_weights_obj$cmd_str
       #write out python command used for mosaicing
       cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
       writeLines(cmd_str1,con=cmd_mosaic_logfile) #weights files to mosaic 
       #writeLines(cmd_str2,con=file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))) #weights files to mosaic 
       cat(cmd_str2, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
-}
     }
     
     if(algorithm=="R"){
