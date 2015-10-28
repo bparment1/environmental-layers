@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/26/2015            
+#MODIFIED ON: 10/28/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -25,7 +25,7 @@ library(mgcv)                                # GAM package by Simon Wood
 library(sp)                                  # Spatial pacakge with class definition by Bivand et al.
 library(spdep)                               # Spatial pacakge with methods and spatial stat. by Bivand et al.
 library(rgdal)                               # GDAL wrapper for R, spatial utilities
-library(gstat)                               # Kriging and co-kriging by Pebesma et al.
+#library(gstat)                               # Kriging and co-kriging by Pebesma et al.
 library(fields)                              # NCAR Spatial Interpolation methods such as kriging, splines
 library(raster)                              # Hijmans et al. package for raster processing
 library(gdata)                               # various tools with xls reading, cbindX
@@ -36,9 +36,9 @@ library(maps)                                # Tools and data for spatial/geogra
 library(reshape)                             # Change shape of object, summarize results 
 library(plotrix)                             # Additional plotting functions
 library(plyr)                                # Various tools including rbind.fill
-library(spgwr)                               # GWR method
-library(automap)                             # Kriging automatic fitting of variogram using gstat
-library(rgeos)                               # Geometric, topologic library of functions
+#library(spgwr)                               # GWR method
+#library(automap)                             # Kriging automatic fitting of variogram using gstat
+#library(rgeos)                               # Geometric, topologic library of functions
 #RPostgreSQL                                 # Interface R and Postgres, not used in this script
 library(gridExtra)
 #Additional libraries not used in workflow
@@ -49,9 +49,10 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_10232015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_10282015.R"
 
-in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts"
+in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
+#in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
 source(file.path(in_dir_script,function_mosaicing))
 
 ############################################
@@ -61,8 +62,10 @@ source(file.path(in_dir_script,function_mosaicing))
 
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
 in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
-in_dir_tiles <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles"
-#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg1" #North America
+#in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015" #NEX
+
+in_dir_tiles <- file.path(in_dir,"tiles")
+#in_dir_tiles <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles" #North America
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg2" #Europe
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg4" #South America
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg5" #Africa
@@ -81,7 +84,7 @@ out_dir <- in_dir #PARAM 7
 create_out_dir_param <- FALSE #PARAM 8
 
 #if daily mosaics NULL then mosaicas all days of the year
-day_to_mosaic <- c("19920101","19920102","19920103") #PARAM9
+day_to_mosaic <- c("19920101","19920102","19920103","19920104","19920105") #PARAM9
 
 #CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
 #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -94,10 +97,22 @@ NA_flag_val <- NA_value
 num_cores <- 6 #PARAM 12                  
 
 infile_mask <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
+#infile_mask <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
 
 #tb_accuracy_name <- file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep=""))
 tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
+#tb_accuracy_name <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
 
+#python script and gdal on NEX NASA:
+#mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin"
+#python script and gdal on Atlas NCEAS
+mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode"
+python_bin <- "/usr/bin"
+
+#algorithm <- "python" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+ 
 ########################## START SCRIPT ##############################
 
 
@@ -160,10 +175,10 @@ lf_accuracy_raster <- lapply(1:length(list_raster_created_obj),FUN=function(i){u
 r1 <- raster(lf_mosaic[[1]][1]) 
 #r2 <- raster(lf_mosaic2[2]) 
 
-plot(r1)
+#plot(r1)
 #plot(r2)
-r1_ac <- raster(lf_accuracy_raster[[1]][1]) 
-plot(r1_ac)
+#r1_ac <- raster(lf_accuracy_raster[[1]][1]) 
+#plot(r1_ac)
 
 #################################
 #### Second mosaic tiles for the variable and accuracy metrid
@@ -178,14 +193,19 @@ for(i in 1:length(day_to_mosaic)){
   out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
   #debug(mosaicFiles)
   #can also loop through methods!!!
-  python_bin <- "/usr/bin/" #python gdal bin, this may change on NEX!
+  #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
+  #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
   mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic[[i]],
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
                                         python_bin=python_bin,
-                                        df_points=NULL,NA_flag=NA_flag_val,
-                                        file_format=file_format,out_suffix=out_suffix_tmp,
+                                        mosaic_python=mosaic_python,
+                                        algorithm=algorithm,
+                                        df_points=NULL,
+                                        NA_flag=NA_flag_val,
+                                        file_format=file_format,
+                                        out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
   mosaic_method <- "use_edge_weights" #this is distance from edge
@@ -198,8 +218,12 @@ for(i in 1:length(day_to_mosaic)){
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
                                         python_bin=python_bin,
-                                        df_points=NULL,NA_flag=NA_flag_val,
-                                        file_format=file_format,out_suffix=out_suffix_tmp,
+                                        mosaic_python=mosaic_python,
+                                        algorithm=algorithm,
+                                        df_points=NULL,
+                                        NA_flag=NA_flag_val,
+                                        file_format=file_format,
+                                        out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
   list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
@@ -209,31 +233,60 @@ for(i in 1:length(day_to_mosaic)){
 ###### PART 2: Analysis and figures for the outputs of mosaic function #####
 
 #### compute and aspect and slope with figures
-list_lf_mosaic_obj <- vector("list",length(day_to_mosaic))
-lf_mean_mosaic <- vector("list",length(mosaicing_method))#2methods only
-l_method_mosaic <- vector("list",length(mosaicing_method))
-list_out_suffix <- vector("list",length(mosaicing_method))
+#list_lf_mosaic_obj <- vector("list",length(day_to_mosaic))
+#lf_mean_mosaic <- vector("list",length(mosaicing_method))#2methods only
+#l_method_mosaic <- vector("list",length(mosaicing_method))
+#list_out_suffix <- vector("list",length(mosaicing_method))
 
-for(i in 1:length(day_to_mosaic)){
-  list_lf_mosaic_obj[[i]] <- list.files(path=out_dir,pattern=paste("*",day_to_mosaic[i],
-                                                                   "_.*.RData",sep=""))
-  lf_mean_mosaic[[i]] <- unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["mean_mosaic"]]}))
-  l_method_mosaic[[i]] <- paste(unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["method"]]})),day_to_mosaic[i],sep="_")
-  list_out_suffix[[i]] <- unlist(paste(l_method_mosaic[[i]],day_to_mosaic[[i]],out_suffix,sep="_"))
-}
+#for(i in 1:length(day_to_mosaic)){
+#  list_lf_mosaic_obj[[i]] <- list.files(path=out_dir,pattern=paste("*",day_to_mosaic[i],
+#                                                                   "_.*.RData",sep=""))
+#  lf_mean_mosaic[[i]] <- unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["mean_mosaic"]]}))
+#  l_method_mosaic[[i]] <- paste(unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["method"]]})),day_to_mosaic[i],sep="_")
+#  list_out_suffix[[i]] <- unlist(paste(l_method_mosaic[[i]],day_to_mosaic[[i]],out_suffix,sep="_"))
+#}
 
 
-list_param_plot_mosaic <- list(lf_mosaic=unlist(lf_mean_mosaic),
-                               method=unlist(l_method_mosaic),
-                               out_suffix=unlist(list_out_suffix))
+#list_param_plot_mosaic <- list(lf_mosaic=unlist(lf_mean_mosaic),
+#                               method=unlist(l_method_mosaic),
+#                               out_suffix=unlist(list_out_suffix))
 
 #plot and produce png movie...
 #plot_mosaic(1,list_param=list_param_plot_mosaic)
-num_cores <- 4
+num_cores <- 1
 l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)),FUN=plot_mosaic,
                         list_param= list_param_plot_mosaic,
                         mc.preschedule=FALSE,mc.cores = num_cores)
 
+lf_plot<- list.files(pattern="r_m_use.*.mask.*.tif$")
+lf_mean_mosaic <- lf_plot
+
+
+list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[1:3]),
+                               screenRast=FALSE,
+                               l_dates=day_to_mosaic,
+                               out_dir_str=out_dir,
+                               out_prefix_str <- "dailyTmax_",
+                               out_suffix_str=out_suffix)
+#plot_screen_raster_val(3,list_param_plot_mosaic)
+#debug(plot_screen_raster_val)
+
+num_cores <- 3
+l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)[1:3]),FUN=plot_screen_raster_val,
+                        list_param= list_param_plot_mosaic,
+                        mc.preschedule=FALSE,mc.cores = num_cores)
+
+
+list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[4:6]),
+                               screenRast=FALSE,
+                               l_dates=day_to_mosaic,
+                               out_dir_str=out_dir,
+                               out_prefix_str <- paste("rmse_",out_suffix,sep=""),
+                               out_suffix_str=paste("rmse_",out_suffix,sep=""))
+num_cores <- 3
+l_png_files_rmse <- mclapply(1:length(unlist(lf_mean_mosaic)[4:6]),FUN=plot_screen_raster_val,
+                        list_param= list_param_plot_mosaic,
+                        mc.preschedule=FALSE,mc.cores = num_cores)
 
 ###############
 
