@@ -92,7 +92,7 @@ out_dir <- in_dir #PARAM 7
 create_out_dir_param <- FALSE #PARAM 8
 
 #if daily mosaics NULL then mosaicas all days of the year
-day_to_mosaic <- c("19920101","19920102","19920103","19920104","19920105") #PARAM9
+day_to_mosaic <- c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
 
 #CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
 #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -199,7 +199,7 @@ for(i in 1:length(day_to_mosaic)){
   
   mosaic_method <- "use_edge_weights" #this is distance from edge
   out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
-  #debug(mosaicFiles)
+  debug(mosaicFiles)
   #can also loop through methods!!!
   #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
   #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
