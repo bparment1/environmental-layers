@@ -16,6 +16,14 @@
 #4) fix output folder for some of output files
 #
 
+### Before running, the gdal modules and other environment parameters need to be set if on NEX-NASA.
+### This can be done by running the following commands:
+#
+#source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
+#MODULEPATH=$MODULEPATH:/nex/modules/files
+#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
+#
+#
 #################################################################################################
 
 ### Loading R library and packages        
@@ -51,8 +59,8 @@ library(xts)
 
 function_mosaicing <-"global_run_scalingup_mosaicing_function_10282015.R"
 
-in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
-#in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
+#in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
+in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
 source(file.path(in_dir_script,function_mosaicing))
 
 ############################################
@@ -61,8 +69,8 @@ source(file.path(in_dir_script,function_mosaicing))
 #Data is on ATLAS: reg4 (South America)
 
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
-in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
-#in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015" #NEX
+#in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
+in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015" #NEX
 
 in_dir_tiles <- file.path(in_dir,"tiles")
 #in_dir_tiles <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles" #North America
@@ -96,22 +104,22 @@ NA_flag_val <- NA_value
      
 num_cores <- 6 #PARAM 12                  
 
-infile_mask <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
-#infile_mask <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
+#infile_mask <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
+infile_mask <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
 
 #tb_accuracy_name <- file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep=""))
-tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
-#tb_accuracy_name <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
+#tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
+tb_accuracy_name <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
 
 #python script and gdal on NEX NASA:
-#mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin"
+mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
 #python script and gdal on Atlas NCEAS
-mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode"
-python_bin <- "/usr/bin"
+#mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode"
+#python_bin <- "/usr/bin"
 
-#algorithm <- "python" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
-algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+algorithm <- "python" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+#algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
  
 ########################## START SCRIPT ##############################
 
