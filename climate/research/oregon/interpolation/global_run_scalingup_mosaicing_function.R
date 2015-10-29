@@ -415,12 +415,13 @@ raster_match <- function(i,list_param){
 }
 
 mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py",algorithm="R",df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
-  #This functions mosaics tiles/files give a list of files
+  #This functions mosaics tiles/files give a list of files. 
   #There are four options to mosaic:   use_sine_weights,use_edge,use_linear_weights, unweighted
   #Sine weights fits sine fuctions across rows and column producing elliptical/spherical patterns from center
   #Use edge uses the distance from the edge of the tiles/fies, higher weights towards the center
   #Linear weights use simple linear average from distance point feature (usually centroid)
   #Unweighted: average without and weigthing surface
+  #In addition, option is given to the user to use R raster mosaic function or a python/gdal modified gdalmerge in mosaicing.
   #
   #INPUT Arguments: 
   #1)lf_mosaic: list of files to mosaic
@@ -428,13 +429,14 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #3)num_cores: number of cores used in parallilization in mclapply
   #4)r_mask_raster_name: mask rference raster image
   #5)python_bin: location of python executables, defaut is NULL
-  #6)df_points: point location used in weighting, defaul is NULL
-  #7)NA_flag_val: raster flag values, e.g. -9999
-  #8)file_format: raster format used, default is ".tif"
-  #9)out_suffix: output suffix, default is NULL, it is recommended to add the variable name
+  #6)mosaic_python: location/directory of python excecutable used for mosaicing with option sum/mean from Alberto Guzmann
+  #7)df_points: point location used in weighting, defaul is NULL
+  #8)NA_flag_val: raster flag values, e.g. -9999
+  #9)file_format: raster format used, default is ".tif"
+  #10)out_suffix: output suffix, default is NULL, it is recommended to add the variable name
   #             here e.g. dailyTmax and date!!
-  #10)out_dir: output directory, default is NULL
-  #11)algorithm: use R or python function
+  #11)out_dir: output directory, default is NULL
+  #12)algorithm: use R or python function
   #
   #OUTPUT:
   # Object is produced with 3 components:
@@ -709,10 +711,12 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      "--calc='A/B'","--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str)
     
+    #cmd_str <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin/gdal_calc.py -A r_prod_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif -B r_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif --outfile='test2.tif' --calc='A/B' --overwrite"
+    
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
     #now use the mask
     if(!is.null(r_mask_raster_name)){
-      r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",method_mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
+      r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
       mask(raster(r_m_weighted_mean_raster_name),mask=raster(r_mask_raster_name),
            filename=r_m_weighted_mean_mask_raster_name,overwrite=TRUE)
       raster_name <- r_m_weighted_mean_mask_raster_name
@@ -925,11 +929,12 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   
 }
 
-
+#Use this instead of daily mosaic plot function
 plot_screen_raster_val<-function(i,list_param){
   ##USAGE###
   #Screen raster list and produced plot as png.
   fname <-list_param$lf_raster_fname[i]
+  var_name <-list_param$var_name #tmax, rmse tmax etc.  
   screenRast <- list_param$screenRast
   l_dates<- list_param$l_dates
   out_dir_str <- list_param$out_dir_str
@@ -971,12 +976,14 @@ plot_screen_raster_val<-function(i,list_param){
   
 #  png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
 #    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-  png(filename=paste(prefix_str,"_",date_proc,"_","_",out_suffix_str,".png",sep=""),
+  png_filename <- paste(prefix_str,"_",date_proc,"_","_",out_suffix_str,".png",sep="")
+  png(filename=png_filename ,
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-  plot(r_pred,main=paste("Predicted on ",date_proc , " ", sep=""),cex.main=1.5)
+  plot(r_pred,main=paste("Predicted on ",date_proc ," ",var_name, sep=""),cex.main=1.5)
   dev.off()
-
+  
+  return(png_filename)
 }
 
 
