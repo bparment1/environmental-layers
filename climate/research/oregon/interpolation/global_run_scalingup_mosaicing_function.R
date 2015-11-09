@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/27/2015            
+#MODIFIED ON: 11/09/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -192,6 +192,19 @@ create_accuracy_metric_raster <- function(i, list_param){
 
 #### end of function
 
+mosaic_python_merge <- function(module_path,module_name,input_file,out_mosaic_name){
+  #out_mosaic_name <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+  cmd_str <- paste("python", file.path(module_path,module_name),
+                   "--config GDAL_CACHEMAX=1500",
+                   "--overwrite=TRUE",
+                   paste("-o",out_mosaic_name,sep=" "),
+                  paste("--optfile", input_file,sep=" "))
+  system(cmd_str)
+  #list(out_mosaic_name,cmd_str)
+  return(out_mosaic_name)
+}
+      
+      
 create_weights_fun <- function(i, list_param){
   #This function generates weights from a point location on a raster layer.
   #Note that the weights are normatlized on 0-1 scale using max and min values.
@@ -566,30 +579,13 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   
   if(mosaic_method%in%c("use_linear_weights","use_sine_weights","use_edge_weights")){
     
-    lf_files <- unlist(list_weights)
-
-    ##Maching resolution is probably only necessary for the r mosaic function
-    #MOdify later to take into account option R or python...
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
-
-    #debug(raster_match)
-    #r_test <- raster(raster_match(1,list_param_raster_match))
-
-    list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
-    lf_files <- unlist(list_weights_prod)
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
-
-    #num_cores <-11
-    list_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
     #####################
     ###### PART 4: compute the weighted mean with the mosaic function #####
 
     if(algorithm=="python"){
-      
+
+
       #The file to do the merge is /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py. Sample call below.
       #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
       #lf_day_to_mosaic <- list_weights_m
@@ -599,11 +595,15 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #lf_day_to_mosaic <- unlist(lf_day_to_mosaic)
       #write.table(lf_day_to_mosaic,file=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
       #filename_list_mosaics <- file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep=""))
-      filename_list_mosaics_weights_m <- file.path(out_dir,paste("list_to_mosaics_","weights_m_",mosaic_method,"_",out_suffix,".txt",sep=""))
-      filename_list_mosaics_prod_weights_m <- file.path(out_dir,paste("list_to_mosaics_","prod_weights_m_",mosaic_method,"_",out_suffix,".txt",sep=""))
+
+      filename_list_mosaics_weights_m <- file.path(out_dir,paste("list_to_mosaics_","weights_",mosaic_method,"_",out_suffix,".txt",sep=""))
+      filename_list_mosaics_prod_weights_m <- file.path(out_dir,paste("list_to_mosaics_","prod_weights_",mosaic_method,"_",out_suffix,".txt",sep=""))
       
-      writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
-      writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
+      #writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
+      #writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
+      
+      writeLines(unlist(list_weights),con=filename_list_mosaics_weights_m) #weights files to mosaic 
+      writeLines(unlist(list_weights_prod),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
 
       #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
       #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
@@ -627,18 +627,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       input_file <- filename_list_mosaics_weights_m
       module_path <- mosaic_python #this should be a parameter for the function...
 
-      mosaic_python_merge <- function(module_path,module_name,input_file,out_mosaic_name){
-        #d
-        #out_mosaic_name <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
-        cmd_str <- paste("python", file.path(module_path,module_name),
-                         "--config GDAL_CACHEMAX=1500",
-                         "--overwrite=TRUE",
-                         paste("-o",out_mosaic_name,sep=" "),
-                         paste("--optfile", input_file,sep=" "))
-        system(cmd_str)
-        #list(out_mosaic_name,cmd_str)
-        return(out_mosaic_name)
-      }
+
       #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py 
       #--config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
       r_weights_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
@@ -654,6 +643,29 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     }
     
     if(algorithm=="R"){
+      
+      #If using R, it is necessary to match extent firt
+      
+      lf_files <- unlist(list_weights)
+
+      ##Maching resolution is probably only necessary for the r mosaic function
+      #MOdify later to take into account option R or python...
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+
+      #undebug(raster_match)
+      #r_test <- raster_match(1,list_param_raster_match)
+      #r_test <- raster(raster_match(1,list_param_raster_match))
+
+      list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+      lf_files <- unlist(list_weights_prod)
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+
+      #num_cores <-11
+      list_weights_prod_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
       
       #The file to do the merge is /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py. Sample call below.
       #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
