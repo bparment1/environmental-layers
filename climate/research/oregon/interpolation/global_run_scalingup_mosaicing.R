@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 10/28/2015            
+#MODIFIED ON: 11/09/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -23,6 +23,7 @@
 #MODULEPATH=$MODULEPATH:/nex/modules/files
 #module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 #
+#setfacl -Rm user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 #
 #################################################################################################
 
@@ -57,7 +58,7 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_10282015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_11092015.R"
 
 #in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
 in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
@@ -199,7 +200,7 @@ for(i in 1:length(day_to_mosaic)){
   
   mosaic_method <- "use_edge_weights" #this is distance from edge
   out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
-  debug(mosaicFiles)
+  #debug(mosaicFiles)
   #can also loop through methods!!!
   #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
   #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
@@ -270,8 +271,8 @@ lf_plot<- list.files(pattern="r_m_use.*.mask.*.tif$")
 lf_mean_mosaic <- lf_plot
 
 
-list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[1:3]),
-                               screenRast=FALSE,
+list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[1:2]),
+                               screenRast=TRUE,
                                l_dates=day_to_mosaic,
                                out_dir_str=out_dir,
                                out_prefix_str <- "dailyTmax_",
@@ -279,8 +280,8 @@ list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[1:3]),
 #plot_screen_raster_val(3,list_param_plot_mosaic)
 #debug(plot_screen_raster_val)
 
-num_cores <- 3
-l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)[1:3]),FUN=plot_screen_raster_val,
+num_cores <- 1
+l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)[1:2]),FUN=plot_screen_raster_val,
                         list_param= list_param_plot_mosaic,
                         mc.preschedule=FALSE,mc.cores = num_cores)
 
