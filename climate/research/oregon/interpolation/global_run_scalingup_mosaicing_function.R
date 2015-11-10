@@ -201,7 +201,10 @@ mosaic_python_merge <- function(module_path,module_name,input_file,out_mosaic_na
                   paste("--optfile", input_file,sep=" "))
   system(cmd_str)
   #list(out_mosaic_name,cmd_str)
-  return(out_mosaic_name)
+  mosaic_python_merge_obj <- list(out_mosaic_name,cmd_str)
+  names(mosaic_python_merge_obj) <- c("out_mosaic_name","cmd_str")
+  
+  return(mosaic_python_merge_obj)
 }
       
       
@@ -624,22 +627,38 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #out_mosaic_name <- paste(region,"_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
       
       ## Mosaic sum weights...
-      input_file <- filename_list_mosaics_weights_m
+      #input_file <- filename_list_mosaics_weights_m
       module_path <- mosaic_python #this should be a parameter for the function...
-
 
       #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py 
       #--config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
-      r_weights_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
+      #r_weights_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
+      #                                                 module_name="gdal_merge_sum.py",
+      #                                                 input_file=filename_list_mosaics_weights_m,
+      #                                                 out_mosaic_name=out_mosaic_name_weights_m)
+      mosaic_weights_obj <- mosaic_python_merge(module_path=mosaic_python,
                                                        module_name="gdal_merge_sum.py",
                                                        input_file=filename_list_mosaics_weights_m,
                                                        out_mosaic_name=out_mosaic_name_weights_m)
-
-      r_prod_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
+      r_weights_sum_raster_name <- mosaic_weights_obj$out_mosaic_name
+      cmd_str1 <- mosaic_weights_obj$cmd_str
+      #r_prod_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
+      #                                              module_name="gdal_merge_sum.py",
+      #                                              input_file=filename_list_mosaics_prod_weights_m,
+      #                                              out_mosaic_name=out_mosaic_name_prod_weights_m)
+      
+      mosaic_prod_weights_obj <- mosaic_python_merge(module_path=mosaic_python,
                                                     module_name="gdal_merge_sum.py",
                                                     input_file=filename_list_mosaics_prod_weights_m,
                                                     out_mosaic_name=out_mosaic_name_prod_weights_m)
-      
+      r_weights_sum_raster_name <- mosaic_prod_weights_obj$out_mosaic_name
+      cmd_str2 <- mosaic_prod_weights_obj$cmd_str
+      #write out python command used for mosaicing
+      cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+      writeLines(cmd_str1,con=cmd_mosaic_logfile) #weights files to mosaic 
+      #writeLines(cmd_str2,con=file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))) #weights files to mosaic 
+      cat(cmd_str2, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+}
     }
     
     if(algorithm=="R"){
