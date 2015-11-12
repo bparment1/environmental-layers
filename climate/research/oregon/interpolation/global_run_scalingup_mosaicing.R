@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 11/09/2015            
+#MODIFIED ON: 11/11/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -58,7 +58,7 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_11092015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_11102015.R"
 
 #in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
 in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
@@ -122,6 +122,8 @@ python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
 algorithm <- "python" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
  
+match_extent <- "TRUE"
+
 ########################## START SCRIPT ##############################
 
 
@@ -211,6 +213,7 @@ for(i in 1:length(day_to_mosaic)){
                                         python_bin=python_bin,
                                         mosaic_python=mosaic_python,
                                         algorithm=algorithm,
+                                        match_extent=match_extent,
                                         df_points=NULL,
                                         NA_flag=NA_flag_val,
                                         file_format=file_format,
