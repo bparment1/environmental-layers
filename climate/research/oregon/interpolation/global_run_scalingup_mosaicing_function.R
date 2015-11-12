@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 11/10/2015            
+#MODIFIED ON: 11/12/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -192,13 +192,14 @@ create_accuracy_metric_raster <- function(i, list_param){
 
 #### end of function
 
-mosaic_python_merge <- function(module_path,module_name,input_file,out_mosaic_name){
+mosaic_python_merge <- function(NA_flag_val,module_path,module_name,input_file,out_mosaic_name){
   #out_mosaic_name <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
   cmd_str <- paste("python", file.path(module_path,module_name),
                    "--config GDAL_CACHEMAX=1500",
                    "--overwrite=TRUE",
                    paste("-o",out_mosaic_name,sep=" "),
-                  paste("--optfile", input_file,sep=" "))
+                   paste("--optfile", input_file,sep=" "),
+                   paste("-n",NA_flag_val,sep=" "))
   system(cmd_str)
   #list(out_mosaic_name,cmd_str)
   mosaic_python_merge_obj <- list(out_mosaic_name,cmd_str)
@@ -665,10 +666,12 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #                                                 module_name="gdal_merge_sum.py",
       #                                                 input_file=filename_list_mosaics_weights_m,
       #                                                 out_mosaic_name=out_mosaic_name_weights_m)
-      mosaic_weights_obj <- mosaic_python_merge(module_path=mosaic_python,
-                                                       module_name="gdal_merge_sum.py",
-                                                       input_file=filename_list_mosaics_weights_m,
-                                                       out_mosaic_name=out_mosaic_name_weights_m)
+      #mosaic_python_merge <- function(NA_flag_val,module_path,module_name,input_file,out_mosaic_name){
+      mosaic_weights_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
+                                                module_path=mosaic_python,
+                                                module_name="gdal_merge_sum.py",
+                                                input_file=filename_list_mosaics_weights_m,
+                                                out_mosaic_name=out_mosaic_name_weights_m)
       r_weights_sum_raster_name <- mosaic_weights_obj$out_mosaic_name
       cmd_str1 <- mosaic_weights_obj$cmd_str
       #r_prod_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
@@ -676,10 +679,11 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #                                              input_file=filename_list_mosaics_prod_weights_m,
       #                                              out_mosaic_name=out_mosaic_name_prod_weights_m)
       
-      mosaic_prod_weights_obj <- mosaic_python_merge(module_path=mosaic_python,
-                                                    module_name="gdal_merge_sum.py",
-                                                    input_file=filename_list_mosaics_prod_weights_m,
-                                                    out_mosaic_name=out_mosaic_name_prod_weights_m)
+      mosaic_prod_weights_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
+                                                     module_path=mosaic_python,
+                                                     module_name="gdal_merge_sum.py",
+                                                     input_file=filename_list_mosaics_prod_weights_m,
+                                                     out_mosaic_name=out_mosaic_name_prod_weights_m)
       r_prod_sum_raster_name <- mosaic_prod_weights_obj$out_mosaic_name
       cmd_str2 <- mosaic_prod_weights_obj$cmd_str
       #write out python command used for mosaicing
@@ -1033,8 +1037,8 @@ plot_screen_raster_val<-function(i,list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-#  png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
-#    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  #  png(filename=paste("Figure10_clim_world_mosaics_day_","_",date_proc,"_",tile_size,"_",out_suffix,".png",sep=""),
+  #    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   png_filename <- paste(prefix_str,"_",date_proc,"_","_",out_suffix_str,".png",sep="")
   png(filename=png_filename ,
     width=col_mfrow*res_pix,height=row_mfrow*res_pix)
@@ -1044,8 +1048,4 @@ plot_screen_raster_val<-function(i,list_param){
   
   return(png_filename)
 }
-
-
-
 ##################### END OF SCRIPT ######################
-
