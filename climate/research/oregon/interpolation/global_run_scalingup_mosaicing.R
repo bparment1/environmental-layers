@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 11/11/2015            
+#MODIFIED ON: 11/19/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -23,7 +23,7 @@
 #MODULEPATH=$MODULEPATH:/nex/modules/files
 #module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 #
-#setfacl -Rm user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
+#setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 #
 #################################################################################################
 
@@ -58,7 +58,7 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_11102015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_11192015.R"
 
 #in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
 in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
@@ -71,7 +71,7 @@ source(file.path(in_dir_script,function_mosaicing))
 
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
 #in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
-in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015" #NEX
+in_dir <- "/nobackupp8/bparmen1/test_output_run10_1500x4500_global_analyses_pred_1992_10052015" #NEX
 
 in_dir_tiles <- file.path(in_dir,"tiles")
 #in_dir_tiles <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles" #North America
