@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 11/19/2015            
+#MODIFIED ON: 12/02/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -58,7 +58,7 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_11192015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_12022015.R"
 
 #in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
 in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
@@ -122,7 +122,7 @@ python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
 algorithm <- "python" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
  
-match_extent <- "TRUE"
+match_extent <- "TRUE" #try without matching!!!
 
 ########################## START SCRIPT ##############################
 
@@ -167,10 +167,11 @@ out_dir_str <- out_dir
 out_suffix_str <- out_suffix
 
 #Improve by adding multicores option
+num_cores_tmp <- 6
 list_param_accuracy_metric_raster <- list(lf,tb,metric_name,pred_mod_name,y_var_name,interpolation_method,
-                    days_to_process,NA_flag_val,file_format,out_dir_str,out_suffix_str) 
+                    days_to_process,num_cores_tmp,NA_flag_val,file_format,out_dir_str,out_suffix_str) 
 names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
-                       "days_to_process","NA_flag_val","file_format","out_dir_str","out_suffix_str") 
+                       "days_to_process","num_cores","NA_flag_val","file_format","out_dir_str","out_suffix_str") 
 list_raster_created_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_metric_raster,
                                   list_param=list_param_accuracy_metric_raster)
 #debug(create_accuracy_metric_raster)
@@ -202,7 +203,7 @@ for(i in 1:length(day_to_mosaic)){
   
   mosaic_method <- "use_edge_weights" #this is distance from edge
   out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
-  #debug(mosaicFiles)
+  debug(mosaicFiles)
   #can also loop through methods!!!
   #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
   #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
@@ -280,10 +281,11 @@ list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[1:2]),
                                out_dir_str=out_dir,
                                out_prefix_str <- "dailyTmax_",
                                out_suffix_str=out_suffix)
-#plot_screen_raster_val(3,list_param_plot_mosaic)
-#debug(plot_screen_raster_val)
+debug(plot_screen_raster_val)
+plot_screen_raster_val(1,list_param_plot_mosaic)
 
-num_cores <- 1
+
+num_cores <- 2
 l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)[1:2]),FUN=plot_screen_raster_val,
                         list_param= list_param_plot_mosaic,
                         mc.preschedule=FALSE,mc.cores = num_cores)
