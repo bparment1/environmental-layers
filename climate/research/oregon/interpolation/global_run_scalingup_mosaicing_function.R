@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 11/12/2015            
+#MODIFIED ON: 12/02/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -99,12 +99,13 @@ create_accuracy_metric_raster <- function(i, list_param){
   #metric_name: accuracy metric selected to be mapped, RMSE, MAE etc.
   #pred_mod_name: model selected, such as mod1, mod_kr etc.
   #y_var_name: variable being modeled e.g."dailyTmax", dailyTmin, precip  
-  #interpolation_method <- list_param$interpolation_method #c("gam_CAI") #PARAM3
+  #interpolation_method: names of the interpolation/modeling method
   #date_processed: day being processed , e.g. 19920101
+  #num_cores : number of cores used in the parallelization
   #NA_flag_val: value used as flag in the raster 
   #file_format: e.g. tif., .rst
   #out_dir_str: output directory
-  #out_suffix_str: <- list_param$out_suffix
+  #out_suffix_str: output suffix
   #Outputs:
   #raster list of weights and product of wegihts and inuts
   #TODO: 
@@ -113,6 +114,54 @@ create_accuracy_metric_raster <- function(i, list_param){
   #
   ############
   
+  #Functions
+  create_raster_df_centroids_fun <- function(j,list_param){
+    #This function generates raster images from metrics values from a data.frame.
+    #The raster layer is assigned a unique value from the pixel at every location.
+    #Input Parameters:
+    #  #lf: list of raster files
+    #df_centroids: data.frame table #fitting or validation table with all days
+    #metric_name: accuracy metric selected to be mapped, RMSE, MAE etc.
+    #date_processed: day being processed , e.g. 19920101
+    #num_cores : number of cores used in the parallelization
+    #NA_flag_val: value used as flag in the raster 
+    #file_format: e.g. tif., .rst
+    #out_dir_str: output directory
+    #out_suffix_str: output suffix
+    #Outputs:
+    
+    #### PARSE arguments
+    
+    df_centroids <- list_param$df_centroids
+    metric_name <- list_param$metric_name 
+    #interpolation_method <- list_param$interpolation_method #c("gam_CAI") #PARAM3
+    #date_processed <- list_param$metric_name 
+    #num_cores <- list_param$num_cores
+    NA_flag_val <- list_param$NA_flag_val
+    file_format <- list_param$file_format
+    out_dir_str <- list_param$out_dir
+    out_suffix_str <- list_param$out_suffix
+
+    ####### START SCRIPT #####    
+    
+    inFilename <- df_centroids$files[j]
+    r1 <- raster(inFilename)
+    r1[] <- df_centroids[[metric_name]][j] #improve this
+    #set1f <- function(x){rep(NA, x)}
+    #r_init <- init(r_in, fun=set1f)
+    lf_tmp <- gsub(file_format,"",lf)
+  
+    extension_str <- extension(inFilename)
+    raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
+    outFilename <- file.path(out_dir,paste(raster_name_tmp,"_",metric_name,"_",out_suffix,file_format,sep="")) #for use in function later...
+  
+    writeRaster(r1, NAflag=NA_flag_val,filename=outFilename,overwrite=TRUE)  
+    #list_raster_name[[j]] <- outFilename
+    return(outFilename)
+  }
+  
+  ####### PARSE ARGUMENTS
+  
   lf <- list_param$lf[[i]] #list of files to mosaic
   tb <- list_param$tb #fitting or validation table with all days
   metric_name <- list_param$metric_name #RMSE, MAE etc.
@@ -120,6 +169,7 @@ create_accuracy_metric_raster <- function(i, list_param){
   y_var_name <- list_param$y_var_name #"dailyTmax" #PARAM2
   interpolation_method <- list_param$interpolation_method #c("gam_CAI") #PARAM3
   date_processed <- list_param$days_to_process[i]
+  num_cores <- list_param$num_cores #number of cores used
   NA_flag_val <- list_param$NA_flag_val
   #NAflag,file_format,out_suffix etc...
   file_format <- list_param$file_format
@@ -128,12 +178,6 @@ create_accuracy_metric_raster <- function(i, list_param){
    
   ####### START SCRIPT #####
   
-  #r_in <- raster(lf[i]) #input image
-
-  #date_processed <- day_to_mosaic[i]
-  #lf_to_mosaic <-list.files(path=file.path(in_dir_tiles),    
-  #         pattern=paste(".*.",date_processed,".*.tif$",sep=""),full.names=T) #choosing date 2...20100901
-
   lf_tmp <- gsub(file_format,"",lf)
   tx<-strsplit(as.character(lf_tmp),"_")
   #deal with the fact that we have number "1" attached to the out_suffix (centroids of tiles)
@@ -156,38 +200,19 @@ create_accuracy_metric_raster <- function(i, list_param){
   tb_date$tile_coord <- as.character(tb_date$tile_coord)
   df_centroids <- merge(df_centroids,tb_date,by="tile_coord")
 
-  #r1 <- raster(lf[i])
-  
-  #function(j,df_centroids,metric_name,date_processed,interpolation,)
-  #loop over files, make this a function later, works for now
   #use mclapply  
-  list_raster_name <- vector("list",length=length(lf))
-  
-  for(j in 1:length(lf)){ 
-    
-    inFilename <- df_centroids$files[j]
-    r1 <- raster(inFilename)
-    r1[] <- df_centroids[[metric_name]][j] #improve this
-    #set1f <- function(x){rep(NA, x)}
-    #r_init <- init(r_in, fun=set1f)
-    lf_tmp <- gsub(file_format,"",lf)
-  
-    extension_str <- extension(inFilename)
-    raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
-    outFilename <- file.path(out_dir,paste(raster_name_tmp,"_",metric_name,"_",out_suffix,file_format,sep="")) #for use in function later...
-  
-    #raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",out_suffix,file_format,sep=""))#output file
+  #list_raster_name <- vector("list",length=length(lf))
+  list_param_raster_df_centroids <- list(df_centroids,metric_name,NA_flag_val,file_format,out_dir,out_suffix)
+  names(list_param_raster_df_centroids) <- c("df_centroids","metric_name","NA_flag_val","file_format","out_dir","out_suffix")
 
-    #raster_name_tmp <- paste("r_",metric_name,"_",interpolation_method,"_",date_processed,"_",out_suffix_str,sep="")
-    #raster_name <- file.path(out_dir_str,raster_name_tmp)
-    writeRaster(r1, NAflag=NA_flag_val,filename=outFilename,overwrite=TRUE)  
-    list_raster_name[[j]] <- outFilename
-  }
+  #undebug(create_raster_df_centroids_fun)
+  #test_lf <- lapply(1,FUN=create_raster_df_centroids_fun,list_param=list_param_raster_df_centroids)                           
   
+  list_raster_name <- mclapply(1:length(lf),FUN=create_raster_df_centroids_fun,list_param=list_param_raster_df_centroids,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
   raster_created_obj <- list(list_raster_name,df_centroids)
   names(raster_created_obj) <- c("list_raster_name","df_centroids")
   return(raster_created_obj)
-
 }
 
 #### end of function
@@ -381,15 +406,7 @@ mosaic_m_raster_list<-function(j,list_param){
   rast_list<-file.path(out_path,raster_name)
   
   ## The Raster and rgdal packages write temporary files on the disk when memory is an issue. This can potential build up
-  ## in long  loops and can fill up hard drives resulting in errors. The following  sections removes these files 
-  ## as they are created in the loop. This code section  can be transformed into a "clean-up function later on
-  ## Start remove
-  #tempfiles<-list.files(tempdir(),full.names=T) #GDAL transient files are not removed
-  #files_to_remove<-grep(out_suffix,tempfiles,value=T) #list files to remove
-  #if(length(files_to_remove)>0){
-  #  file.remove(files_to_remove)
-  #}
-  #now remove temp files from raster package located in rasterTmpDir
+
   removeTmpFiles(h=0) #did not work if h is not set to 0
   ## end of remove section
   
@@ -771,9 +788,14 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      paste("-A ", r_prod_sum_raster_name,sep=""),
                      paste("-B ", r_weights_sum_raster_name,sep=""),
                      paste("--outfile=",r_m_weighted_mean_raster_name,sep=""),
+                     paste("NoDataValue=",NA_flag_val,sep=""),
                      "--calc='A/B'","--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str)
-    
+    cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+    writeLines(cmd_str1,con=cmd_mosaic_logfile) #weights files to mosaic 
+    #writeLines(cmd_str2,con=file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))) #weights files to mosaic 
+    cat(cmd_str2, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+
     #cmd_str <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin/gdal_calc.py -A r_prod_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif -B r_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif --outfile='test2.tif' --calc='A/B' --overwrite"
     
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
@@ -993,6 +1015,7 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
 }
 
 #Use this instead of daily mosaic plot function
+#Add NAvalue flag!!
 plot_screen_raster_val<-function(i,list_param){
   ##USAGE###
   #Screen raster list and produced plot as png.
