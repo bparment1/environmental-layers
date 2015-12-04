@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/02/2015            
+#MODIFIED ON: 12/04/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -448,7 +448,7 @@ raster_match <- function(i,list_param){
   return(raster_name)
 }
 
-mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
+mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum_noDataTest.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
   #This functions mosaics tiles/files give a list of files. 
   #There are four options to mosaic:   use_sine_weights,use_edge,use_linear_weights, unweighted
   #Sine weights fits sine fuctions across rows and column producing elliptical/spherical patterns from center
