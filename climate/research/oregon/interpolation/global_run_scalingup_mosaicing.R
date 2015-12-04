@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/02/2015            
+#MODIFIED ON: 12/04/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -58,7 +58,7 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_12022015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_12042015.R"
 
 #in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
 in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
@@ -122,7 +122,7 @@ python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
 algorithm <- "python" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
  
-match_extent <- "TRUE" #try without matching!!!
+match_extent <- "FALSE" #try without matching!!!
 
 ########################## START SCRIPT ##############################
 
@@ -203,10 +203,12 @@ for(i in 1:length(day_to_mosaic)){
   
   mosaic_method <- "use_edge_weights" #this is distance from edge
   out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
-  debug(mosaicFiles)
+  #debug(mosaicFiles)
   #can also loop through methods!!!
   #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
   #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
+  #gdal_merge_sum_noDataTest.py
+
   mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic[[i]],
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
