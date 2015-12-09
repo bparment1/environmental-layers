@@ -330,69 +330,54 @@ write.table((tb_diagnostic_s_NA),
 
 #Insert here...compute input and predicted ranges to spot potential errors?
 
+### Make this part a function...this is repetitive
 ##### SPDF of Monhtly Station info
 #load data_month for specific tiles
-# data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
-# names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
-# 
-# data_month_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_month_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
-# 
-# names(data_month_s_list) <- list_names_tile_id
-# 
-# data_month_tmp <- remove_from_list_fun(data_month_s_list)$list
-# #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
-# 
-# tile_id <- lapply(1:length(data_month_tmp),
-#                   FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_tmp)
-# data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
-# data_month_NAM$tile_id <- unlist(tile_id)
-# 
-# write.table((data_month_NAM),
-#             file=file.path(out_dir,paste("data_month_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
+#10.45pm
+#data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
+#names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
 
-##### SPDF of daily Station info
+#data_month_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_month_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = 6)                           
+data_month_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = 6)                           
+#test <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = 6)                           
+
+names(data_month_s_list) <- list_names_tile_id
+
+data_month_tmp <- remove_from_list_fun(data_month_s_list)$list
+#df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
+
+tile_id <- lapply(1:length(data_month_tmp),
+                  FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_tmp)
+data_month_NAM <- do.call(rbind.fill,data_month_tmp) #combined data_month for "NAM" North America
+data_month_NAM$tile_id <- unlist(tile_id)
+
+write.table((data_month_NAM),
+            file=file.path(out_dir,paste("data_month_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
+
+#Get validation data?? Find other object from within the dir 
+#Som region don't have validation data at monthly time scale.
+
+#### SPDF of daily Station info
 #load data_month for specific tiles
-# data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
-# names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
-# 
-#data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
-#data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+#data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
+#names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
 
-#data_day_s_list <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(x$validation_mod_obj[["data_s"]])},mc.preschedule=FALSE,mc.cores = num_cores)    
+data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = num_cores)    
+data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_obj,"data_v"))},mc.preschedule=FALSE,mc.cores = num_cores)    
 
-#data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_v"))},mc.preschedule=FALSE,mc.cores = num_cores)    
-#data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_list_from_list_obj(x$validation_mod_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = num_cores)    
+names(data_day_s_list) <- list_names_tile_id
+names(data_day_v_list) <- list_names_tile_id
 
-#list_data_day_v <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_v"))
-#list_data_day_s <- try(extract_list_from_list_obj(raster_obj$validation_mod_obj,"data_s"))
-#sampling_dat_day <- extract_list_from_list_obj(raster_obj$method_mod_obj,"daily_dev_sampling_dat")
-#debug(pred_data_info_fun)
-#list_pred_data_day_s_info <- pred_data_info_fun(1,list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
-#list_pred_data_day_s_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
-#           list_data=list_data_day_s,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
-#list_pred_data_day_v_info <- lapply(1:length(sampling_dat_day),FUN=pred_data_info_fun,
-#           list_data=list_data_day_v,pred_mod=pred_mod,sampling_dat_info=sampling_dat_day)
-#pred_data_day_s_info <- do.call(rbind,list_pred_data_day_s_info)
-#pred_data_day_v_info <- do.call(rbind,list_pred_data_day_v_info)
-#pred_data_day_s_info$training <- rep(1,nrow(pred_data_day_s_info)) 
-#pred_data_day_v_info$training <- rep(0,nrow(pred_data_day_v_info)) 
-#pred_data_day_info <-rbind(pred_data_day_v_info,pred_data_day_s_info)
+data_day_s_tmp <- remove_from_list_fun(data_day_s_list)$list
+#df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
 
-# 
-#names(data_month_s_list) <- list_names_tile_id
-# 
-# data_month_tmp <- remove_from_list_fun(data_month_s_list)$list
-# #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
-# 
-# tile_id <- lapply(1:length(data_month_tmp),
-#                   FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_tmp)
-# data_month_NAM <- do.call(rbind.fill,data_month_list) #combined data_month for "NAM" North America
-# data_month_NAM$tile_id <- unlist(tile_id)
-# 
-# write.table((data_month_NAM),
-#             file=file.path(out_dir,paste("data_month_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
+tile_id <- lapply(1:length(data_day_s_tmp),
+                  FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_day_s_tmp)
+data_day_s_NAM <- do.call(rbind.fill,data_day_tmp) #combined data_month for "NAM" North America
+data_day_s_NAM$tile_id <- unlist(tile_id)
 
-##### SPDF of Daily Station info
+write.table((data_day_s_NAM),
+            file=file.path(out_dir,paste("data_day_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
 
 
 ######################################################
