@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/07/2015            
+#MODIFIED ON: 12/11/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -171,6 +171,12 @@ names(list_raster_obj_files)<- list_names_tile_id
 lf_covar_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar_obj.*.RData",full.names=T)})
 lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
 
+#sub_sampling_obj_daily_gam_CAI_10.0_-75.0.RData
+#sub_sampling_obj_gam_CAI_10.0_-75.0.RData
+
+lf_sub_sampling_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=paste("^sub_sampling_obj_",interpolation_method,".*.RData",sep=""),full.names=T)})
+lf_sub_sampling_obj_daily_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^sub_sampling_obj_daily.*.RData",full.names=T)})
+
 ## This will be part of the raster_obj function
 #debug(create_raster_prediction_obj)
 #out_prefix_str <- paste(basename(in_dir_list),out_prefix,sep="_") 
@@ -267,18 +273,6 @@ tb_diagnostic_v_NA <- merge(tb_diagnostic_v_NA,df_tile_processed[,1:2],by="tile_
 write.table((tb_diagnostic_v_NA),
             file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
 
-##Take where shutdown took place after pathcing
-#summary_metrics_v_NA <- read.table(file=file.path(out_dir,paste("summary_metrics_v2_NA_",out_prefix,".txt",sep="")),sep=",")
-#fname <- file.path(out_dir,paste("summary_metrics_v2_NA_",out_suffix,".txt",sep=""))
-#tb_diagnostic_v_NA <- read.table(file=file.path(out_dir,paste("tb_diagnostic_v_NA","_",out_prefix,".txt",sep="")),sep=",")
-#tb_diagnostic_s_NA_run10_global_analyses_11302014.txt
-#tb_s <- read.table(file=file.path(out_dir,paste("tb_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
-
-#tb_month_s <- read.table(file=file.path(out_dir,paste("tb_month_diagnostic_s_NA","_",out_suffix,".txt",sep="")),sep=",")
-#pred_data_month_info <- read.table(file=file.path(out_dir,paste("pred_data_month_info_",out_suffix,".txt",sep="")),sep=",")
-#pred_data_day_info <- read.table(file=file.path(out_dir,paste("pred_data_day_info_",out_suffix,".txt",sep="")),sep=",")
-#df_tile_processed <- read.table(file=file.path(out_dir,paste("df_tile_processed_",out_suffix,".txt",sep="")),sep=",")
-
 #################
 ###Table 3: monthly fit/training accuracy information for all tiles
 
@@ -369,16 +363,60 @@ names(data_day_s_list) <- list_names_tile_id
 names(data_day_v_list) <- list_names_tile_id
 
 data_day_s_tmp <- remove_from_list_fun(data_day_s_list)$list
+data_day_v_tmp <- remove_from_list_fun(data_day_v_list)$list
+
 #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
 
 tile_id <- lapply(1:length(data_day_s_tmp),
                   FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_day_s_tmp)
-data_day_s_NAM <- do.call(rbind.fill,data_day_tmp) #combined data_month for "NAM" North America
+data_day_s_NAM <- do.call(rbind.fill,data_day_s_tmp) #combined data_month for "NAM" North America
 data_day_s_NAM$tile_id <- unlist(tile_id)
+
+tile_id <- lapply(1:length(data_day_v_tmp),
+                  FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_day_v_tmp)
+data_day_v_NAM <- do.call(rbind.fill,data_day_v_tmp) #combined data_month for "NAM" North America
+data_day_v_NAM$tile_id <- unlist(tile_id)
 
 write.table((data_day_s_NAM),
             file=file.path(out_dir,paste("data_day_s_NAM","_",out_prefix,".txt",sep="")),sep=",")
+write.table((data_day_v_NAM),
+            file=file.path(out_dir,paste("data_day_v_NAM","_",out_prefix,".txt",sep="")),sep=",")
 
+#### Recover subsampling data
+#For tiles with many stations, there is a subsampling done in terms of distance (spatial pruning) and 
+#in terms of station numbers if there are still too many stations to consider. This is done at the 
+#daily and monthly stages.
+
+#lf_sub_sampling_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=paste("^sub_sampling_obj_",interpolation_method,".*.RData",sep=""),full.names=T)})
+#lf_sub_sampling_obj_daily_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^sub_sampling_obj_daily.*.RData",full.names=T)})
+#sub_sampling_obj <- try(load_obj(lf_sub_sampling_obj_files[[3]])) #This is an example tile
+#data_removed contains the validation data...
+#this data can be used for validation of the product. Note that it may be missing for some tiles
+#as no stations are removed if there are too enough stations in the tile
+#this will need to be checked later on...
+
+data_month_v_subsampling_list <- mclapply(lf_sub_sampling_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_removed"))},mc.preschedule=FALSE,mc.cores = 6)                           
+#test <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = 6)                           
+
+names(data_month_v_subsampling_list) <- list_names_tile_id
+
+data_month_v_subsampling_tmp <- remove_from_list_fun(data_month_v_subsampling_list)$list
+#df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
+#if no stations have been removed then there are no validation stations !!!
+if(length(data_month_v_subsampling_tmp)!=0){
+  
+  tile_id <- lapply(1:length(data_month_v_subsampling_tmp),
+                  FUN=function(i,x){try(rep(names(x)[i],nrow(x[[i]])))},x=data_month_v_subsampling_tmp)
+  data_month_v_subsmapling_NAM <- do.call(rbind.fill,ddata_month_v_subsampling_tmp) #combined data_month for "NAM" North America
+  data_month_v_subsampling_NAM$tile_id <- unlist(tile_id)
+
+  write.table((data_month_v_subsampling_NAM),
+            file=file.path(out_dir,paste("data_month_v_subsampling_NAM","_",out_prefix,".txt",sep="")),sep=",")
+
+}
+
+## Do the same for daily...
+## End of potential function started in line 317...this section will be cut down for simplicity
 
 ######################################################
 ####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
@@ -597,6 +635,8 @@ for (i in 1:length(day_to_mosaic)){
 
 
 ########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
+
+#This will be a separate script?? or function?
 #this part cannot be automated...
 
 ### This assumes the tree structure has been replicated on Atlas:
@@ -605,7 +645,7 @@ for (i in 1:length(day_to_mosaic)){
 #output_atlas_dir <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output20Deg"
 output_atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",out_dir)
 
-output_run10_1500x4500_global_analyses_pred_1992_10052015
+#output_run10_1500x4500_global_analyses_pred_1992_10052015
 #Make directories on ATLAS
 #for (i in 1:length(df_tile_processed$tile_coord)){
 #  create_dir_fun(file.path(output_atlas_dir,as.character(df_tile_processed$tile_coord[i])),out_suffix=NULL)
@@ -627,7 +667,7 @@ Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir
 #cmd_str <- paste("ssh ",Atlas_hostname,"mkdir",Atlas_dir_mosaic, sep=" ")
 
 #Atlas_dir_shapefiles <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir),"shapefiles")
-#Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
+Atlas_hostname <- "parmentier@atlas.nceas.ucsb.edu"
 #cmd_str <- paste("ssh ",Atlas_hostname,"mkdir",Atlas_dir_shapefiles, sep=" ")
 
 #locally on NEX
@@ -635,8 +675,8 @@ Atlas_dir <- file.path("/data/project/layers/commons/NEX_data/",basename(out_dir
 cmd_str <- paste(" mkdir ",out_dir,"/{mosaic,tiles}", sep="") #create both dir 
 system(cmd_str)
 
-#remotely on Atlas
-cmd_str <- paste("ssh ",Atlas_hostname," mkdir ",Atlas_dir,"/{mosaic,shapefiles,tiles}", sep="")
+#create remotely on Atlas
+cmd_str <- paste("ssh ",Atlas_hostname," mkdir ",Atlas_dir,"/{/,mosaic,shapefiles,tiles}", sep="")
 system(cmd_str)
 
 #Copy summary textfiles back to atlas
