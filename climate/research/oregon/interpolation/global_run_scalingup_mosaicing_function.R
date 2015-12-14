@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/04/2015            
+#MODIFIED ON: 12/12/2015            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -1070,5 +1070,118 @@ plot_screen_raster_val<-function(i,list_param){
   dev.off()
   
   return(png_filename)
+}
+
+## functions from kriging...
+
+fit_models<-function(list_formulas,data_training){
+  #This functions several models and returns model objects.
+  #Arguments: - list of formulas for GAM models
+  #           - fitting data in a data.frame or SpatialPointDataFrame
+  #Output: list of model objects 
+  list_fitted_models<-vector("list",length(list_formulas))
+  for (k in 1:length(list_formulas)){
+    formula<-list_formulas[[k]]
+    mod<- try(gam(formula, data=data_training)) #change to any model!!
+    #mod<- try(autoKrige(formula, input_data=data_s,new_data=s_sgdf,data_variogram=data_s))
+    model_name<-paste("mod",k,sep="")
+    assign(model_name,mod) 
+    list_fitted_models[[k]]<-mod
+  }
+  return(list_fitted_models) 
+}
+
+select_var_stack <-function(r_stack,formula_mod,spdf=TRUE){
+  ##Write function to return only the relevant layers!!
+  #Note that default behaviour of the function is to remove na values in the subset 
+  #of raster layers and return a spdf
+  
+  ### Start
+  
+  covar_terms<-all.vars(formula_mod) #all covariates terms...+ y_var
+  if (length(covar_terms)==1){
+    r_stack_covar<-subset(r_stack,1)
+  } #use one layer
+  if (length(covar_terms)> 1){
+    r_stack_covar <-subset(r_stack,covar_terms[-1])
+  }
+  if (spdf==TRUE){
+    s_sgdf<-as(r_stack_covar,"SpatialGridDataFrame") #Conversion to spatial grid data frame, only convert the necessary layers!!
+    s_spdf<-as.data.frame(s_sgdf) #Note that this automatically removes all NA rows
+    s_spdf<-na.omit(s_spdf) #removes all rows that have na...
+    coords<- s_spdf[,c('s1','s2')]
+    coordinates(s_spdf)<-coords
+    proj4string(s_spdf)<-proj4string(s_sgdf)  #Need to assign coordinates...
+    #raster_pred <- rasterize(s_spdf,r1,"pred",fun=mean)
+    covar_obj<-s_spdf
+  } else{
+    covar_obj<-r_stack_covar
+  }
+  
+  return(covar_obj)
+}
+
+remove_na_spdf<-function(col_names,d_spdf){
+  #Purpose: remote na items from a subset of a SpatialPointsDataFrame
+  x<-d_spdf
+  coords <-coordinates(x)
+  x$s1<-coords[,1]
+  x$s2<-coords[,2]
+  
+  x1<-x[c(col_names,"s1","s2")]
+  #x1$y_var <-data_training$y_var
+  #names(x1)
+  x1<-na.omit(as.data.frame(x1))
+  coordinates(x1)<-x1[c("s1","s2")]
+  proj4string(x1)<-proj4string(d_spdf)
+  return(x1)
+}
+
+predict_auto_krige_raster_model<-function(list_formulas,r_stack,data_training,out_filename){
+  #This functions performs predictions on a raster grid given input models.
+  #Arguments: list of fitted models, raster stack of covariates
+  #Output: spatial grid data frame of the subset of tiles
+  
+  list_fitted_models<-vector("list",length(list_formulas))
+  list_rast_pred<-vector("list",length(list_formulas))
+  #s_sgdf<-as(r_stack,"SpatialGridDataFrame") #Conversion to spatial grid data frame, only convert the necessary layers!!
+  proj4string(data_training) <- projection(r_stack)
+  for (k in 1:length(list_formulas)){
+    formula_mod<-list_formulas[[k]]
+    raster_name<-out_filename[[k]]
+    #mod<- try(gam(formula, data=data_training)) #change to any model!!
+    s_spdf<-select_var_stack(r_stack,formula_mod,spdf=TRUE)
+    col_names<-all.vars(formula_mod)
+    if (length(col_names)==1){
+      data_fit <-data_training
+    }else{
+      data_fit <- remove_na_spdf(col_names,data_training)
+    }
+    
+    mod <- try(autoKrige(formula_mod, input_data=data_fit,new_data=s_spdf,data_variogram=data_fit))
+    #mod <- try(autoKrige(formula_mod, input_data=data_training,new_data=s_spdf,data_variogram=data_training))
+    model_name<-paste("mod",k,sep="")
+    assign(model_name,mod) 
+    
+    if (inherits(mod,"autoKrige")) {           #change to c("gam","autoKrige")
+      rpred<-mod$krige_output  #Extracting the SptialGriDataFrame from the autokrige object
+      y_pred<-rpred$var1.pred                  #is the order the same?
+      raster_pred <- rasterize(rpred,r_stack,"var1.pred",fun=mean)
+      names(raster_pred)<-"y_pred" 
+      writeRaster(raster_pred, filename=raster_name,overwrite=TRUE)  #Writing the data in a raster file format...
+      #print(paste("Interpolation:","mod", j ,sep=" "))
+      list_rast_pred[[k]]<-raster_name
+      mod$krige_output<-NULL
+      list_fitted_models[[k]]<-mod
+      
+    }
+    if (inherits(mod,"try-error")) {
+      print(paste("no autokrige model fitted:",mod,sep=" ")) #change message for any model type...
+      list_fitted_models[[k]]<-mod
+    }
+  }
+  day_prediction_obj <-list(list_fitted_models,list_rast_pred)
+  names(day_prediction_obj) <-c("list_fitted_models","list_rast_pred")
+  return(day_prediction_obj)
 }
 ##################### END OF SCRIPT ######################
