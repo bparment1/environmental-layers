@@ -1157,8 +1157,8 @@ predict_auto_krige_raster_model<-function(list_formulas,r_stack,data_training,ou
     }else{
       data_fit <- remove_na_spdf(col_names,data_training)
     }
-    
-    mod <- try(autoKrige(formula_mod, input_data=data_fit,new_data=s_spdf,data_variogram=data_fit))
+    #use modify version of autokrige called autokrige_fun
+    mod <- try(autoKrige_fun(formula_mod, input_data=data_fit,new_data=s_spdf,data_variogram=data_fit))
     #mod <- try(autoKrige(formula_mod, input_data=data_training,new_data=s_spdf,data_variogram=data_training))
     model_name<-paste("mod",k,sep="")
     assign(model_name,mod) 
@@ -1183,5 +1183,68 @@ predict_auto_krige_raster_model<-function(list_formulas,r_stack,data_training,ou
   day_prediction_obj <-list(list_fitted_models,list_rast_pred)
   names(day_prediction_obj) <-c("list_fitted_models","list_rast_pred")
   return(day_prediction_obj)
+}
+
+###MODIFIED AUTOKRIGE function from automap package
+autoKrige_fun <- function (formula, input_data, new_data, data_variogram = input_data, 
+    block = 0, model = c("Sph", "Exp", "Gau", "Ste"), kappa = c(0.05, 
+        seq(0.2, 2, 0.1), 5, 10), fix.values = c(NA, NA, NA), 
+    remove_duplicates = TRUE, verbose = FALSE, GLS.model = NA, 
+    start_vals = c(NA, NA, NA), miscFitOptions = list(), ...) 
+{
+    if (inherits(formula, "SpatialPointsDataFrame")) {
+        input_data = formula
+        formula = as.formula(paste(names(input_data)[1], "~ 1"))
+    }
+    if (!inherits(input_data, "SpatialPointsDataFrame") | !inherits(data_variogram, 
+        "SpatialPointsDataFrame")) {
+        stop(paste("\nInvalid input objects: input_data or data_variogram not of class 'SpatialPointsDataFrame'.\n\tClass input_data: '", 
+            class(input_data), "'", "\n\tClass data_variogram: '", 
+            class(data_variogram), "'", sep = ""))
+    }
+    if (as.character(formula)[3] != 1 & missing(new_data)) 
+        stop("If you want to use Universal Kriging, new_data needs to be specified \n  because the predictors are also required on the prediction locations.")
+    if (remove_duplicates) {
+        zd = zerodist(input_data)
+        if (length(zd) != 0) {
+            warning("Removed ", length(zd)/2, " duplicate observation(s) in input_data:", 
+                immediate. = TRUE)
+            print(input_data[c(zd), ])
+            input_data = input_data[-zd[, 2], ]
+        }
+    }
+    col_name = as.character(formula)[2]
+    if (length(unique(input_data[[col_name]])) == 1) 
+        stop(sprintf("All data in attribute '%s' is identical and equal to %s\n   Can not interpolate this data", 
+            col_name, unique(input_data[[col_name]])[1]))
+    if (missing(new_data)) 
+        new_data = create_new_data(input_data)
+    p4s_obj1 = proj4string(input_data)
+    p4s_obj2 = proj4string(new_data)
+    if (!all(is.na(c(p4s_obj1, p4s_obj2)))) {
+        if (is.na(p4s_obj1) & !is.na(p4s_obj2)) 
+            proj4string(input_data) = proj4string(new_data)
+        if (!is.na(p4s_obj1) & is.na(p4s_obj2)) 
+            proj4string(new_data) = proj4string(input_data)
+        #if (any(!c(is.projected(input_data), is.projected(new_data)))) 
+        #    stop(paste("Either input_data or new_data is in LongLat, please reproject.\n", 
+        #        "  input_data: ", p4s_obj1, "\n", "  new_data:   ", 
+        #        p4s_obj2, "\n"))
+        if (proj4string(input_data) != proj4string(new_data)) 
+            stop(paste("Projections of input_data and new_data do not match:\n", 
+                "  input_data: ", p4s_obj1, "\n", "  new_data:    ", 
+                p4s_obj2, "\n"))
+    }
+    variogram_object = autofitVariogram(formula, data_variogram, 
+        model = model, kappa = kappa, fix.values = fix.values, 
+        verbose = verbose, GLS.model = GLS.model, start_vals = start_vals, 
+        miscFitOptions = miscFitOptions)
+    krige_result = krige(formula, input_data, new_data, variogram_object$var_model, 
+        block = block, ...)
+    krige_result$var1.stdev = sqrt(krige_result$var1.var)
+    result = list(krige_output = krige_result, exp_var = variogram_object$exp_var, 
+        var_model = variogram_object$var_model, sserr = variogram_object$sserr)
+    class(result) = c("autoKrige", "list")
+    return(result)
 }
 ##################### END OF SCRIPT ######################
