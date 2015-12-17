@@ -4,8 +4,8 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/12/2015            
-#Version: 1
+#MODIFIED ON: 12/17/2015            
+#Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
 #TODO:
@@ -13,7 +13,7 @@
 #2) Improve performance: there will be a need to improve efficiency for the workflow.
 
 #Functions: available:
-#
+#See below
 
 #################################################################################################
 
@@ -24,7 +24,7 @@ library(mgcv)                                # GAM package by Simon Wood
 library(sp)                                  # Spatial pacakge with class definition by Bivand et al.
 library(spdep)                               # Spatial pacakge with methods and spatial stat. by Bivand et al.
 library(rgdal)                               # GDAL wrapper for R, spatial utilities
-#library(gstat)                               # Kriging and co-kriging by Pebesma et al., not on NEX
+library(gstat)                               # Kriging and co-kriging by Pebesma et al., not on NEX
 library(fields)                              # NCAR Spatial Interpolation methods such as kriging, splines
 library(raster)                              # Hijmans et al. package for raster processing
 library(gdata)                               # various tools with xls reading, cbindX
@@ -36,8 +36,8 @@ library(reshape)                             # Change shape of object, summarize
 library(plotrix)                             # Additional plotting functions
 library(plyr)                                # Various tools including rbind.fill
 #library(spgwr)                               # GWR method, not on NEX
-#library(automap)                             # Kriging automatic fitting of variogram using gstat, not on NEX
-#library(rgeos)                               # Geometric, topologic library of functions
+library(automap)                             # Kriging automatic fitting of variogram using gstat, not on NEX
+library(rgeos)                               # Geometric, topologic library of functions
 #RPostgreSQL                                 # Interface R and Postgres, not used in this script
 library(gridExtra)
 #Additional libraries not used in workflow
@@ -48,27 +48,22 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
+##List all the functions in this script:
 
-load_obj <- function(f)
-{
-  env <- new.env()
-  nm <- load(f, env)[1]
-  env[[nm]]
-}
+#[1] "autoKrige_fun"                      
+#[2] "create_accuracy_metric_raster"     
+#[3] "create_accuracy_residuals_raster"   
+#[4] "create_weights_fun"                
+# [5] "fit_models"                         "function_mosaicing"                
+# [7] "in_dir_script"                      "mosaicFiles"                       
+# [9] "mosaic_m_raster_list"               "mosaic_python_merge"               
+#[11] "plot_daily_mosaics"                 "plot_diff_raster"                  
+#[13] "plot_mosaic"                        "plot_screen_raster_val"            
+#[15] "predict_accuracy_raster_by_station" "predict_auto_krige_raster_model"   
+#[17] "raster_match"                       "remove_na_spdf"                    
+#[19] "select_var_stack"                   "sine_structure_fun"    
 
-create_dir_fun <- function(out_dir,out_suffix){
-  if(!is.null(out_suffix)){
-    out_name <- paste("output_",out_suffix,sep="")
-    out_dir <- file.path(out_dir,out_name)
-  }
-  #create if does not exists
-  if(!file.exists(out_dir)){
-    dir.create(out_dir)
-  }
-  return(out_dir)
-}
+############## START FUNCTIONS DEFINITIONS ####
 
 sine_structure_fun <-function(x,T,phase,a,b,use_cos=FALSE){
   
@@ -88,7 +83,7 @@ sine_structure_fun <-function(x,T,phase,a,b,use_cos=FALSE){
   return(y)
 }
 
-## Add numcores
+## Add numcores: done
 ## use mclapply
 create_accuracy_metric_raster <- function(i, list_param){
   #This function generates weights from a point location on a raster layer.
@@ -503,7 +498,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #num_cores <- 11
 
     #debug(create_weights_fun)
-    weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
+    #weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
     #This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
     #the edges...can use rows and columsn to set edges to 1 and 0 for the others.
@@ -552,7 +547,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
     names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
     #num_cores <- 11
-
+    #debug(create_weights_fun)
     #weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
     #This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
@@ -1247,4 +1242,196 @@ autoKrige_fun <- function (formula, input_data, new_data, data_variogram = input
     class(result) = c("autoKrige", "list")
     return(result)
 }
+
+predict_accuracy_raster_by_station <- function(var_pred,ref_rast,data_training,out_filename,out_suffix_str,out_dir,mask_file=NULL){
+  #
+  coord_xy<-coordinates(data_training)
+  var_vals <- data_training[[var_pred]]
+  fitKrig <- Krig(coord_xy,var_vals)#,theta=1e5) #use TPS or krige 
+  #fitKrig <- Krig(coord_xy,var_vals,theta=1e5) #use TPS or krige 
+  #mod_krtmp1<-fitKrig
+  #model_name<-"mod_kr"
+  #options(scipen=999)
+  krig_rast <- try(interpolate(ref_rast,fitKrig)) #interpolation using function from raster package
+
+  #Write out modeled layers
+    
+  if(is.null(mask_file)){
+    writeRaster(krig_rast, NAflag=NA_flag_val,filename=out_filename,overwrite=TRUE)  
+  }
+  if(!is.null(mask_file)){
+    #modify here later
+    writeRaster(krig_rast, NAflag=NA_flag_val,filename=out_filename,overwrite=TRUE)  
+  }
+
+  ### Preparing return object
+  kriging_obj <- list(out_filename,fitKrig)
+  names(kriging_obj)<-c("raster_name","mod_obj")
+  #save(kriging_obj,file= file.path(out_dir,paste("kriging_obj","_",out_suffix_str,".RData",sep="")))
+  return(kriging_obj)
+}
+
+create_accuracy_residuals_raster <- function(i,list_param){
+
+  #create_accuracy_residuals_raster <- function(i,lf_day_tiles,data_df,df_tile_processed,var_pred,list_models,date_processed,num_cores,NA_flag_val,file_format,out_dir_str,out_suffix_str){
+  #This function generates surface for residuals values for a giving set of formula and data input.
+  #The method used is currently kriging with two options: automap/gstat and Fields packages.
+  #Inputs:
+  #lf_day_tiles: list of raster files
+  #df_tile_processed: processed tiles
+  #data_df: data.frame table/spdf containing stations with residuals and variable
+  #var_pred: variable selected to be mapped using modeling (kriging)
+  #list_models: formula for the modeling (kriging) e.g. useg by autokrige
+  #y_var_name: variable being modeled e.g."dailyTmax", dailyTmin, precip  
+  #interpolation_method: names of the interpolation/modeling method
+  #date_processed: day being processed , e.g. 19920101, can be month too!!!
+  #num_cores : number of cores used in the parallelization
+  #NA_flag_val: value used as flag in the raster 
+  #file_format: e.g. tif., .rst
+  #out_dir_str: output directory
+  #out_suffix_str: output suffix
+  #Outputs:
+  #raster list of resdiuals surfaces and associated modeles by tiles and for one date.
+  #
+  #TODO: 
+
+  # - automap/gstat for data with projection
+  # - clean up
+  #
+
+  
+  #### FUNCTIONS USED #####
+  generate_residuals_raster <- function(j,list_param){
+    ##Add documentation here later...
+    
+    ### PARSE ARGUMENTS ##
+    
+    lf <- list_param$lf
+    var_pred <- list_param$var_pred
+    data_df <- list_param$data_df
+    df_raster_pred_tiles <- list_param$df_raster_pred_tiles
+    list_formulas <- list_param$list_formulas
+    NA_flag_val <- list_param$NA_flag_val
+    file_format <- list_param$file_format
+    out_dir_str <- list_param$out_dir_str
+    out_suffix_str <- list_param$out_suffix_str
+
+    ###### START SCRIPT
+    
+    #list_pred_res_obj <-vector("list",length=length(lf))
+    #for(j in 1:length(lf)){
+
+    inFilename <- lf[j]
+
+    ref_rast <- raster(inFilename)
+    #out_filename <- "test.tif"
+    #create output name for predicted raster
+    extension_str <- extension(inFilename)
+    raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
+    out_filename <- file.path(out_dir,paste(raster_name_tmp,"_","kriged_residuals_",var_pred,"_",out_suffix,file_format,sep="")) #for use in function later...
+
+    #tile_selected <- as.character(df_raster_pred_tiles$tile_id[j])
+    data_df$tile_id <- as.character(data_df$tile_id)
+    tile_selected <- df_raster_pred_tiles$tile_id[j]
+    data_training <- subset(data_df,tile_id==tile_selected) #df_raster_pred_tiles$files
+    data_training <- data_training[!is.na(data_training[[var_pred]]),] #screen NA in the independent var
+    
+    if(use_autokrige==TRUE){
+      #this is still under development since there was an error message!!
+      r_stack <- stack(inFilename)
+      #debug(predict_auto_krige_raster_model) #this calls other function to clean up the inputs
+      #data_training_tmp <- idw(zinc ~ 1, meuse2[!is.na(meuse2$zinc),],newdata= meuse.grid)
+      
+      pred_res_obj <- predict_auto_krige_raster_model(list_formulas,r_stack,data_training,out_filename)
+      #mod <- try(autoKrige(formula_mod, input_data=data_fit,new_data=s_spdf,data_variogram=data_fit))
+      #Error in autoKrige(formula_mod, input_data = data_fit, new_data = s_spdf,  : 
+      #Either input_data or new_data is in LongLat, please reproject.
+      #input_data:  +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 
+      # new_data:    +proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0 
+      #Problems using autoKrige on non projected data!!! it looks like the fields package is needed...
+      #Modified autokrige function...but new error:
+      #Error : dimensions do not match: locations 264 and data 125
+    }
+  
+    if(use_autokrige==FALSE){
+      #New function with the Fields package...
+      #debug(predict_accuracy_raster_by_station)
+      #pred_res_obj <- predict_accuracy_raster_by_station(var_pred,ref_rast,data_training,out_filename,out_suffix_str,out_dir,mask_file=NULL)
+      pred_res_obj <- predict_accuracy_raster_by_station(var_pred,ref_rast,data_training,out_filename,out_suffix_str,out_dir_str,mask_file=NULL)
+                                
+    }  
+    return(pred_res_obj)
+  }
+
+  ####### PARSE ARGUMENTS
+  
+
+  #lf <- list_param$lf[[i]] #list of files to mosaic
+  lf_day_tiles <- list_param$lf_day_tiles[[i]] #list of raster files
+  data_df <- list_param$data_df # data.frame table/spdf containing stations with residuals and variable
+  df_tile_processed_reg <- list_param$df_tile_processed_reg #tiles processed during assessment usually by region
+  var_pred <- list_param$var_pred #variable being modeled
+  list_models <- list_param$list_models #formula for the modeling 
+  use_autokrige <- list_param$use_autokrige #if TRUE use automap/gstat package
+  y_var_name <- list_param$y_var_name #"dailyTmax" #PARAM2
+  interpolation_method <- list_param$interpolation_method #c("gam_CAI") #PARAM3
+  date_processed <- list_param$days_to_process[i] #can be a monthly layer
+  num_cores <- list_param$num_cores #number of cores used
+  NA_flag_val <- list_param$NA_flag_val
+  #NAflag,file_format,out_suffix etc...
+  file_format <- list_param$file_format
+  out_dir_str <- list_param$out_dir
+  out_suffix_str <- list_param$out_suffix
+  
+  ######## START SCRIPT ###############
+  
+  list_formulas <- lapply(list_models,as.formula,env=.GlobalEnv) #mulitple arguments passed to lapply!!
+
+  #data_training <- data_df 
+  coordinates(data_df)<-cbind(data_df$x,data_df$y)
+  data_df <- subset(data_df,date==date_processed) #select the date...
+  #lf_day_tiles <- lf_mosaic[[i]] #i index for time...can be monthly or daily time steps??, ok
+  
+  #Now match the correct tiles with data used in kriging...
+  #match the correct tile!!! df_tile_processed
+  #pattern_str <- as.character(unique(df_tile_processed$tile_coord))
+  list_tile_coord <- as.character(df_tile_processed_reg$tile_coord)
+  pattern_str <- glob2rx(paste("*",list_tile_coord,"*","*.tif",sep=""))
+  keywords_str <- pattern_str
+  tmp_str2 <-unlist(lapply(keywords_str,grep,lf_day_tiles,value=TRUE))
+  df_raster_pred_tiles_tmp <- data.frame(files =tmp_str2, tile_coord=list_tile_coord)
+  df_raster_pred_tiles <- merge(df_raster_pred_tiles_tmp,df_tile_processed_reg,by="tile_coord")
+  df_raster_pred_tiles$path_NEX <- as.character(df_raster_pred_tiles$path_NEX)
+  df_raster_pred_tiles$reg <- basename(dirname(df_raster_pred_tiles$path_NEX))
+  df_raster_pred_tiles$files <- as.character(df_raster_pred_tiles$files)
+  df_raster_pred_tiles$tile_id <- as.character(df_raster_pred_tiles$tile_id)
+  
+  #identify residuals
+  
+  #call kriging function
+  
+  ###This can be a new function here with mclapply!!!
+  ## Addtional loop...
+  #j <- 1 #loops across tiles from set of files/tiles
+
+  lf <- df_raster_pred_tiles$files
+  
+  ##Make this loop a function later on, testing right now
+  list_param_generate_residuals_raster <- list(lf,var_pred,data_df,df_raster_pred_tiles,list_formulas,NA_flag_val,file_format,out_dir,out_suffix)
+  names(list_param_generate_residuals_raster) <- c("lf","var_pred","data_df","df_raster_pred_tiles","list_formulas","NA_flag_val","file_format","out_dir","out_suffix")
+
+  #debug(generate_residuals_raster)
+  #test_lf <- lapply(1,FUN=generate_residuals_raster,list_param=list_param_generate_residuals_raster)                           
+  
+  list_pred_res_obj <- mclapply(1:length(lf),FUN=generate_residuals_raster,list_param=list_param_generate_residuals_raster,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+  #write output
+  accuracy_residuals_obj <-list(list_pred_res_obj,data_df,df_raster_pred_tiles)
+  names(accuracy_residuals_obj)<-c("list_pred_res_obj","data_df","df_raster_pred_tiles")
+  save(accuracy_residuals_obj,file= file.path(out_dir,paste("accuracy_residuals_obj_",date_processed,"_",var_pred,
+                                                            out_suffix_str,".RData",sep="")))
+  
+  return(accuracy_residuals_obj) 
+}
+
 ##################### END OF SCRIPT ######################
