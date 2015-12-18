@@ -14,7 +14,7 @@
 #2) generalize to run dates and region fast (use python mosaic Alberto code)
 #3) clean up temporary files, it builds currently on the disk
 #4) fix output folder for some of output files
-#
+#5) create a helper function for inputs/arguments to automate...?? Could also be in the assessment stage
 
 ### Before running, the gdal modules and other environment parameters need to be set if on NEX-NASA.
 ### This can be done by running the following commands:
@@ -60,8 +60,8 @@ library(xts)
 
 function_mosaicing <-"global_run_scalingup_mosaicing_function_12172015.R"
 
-in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
-#in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
+#in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
+in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
 source(file.path(in_dir_script,function_mosaicing))
 
 load_obj <- function(f)
@@ -90,8 +90,8 @@ create_dir_fun <- function(out_dir,out_suffix){
 
 #in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
 #in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
-in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
-#in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
+#in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
+in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
 
 in_dir_tiles <- file.path(in_dir,"tiles")
 #in_dir_tiles <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles" #North America
@@ -127,24 +127,29 @@ num_cores <- 6 #PARAM 17
 region_names <- c("reg23","reg4") #selected region names, ##PARAM 18 
 use_autokrige <- F #PARAM 19
 
-###Make a separate folder for masks by regions... #PARAM 20
-#infile_mask <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
-infile_mask <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/r_mask_reg4.tif"
+###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
+infile_mask <- "/nobackupp8/bparmen1/regions_input_files/r_mask_reg4.tif"
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
 
 #tb_accuracy_name <- file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep=""))
-#tb_accuracy_name <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_10052015.txt"
-tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 21
-data_month_s_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_month_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 22
-data_day_v_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_day_v_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 23
-data_day_s_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_day_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 24
-df_tile_processed_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/df_tile_processed_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 25
+#tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 21
+#data_month_s_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_month_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 22
+#data_day_v_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_day_v_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 23
+#data_day_s_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_day_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 24
+#df_tile_processed_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/df_tile_processed_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 25
+
+tb_accuracy_name <- file.path(in_dir,"tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 21
+data_month_s_name <- file.path(in_dir,"data_month_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 22
+data_day_v_name <- file.path(in_dir,"data_day_v_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 23
+data_day_s_name <- file.path(in_dir,"data_day_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") ##PARAM 24
+df_tile_processed_name <- file.path(in_dir,"df_tile_processed_run10_1500x4500_global_analyses_pred_1992_12072015.txt") ##PARAM 25
 
 #python script and gdal on NEX NASA:
-#mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
+mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
 #python script and gdal on Atlas NCEAS
-mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
-python_bin <- "/usr/bin" #PARAM 27
+#mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
+#python_bin <- "/usr/bin" #PARAM 27
 
 algorithm <- "python" #PARAM 28 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
@@ -340,10 +345,12 @@ for(i in 1:length(day_to_mosaic)){
   
   list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
 
+  ### produce residuals mosaics
   mosaic_method <- "use_edge_weights" #this is distance from edge
-  out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
-
-  mosaic_edge_obj_residuals <- mosaicFiles(lf_accuracy_residuals_raster[[i]],
+  out_suffix_tmp <- paste(interpolation_method,"kriged_residuals",day_to_mosaic[i],out_suffix,sep="_")
+  lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
+  #lf_accuracy_residuals_raster[[i]]
+  mosaic_edge_obj_residuals <- mosaicFiles(lf_tmp,
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
@@ -356,7 +363,7 @@ for(i in 1:length(day_to_mosaic)){
                                         out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
-  list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
+  list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy,mosaic_edge_obj_residuals)
   
 }
 
