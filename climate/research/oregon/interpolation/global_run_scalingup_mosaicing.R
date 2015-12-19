@@ -5,16 +5,15 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/17/2015            
+#MODIFIED ON: 12/19/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
 #TODO:
-#1) Make this is a script/function callable from the shell/bash
-#2) generalize to run dates and region fast (use python mosaic Alberto code)
-#3) clean up temporary files, it builds currently on the disk
-#4) fix output folder for some of output files
-#5) create a helper function for inputs/arguments to automate...?? Could also be in the assessment stage
+#1) Make this is a script/function callable from the shell/bas
+#2) clean up temporary files, it builds currently on the disk
+#3) fix output folder for some of output files: create a mosaic output folder if doesn't exist?
+#4) create a helper function for inputs/arguments to automate...?? Could also be in the assessment stage
 
 ### Before running, the gdal modules and other environment parameters need to be set if on NEX-NASA.
 ### This can be done by running the following commands:
@@ -25,6 +24,13 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 #
+#reg1   : North America
+#reg23" : Europe + Asia
+#reg4"  : South America
+#reg5   : Africa
+#reg6   : Oceania+ South East Asia
+#
+
 #################################################################################################
 
 ### Loading R library and packages        
@@ -58,10 +64,10 @@ library(xts)
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_12172015.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_function_12192015.R"
 
-#in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
-in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
+in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
+#in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
 source(file.path(in_dir_script,function_mosaicing))
 
 load_obj <- function(f)
@@ -86,18 +92,12 @@ create_dir_fun <- function(out_dir,out_suffix){
 ############################################
 #### Parameters and constants  
 
-#Data is on ATLAS: reg4 (South America)
+#Data is on ATLAS or NASA NEX
+#PARAM 1
+in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NCEAS
+#in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
 
-#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test" #PARAM1
-#in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
-#in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
-in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
-
-in_dir_tiles <- file.path(in_dir,"tiles")
-#in_dir_tiles <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015/tiles" #North America
-#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg2" #Europe
-#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg4" #South America
-#in_dir <- "/data/project/layers/commons/NEX_data/mosaicing_data_test/reg5" #Africa
+in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
 
 y_var_name <- "dailyTmax" #PARAM2
 interpolation_method <- c("gam_CAI") #PARAM3
@@ -128,8 +128,8 @@ region_names <- c("reg23","reg4") #selected region names, ##PARAM 18
 use_autokrige <- F #PARAM 19
 
 ###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
-infile_mask <- "/nobackupp8/bparmen1/regions_input_files/r_mask_reg4.tif"
-#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
+#infile_mask <- "/nobackupp8/bparmen1/regions_input_files/r_mask_reg4.tif"
+infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
 
 #tb_accuracy_name <- file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep=""))
 #tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 21
@@ -138,6 +138,7 @@ infile_mask <- "/nobackupp8/bparmen1/regions_input_files/r_mask_reg4.tif"
 #data_day_s_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_day_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 24
 #df_tile_processed_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/df_tile_processed_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 25
 
+#in_dir can be on NEX or Atlas
 tb_accuracy_name <- file.path(in_dir,"tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 21
 data_month_s_name <- file.path(in_dir,"data_month_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 22
 data_day_v_name <- file.path(in_dir,"data_day_v_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 23
@@ -145,16 +146,20 @@ data_day_s_name <- file.path(in_dir,"data_day_s_NAM_run10_1500x4500_global_analy
 df_tile_processed_name <- file.path(in_dir,"df_tile_processed_run10_1500x4500_global_analyses_pred_1992_12072015.txt") ##PARAM 25
 
 #python script and gdal on NEX NASA:
-mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
+#mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
 #python script and gdal on Atlas NCEAS
-#mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
-#python_bin <- "/usr/bin" #PARAM 27
+mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
+python_bin <- "/usr/bin" #PARAM 27
 
 algorithm <- "python" #PARAM 28 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
  
 match_extent <- "FALSE" #PARAM 29 #try without matching!!!
+
+#for residuals...
+list_models <- NULL #PARAM 30
+#list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
 
 ########################## START SCRIPT ##############################
 
@@ -192,79 +197,87 @@ for(k in 1:length(region_names)){
 
 ##################### PART 2: produce the mosaic ##################
 
-##########################
-#### First generate rmse images for each date and tile for the region
-
-#lf <- lf_mosaic1 #list of files to mosaic for date 1, there a 28 files for reg4, South America
-
+#This is is assuming a list of file for a region!! 
+#this is where the main function for mosaicing region starts!!
 #use reg4 to test the code for now, redo later for any regions!!!
-lf_mosaic <- reg_lf_mosaic[[2]] #list of files to mosaic for date 1, there a 28 files for reg4, South America
+k<-2
+for(k in 1:length(region_names)){
+  region_selected <- region_names[k]
+  ##########################
+  #### First generate rmse images for each date and tile for the region
 
-#tb <- list_param$tb #fitting or validation table with all days
-#metric_name <- "rmse" #RMSE, MAE etc.
-#pred_mod_name <- "mod1"
-#y_var_name 
-#interpolation_method #c("gam_CAI") #PARAM3
-days_to_process <- day_to_mosaic
-#NA_flag_val <- list_param$NA_flag_val
-#file_format <- list_param$file_format
-out_dir_str <- out_dir
-out_suffix_str <- out_suffix
 
-#Improved by adding multicores option
-num_cores_tmp <- 6
-list_param_accuracy_metric_raster <- list(lf,tb,metric_name,pred_mod_name,y_var_name,interpolation_method,
+  lf_mosaic <- reg_lf_mosaic[[k]] #list of files to mosaic by regions
+                                #There a 28 files for reg4, South America
+
+  #######################################
+  ################### PART I: Accuracy layers by tiles #############
+  #first generate accuracy layers using tiles definitions and output from the accuracy assessment
+  
+  #tb <- list_param$tb #fitting or validation table with all days
+  #metric_name <- "rmse" #RMSE, MAE etc.
+  #pred_mod_name <- "mod1"
+  #y_var_name 
+  #interpolation_method #c("gam_CAI") #PARAM3
+  days_to_process <- day_to_mosaic
+  #NA_flag_val <- list_param$NA_flag_val
+  #file_format <- list_param$file_format
+  out_dir_str <- out_dir
+  out_suffix_str <- out_suffix
+  lf <- lf_mosaic
+
+  #Improved by adding multicores option
+  num_cores_tmp <- num_cores
+  list_param_accuracy_metric_raster <- list(lf,tb,metric_name,pred_mod_name,y_var_name,interpolation_method,
                     days_to_process,num_cores_tmp,NA_flag_val,file_format,out_dir_str,out_suffix_str) 
-names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
+  names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
                        "days_to_process","num_cores","NA_flag_val","file_format","out_dir_str","out_suffix_str") 
-list_raster_created_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_metric_raster,
+  list_raster_created_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_metric_raster,
                                   list_param=list_param_accuracy_metric_raster)
 
-#debug(create_accuracy_metric_raster)
-#list_raster_created_obj <- lapply(1:1,FUN=create_accuracy_metric_raster,
-#                                  list_param=list_param_accuracy_metric_raster)
+  #debug(create_accuracy_metric_raster)
+  #list_raster_created_obj <- lapply(1:1,FUN=create_accuracy_metric_raster,
+  #                                  list_param=list_param_accuracy_metric_raster)
+  #raster_created_obj <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
 
-#raster_created_obj <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
+  #Extract list of files for rmse and date 1 (19920101), there should be 28 raster images
+  lf_accuracy_raster <- lapply(1:length(list_raster_created_obj),FUN=function(i){unlist(list_raster_created_obj[[i]]$list_raster_name)}) 
 
-#Extract list of files for rmse and date 1 (19920101), there should be 28 raster images
-lf_accuracy_raster <- lapply(1:length(list_raster_created_obj),FUN=function(i){unlist(list_raster_created_obj[[i]]$list_raster_name)}) 
+  #Plot as quick check
+  #r1 <- raster(lf_mosaic[[1]][1]) 
+  #plot(r1)
 
-#Plot as quick check
-r1 <- raster(lf_mosaic[[1]][1]) 
-#r2 <- raster(lf_mosaic2[2]) 
+  ####################################
+  ### Now create accuracy surfaces from residuals...
 
-#plot(r1)
-#plot(r2)
-#r1_ac <- raster(lf_accuracy_raster[[1]][1]) 
-#plot(r1_ac)
+  ## Create accuracy surface by kriging
 
-####################################
-### Now create accuracy surfaces from residuals...
+  num_cores_tmp <-num_cores
+  lf_day_tiles  <- lf_mosaic #list of raster files by dates
+  data_df <- data_day_v # data.frame table/spdf containing stations with residuals and variable
+  #df_tile_processed  #tiles processed during assessment usually by region
+  #var_pred  #variable being modeled
+  #if not list of models is provided generate one
+  if(is.null(list_models)){
+    list_models <- paste(var_pred,"~","1",sep=" ")
+  }
 
-## Create accuracy surface by kriging
+  #use_autokrige #if TRUE use automap/gstat package
+  #y_var_name  #"dailyTmax" #PARAM2
+  #interpolation_method #c("gam_CAI") #PARAM3, need to select reg!!
+  #date_processed #can be a monthly layer
+  #num_cores #number of cores used
+  #NA_flag_val 
+  #file_format 
+  out_dir_str <- out_dir
+  out_suffix_str <- out_suffix 
+  days_to_process <- day_to_mosaic
+  df_tile_processed$path_NEX <- as.character(df_tile_processed$path_NEX) 
+  df_tile_processed$reg <- basename(dirname(df_tile_processed$path_NEX))
 
-num_cores_tmp <- 7
-lf_day_tiles  <- lf_mosaic #list of raster files by dates
-data_df <- data_day_v # data.frame table/spdf containing stations with residuals and variable
-#df_tile_processed  #tiles processed during assessment usually by region
-#var_pred  #variable being modeled
-list_models <- paste(var_pred,"~","1",sep=" ")
-#use_autokrige #if TRUE use automap/gstat package
-#y_var_name  #"dailyTmax" #PARAM2
-#interpolation_method #c("gam_CAI") #PARAM3, need to select reg!!
-#date_processed #can be a monthly layer
-#num_cores #number of cores used
-#NA_flag_val 
-#file_format 
-out_dir_str <- out_dir
-out_suffix_str <- out_suffix 
-days_to_process <- day_to_mosaic
-df_tile_processed$path_NEX <- as.character(df_tile_processed$path_NEX)
-df_tile_processed$reg <- basename(dirname(df_tile_processed$path_NEX))
-
-##By regions, selected earlier
-for(k in 1:length(region_names)){
-  df_tile_processed_reg <- subset(df_tile_processed,reg==region_names[k])#use reg4
+  ##By regions, selected earlier
+  #for(k in 1:length(region_names)){
+  df_tile_processed_reg <- subset(df_tile_processed,reg==region_selected)#use reg4
   #i<-1 #loop by days/date to process!!
   #test on the first day 
   list_param_create_accuracy_residuals_raster <- list(lf_day_tiles,data_df,df_tile_processed_reg,
@@ -276,42 +289,44 @@ for(k in 1:length(region_names)){
                     "days_to_process","num_cores_tmp","NA_flag_val","file_format","out_dir_str",
                     "out_suffix_str") 
 
-  #list_create_accuracy_residuals_raster_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_residuals_raster_obj,
-  #                                list_param=list_param_create_accuracy_residuals_raster_obj)
+  list_create_accuracy_residuals_raster_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_residuals_raster,
+                                  list_param=list_param_create_accuracy_residuals_raster)
 
   #undebug(create_accuracy_residuals_raster)
-  list_create_accuracy_residuals_raster_obj <- lapply(1:1,FUN=create_accuracy_residuals_raster,
-                                  list_param=list_param_create_accuracy_residuals_raster)
+  #list_create_accuracy_residuals_raster_obj <- lapply(1:1,FUN=create_accuracy_residuals_raster,
+  #                                list_param=list_param_create_accuracy_residuals_raster)
 
   #create_accuracy_residuals_raster_obj <- create_accuracy_metric_raster(1, list_param_create_accuracy_residuals_raster_obj)
 
-}
+  #note that three tiles did not produce a residuals surface!!! find out more later, join the output
+  #to df_raste_tile to keep track of which one did not work...
+  #lf_accuracy_residuals_raster <- as.character(unlist(lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name"))},x=list_create_accuracy_residuals_raster_obj))) 
+  lf_accuracy_residuals_raster <- lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){as.character(unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name")))},x=list_create_accuracy_residuals_raster_obj)
 
-lf_accuracy_residuals_raster <- lapply(1:length(list_raster_created_obj),FUN=function(i){unlist(list_raster_created_obj[[i]]$list_raster_name)}) 
-
-#Plot as quick check
-r1 <- raster(lf_mosaic[[1]][1]) 
-
-list_create_accuracy_residuals_raster_obj
-
-#################################
-#### Second mosaic tiles for the variable and accuracy metrid
-
-#methods availbable:use_sine_weights,use_edge,use_linear_weights
-#only use edge method for now
-#loop to dates..., make this a function...
-list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
-for(i in 1:length(day_to_mosaic)){
+  #Plot as quick check
+  #r1 <- raster(lf_mosaic[[1]][1]) 
+  #list_create_accuracy_residuals_raster_obj
   
-  mosaic_method <- "use_edge_weights" #this is distance from edge
-  out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
-  #debug(mosaicFiles)
-  #can also loop through methods!!!
-  #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
-  #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
-  #gdal_merge_sum_noDataTest.py
+  ######################################################
+  #### PART 2: GENETATE MOSAIC FOR LIST OF FILES #####
+  #################################
+  #### Mosaic tiles for the variable predicted and accuracy metric
 
-  mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic[[i]],
+  #methods availbable:use_sine_weights,use_edge,use_linear_weights
+  #only use edge method for now
+  #loop to dates..., make this a function...
+  list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
+  for(i in 1:length(day_to_mosaic)){
+    #
+    mosaic_method <- "use_edge_weights" #this is distance from edge
+    out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
+    #debug(mosaicFiles)
+    #can also loop through methods!!!
+    #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
+    #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
+    #gdal_merge_sum_noDataTest.py
+
+    mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic[[i]],
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
@@ -325,12 +340,12 @@ for(i in 1:length(day_to_mosaic)){
                                         out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
-  mosaic_method <- "use_edge_weights" #this is distance from edge
-  out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
+    mosaic_method <- "use_edge_weights" #this is distance from edge
+    out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
 
-  #debug(mosaicFiles)
-  #can also loop through methods!!!
-  mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster[[i]],
+    #debug(mosaicFiles)
+    #can also loop through methods!!!
+    mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster[[i]],
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
@@ -343,29 +358,35 @@ for(i in 1:length(day_to_mosaic)){
                                         out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
-  list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
+    list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
 
-  ### produce residuals mosaics
-  mosaic_method <- "use_edge_weights" #this is distance from edge
-  out_suffix_tmp <- paste(interpolation_method,"kriged_residuals",day_to_mosaic[i],out_suffix,sep="_")
-  lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
-  #lf_accuracy_residuals_raster[[i]]
-  mosaic_edge_obj_residuals <- mosaicFiles(lf_tmp,
+    ### produce residuals mosaics
+    mosaic_method <- "use_edge_weights" #this is distance from edge
+    out_suffix_tmp <- paste(interpolation_method,"kriged_residuals",day_to_mosaic[i],out_suffix,sep="_")
+    #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
+    lf_tmp <- lf_accuracy_residuals_raster[[i]]
+    #lf_accuracy_residuals_raster[[i]]
+    #debug(mosaicFiles)
+    mosaic_edge_obj_residuals <- mosaicFiles(lf_tmp,
                                         mosaic_method="use_edge_weights",
                                         num_cores=num_cores,
                                         r_mask_raster_name=infile_mask,
                                         python_bin=python_bin,
                                         mosaic_python=mosaic_python,
                                         algorithm=algorithm,
+                                        match_extent=match_extent,
                                         df_points=NULL,
                                         NA_flag=NA_flag_val,
                                         file_format=file_format,
                                         out_suffix=out_suffix_tmp,
                                         out_dir=out_dir)
   
-  list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy,mosaic_edge_obj_residuals)
-  
+    list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy,mosaic_edge_obj_residuals)
+  }
+
+  ##End of mosaicing function for region predictions
 }
+
 
 #####################
 ###### PART 2: Analysis and figures for the outputs of mosaic function #####
