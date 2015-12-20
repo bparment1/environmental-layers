@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/17/2015            
+#MODIFIED ON: 12/19/2015            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -12,7 +12,12 @@
 #1) Make this is a script/function callable from the shell/bash
 #2) Improve performance: there will be a need to improve efficiency for the workflow.
 
-#Functions: available:
+#Error message for gdal_proximity:
+#ERROR 1: Source and proximity bands are not the same size.
+#gdal_proximity.py give an error when tries to replace an existent output file with different band.
+#If the output already exists and was created by a different band input file, this error is displayed: ERROR 1: Source and proximity bands are not the same size.
+#If you remove the existent file, it works fine.
+#available:
 #See below
 
 #################################################################################################
@@ -35,10 +40,10 @@ library(maps)                                # Tools and data for spatial/geogra
 library(reshape)                             # Change shape of object, summarize results 
 library(plotrix)                             # Additional plotting functions
 library(plyr)                                # Various tools including rbind.fill
-#library(spgwr)                               # GWR method, not on NEX
+library(spgwr)                               # GWR method, not on NEX
 library(automap)                             # Kriging automatic fitting of variogram using gstat, not on NEX
 library(rgeos)                               # Geometric, topologic library of functions
-#RPostgreSQL                                 # Interface R and Postgres, not used in this script
+library(RPostgreSQL)                         # Interface R and Postgres, not used in this script
 library(gridExtra)
 #Additional libraries not used in workflow
 library(pgirmess)                            # Krusall Wallis test with mulitple options, Kruskalmc {pgirmess}  
@@ -318,10 +323,11 @@ create_weights_fun <- function(i, list_param){
       r_init[1:n_row,1] <- 1
       r_init[1:n_row,n_col] <- 1
       #r_dist <- distance(r_init)
-      srcfile <- file.path(out_dir,paste("feature_target_",tile_no,".tif",sep=""))
+      srcfile <- file.path(out_dir,paste("feature_target_",tile_no,"_",Sys.getpid(),".tif",sep=""))
 
       writeRaster(r_init,filename=srcfile,overwrite=T)
-      dstfile <- file.path(out_dir,paste("feature_target_edge_distance",tile_no,".tif",sep=""))
+      #Sys.getpid
+      dstfile <- file.path(out_dir,paste("feature_target_edge_distance",tile_no,"_",Sys.getpid(),".tif",sep=""))
       n_values <- "1"
         
       cmd_str <- paste("gdal_proximity.py", srcfile, dstfile,"-values",n_values,sep=" ")
@@ -548,7 +554,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
     #num_cores <- 11
     #debug(create_weights_fun)
-    #weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
+    #weights_obj <- create_weights_fun(3,list_param=list_param_create_weights)
 
     #This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
     #the edges...can use rows and columsn to set edges to 1 and 0 for the others.
@@ -796,8 +802,21 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
     #now use the mask
     if(!is.null(r_mask_raster_name)){
+      #different extent between mask and output if match extent is false!!
+      #match resolution and extent first
+      
+      lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
+      rast_ref <- r_mask_raster_name
+      ##Maching resolution is probably only necessary for the r mosaic function
+      #Modify later to take into account option R or python...
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+
+      #undebug(raster_match)
+      r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
+
       r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
-      mask(raster(r_m_weighted_mean_raster_name),mask=raster(r_mask_raster_name),
+      mask(raster(r_m_weighted_mean_raster_name_matched),mask=raster(r_mask_raster_name),
            filename=r_m_weighted_mean_mask_raster_name,overwrite=TRUE)
       raster_name <- r_m_weighted_mean_mask_raster_name
     }else{
@@ -842,8 +861,21 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
     
     if(!is.null(r_mask_raster_name)){
+      #different extent between mask and output if match extent is false!!
+      #match resolution and extent first
+      
+      lf_files <- c(r_m_mean_raster_name) #file(s) to be matched
+      rast_ref <- r_mask_raster_name
+      ##Maching resolution is probably only necessary for the r mosaic function
+      #Modify later to take into account option R or python...
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+
+      #undebug(raster_match)
+      r_m_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
+
       r_m_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",method_str,"_unweighted_mean_mask_",out_suffix,".tif",sep=""))
-      mask(raster(r_m_mean_raster_name),mask=raster(r_mask_raster_name),
+      mask(raster( r_m_mean_raster_name_matched),mask=raster(r_mask_raster_name),
            filename=r_m_mean_mask_raster_name,overwrite=TRUE)
       raster_name <- r_m_mean_mask_raster_name
     }else{
@@ -1424,7 +1456,9 @@ create_accuracy_residuals_raster <- function(i,list_param){
   #test_lf <- lapply(1,FUN=generate_residuals_raster,list_param=list_param_generate_residuals_raster)                           
   
   list_pred_res_obj <- mclapply(1:length(lf),FUN=generate_residuals_raster,list_param=list_param_generate_residuals_raster,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
+  ## Add to df_raster_pred_tiles
+  
+  
   #write output
   accuracy_residuals_obj <-list(list_pred_res_obj,data_df,df_raster_pred_tiles)
   names(accuracy_residuals_obj)<-c("list_pred_res_obj","data_df","df_raster_pred_tiles")
@@ -1432,6 +1466,34 @@ create_accuracy_residuals_raster <- function(i,list_param){
                                                             out_suffix_str,".RData",sep="")))
   
   return(accuracy_residuals_obj) 
+}
+
+##Also found in accuracy assessment script:global_run_scalingup_assessment_part1_functions_02112015.R
+#This extract a data.frame object from raster prediction obj and combine them in one data.frame 
+extract_from_list_obj<-function(obj_list,list_name){
+  #extract object from list of list. This useful for raster_prediction_obj
+  library(plyr)
+  list_tmp<-vector("list",length(obj_list))
+  for (i in 1:length(obj_list)){
+    tmp <- obj_list[[i]]
+    if(inherits(tmp,"try-error")){     
+      print(paste("no model generated or error in list",sep=" ")) #change message for any model type...
+      list_tmp[[i]] <- NULL #double bracket to return data.frame
+    }else{
+      #tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
+      list_tmp[[i]] <- as.data.frame(tmp[[list_name]])
+    }
+    #
+    #tmp<-obj_list[[i]][[list_name]] #double bracket to return data.frame
+    #list_tmp[[i]]<- as.data.frame(tmp) #if spdf
+  }
+  #
+  #list_tmp <-list_tmp[!is.null(list_tmp)]
+  list_tmp <- list_tmp[unlist(lapply(list_tmp,FUN=function(x){!is.null(x)}))]
+
+  tb_list_tmp<-do.call(rbind.fill,list_tmp) #long rownames
+  #tb_list_tmp<-do.call(rbind,list_tmp) #long rownames 
+  return(tb_list_tmp) #this is  a data.frame
 }
 
 ##################### END OF SCRIPT ######################
