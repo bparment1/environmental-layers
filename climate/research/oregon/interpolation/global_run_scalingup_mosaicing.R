@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/20/2015            
+#MODIFIED ON: 12/19/2015            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -307,63 +307,6 @@ for(k in 1:length(region_names)){
   #r1 <- raster(lf_mosaic[[1]][1]) 
   #list_create_accuracy_residuals_raster_obj
   
-  ##Run for data_day_s
-  ##
-  data_df <- data_day_s # data.frame table/spdf containing stations with residuals and variable
-
-  num_cores_tmp <-num_cores
-  lf_day_tiles  <- lf_mosaic #list of raster files by dates
-  #data_df <- data_day_v # data.frame table/spdf containing stations with residuals and variable
-  #df_tile_processed  #tiles processed during assessment usually by region
-  #var_pred  #variable being modeled
-  #if not list of models is provided generate one
-  if(is.null(list_models)){
-    list_models <- paste(var_pred,"~","1",sep=" ")
-  }
-
-  #use_autokrige #if TRUE use automap/gstat package
-  #y_var_name  #"dailyTmax" #PARAM2
-  #interpolation_method #c("gam_CAI") #PARAM3, need to select reg!!
-  #date_processed #can be a monthly layer
-  #num_cores #number of cores used
-  #NA_flag_val 
-  #file_format 
-  out_dir_str <- out_dir
-  out_suffix_str <- paste("data_day_s_",out_suffix,sep="") 
-  days_to_process <- day_to_mosaic
-  df_tile_processed$path_NEX <- as.character(df_tile_processed$path_NEX) 
-  df_tile_processed$reg <- basename(dirname(df_tile_processed$path_NEX))
-
-  ##By regions, selected earlier
-  #for(k in 1:length(region_names)){
-  df_tile_processed_reg <- subset(df_tile_processed,reg==region_selected)#use reg4
-  #i<-1 #loop by days/date to process!!
-  #test on the first day 
-  list_param_create_accuracy_residuals_raster <- list(lf_day_tiles,data_df,df_tile_processed_reg,
-                    var_pred,list_models,use_autokrige,y_var_name,interpolation_method,
-                    days_to_process,num_cores_tmp,NA_flag_val,file_format,out_dir_str,
-                    out_suffix_str) 
-  names(list_param_create_accuracy_residuals_raster) <- c("lf_day_tiles","data_df","df_tile_processed_reg",
-                    "var_pred","list_models","use_autokrige","y_var_name","interpolation_method",
-                    "days_to_process","num_cores_tmp","NA_flag_val","file_format","out_dir_str",
-                    "out_suffix_str") 
-
-  list_create_accuracy_residuals_raster_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_residuals_raster,
-                                  list_param=list_param_create_accuracy_residuals_raster)
-
-  #undebug(create_accuracy_residuals_raster)
-  #list_create_accuracy_residuals_raster_obj <- lapply(1:1,FUN=create_accuracy_residuals_raster,
-  #                                list_param=list_param_create_accuracy_residuals_raster)
-
-  #create_accuracy_residuals_raster_obj <- create_accuracy_metric_raster(1, list_param_create_accuracy_residuals_raster_obj)
-
-  #note that three tiles did not produce a residuals surface!!! find out more later, join the output
-  #to df_raste_tile to keep track of which one did not work...
-  #lf_accuracy_residuals_raster <- as.character(unlist(lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name"))},x=list_create_accuracy_residuals_raster_obj))) 
-  lf_accuracy_residuals_data_s_raster <- lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){as.character(unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name")))},x=list_create_accuracy_residuals_raster_obj)
-
-  ##took 31 minutes to generate the residuals maps for each tiles (28) for region 4
-  
   ######################################################
   #### PART 2: GENETATE MOSAIC FOR LIST OF FILES #####
   #################################
@@ -418,9 +361,8 @@ for(k in 1:length(region_names)){
     list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
 
     ### produce residuals mosaics
-    #for now add data_day_s in the name!!
     mosaic_method <- "use_edge_weights" #this is distance from edge
-    out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_s",day_to_mosaic[i],out_suffix,sep="_")
+    out_suffix_tmp <- paste(interpolation_method,"kriged_residuals",day_to_mosaic[i],out_suffix,sep="_")
     #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
     lf_tmp <- lf_accuracy_residuals_raster[[i]]
     #lf_accuracy_residuals_raster[[i]]
