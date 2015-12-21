@@ -68,7 +68,7 @@ source(file.path(script_path2,"interpolation_method_day_function_multisampling.R
 source(file.path(script_path,"GAM_fusion_function_multisampling_validation_metrics.R"))
 
 #sub sampling of stations
-source(file.path(script_path2,"subsampling_data_func.R")) #Include GAM_day
+source(file.path(script_path2,"subsampling_data_function.R")) #Include GAM_day
 
 #stages_to_run<-c(0,2,3,4,5) #MRun only raster fitting, prediction and assessemnt (providing lst averages, covar brick and met stations)
 #stages_to_run<-c(0,2,3,0,0)
@@ -311,17 +311,19 @@ num_cores<-args[10]
 #max number of cells to read in memory
 max_mem<-args[11]
 #rasterOptions(maxmemory=1e+07,timer=TRUE)
+out_path_daily <- file.path(out_path,range_years[1]) #<-c("1992","1993") #right bound not included in the range!!
+out_path_clim <- file.path(out_path,paste("clim_",range_years_clim[1],"_",range_years_clim[2],sep="")) #<-c("1990","2001") #right bound not included in the range!!
 
 #Collect all parameters in a list
 list_param_raster_prediction<-list(list_param_data_prep,screen_data_training,
                                 seed_number,nb_sample,step,constant,prop_minmax,dates_selected,
                                 seed_number_month,nb_sample_month,step_month,constant_month,prop_minmax_month,
-                                list_models,list_models2,interp_method2,lst_avg,out_path,script_path,use_clim_image,join_daily,
+                                list_models,list_models2,interp_method2,lst_avg,out_path_daily,out_path_clim,script_path,use_clim_image,join_daily,
                                 interpolation_method,num_cores,max_mem)
 names(list_param_raster_prediction)<-c("list_param_data_prep","screen_data_training",
                                 "seed_number","nb_sample","step","constant","prop_minmax","dates_selected",
                                 "seed_number_month","nb_sample_month","step_month","constant_month","prop_minmax_month",
-                                "list_models","list_models2","interp_method2","lst_avg","out_path","script_path","use_clim_image","join_daily",
+                                "list_models","list_models2","interp_method2","lst_avg","out_path","out_path_clim","script_path","use_clim_image","join_daily",
                                 "interpolation_method","num_cores","max_mem")
 
 #debug(raster_prediction_fun)
