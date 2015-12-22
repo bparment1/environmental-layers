@@ -13,7 +13,7 @@
 #For multiple time scale methods, the interpolation is done first at the monthly time scale then delta surfaces are added.
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 04/01/2013  
-#MODIFIED ON: 12/21/2015  
+#MODIFIED ON: 12/29/2015  
 #PROJECT: NCEAS INPLANT: Environment and Organisms --TASK#568--     
 #
 # TO DO:
@@ -268,13 +268,13 @@ raster_prediction_fun <-function(list_param_raster_prediction){
   if (interpolation_method %in% c("gam_fusion","kriging_fusion","gwr_fusion")){
     clim_method_mod_obj_file <- file.path(out_path_clim,paste(interpolation_method,"_mod_",y_var_name,out_prefix,".RData",sep=""))
     if(!file.exists(clim_method_mod_obj_file)){
-      list_param_runClim_KGFusion<-list(j,s_raster,covar_names,lst_avg,list_models,dst,sampling_month_obj,var,y_var_name, out_prefix,out_path)
+      list_param_runClim_KGFusion<-list(j,s_raster,covar_names,lst_avg,list_models,dst,sampling_month_obj,var,y_var_name, out_prefix,out_path_clim)
       names(list_param_runClim_KGFusion)<-c("list_index","covar_rast","covar_names","lst_avg","list_models","dst","sampling_month_obj","var","y_var_name","out_prefix","out_path")
       #debug(runClim_KGFusion)
       #test<-runClim_KGFusion(1,list_param=list_param_runClim_KGFusion)
       clim_method_mod_obj<-mclapply(1:length(sampling_month_obj$ghcn_data), list_param=list_param_runClim_KGFusion, runClim_KGFusion,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
     
-      save(clim_method_mod_obj,file= file.path(out_path,paste(interpolation_method,"_mod_",y_var_name,out_prefix,".RData",sep="")))
+      save(clim_method_mod_obj,file= file.path(out_path_clim,paste(interpolation_method,"_mod_",y_var_name,out_prefix,".RData",sep="")))
       #Use function to extract list
     }else{
       clim_method_mod_obj <- load_obj(clim_method_mod_obj_file) #load the existing file
@@ -294,12 +294,12 @@ raster_prediction_fun <-function(list_param_raster_prediction){
     clim_method_mod_obj_file <- file.path(out_path_clim,paste(interpolation_method,"_mod_",y_var_name,out_prefix,".RData",sep=""))
     if(!file.exists(clim_method_mod_obj_file)){
       num_cores2 = as.integer(num_cores) + 2
-      list_param_runClim_KGCAI<-list(j,s_raster,covar_names,lst_avg,list_models,dst,sampling_month_obj,var,y_var_name, out_prefix,out_path)
+      list_param_runClim_KGCAI<-list(j,s_raster,covar_names,lst_avg,list_models,dst,sampling_month_obj,var,y_var_name, out_prefix,out_path_clim)
       names(list_param_runClim_KGCAI)<-c("list_index","covar_rast","covar_names","lst_avg","list_models","dst","sampling_month_obj","var","y_var_name","out_prefix","out_path")
       clim_method_mod_obj<-mclapply(1:length(sampling_month_obj$ghcn_data), list_param=list_param_runClim_KGCAI, runClim_KGCAI,mc.preschedule=FALSE,mc.cores = num_cores2) #This is the end bracket from mclapply(...) statement
       #test<-runClim_KGCAI(1,list_param=list_param_runClim_KGCAI)
 
-      save(clim_method_mod_obj,file= file.path(out_path,paste(interpolation_method,"_mod_",y_var_name,out_prefix,".RData",sep="")))
+      save(clim_method_mod_obj,file= file.path(out_path_clim,paste(interpolation_method,"_mod_",y_var_name,out_prefix,".RData",sep="")))
     }else{
       clim_method_mod_obj <- load_obj(clim_method_mod_obj_file) #load the existing file
     }
