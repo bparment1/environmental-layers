@@ -124,6 +124,7 @@ mosaic_m_raster_list<-function(j,list_param){
   #Arguments: modies grid tile,list of tiles
   #Output: spatial grid data frame of the subset of tiles
   #Note that rasters are assumed to be in the same projection system!!
+  #modified for global mosaic...still not working right now...
   
   #rast_list<-vector("list",length(mosaic_list))
   #for (i in 1:length(mosaic_list)){  
@@ -143,12 +144,16 @@ mosaic_m_raster_list<-function(j,list_param){
   
   if(class(mosaic_list[[j]])=="list"){
     m_list <- unlist(mosaic_list[[j]])
+  }else{
+    m_list <- mosaic_list[[j]]
   }
-  input.rasters <- lapply(m_list, raster)
+  input.rasters <- lapply(m_list, raster) #create raster image for each element of the list
+  #inMemory(input.rasters[[1]])
+  #note that input.rasters are not stored in memory!!
   mosaiced_rast<-input.rasters[[1]]
   
   for (k in 2:length(input.rasters)){
-    mosaiced_rast<-mosaic(mosaiced_rast,input.rasters[[k]], fun=mean)
+    mosaiced_rast<-mosaic(mosaiced_rast,input.rasters[[k]], tolerance=1,fun=mean)
     #mosaiced_rast<-mosaic(mosaiced_rast,raster(input.rasters[[k]]), fun=mean)
   }
   
