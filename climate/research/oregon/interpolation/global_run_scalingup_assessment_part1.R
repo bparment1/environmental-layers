@@ -5,13 +5,13 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/11/2015            
+#MODIFIED ON: 12/28/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
-# - generate delta and clim mosaic
-# - Wrap in function to be able to extract information via a job?
-# - Parallelize the region mosaics generation (by dates)?
+# - 
+# - Make this a function...
+# - Drop mosaicing from the script
 #
 #First source these files:
 #Resolved call issues from R.
@@ -62,24 +62,24 @@ function_analyses_paper1 <- "global_run_scalingup_assessment_part1_functions_021
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 source(file.path(script_path,function_analyses_paper1)) #source all functions used in this script 
 
-
 ##############################
 #### Parameters and constants  
 
 #Make this a function
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out_15x45/"
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/"
 #/nobackupp6/aguzman4/climateLayers/out_15x45/1982
 
-region_names <- c("reg23","reg4") #selected region names, #PARAM2 
+#region_names <- c("reg23","reg4") #selected region names, #PARAM2 
+region_names <- c("reg4")
 #region_names <- c("1992") #no specific region here so use date
 #region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 #region_namesb <- c("reg_1b","reg_1c","reg_2b","reg_3b","reg_6b") #selected region names, #PARAM2
 
 y_var_name <- "dailyTmax" #PARAM3
 interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix<-"run10_1500x4500_global_analyses_pred_1992_12072015" #PARAM5
+out_prefix<-"run_global_analyses_pred_12282015" #PARAM5
 
 #output_run10_1500x4500_global_analyses_pred_2003_04102015/
 
@@ -91,10 +91,9 @@ create_out_dir_param <- TRUE #PARAM7
 
 CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
 
-day_to_mosaic <- c("19920101","19920102","19920103,19920104,19920105")
-
-
+#day_to_mosaic <- c("19920101","19920102","19920103,19920104,19920105")
 #day_to_mosaic <- NULL #if day to mosaic is null then mosaic all dates?
+year_predicted <- 1984:2004
 
 file_format <- ".tif" #format for mosaiced files #PARAM10
 NA_flag_val <- -9999  #No data value, #PARAM11
@@ -160,7 +159,6 @@ if(create_out_dir_param==TRUE){
 setwd(out_dir)
 
 ##raster_prediction object : contains testing and training stations with RMSE and model object
-
 
 list_raster_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
 basename(dirname(list_raster_obj_files[[1]]))
@@ -517,122 +515,6 @@ file.copy(list_shp_world,file.path(out_dir,"shapefiles"))
 #save a list of all files...
 write.table(df_tiles_all,
             file=file.path(out_dir,"shapefiles",paste("df_tiles_all_",out_prefix,".txt",sep="")),sep=",")
-
-######################################################
-####### PART 2 CREATE MOSAIC OF PREDICTIONS PER DAY, Delta surfaces and clim ###
-
-#if mosaicing_tiles==TRUE then do it?
-#dates_l <- unique(robj1$tb_diagnostic_s$date) #list of dates to query tif
-#create date!!!
-if(is.null(day_to_mosaic)){
-  
-  #idx <- seq(as.Date('2010-01-01'), as.Date('2010-12-31'), 'day')
-  #idx <- seq(as.Date('20100101'), as.Date('20101231'), 'day')
-  #date_l <- strptime(idx[1], "%Y%m%d") # interpolation date being processed
-  #dates_l <- format(idx, "%Y%m%d") # interpolation date being processed
-  day_to_mosaic <- dates_predicted #should be 365 days...
-  #l_dates <- day_to_mosaic
-}
-#else{
-#  l_dates <- paste(day_to_mosaic,collapse=",")
-#}
-
-## make this a function? report on number of tiles used for mosaic...
-
-#inputs: build a pattern to find files
-#y_var_name <- "dailyTmax" #set up in parameters of this script
-#interpolation_method <- c("gam_CAI") #set up in parameters of the script
-name_method <- paste(interpolation_method,"_",y_var_name,"_",sep="")
-##Use python code written by Alberto Guzman
-
-#system("MODULEPATH=$MODULEPATH:/nex/modules/files")
-#system("module load /nex/modules/files/pythonkits/gdal_1.10.0_python_2.7.3_nex")
-
-#module_path <- ""
-module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-#/nobackupp6/aguzman4/climateLayers/sharedCode/mosaicUsingGdalMerge.py
-l_dates <- paste(day_to_mosaic,collapse=",",sep=" ")
-## use region 2 first
-
-### FIRST mosaics by processing region
-#make this a function later...with following param
-#input:
-#region_names
-#in_dir1
-##out_dir , not ehta out_dir moasic s can be created in rhe future function
-#mod_str <- mod1
-#For the time being use mean,median from python function by Alberto...
-#Solved issue about calls from R
-#First run 3 lines in the bash shell
-#source /nobackupp6/aguzman4/climateLayers/sharedModules/etc/environ.sh 
-#MODULEPATH=$MODULEPATH:/nex/modules/files
-#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
-
-#recombine region first:
-region_names_mosaic <- list(region_names)
-names(region_names_mosaic) <- "reg5"
-in_dir_mosaics <- lapply(region_names_mosaic,FUN=function(x){file.path(in_dir1,x)})
-
-for (j in 1:length(region_names_mosaic)){
-  #for(i in 1:length(region_names))
-  in_dir_mosaics <- lapply(region_names_mosaic,FUN=function(x){file.path(in_dir1,x)})
-  #in_dir_mosaics <- paste(region_names_mosaic,collapse=" ")
-  #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
-  #Can be changed to have mosaics in different dir..
-  out_dir_mosaics <- out_dir
-  #prefix_str <- "reg4_1500x4500"
-  #tile_size <- basename(dirname(in_dir[[i]]))
-  tile_size <- basename(in_dir1)
-
-  prefix_str <- paste(names(region_names_mosaic)[j],"_",tile_size,sep="")
-
-  mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
-
-  cmd_str <- paste("python", file.path(module_path,"mosaicUsingGdalMerge.py"),
-                 in_dir_mosaics,
-                 out_dir_mosaics,
-                 prefix_str,
-                 "--mods", mod_str,
-                 "--date", l_dates,sep=" ")
-  system(cmd_str)
-
-}
-
-### SECOND mosaics globally from regional mosaics...
-### Now find out how many files were predicted
-# will be useful later on
-# Transform this into a function that takes in a list of files!!! We can skip the region stage to reduce the number of files..
-
-#sh /nobackupp6/aguzman4/climateLayers/sharedCode/shMergeFromFile.sh list_mosaics_20100901.txt world_mosaics_1000x3000_20100901.tif
-in_dir_str <- in_dir_mosaics
-region <- "reg5"  #can be the world...
-for (i in 1:length(day_to_mosaic)){
-  pattern_str <- paste("*.","predicted_mod1",".*.",day_to_mosaic[i],".*.tif",sep="")
-  lf_day_to_mosaic <- lapply(1:length(unlist(in_dir_mosaics)),FUN=function(k){list.files(path=unlist(in_dir_mosaics)[k],pattern=pattern_str,full.names=T,recursive=T)}) 
-  lf_day_to_mosaic <- unlist(lf_day_to_mosaic)
-  #write.table(lf_day_to_mosaic,file=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
-  writeLines(lf_day_to_mosaic,con=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
-  in_file_to_mosaics <- file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep=""))        
-  #in_dir_mosaics <- file.path(in_dir1,region_names[i])
-  #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
-  #Can be changed to have mosaics in different dir..
-  #out_dir_mosaics <- out_dir
-  #prefix_str <- "reg4_1500x4500"
-  #tile_size <- basename(dirname(in_dir[[i]]))
-  tile_size <- basename(in_dir1)
-
-  #prefix_str <- paste(region_names[i],"_",tile_size,sep="")
-  mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
-  out_mosaic_name <- paste(region,"_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
-  module_path <- "/nobackupp6/aguzman4/climateLayers/sharedCode" #this should be a parameter for the function...
-  cmd_str <- paste("sh", file.path(module_path,"shMergeFromFile.sh"),
-                 in_file_to_mosaics,
-                 out_mosaic_name,
-                 sep=" ")
-  system(cmd_str)
-
-}
-
 
 ########### LAST PART: COPY SOME DATA BACK TO ATLAS #####
 
