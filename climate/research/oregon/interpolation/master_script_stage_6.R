@@ -11,7 +11,7 @@
 #STAGE 6: Assessement of predictions by tiles and regions with mosaicing of predictions and accuracy
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 12/29/2015  
+#MODIFIED ON: 12/31/2015  
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 ## TODO:
@@ -49,8 +49,14 @@ args<-commandArgs(TRUE)
 
 #CALLED FROM MASTER SCRIPT:
 
-#modis_download_script <- file.path(script_path,"modis_download.py") # LST modis download python script
+script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
+function_assessment_part1_script <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
+function_assessment_part1a <-"global_run_scalingup_assessment_part1a_12312015.R"
+source(file.path(script_path,function_assessment_part1_script)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
 
+### Parameters and arguments ###
+  
 var<-"TMAX" # variable being interpolated
 
 #interpolation_method<-c("gam_fusion") #other otpions to be added later
@@ -68,7 +74,7 @@ in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/"
 #/nobackupp6/aguzman4/climateLayers/out_15x45/1982
 
 #region_names <- c("reg23","reg4") #selected region names, #PARAM2
-region_names <- c("reg4")
+region_name <- c("reg4") #run assessment by region
 #region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
 interpolation_method <- c("gam_CAI") #PARAM4
 out_prefix <- "run_global_analyses_pred_12282015" #PARAM5
@@ -87,10 +93,10 @@ file_format <- ".tif" #format for mosaiced files #PARAM10
 NA_flag_val <- -9999  #No data value, #PARAM11
 num_cores <- 6 #number of cores used #PARAM13
 
-list_param_run_assessment_prediction <- list(in_dir1,region_names,interpolation_method,out_prefix,
+list_param_run_assessment_prediction <- list(in_dir1,region_name,interpolation_method,out_prefix,
                                           out_dir,create_out_dir_param,CRS_locs_WGS84,
                                              list_year_predicted,file_format,NA_flag_val,num_cores)
-list_names <- c("in_dir1","region_names","interpolation_method","out_prefix",
+list_names <- c("in_dir1","region_name","interpolation_method","out_prefix",
                                       "out_dir","create_out_dir_param","CRS_locs_WGS84",
                                       "list_year_predicted","file_format","NA_flag_val","num_cores")
 
@@ -100,12 +106,12 @@ names(list_param_run_assessment_prediction)<-list_names
 max_mem<-args[11]
 #rasterOptions(maxmemory=1e+07,timer=TRUE)
 
-#debug(raster_prediction_fun)
+#debug(run_assessment_prediction_fun)
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
 if (stages_to_run[6]==6){
-  assessment_prediction_obj <- run_assessment_prediction_fun(ii,list_param_raster_prediction)
+  assessment_prediction_obj <- run_assessment_prediction_fun(i,list_param_run_assessment_prediction)
 }
 
 ###############   END OF SCRIPT   ###################
