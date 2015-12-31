@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/29/2015            
+#MODIFIED ON: 12/31/2015            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -13,6 +13,7 @@
 # - Separate call in a master script for assessment
 # - add second stage in the master script for assessment
 # - add mosaicing in the master script for assessment
+# - clean up the code by making two function to clarify the code and remove repetition 
 
 #First source these files:
 #Resolved call issues from R.
@@ -113,19 +114,20 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   year_predicted <- list_param_run_assessment_prediction$list_year_predicted[i] 
   #region_name is not null then restrict the assessment to a specific region
-  if(!is.null(region_name)){
-    in_dir1 <- file.path(in_dir1,region_name)
-  }
-
+  #if(!is.null(region_name)){
+  #  in_dir1 <- file.path(in_dir1,region_name)
+  #}
+  in_dir1 <- file.path(in_dir1,region_name)
   
-  list_outfiles <- vector("list", length=6) #collect names of output files
+  list_outfiles <- vector("list", length=14) #collect names of output files
   
   in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
   #basename(in_dir_list)
   #                       y=in_dir_list) 
   
-  in_dir_list_all  <- unlist(lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)}))
-  in_dir_list <- in_dir_list_all
+  #in_dir_list_all  <- unlist(lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)}))
+  in_dir_list_all <- in_dir_list
+  #in_dir_list <- in_dir_list_all
   #in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
   
   #this was changed on 10052015 because the shapefiles were not matching!!!
@@ -138,6 +140,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   
   #select only directories used for predictions
+  #nested structure, we need to go to higher level to obtain the tiles...
   in_dir_reg <- in_dir_list[grep(".*._.*.",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
   #in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
   in_dir_list <- in_dir_reg
@@ -164,7 +167,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   ##raster_prediction object : contains testing and training stations with RMSE and model object
   in_dir_list_tmp <- file.path(in_dir_list,year_predicted)
   list_raster_obj_files <- lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
-  basename(dirname(list_raster_obj_files[[1]]))
+
   list_names_tile_coord <- lapply(list_raster_obj_files,FUN=function(x){basename(dirname(x))})
   list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
   names(list_raster_obj_files)<- list_names_tile_id
@@ -173,16 +176,8 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   lf_covar_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar_obj.*.RData",full.names=T)})
   lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
   
-  #sub_sampling_obj_daily_gam_CAI_10.0_-75.0.RData
-  #sub_sampling_obj_gam_CAI_10.0_-75.0.RData
-  
   lf_sub_sampling_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=paste("^sub_sampling_obj_",interpolation_method,".*.RData",sep=""),full.names=T)})
   lf_sub_sampling_obj_daily_files <- lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^sub_sampling_obj_daily.*.RData",full.names=T)})
-  
-  ## This will be part of the raster_obj function
-  #debug(create_raster_prediction_obj)
-  #out_prefix_str <- paste(basename(in_dir_list),out_prefix,sep="_") 
-  #lf_raster_obj <- create_raster_prediction_obj(in_dir_list,interpolation_method, y_var_name,out_prefix_str,out_path_list=NULL)
   
   ################################################################
   ######## PART 1: Generate tables to collect information:
@@ -197,32 +192,14 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   df_tile_processed$tile_id <- unlist(list_names_tile_id) #Arbitrary tiling number!!
   df_tile_processed$path_NEX <- in_dir_list
   df_tile_processed$year_predicted <- year_predicted
-  df_tile_processed$sub_sampling_clim  <- lf_sub_sampling_obj_files
-  df_tile_processed$sub_sampling_daily  <- lf_sub_sampling_obj_daily_files
+  #Deal with the abscence of subsampling object for specific tiles
+  lf_sub_sampling_obj_files_tmp <- lapply(1:length(lf_sub_sampling_obj_files),FUN=function(i,x){val <- x[[i]];if(length(val)==0){val<-0};val},x=lf_sub_sampling_obj_files)
+  lf_sub_sampling_obj_daily_files_tmp <- lapply(1:length(lf_sub_sampling_obj_daily_files),FUN=function(i,x){val <- x[[i]];if(length(val)==0){val<-0};val},x=lf_sub_sampling_obj_daily_files)
+  df_tile_processed$sub_sampling_clim  <- unlist(lf_sub_sampling_obj_files_tmp)
+  df_tile_processed$sub_sampling_daily  <- unlist(lf_sub_sampling_obj_daily_files_tmp)
   #lf_sub_sampling_obj_files
   
-  ##Quick exploration of raster object
-  #Should be commented out to make this a function
-  #robj1 <- try(load_obj(list_raster_obj_files[[3]])) #This is an example tile
-  #robj1 <- load_obj(lf_raster_obj[4]) #This is tile tile
-  
-  #names(robj1)
-  #names(robj1$method_mod_obj[[2]]) #for January 1, 2010
-  #names(robj1$method_mod_obj[[2]]$dailyTmax) #for January
-  #names(robj1$method_mod_obj[[11]]) #for January 1, 2010
-  #names(robj1$method_mod_obj[[11]]$dailyTmax) #for January
-  
-  #names(robj1$clim_method_mod_obj[[1]]$data_month) #for January
-  #names(robj1$validation_mod_month_obj[[1]]$data_s) #for January with predictions
-  #Get the number of models predicted
-  #nb_mod <- length(unique(robj1$tb_diagnostic_v$pred_mod))#
-  #list_formulas <- (robj1$clim_method_mod_obj[[1]]$formulas)
-  #dates_predicted <- (unique(robj1$tb_diagnostic_v$date))
-  
-  
-  #list_tb_diagnostic_v <- mclapply(lf_validation_obj,FUN=function(x){try( x<- load_obj(x)); try(extract_from_list_obj(x,"metrics_v"))},mc.preschedule=FALSE,mc.cores = 6)                           
-  #names(list_tb_diagnostic_v) <- list_names_tile_id
-  
+ 
   ################
   #### Table 1: Average accuracy metrics per tile and predictions
   
@@ -255,10 +232,11 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   summary_metrics_v_NA$lat <- lat
   summary_metrics_v_NA$lon <- long
   
-  list_out_files
   write.table(as.data.frame(summary_metrics_v_NA),
               file=file.path(out_dir,paste("summary_metrics_v2_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   
+  list_outfiles[[1]] <- file.path(out_dir,paste("summary_metrics_v2_NA_",year_predicted,"_",out_prefix,".txt",sep=""))
+    
   #################
   ###Table 2: daily validation/testing accuracy metrics for all tiles
   #this takes about 15min for 28 tiles (reg4)
@@ -279,7 +257,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   write.table((tb_diagnostic_v_NA),
               file=file.path(out_dir,paste("tb_diagnostic_v_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
-  
+ 
+  list_outfiles[[2]] <- file.path(out_dir,paste("tb_diagnostic_v_NA_",year_predicted,"_",out_prefix,".txt",sep=""))
+ 
   #################
   ###Table 3: monthly fit/training accuracy information for all tiles
   
@@ -303,6 +283,8 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   write.table((tb_month_diagnostic_s_NA),
               file=file.path(out_dir,paste("tb_month_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+
+  list_outfiles[[3]] <- file.path(out_dir,paste("tb_month_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep=""))
   
   #################
   ###Table 4: daily fit/training accuracy information with predictions for all tiles
@@ -325,6 +307,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   write.table((tb_diagnostic_s_NA),
               file=file.path(out_dir,paste("tb_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+  list_outfiles[[4]] <- file.path(out_dir,paste("tb_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep=""))
   
   ##### Table 5: Add later on: daily info
   ### with also data_s and data_v saved!!!
@@ -354,14 +337,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   write.table((data_month_NAM),
               file=file.path(out_dir,paste("data_month_s_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+  list_outfiles[[5]] <- file.path(out_dir,paste("data_month_s_NAM_",year_predicted,"_",out_prefix,".txt",sep=""))
   
-  #Get validation data?? Find other object from within the dir 
-  #Som region don't have validation data at monthly time scale.
-  
-  #### SPDF of daily Station info
-  #load data_month for specific tiles
-  #data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
-  #names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
+  ##### Table 6 and table 7: stations for daily predictions
   
   data_day_s_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = num_cores)    
   data_day_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_obj,"data_v"))},mc.preschedule=FALSE,mc.cores = num_cores)    
@@ -388,6 +366,10 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
               file=file.path(out_dir,paste("data_day_s_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   write.table((data_day_v_NAM),
               file=file.path(out_dir,paste("data_day_v_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+  list_outfiles[[6]] <- file.path(out_dir,paste("data_day_s_NAM_",year_predicted,"_",out_prefix,".txt",sep=""))
+  list_outfiles[[7]] <- file.path(out_dir,paste("data_day_v_NAM_",year_predicted,"_",out_prefix,".txt",sep=""))
+  
+  ##### Table 8: validation stations for monthly predictions
   
   #### Recover subsampling data
   #For tiles with many stations, there is a subsampling done in terms of distance (spatial pruning) and 
@@ -404,48 +386,57 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   data_month_v_subsampling_list <- mclapply(lf_sub_sampling_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_removed"))},mc.preschedule=FALSE,mc.cores = 6)                           
   #test <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = 6)                           
-  
   names(data_month_v_subsampling_list) <- list_names_tile_id
-  
   data_month_v_subsampling_tmp <- remove_from_list_fun(data_month_v_subsampling_list)$list
   #df_tile_processed$metrics_v <- remove_from_list_fun(data_month_s_list)$valid
   #if no stations have been removed then there are no validation stations !!!
   if(length(data_month_v_subsampling_tmp)!=0){
-    
     tile_id <- lapply(1:length(data_month_v_subsampling_tmp),
                       FUN=function(i,x){try(rep(names(x)[i],nrow(x[[i]])))},x=data_month_v_subsampling_tmp)
     data_month_v_subsmapling_NAM <- do.call(rbind.fill,ddata_month_v_subsampling_tmp) #combined data_month for "NAM" North America
     data_month_v_subsampling_NAM$tile_id <- unlist(tile_id)
-    
     write.table((data_month_v_subsampling_NAM),
                 file=file.path(out_dir,paste("data_month_v_subsampling_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
-    
+    list_outfiles[[8]] <- file.path(out_dir,paste("data_month_v_subsampling_NAM_",year_predicted,"_",out_prefix,".txt",sep=""))
+  }else{
+    list_outfiles[[8]] <- NA
   }
   
-  ## Do the same for daily...
-  ## End of potential function started in line 317...this section will be cut down for simplicity
+  ##### Table 9: validation accuracy metrics for monthly predictions
+  
+  #Get validation data?? Find other object from within the dir 
+  #Som region don't have validation data at monthly time scale.
+
+  #### To be changed later...there is no validation data at this stage
+  ## Monthly fitting information
+  #tb_month_diagnostic_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try(x<-load_obj(x));try(x[["tb_month_diagnostic_v"]])},mc.preschedule=FALSE,mc.cores = num_cores)                           
+  #names(tb_month_diagnostic_v_list) <- list_names_tile_id
+  #tb_month_diagnostic_v_tmp <- remove_from_list_fun(tb_month_diagnostic_v_list)$list
+  #tb_month_diagnostic_v_NA <- do.call(rbind.fill,tb_month_diagnostic_v_tmp) #create a df for NA tiles with all accuracy metrics
+  #tile_id_tmp <- lapply(1:length(tb_month_diagnostic_v_tmp),
+  #                      FUN=function(i,x,y){rep(y[i],nrow(x[[i]]))},x=tb_month_diagnostic_v_tmp,y=names(tb_month_diagnostic_v_tmp))
+  #tb_month_diagnostic_v_NA$tile_id <- unlist(tile_id_tmp) #adding identifier for tile
+  #tb_month_diagnostic_v_NA <- merge(tb_month_diagnostic_v_NA,df_tile_processed[,1:2],by="tile_id")
+  #date_f<-strptime(tb_month_diagnostic_v_NA$date, "%Y%m%d")   # interpolation date being processed
+  #tb_month_diagnostic_v_NA$month<-strftime(date_f, "%m")          # current month of the date being processed
+  #write.table((tb_month_diagnostic_v_NA),
+  #            file=file.path(out_dir,paste("tb_month_diagnostic_v_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+
+  #list_outfiles[[9]] <- file.path(out_dir,paste("tb_month_diagnostic_v_NA_",year_predicted,"_",out_prefix,".txt",sep=""))
+  list_outfiles[[9]] <- NA
   
   ######################################################
   ####### PART 3: EXAMINE STATIONS AND MODEL FITTING ###
   
+  ##### Table 10 and Table 11: extracting accuracy information from daily and monthly predictions
+  
   ### Stations and model fitting ###
   #summarize location and number of training and testing used by tiles
-  
-  #names(robj1$clim_method_mod_obj[[1]]$data_month) # monthly data for January
-  #names(robj1$validation_mod_month_obj[[1]]$data_s) # daily for January with predictions
-  #note that there is no holdout in the current run at the monthly time scale:
-  
-  #robj1$clim_method_mod_obj[[1]]$data_month_v #zero rows for testing stations at monthly timescale
-  #load data_month for specific tiles
-  data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
   
   #names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
   
   use_day=TRUE
   use_month=TRUE
-  
-  #list_raster_obj_files <- c("/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-100.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-100.0.RData",
-  #                    "/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/output10Deg/reg1//30.0_-105.0/raster_prediction_obj_gam_CAI_dailyTmax30.0_-105.0.RData")
   
   list_names_tile_id <- df_tile_processed$tile_id
   list_raster_obj_files[list_names_tile_id]
@@ -457,10 +448,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   #debug(extract_daily_training_testing_info)
   #pred_data_info <- extract_daily_training_testing_info(1,list_param=list_param_training_testing_info)
   pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = num_cores)
-  #pred_data_info <- mclapply(1:length(list_raster_obj_files[list_names_tile_id][1:6]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info,mc.preschedule=FALSE,mc.cores = 6)
-  #pred_data_info <- lapply(1:length(list_raster_obj_files),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
-  #pred_data_info <- lapply(1:length(list_raster_obj_files[1]),FUN=extract_daily_training_testing_info,list_param=list_param_training_testing_info)
-  
+
   pred_data_info_tmp <- remove_from_list_fun(pred_data_info)$list #remove data not predicted
   ##Add tile nanmes?? it is alreaready there
   #names(pred_data_info)<-list_names_tile_id
@@ -472,18 +460,19 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
               file=file.path(out_dir,paste("pred_data_month_info_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   write.table(pred_data_day_info,
               file=file.path(out_dir,paste("pred_data_day_info_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+  list_outfiles[[10]] <- file.path(out_dir,paste("pred_data_month_info_",year_predicted,"_",out_prefix,".txt",sep=""))
+  list_outfiles[[11]] <- file.path(out_dir,paste("pred_data_day_info_",year_predicted,"_",out_prefix,".txt",sep=""))
   
   ######################################################
-  ####### PART 4: Get shapefile tiling with centroids ###
+  ####### PART 4: Get shapefiles defining region tiling with centroids ###
   
+  ##### Table 12, Table 13, Table 14: collect location of predictions from shapefiles
+
   #get shape files for the region being assessed:
   
   list_shp_world <- list.files(path=in_dir_shp,pattern=".*.shp",full.names=T)
   l_shp <- gsub(".shp","",basename(list_shp_world))
   l_shp <- sub("shp_","",l_shp)
-  
-  #l_shp <- unlist(lapply(1:length(list_shp_world),
-  #                       FUN=function(i){paste(strsplit(list_shp_world[i],"_")[[1]][3:4],collapse="_")}))
   l_shp <- unlist(lapply(1:length(l_shp),
                          FUN=function(i){paste(strsplit(l_shp[i],"_")[[1]][1:2],collapse="_")}))
   
@@ -494,14 +483,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   matching_index <- match(basename(in_dir_list),l_shp)
   list_shp_reg_files <- list_shp_world[matching_index]
   df_tile_processed$shp_files <-list_shp_reg_files
-  #df_tile_processed$shp_files <- ""
-  #df_tile_processed$tile_coord <- as.character(df_tile_processed$tile_coord)
-  #test <- df_tile_processed
-  #test$shp_files <- NULL
-  #test3 <- merge(test,df_tiles_all,by=c("tile_coord"))
-  #test3 <- merge(df_tiles_all,test,by=c("tile_coord"))
-  #merge(df_tile_processed,df_tiles_all,by="shp_files")
-  
+
   tx<-strsplit(as.character(df_tile_processed$tile_coord),"_")
   lat<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][1]},x=tx))
   long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
@@ -514,6 +496,8 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   write.table(df_tiles_all,
               file=file.path(out_dir,paste("df_tiles_all_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+  list_outfiles[[12]] <- file.path(out_dir,paste("df_tile_processed_",year_predicted,"_",out_prefix,".txt",sep=""))
+  list_outfiles[[13]] <- file.path(out_dir,paste("df_tiles_all_",year_predicted,"_",out_prefix,".txt",sep=""))
   
   #Copy to local home directory on NAS-NEX
   #
@@ -523,11 +507,26 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   #save a list of all files...
   write.table(df_tiles_all,
               file=file.path(out_dir,"shapefiles",paste("df_tiles_all_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+  list_outfiles[[14]] <- file.path(out_dir,"shapefiles",paste("df_tiles_all_",year_predicted,"_",out_prefix,".txt",sep=""))
+
+  ######################################################
+  ##### Prepare objet to return ####
+
+  outfiles_names <- c("summary_metrics_v_names","tb_v_accuracy_name","tb_month_s_name","tb_s_accuracy_name", 
+  "data_month_s_name","data_day_v_name","data_day_s_name","data_month_v_name", "tb_month_v_name",
+  "pred_data_month_info_name","pred_data_day_info_name","df_tile_processed_name","df_tiles_all_name", 
+  "df_tiles_all_name") 
+  names(list_outfiles) <- outfiles_names
   
+  #This data.frame contains all the files from the assessment
+  df_assessment_files <- data.frame(filename=outfiles_names,files=unlist(list_outfiles),
+                                    reg=region_name,year=year_predicted)
   ###Prepare files for copying back?
-  
+  write.table(df_assessment_files,
+              file=file.path(out_dir,paste("df_assessment_files_",region_name,"_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+
   ## Prepare list of files to return...
-  return(1)
+  return(df_assessment_files)
 }
 
 ##################### END OF SCRIPT ######################
