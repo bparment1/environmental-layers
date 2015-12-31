@@ -112,11 +112,17 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   #function looped over i, correspoding to year predicted
   
   year_predicted <- list_param_run_assessment_prediction$list_year_predicted[i] 
+  #region_name is not null then restrict the assessment to a specific region
+  if(!is.null(region_name)){
+    in_dir1 <- file.path(in_dir1,region_name)
+  }
+
+  
   list_outfiles <- vector("list", length=6) #collect names of output files
   
   in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
   #basename(in_dir_list)
-#                       y=in_dir_list) 
+  #                       y=in_dir_list) 
   
   in_dir_list_all  <- unlist(lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)}))
   in_dir_list <- in_dir_list_all
