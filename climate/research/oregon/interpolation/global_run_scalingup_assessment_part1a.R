@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 12/31/2015            
+#MODIFIED ON: 01/02/2016            
 #Version: 4
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -33,24 +33,44 @@
 
 
 run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction){
-
-  ##Function to predict temperature interpolation with 12 input parameters
-  #12 parameters used in the data preparation stage and input in the current script
+  #This function assesses results from prediction of climate variables. 
+  #Predictions are run on the NEX-NASA computer by tiles for a given year.
+  #The function collects information by region and tiles and generate tables of accuracy by tiles/regions.
+  #There are currently five processing:
+  #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
+  ##There are 20 inputs to this function.
   #
-  #1) in_dir1 : llcoactation of rroot directory containging tiles
+  ##INPUTS:
+  #1) in_dir1 : location of root directory containging tiles
   #2) region_names : region_names #e.g. c("reg23","reg4") 
   #3) y_var_name : list_param_run_assessment_prediction$y_var_name # e.g. dailyTmax" #PARAM3
   #4) interpolation_method :  e.g. #c("gam_CAI") #PARAM4
   #5) out_prefix : e.g. "run_global_analyses_pred_12282015" #PARAM5
   #6) out_dir <- list_param_run_assessment_prediction$out_dir #<- "/nobackupp8/bparmen1/" #PARAM6
   #7) create_out_dir_param: if true a new dirrectory  is craeted for the outputs 
-  #8) CRS_locs_WGS84: coordinates  CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
+  #8) proj_str: coordinates  CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
   #9) list_year_predicted : list of years predicted e.g. 1984:2004
   #10) file_format : format for mosaiced files #PARAM10
   #11) NA_flag_val : No data value, #PARAM11
   #12) num_cores : number of cores used #PARAM13
+  #13) plotting_figures: if TRUE, figures are generated from tables using assessment part2 script 
+  ##Parameters related to assessment part 2: plot functions
+  #14) mosaic_plot <- FALSE #PARAM6
+  #15) day_to_mosaic <- c("19920101","19920102","19920103") #PARAM7,#if daily mosaics NULL then mosaic all days of the year
+  #16) multiple_region <- TRUE #PARAM 12
+  #17) countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
+  #18) plot_region <- TRUE
+  #19) reg_modified <- TRUE #PARAM 15
+  #20) threshold_missing_day <- c(367,365,300,200) #PARM18
+  ##OUTPUTS
+  #1)
+  #2)
+  #3)
+  #
+  #
   
-  ###Loading R library and packages     
+  ###Loading R library and packages   
+  
   ### Loading R library and packages        
   #library used in the workflow production:
   library(gtools)                              # loading some useful tools 
@@ -88,23 +108,31 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   ##############################
   #### Parameters and constants  
   
-  #Make this a function
-  #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
-  #master directory containing the definition of tile size and tiles predicted
+
   in_dir1 <- list_param_run_assessment_prediction$in_dir1 
   region_names <- list_param_run_assessment_prediction$region_names #e.g. c("reg23","reg4") 
   y_var_name <- list_param_run_assessment_prediction$y_var_name # e.g. dailyTmax" #PARAM3
   interpolation_method <- list_param_run_assessment_prediction$interpolation_method #c("gam_CAI") #PARAM4
-  out_prefix <- list_param_run_assessment_prediction$out_prefix #"run_global_analyses_pred_12282015" #PARAM5
+  out_prefix <- list_param_run_assessment_prediction$out_prefix #output suffix e.g."run_global_analyses_pred_12282015" #PARAM5
   out_dir <- list_param_run_assessment_prediction$out_dir #<- "/nobackupp8/bparmen1/" #PARAM6
-  create_out_dir_param <-list_param_run_assessment_prediction$create_out_dir_param #<- TRUE #PARAM7
-  CRS_locs_WGS84 <- list_param_run_assessment_prediction$CRS_locs_WGS84 #<- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
-  list_year_predicted <- list_param_run_assessment_prediction$list_year_predicted #<- 1984:2004
-  #list_param_run_assessment_prediction$year_predicted <- list_year_predicted[1]
+  create_out_dir_param <-list_param_run_assessment_prediction$create_out_dir_param #if TRUE output dir created #PARAM7
+  proj_str <- list_param_run_assessment_prediction$proj_str # CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
+  list_year_predicted <- list_param_run_assessment_prediction$list_year_predicted # 1984:2004
   file_format <- list_param_run_assessment_prediction$file_format #<- ".tif" #format for mosaiced files #PARAM10
   NA_flag_val <- list_param_run_assessment_prediction$NA_flag_val #<- -9999  #No data value, #PARAM11
   num_cores <- list_param_run_assessment_prediction$num_cores #<- 6 #number of cores used #PARAM13
+  plotting_figures <- list_param_run_assessment_prediction$plotting_figures #if true run part2 of assessment
   
+  ##for plotting assessment function
+  
+  mosaic_plot <- list_param_run_assessment_prediction$mosaic_plot  #PARAM14
+  day_to_mosaic <- list_param_run_assessment_prediction$day_to_mosaic #PARAM15
+  multiple_region <- list_param_run_assessment_prediction$multiple_region #PARAM16
+  countries_shp <- list_param_run_assessment_prediction$countries_shp #PARAM17
+  plot_region <- list_param_run_assessment_prediction$plot_region #PARAM18
+  reg_modified <- list_param_run_assessment_prediction$reg_modified #PARAM19
+  threshold_missing_day <- list_param_run_assessment_prediction$threshold_missing_day #PARM20
+
   ########################## START SCRIPT #########################################
   
   #Need to make this a function to run as a job...
@@ -309,13 +337,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
               file=file.path(out_dir,paste("tb_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   list_outfiles[[4]] <- file.path(out_dir,paste("tb_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep=""))
   
-  ##### Table 5: Add later on: daily info
-  ### with also data_s and data_v saved!!!
-  
-  #Insert here...compute input and predicted ranges to spot potential errors?
-  
+  ##### Table 5: monthly station information used in training
+
   ### Make this part a function...this is repetitive
-  ##### SPDF of Monhtly Station info
   #load data_month for specific tiles
   #10.45pm
   #data_month <- extract_from_list_obj(robj1$clim_method_mod_obj,"data_month")
@@ -432,7 +456,6 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   ### Stations and model fitting ###
   #summarize location and number of training and testing used by tiles
-  
   #names(data_month) #this contains LST means (mm_1, mm_2 etc.) as well as TMax and other info
   
   use_day=TRUE
@@ -469,7 +492,6 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   ##### Table 12, Table 13, Table 14: collect location of predictions from shapefiles
 
   #get shape files for the region being assessed:
-  
   list_shp_world <- list.files(path=in_dir_shp,pattern=".*.shp",full.names=T)
   l_shp <- gsub(".shp","",basename(list_shp_world))
   l_shp <- sub("shp_","",l_shp)
@@ -500,7 +522,6 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   list_outfiles[[13]] <- file.path(out_dir,paste("df_tiles_all_",year_predicted,"_",out_prefix,".txt",sep=""))
   
   #Copy to local home directory on NAS-NEX
-  #
   dir.create(file.path(out_dir,"shapefiles"))
   file.copy(list_shp_world,file.path(out_dir,"shapefiles"))
   
@@ -509,9 +530,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
               file=file.path(out_dir,"shapefiles",paste("df_tiles_all_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   list_outfiles[[14]] <- file.path(out_dir,"shapefiles",paste("df_tiles_all_",year_predicted,"_",out_prefix,".txt",sep=""))
 
-  ######################################################
-  ##### Prepare objet to return ####
-
+  ##############################################################
+  ############## Collect information from assessment ##########
+  
   outfiles_names <- c("summary_metrics_v_names","tb_v_accuracy_name","tb_month_s_name","tb_s_accuracy_name", 
   "data_month_s_name","data_day_v_name","data_day_s_name","data_month_v_name", "tb_month_v_name",
   "pred_data_month_info_name","pred_data_day_info_name","df_tile_processed_name","df_tiles_all_name", 
@@ -525,8 +546,50 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   write.table(df_assessment_files,
               file=file.path(out_dir,paste("df_assessment_files_",region_name,"_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
 
+  ######################################################
+  ####### PART 5: run plotting functions to produce figures
+
+  in_dir <- out_dir #PARAM 0
+  #y_var_name <- "dailyTmax" #PARAM1 , already set
+  #interpolation_method <- c("gam_CAI") #PARAM2, already set
+  out_suffix <- out_prefix #PARAM3
+  #out_dir <-  #PARAM4, already set
+  #create_out_dir_param <- FALSE #PARAM 5, already created and set
+  #mosaic_plot <- FALSE #PARAM6
+  #if daily mosaics NULL then mosaicas all days of the year
+  #day_to_mosaic <- c("19920101","19920102","19920103") #PARAM7
+  #CRS_locs_WGS84 already set
+  proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
+  #file_format <- ".rst" #PARAM 9, already set
+  #NA_flag_val <- -9999 #PARAM 11, already set
+  #multiple_region <- TRUE #PARAM 12
+  #countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
+  #plot_region <- TRUE
+  #num_cores <- 6 #PARAM 14, already set
+  region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
+  #use previous files produced in step 1a and stored in a data.frame
+  #df_assessment_files, #PARAM 17, set in the script
+  #threshold_missing_day <- c(367,365,300,200) #PARM18
+
+  list_param_run_assessment_plotting <- list(y_var_name, interpolation_method, out_suffix, 
+                      out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_value,
+                      multiple_region, countries_shp, plot_region, num_cores, 
+                      region_name, df_assessment_files, threshold_missing_day) 
+
+  names(list_param_run_assessment_plotting) <- c("y_var_name","interpolation_method","out_suffix", 
+                      "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_value",
+                      "multiple_region","countries_shp","plot_region","num_cores", 
+                      "region_name","df_assessment_files","threshold_missing_day") 
+
+  df_assessment_figures_files <- run_assessment_plotting_prediction_fun(list_param_run_assessment_plotting) 
+  
+  ######################################################
+  ##### Prepare objet to return ####
+
+  assessment_obj <- list(df_assessment_files, df_assessment_figures_files)
+  names(assessment_obj) <- c("df_assessment_files", "df_assessment_figures_files")
   ## Prepare list of files to return...
-  return(df_assessment_files)
+  return(assessment_obj)
 }
 
 ##################### END OF SCRIPT ######################
