@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/01/2016            
+#MODIFIED ON: 01/02/2016            
 #Version: 4
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -16,59 +16,15 @@
 
 #################################################################################################
 
-### Loading R library and packages        
-#library used in the workflow production:
-library(gtools)                              # loading some useful tools 
-library(mgcv)                                # GAM package by Simon Wood
-library(sp)                                  # Spatial pacakge with class definition by Bivand et al.
-library(spdep)                               # Spatial pacakge with methods and spatial stat. by Bivand et al.
-library(rgdal)                               # GDAL wrapper for R, spatial utilities
-library(gstat)                               # Kriging and co-kriging by Pebesma et al.
-library(fields)                              # NCAR Spatial Interpolation methods such as kriging, splines
-library(raster)                              # Hijmans et al. package for raster processing
-library(gdata)                               # various tools with xls reading, cbindX
-library(rasterVis)                           # Raster plotting functions
-library(parallel)                            # Parallelization of processes with multiple cores
-library(maptools)                            # Tools and functions for sp and other spatial objects e.g. spCbind
-library(maps)                                # Tools and data for spatial/geographic objects
-library(reshape)                             # Change shape of object, summarize results 
-library(plotrix)                             # Additional plotting functions
-library(plyr)                                # Various tools including rbind.fill
-library(spgwr)                               # GWR method
-library(automap)                             # Kriging automatic fitting of variogram using gstat
-library(rgeos)                               # Geometric, topologic library of functions
-#RPostgreSQL                                 # Interface R and Postgres, not used in this script
-library(gridExtra)
-#Additional libraries not used in workflow
-library(pgirmess)                            # Krusall Wallis test with mulitple options, Kruskalmc {pgirmess}  
-library(colorRamps)
-library(zoo)
-library(xts)
+
 
 #### FUNCTION USED IN SCRIPT
 
-function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
-function_global_run_assessment_part2 <- "global_run_scalingup_assessment_part2_functions_0923015.R"
+#function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
+#function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
+#function_global_run_assessment_part2 <- "global_run_scalingup_assessment_part2_functions_0923015.R"
 
-load_obj <- function(f)
-{
-  env <- new.env()
-  nm <- load(f, env)[1]
-  env[[nm]]
-}
 
-create_dir_fun <- function(out_dir,out_suffix){
-  if(!is.null(out_suffix)){
-    out_name <- paste("output_",out_suffix,sep="")
-    out_dir <- file.path(out_dir,out_name)
-  }
-  #create if does not exists
-  if(!file.exists(out_dir)){
-    dir.create(out_dir)
-  }
-  return(out_dir)
-}
 
 
 ############################################
@@ -106,33 +62,103 @@ proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
 file_format <- ".rst" #PARAM 9
 NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
-#tile_size <- "1500x4500" #PARAM 11
 multiple_region <- TRUE #PARAM 12
 #region_name <- "world" #PARAM 13
 countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
 plot_region <- TRUE
 num_cores <- 6 #PARAM 14
-reg_modified <- TRUE #PARAM 15
 region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
 #use previous files produced in step 1a and stored in a data.frame
 df_assessment_files <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt" #PARAM 17
 threshold_missing_day <- c(367,365,300,200) #PARM18
 
-########################## START SCRIPT ##############################
+list_param_run_assessment_plottingin_dir <- list(y_var_name, interpolation_method, out_suffix, 
+                      out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_value,
+                      multiple_region, countries_shp, plot_region, num_cores, 
+                      region_name, df_assessment_files, threshold_missing_day) 
 
+names(list_param_run_assessment_plottingin_dir) <- c("y_var_name","interpolation_method","out_suffix", 
+                      "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_value",
+                      "multiple_region","countries_shp","plot_region","num_cores", 
+                      "region_name","df_assessment_files","threshold_missing_day") 
 
-####### PART 1: Read in data ########
+run_assessment_plotting_prediction_fun(list_param_run_assessment_plottingin_dir) 
 
-if(create_out_dir_param==TRUE){
-  out_dir <- create_dir_fun(out_dir,out_suffix)
-  setwd(out_dir)
-}else{
-  setwd(out_dir) #use previoulsy defined directory
-}
-
-setwd(out_dir)
-#i <- year_predicted
 run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plotting){
+  
+  ####
+  #1) in_dir: input directory containing data tables and shapefiles for plotting #PARAM 0
+  #2) y_var_name : variables being predicted e.g. dailyTmax #PARAM1
+  #3) interpolation_method: method used #c("gam_CAI") #PARAM2
+  #4) out_suffix: output suffix #PARAM3
+  #5) out_dir  #
+  #6) create_out_dir_param # FALSE #PARAM 5
+  #7) mosaic_plot  #FALSE #PARAM6
+  #8) proj_str # projection/coordinates system e.g. CRS_WGS84 #PARAM 8 #check this parameter
+  #9) file_format #".rst" #PARAM 9
+  #10) NA_value #-9999 #PARAM10
+  #11) multiple_region  # <- TRUE #PARAM 12
+  #12) countries_shp  #<- "world" #PARAM 13
+  #13) plot_region  #<- TRUE
+  #14) num_cores <- number of cores used # 6 #PARAM 14
+  #16) region_name  #<- c("reg4"), world if full assessment #reference region to merge if necessary #PARAM 16
+  #18) df_assessment_files  #PARAM 16
+  #19) threshold_missing_day  #PARM18
+  #
+  
+  ### Loading R library and packages        
+  #library used in the workflow production:
+  library(gtools)                              # loading some useful tools 
+  library(mgcv)                                # GAM package by Simon Wood
+  library(sp)                                  # Spatial pacakge with class definition by Bivand et al.
+  library(spdep)                               # Spatial pacakge with methods and spatial stat. by Bivand et al.
+  library(rgdal)                               # GDAL wrapper for R, spatial utilities
+  library(gstat)                               # Kriging and co-kriging by Pebesma et al.
+  library(fields)                              # NCAR Spatial Interpolation methods such as kriging, splines
+  library(raster)                              # Hijmans et al. package for raster processing
+  library(gdata)                               # various tools with xls reading, cbindX
+  library(rasterVis)                           # Raster plotting functions
+  library(parallel)                            # Parallelization of processes with multiple cores
+  library(maptools)                            # Tools and functions for sp and other spatial objects e.g. spCbind
+  library(maps)                                # Tools and data for spatial/geographic objects
+  library(reshape)                             # Change shape of object, summarize results 
+  library(plotrix)                             # Additional plotting functions
+  library(plyr)                                # Various tools including rbind.fill
+  library(spgwr)                               # GWR method
+  library(automap)                             # Kriging automatic fitting of variogram using gstat
+  library(rgeos)                               # Geometric, topologic library of functions
+  #RPostgreSQL                                 # Interface R and Postgres, not used in this script
+  library(gridExtra)
+  #Additional libraries not used in workflow
+  library(pgirmess)                            # Krusall Wallis test with mulitple options, Kruskalmc {pgirmess}  
+  library(colorRamps)
+  library(zoo)
+  library(xts)
+  
+  ####### Function used in the script #######
+  
+  load_obj <- function(f){
+    env <- new.env()
+    nm <- load(f, env)[1]
+    env[[nm]]
+  }
+  
+  create_dir_fun <- function(out_dir,out_suffix){
+    if(!is.null(out_suffix)){
+      out_name <- paste("output_",out_suffix,sep="")
+      out_dir <- file.path(out_dir,out_name)
+    }
+    #create if does not exists
+    if(!file.exists(out_dir)){
+      dir.create(out_dir)
+    }
+    return(out_dir)
+  }
+  
+  #function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_0923015.R"
+  #source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
+
+  ####### PARSE INPUT ARGUMENTS/PARAMETERS #####
   
   in_dir <- list_param_run_assessment_plotting$in_dir #PARAM 0
   y_var_name <- list_param_run_assessment_plotting$y_var_name #PARAM1
@@ -148,18 +174,26 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   countries_shp <- list_param_run_assessment_plotting$countries_shp #<- "world" #PARAM 13
   plot_region <- list_param_run_assessment_plotting$plot_region #<- TRUE
   num_cores <- list_param_run_assessment_plotting$num_cores # 6 #PARAM 14
-  reg_modified <- list_param_run_assessment_plotting$reg_modified #<- TRUE #PARAM 15
-  region <- list_param_run_assessment_plotting$region #<- c("reg4") #reference region to merge if necessary #PARAM 16
   region_name <- list_param_run_assessment_plotting$region_name #<- "world" #PARAM 13
   df_assessment_files <- list_param_run_assessment_plotting$df_assessment_files #PARAM 16
   threshold_missing_day <- list_param_run_assessment_plotting$threshold_missing_day #PARM18
  
   NA_flag_val <- NA_value
-  
-  #tile_size <- "1500x4500" #PARAM 11
-  
+
   ##################### START SCRIPT #################
   
+  ####### PART 1: Read in data ########
+
+  if(create_out_dir_param==TRUE){
+    out_dir <- create_dir_fun(out_dir,out_suffix)
+    setwd(out_dir)
+  }else{
+    setwd(out_dir) #use previoulsy defined directory
+  }
+
+  setwd(out_dir)
+  
+  #i <- year_predicted
   ###Table 1: Average accuracy metrics
   ###Table 2: daily accuracy metrics for all tiles
 
@@ -216,9 +250,6 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
                                   #"shapefiles",basename(list_shp_reg_files))
   
-  #table(summary_metrics_v$reg)
-  #table(summary_metrics_v$reg)
-  
   ### Potential function starts here:
   #function(in_dir,out_dir,list_shp_reg_files,title_str,region_name,num_cores,out_suffix,out_suffix)
   
@@ -226,7 +257,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   #can make this more general later on..should have this already in a local directory on Atlas or NEX!!!!
   
   #http://www.diva-gis.org/Data
-  countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp"
+  #countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp"
   path_to_shp <- dirname(countries_shp)
   layer_name <- sub(".shp","",basename(countries_shp))
   reg_layer <- readOGR(path_to_shp, layer_name)
@@ -306,12 +337,9 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   
   
   tb$tile_id <- factor(tb$tile_id, levels=unique(tb$tile_id))
-  
   model_name <- as.character(unique(tb$pred_mod))
   
-  
   ## Figure 2a
-  
   for(i in  1:length(model_name)){
     
     res_pix <- 480
@@ -328,7 +356,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   }
   
   ## Figure 2b
-  #wtih ylim and removing trailing...
+  #with ylim and removing trailing...
   for(i in  1:length(model_name)){
     
     res_pix <- 480
@@ -369,7 +397,6 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   title("RMSE per model over all tiles")
   
   dev.off()
-  
   
   ################ 
   ### Figure 4: plot predicted tiff for specific date per model
@@ -459,11 +486,6 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
     png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
-    #plot(r_pred)  
-    #plot(reg_layer)
-    #plot(ac_mod1,cex=sqrt(ac_mod1$rmse),pch=1,add=T)
-    #plot(ac_mod,cex=(ac_mod$rmse^2)/10,pch=1,col="red",add=T)
-    
     #coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
     coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
     p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
@@ -526,24 +548,13 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
                                                                 threshold_missing_day[i]))
     p1 <- p+p_shp
     try(print(p1)) #error raised if number of missing values below a threshold does not exist
-    #plot(ac_mod1,cex=(ac_mod1$rmse1)*2,pch=1,add=T)
-    #title(paste("Averrage RMSE per tile and by ",model_name[i]))
-    
+
     dev.off()
   }
   
   ######################
   ### Figure 7: Number of predictions: daily and monthly
   
-  #xyplot(rmse~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
-  #                                           pred_mod!="mod_kr"),type="b")
-  
-  #xyplot(n~pred_mod | tile_id,data=subset(as.data.frame(summary_metrics_v),
-  #                                           pred_mod!="mod_kr"),type="h")
-  
-  #cor
-  
-  # 
   ## Figure 7a
   png(filename=paste("Figure7a_number_daily_predictions_per_models","_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
@@ -585,7 +596,6 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   #dev.off()
   #
   
-  
   ##########################################################
   ##### Figure 8: Breaking down accuracy by regions!! #####
   
@@ -616,189 +626,32 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   dev.off()
   
   #####################################################
-  #### Figure 9: plotting mosaics of regions ###########
-  ## plot mosaics...
+  #### Figure 9: plotting boxplot by year and regions ###########
   
-  #First collect file names
+  ## Figure 8a
+  res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
   
-  
-  #names(lf_mosaics_reg) <- l_reg_name
-  
-  #This part should be automated...
-  #plot Australia
-  #lf_m <- lf_mosaics_reg[[2]]
-  #out_dir_str <- out_dir
-  #reg_name <- "reg6_1000x3000"
-  #lapply()
-  #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix)
-  #list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=reg_name,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
-  
-  #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-  #debug(plot_daily_mosaics)
-  #lf_m_mask_reg6_1000x3000 <- plot_daily_mosaics(1,list_param=list_param_plot_daily_mosaics)
-  
-  #lf_m_mask_reg6_1000x3000 <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
-  
-  
-  ################## WORLD MOSAICS NEEDS MAJOR CLEAN UP OF CODE HERE
-  ##make functions!!
-  ###Combine mosaics with modified code from Alberto
-  
-  #use list from above!!
-  
-  # test_list <-list.files(path=file.path(out_dir,"mosaics"),    
-  #            pattern=paste("^world_mosaics.*.tif$",sep=""), 
-  # )
-  # #world_mosaics_mod1_output1500x4500_km_20101105_run10_1500x4500_global_analyses_03112015.tif
-  # 
-  # #test_list<-lapply(1:30,FUN=function(i){lapply(1:x[[i]]},x=lf_mosaics_mask_reg)
-  # #test_list<-unlist(test_list)
-  # #mosaic_list_mean <- vector("list",length=1)
-  # mosaic_list_mean <- test_list 
-  # out_rastnames <- "world_test_mosaic_20100101"
-  # out_path <- out_dir
-  # 
-  # list_param_mosaic<-list(mosaic_list_mean,out_path,out_rastnames,file_format,NA_flag_val,out_suffix)
-  # names(list_param_mosaic)<-c("mosaic_list","out_path","out_rastnames","file_format","NA_flag_val","out_suffix")
-  # #mean_m_list <-mclapply(1:12, list_param=list_param_mosaic, mosaic_m_raster_list,mc.preschedule=FALSE,mc.cores = 6) #This is the end bracket from mclapply(...) statement
-  # 
-  # lf <- mosaic_m_raster_list(1,list_param_mosaic)
-  # 
-  # debug(mosaic_m_raster_list)
-  # mosaic_list<-list_param$mosaic_list
-  # out_path<-list_param$out_path
-  # out_names<-list_param$out_rastnames
-  # file_format <- list_param$file_format
-  # NA_flag_val <- list_param$NA_flag_val
-  # out_suffix <- list_param$out_suffix
-  
-  ##Now mosaic for mean: should reorder files!!
-  #out_rastnames_mean<-paste("_",lst_pat,"_","mean",out_suffix,sep="")
-  #list_date_names<-c("jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec")
-  #mosaic_list<-split(tmp_str1,list_date_names)
-  #new_list<-vector("list",length(mosaic_list))
-  # for (i in 1:length(list_date_names)){
-  #    j<-grep(list_date_names[i],mosaic_list,value=FALSE)
-  #    names(mosaic_list)[j]<-list_date_names[i]
-  #    new_list[i]<-mosaic_list[j]
-  #  }
-  #  mosaic_list_mean <-new_list #list ready for mosaicing
-  #  out_rastnames_mean<-paste(list_date_names,out_rastnames_mean,sep="")
-  
-  ### Now mosaic tiles...Note that function could be improved to use less memory
-  
-  
-  ################## PLOTTING WORLD MOSAICS ################
-  
-  #lf_world_pred <-list.files(path=file.path(out_dir,"mosaics"),    
-  #           pattern=paste("^world_mosaics.*.tif$",sep=""),full.names=T) 
-  
-  lf_world_pred <-list.files(path=file.path(out_dir,"mosaics"),    
-                             pattern=paste("^reg5.*.",".tif$",sep=""),full.names=T) 
-  l_reg_name <- unique(df_tile_processed$reg)
-  lf_world_pred <-list.files(path=file.path(out_dir,l_reg_name[[i]]),    
-                             pattern=paste(".tif$",sep=""),full.names=T) 
-  
-  #mosaic_list_mean <- test_list 
-  #out_rastnames <- "world_test_mosaic_20100101"
-  #out_path <- out_dir
-  
-  #lf_world_pred <- list.files(pattern="world.*2010090.*.tif$")
-  #lf_raster_fname <- list.files(pattern="world.*2010*.*02162015.tif$",full.names=T)
-  lf_raster_fname <- lf_world_pred
-  prefix_str <- "Figure10_clim_world_mosaics_day_"
-  l_dates <-day_to_mosaic
-  screenRast=FALSE
-  list_param_plot_screen_raster <- list(lf_raster_fname,screenRast,l_dates,out_dir,prefix_str,out_suffix)
-  names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_dates","out_dir_str","prefix_str","out_suffix_str")
-  
-  debug(plot_screen_raster_val)
-  
-  world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
-  #world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-  world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-  
-  s_pred <- stack(lf_raster_fname)
-  
-  res_pix <- 1500
-  col_mfrow <- 3 
-  row_mfrow <- 2
-  
-  png(filename=paste("Figure10_levelplot_combined_",region_name,"_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure9a_boxplot_overall_separated_by_region_year_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  levelplot(s_pred,layers=1:6,col.regions=rev(terrain.colors(255)),cex=4)
-  
+  p<- bwplot(rmse~pred_mod | reg, data=tb,
+             main="RMSE per model and region over all tiles")
+  print(p)
   dev.off()
   
-  #   blues<- designer.colors(6, c( "blue", "white") )
-  # reds <- designer.colors(6, c( "white","red")  )
-  # colorTable<- c( blues[-6], reds)
-  # breaks with a gap of 10 to 17 assigned the white color
-  # brks<- c(seq( 1, 10,,6), seq( 17, 25,,6)) 
-  # image.plot( x,y,z,breaks=brks, col=colorTable)
-  #
+  ## Figure 8b
+  png(filename=paste("Figure8b_boxplot_overall_separated_by_region_year_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  #lf_world_mask_reg <- vector("list",length=length(lf_world_pred))
-  #for(i in 1:length(lf_world_pred)){
-  #
-  #  lf_m <- lf_mosaics_reg[i]
-  #  out_dir_str <- out_dir
-  #reg_name <- paste(l_reg_name[i],"_",tile_size,sep="") #make this automatic
-  #lapply()
-  #  list_param_plot_daily_mosaics <- list(lf_m=lf_m,reg_name=tile_size,out_dir_str=out_dir_str,out_suffix=out_suffix,l_dates=day_to_mosaic)
-  #lf_m_mask_reg4_1500x4500 <- mclapply(1:2,FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 6)
-  
-  #lf_world_mask_reg[[i]] <- mclapply(1:length(lf_m),FUN=plot_daily_mosaics,list_param=list_param_plot_daily_mosaics,mc.preschedule=FALSE,mc.cores = 10)
-  }
+  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+  title("RMSE per model over all tiles")
+  p<- bwplot(rmse~pred_mod | reg, data=tb,ylim=c(0,5),
+             main="RMSE per model and region over all tiles")
+  print(p)
+  dev.off()
 
-  ############# NEW MASK AND DATA
-  ## Plot areas and day predicted as first check
-
-  l_reg_name <- unique(df_tile_processed$reg)
-  #(subset(df_tile_processed$reg == l_reg_name[i],date)
-
-  for(i in 1:length(l_reg_name)){
-    lf_world_pred<-list.files(path=file.path(out_dir,l_reg_name[[i]]),    
-                            pattern=paste(".tif$",sep=""),full.names=T) 
-  
-    #mosaic_list_mean <- test_list 
-    #out_rastnames <- "world_test_mosaic_20100101"
-    #out_path <- out_dir
-    
-    #lf_world_pred <- list.files(pattern="world.*2010090.*.tif$")
-    #lf_raster_fname <- list.files(pattern="world.*2010*.*02162015.tif$",full.names=T)
-    lf_raster_fname <- lf_world_pred
-    prefix_str <- paste("Figure10_",l_reg_name[i],sep="")
-    
-    l_dates <- basename(lf_raster_fname)
-    tmp_name <- gsub(".tif","",l_dates)
-    tmp_name <- gsub("gam_CAI_dailyTmax_predicted_mod1_0_1_","",tmp_name)
-    #l_dates <- tmp_name
-    l_dates <- paste(l_reg_name[i],"_",tmp_name,sep="")
-    
-    screenRast=TRUE
-    list_param_plot_screen_raster <- list(lf_raster_fname,screenRast,l_dates,out_dir,prefix_str,out_suffix)
-    names(list_param_plot_screen_raster) <- c("lf_raster_fname","screenRast","l_dates","out_dir_str","prefix_str","out_suffix_str")
-    
-    #undebug(plot_screen_raster_val)
-    
-    #world_m_list1<- plot_screen_raster_val(1,list_param_plot_screen_raster)
-    #world_m_list <- mclapply(11:30, list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-    world_m_list <- mclapply(1:length(l_dates), list_param=list_param_plot_screen_raster, plot_screen_raster_val,mc.preschedule=FALSE,mc.cores = num_cores) #This is the end bracket from mclapply(...) statement
-    
-    #s_pred <- stack(lf_raster_fname)
-    
-    #res_pix <- 1500
-    #col_mfrow <- 3 
-    #row_mfrow <- 2
-    
-    #png(filename=paste("Figure10_levelplot_combined_",region_name,"_",out_suffix,".png",sep=""),
-    #  width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    #levelplot(s_pred,layers=1:6,col.regions=rev(terrain.colors(255)),cex=4)
-    
-    #dev.off()
 }
 
 
