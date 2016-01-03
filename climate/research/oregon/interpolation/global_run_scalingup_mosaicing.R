@@ -5,15 +5,16 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/30/2015            
+#MODIFIED ON: 01/01/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
 #TODO:
-#1) Make this is a script/function callable from the shell/bas
+#1) Make this is a script/function callable from the shell/bash
 #2) clean up temporary files, it builds currently on the disk
 #3) fix output folder for some of output files: create a mosaic output folder if doesn't exist?
-#4) create a helper function for inputs/arguments to automate...?? Could also be in the assessment stage
+#4) create a helper function for inputs/arguments to automate (optparse pacakge)...?? 
+    #Could also be in the assessment stage
 
 ### Before running, the gdal modules and other environment parameters need to be set if on NEX-NASA.
 ### This can be done by running the following commands:
@@ -70,7 +71,6 @@ in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_a
 #in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
 
 in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
-
 y_var_name <- "dailyTmax" #PARAM2
 interpolation_method <- c("gam_CAI") #PARAM3
 region_name <- "reg4" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
@@ -100,26 +100,12 @@ region_names <- c("reg23","reg4") #selected region names, ##PARAM 18
 use_autokrige <- F #PARAM 19
 
 ###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
-#infile_mask <- "/nobackupp8/bparmen1/regions_input_files/r_mask_reg4.tif"
+#infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_reg4.tif"
 infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
-
-#tb_accuracy_name <- file.path(in_dir,paste("tb_diagnostic_v_NA","_",out_suffix_str,".txt",sep=""))
-#tb_accuracy_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 21
-#data_month_s_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_month_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 22
-#data_day_v_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_day_v_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" #PARAM 23
-#data_day_s_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/data_day_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 24
-#df_tile_processed_name <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015/df_tile_processed_run10_1500x4500_global_analyses_pred_1992_12072015.txt" ##PARAM 25
+## All of this is interesting so use df_assessment!!
+df_assessment_files_name <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt" # data.frame with all files used in assessmnet, PARAM 21
 
 #in_dir can be on NEX or Atlas
-## All of this is interesting so use df_assessment!!
-tb_v_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[2])) #PARAM 21
-tb_s_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[4])) #PARAM 21
-data_month_s_name <- file.path(in_dir,basename(df_assessment_files$files[5])) #PARAM 22
-data_day_v_name <- file.path(in_dir, basename(df_assessment_files$files[6])) #PARAM 23
-data_day_s_name <- file.path(in_dir, basename(df_assessment_files$files[7])) ##PARAM 24
-df_tile_processed_name <- file.path(in_dir, basename(df_assessment_files$files[11]))
-pred_data_month_info <- file.path(in_dir, basename(df_assessment_files$files[9]))
-pred_data_day_info <- file.path(in_dir, basename(df_assessment_files$files[10]))
 
 #python script and gdal on NEX NASA:
 #mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
@@ -130,7 +116,6 @@ python_bin <- "/usr/bin" #PARAM 27
 
 algorithm <- "python" #PARAM 28 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
- 
 match_extent <- "FALSE" #PARAM 29 #try without matching!!!
 
 #for residuals...
@@ -234,30 +219,25 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   ###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
   #infile_mask <- "/nobackupp8/bparmen1/regions_input_files/r_mask_reg4.tif"
-  infile_mask <- list_param_run_mosaicing_prediction$infile_mask #"/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
+  infile_mask <- list_param_run_mosaicing_prediction$infile_mask # input mask used in defining the region
   
   #in_dir can be on NEX or Atlas
-  tb_v_accuracy_name <- list_param_run_mosaicing_prediction$tb_accuracy_name #<- file.path(in_dir,"tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 21
-  tb_s_accuracy_name <- list_param_run_mosaicing_prediction$tb_accuracy_name #<- file.path(in_dir,"tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 21
-  data_month_s_name <- list_param_run_mosaicing_prediction$data_month_s_name # file.path(in_dir,"data_month_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 22
-  data_day_v_name <- list_param_run_mosaicing_prediction$data_day_v_name # file.path(in_dir,"data_day_v_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") #PARAM 23
-  data_day_s_name <- list_param_run_mosaicing_prediction$data_day_s_name # file.path(in_dir,"data_day_s_NAM_run10_1500x4500_global_analyses_pred_1992_12072015.txt") ##PARAM 24
-  df_tile_processed_name <- list_param_run_mosaicing_prediction$df_tile_processed_name # file.path(in_dir,"df_tile_processed_run10_1500x4500_global_analyses_pred_1992_12072015.txt") ##PARAM 25
-  
+  df_assessment_files_name <- list_param_run_mosaicing_prediction$df_assessment_files_name # data.frame with all files used in assessmnet, PARAM 21
+
   #python script and gdal on NEX NASA:
   #mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
   #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
   #python script and gdal on Atlas NCEAS
-  mosaic_python <- list_param_run_mosaicing_prediction$mosaic_python # "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
-  python_bin <- list_param_run_mosaicing_prediction$python_bin # "/usr/bin" #PARAM 27
+  mosaic_python <- list_param_run_mosaicing_prediction$mosaic_python # "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 22
+  python_bin <- list_param_run_mosaicing_prediction$python_bin # "/usr/bin" #PARAM 23
   
-  algorithm <- list_param_run_mosaicing_prediction$algorithm #"python" #PARAM 28 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+  algorithm <- list_param_run_mosaicing_prediction$algorithm #"python" #PARAM 24 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
   #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
   
-  match_extent <- list_param_run_mosaicing_prediction$match_extent #"FALSE" #PARAM 29 #try without matching!!!
+  match_extent <- list_param_run_mosaicing_prediction$match_extent #"FALSE" #PARAM 25 #try without matching!!!
   
   #for residuals...
-  list_models <- list_param_run_mosaicing_prediction$list_models #  NULL #PARAM 30
+  list_models <- list_param_run_mosaicing_prediction$list_models #  NULL #PARAM 26
   #list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
   
   ####### PART 1: Read in data and process data ########
@@ -278,14 +258,27 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   setwd(out_dir)
   
+  ### Read in assessment and accuracy files
+  df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
+
+  tb_v_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[2])) 
+  tb_s_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[4])) 
+  tb_s_month_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[3])) 
+  data_month_s_name <- file.path(in_dir,basename(df_assessment_files$files[5])) 
+  data_day_v_name <- file.path(in_dir, basename(df_assessment_files$files[6])) 
+  data_day_s_name <- file.path(in_dir, basename(df_assessment_files$files[7])) 
+  #data_month_v_name <- file.path(in_dir,basename(df_assessment_files$files[8])) 
+  pred_data_month_info_name <- file.path(in_dir, basename(df_assessment_files$files[9]))
+  pred_data_day_info_name <- file.path(in_dir, basename(df_assessment_files$files[10]))
+  df_tile_processed_name <- file.path(in_dir, basename(df_assessment_files$files[11]))
+
   # accuracy table by tiles
-  tb <- read.table(tb_accuracy_name,sep=",")
-  # textfiles of stations by month
-  data_month_s <- read.table(file.path(data_month_s_name),sep=",")
-  data_day_s <- read.table(file.path(data_day_s_name),sep=",") #daily testing/validation stations by dates and tiles
-  data_day_v <- read.table(file.path(data_day_v_name),sep=",") #daily training stations by dates and tiles
-  
-  df_tile_processed <- read.table( df_tile_processed_name,sep=",")
+  tb <- read.table(tb_v_accuracy_name,sep=",")
+  tb_s <- read.table(tb_s_accuracy_name,sep=",")
+  data_month_s <- read.table(data_month_s_name,sep=",") # textfiles of stations by month
+  data_day_s <- read.table(data_day_s_name,sep=",") #daily testing/validation stations by dates and tiles
+  data_day_v <- read.table(data_day_v_name,sep=",") #daily training stations by dates and tiles
+  df_tile_processed <- read.table(df_tile_processed_name,sep=",")
   
   #list all files to mosaic for a list of day
   #Take into account multiple region in some cases!!!  
