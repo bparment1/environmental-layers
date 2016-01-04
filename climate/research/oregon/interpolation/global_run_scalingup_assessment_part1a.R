@@ -5,8 +5,8 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/02/2016            
-#Version: 4
+#MODIFIED ON: 01/03/2016            
+#Version: 5
 #PROJECT: Environmental Layers project  
 #TO DO:
 # - 
@@ -60,7 +60,6 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   #16) multiple_region <- TRUE #PARAM 12
   #17) countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
   #18) plot_region <- TRUE
-  #19) reg_modified <- TRUE #PARAM 15
   #20) threshold_missing_day <- c(367,365,300,200) #PARM18
   ##OUTPUTS
   #1)
@@ -110,7 +109,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
 
   in_dir1 <- list_param_run_assessment_prediction$in_dir1 
-  region_names <- list_param_run_assessment_prediction$region_names #e.g. c("reg23","reg4") 
+  region_name <- list_param_run_assessment_prediction$region_name #e.g. c("reg23","reg4") #run only for one region
   y_var_name <- list_param_run_assessment_prediction$y_var_name # e.g. dailyTmax" #PARAM3
   interpolation_method <- list_param_run_assessment_prediction$interpolation_method #c("gam_CAI") #PARAM4
   out_prefix <- list_param_run_assessment_prediction$out_prefix #output suffix e.g."run_global_analyses_pred_12282015" #PARAM5
@@ -130,7 +129,6 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   multiple_region <- list_param_run_assessment_prediction$multiple_region #PARAM16
   countries_shp <- list_param_run_assessment_prediction$countries_shp #PARAM17
   plot_region <- list_param_run_assessment_prediction$plot_region #PARAM18
-  reg_modified <- list_param_run_assessment_prediction$reg_modified #PARAM19
   threshold_missing_day <- list_param_run_assessment_prediction$threshold_missing_day #PARM20
 
   ########################## START SCRIPT #########################################
@@ -194,8 +192,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   ##raster_prediction object : contains testing and training stations with RMSE and model object
   in_dir_list_tmp <- file.path(in_dir_list,year_predicted)
-  list_raster_obj_files <- lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)})
-
+  list_raster_obj_files <- try(lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)}))
+  #Add stop message here...if no raster object in any tiles then break from the function
+  
   list_names_tile_coord <- lapply(list_raster_obj_files,FUN=function(x){basename(dirname(x))})
   list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
   names(list_raster_obj_files)<- list_names_tile_id
@@ -225,8 +224,10 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   lf_sub_sampling_obj_daily_files_tmp <- lapply(1:length(lf_sub_sampling_obj_daily_files),FUN=function(i,x){val <- x[[i]];if(length(val)==0){val<-0};val},x=lf_sub_sampling_obj_daily_files)
   df_tile_processed$sub_sampling_clim  <- unlist(lf_sub_sampling_obj_files_tmp)
   df_tile_processed$sub_sampling_daily  <- unlist(lf_sub_sampling_obj_daily_files_tmp)
+  ##review this part!!
+  df_tile_processed$reg  <- region_name #eg c("reg4) #should only be one char string  
+  df_tile_processed$year_predicted  <- year_predicted #eg c("reg4) #should only be one char string    
   #lf_sub_sampling_obj_files
-  
  
   ################
   #### Table 1: Average accuracy metrics per tile and predictions
@@ -259,6 +260,8 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
   summary_metrics_v_NA$lat <- lat
   summary_metrics_v_NA$lon <- long
+  summary_metrics_v_NA$reg <- region_name #add region name
+  summary_metrics_v_NA$year_predicted <- year_predicted #add year predicted
   
   write.table(as.data.frame(summary_metrics_v_NA),
               file=file.path(out_dir,paste("summary_metrics_v2_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
@@ -280,8 +283,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
                         FUN=function(i,x,y){rep(y[i],nrow(x[[i]]))},x=tb_diagnostic_v_tmp,y=names(tb_diagnostic_v_tmp))
   
   tb_diagnostic_v_NA$tile_id <- unlist(tile_id_tmp) #adding identifier for tile
-  
   tb_diagnostic_v_NA <- merge(tb_diagnostic_v_NA,df_tile_processed[,1:2],by="tile_id")
+  tb_diagnostic_v_NA$reg <- region_name #add region name
+  tb_diagnostic_v_NA$year_predicted <- year_predicted #add year
   
   write.table((tb_diagnostic_v_NA),
               file=file.path(out_dir,paste("tb_diagnostic_v_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
@@ -307,8 +311,10 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   tb_month_diagnostic_s_NA <- merge(tb_month_diagnostic_s_NA,df_tile_processed[,1:2],by="tile_id")
   
   date_f<-strptime(tb_month_diagnostic_s_NA$date, "%Y%m%d")   # interpolation date being processed
-  tb_month_diagnostic_s_NA$month<-strftime(date_f, "%m")          # current month of the date being processed
-  
+  tb_month_diagnostic_s_NA$month <-strftime(date_f, "%m")          # current month of the date being processed
+  tb_month_diagnostic_s_NA$reg <- region_name #add region name
+  tb_month_diagnostic_s_NA$year_predicted <- year_predicted #add year
+
   write.table((tb_month_diagnostic_s_NA),
               file=file.path(out_dir,paste("tb_month_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
 
@@ -332,7 +338,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   tb_diagnostic_s_NA$tile_id <- unlist(tile_id_tmp) #adding identifier for tile
   
   tb_diagnostic_s_NA <- merge(tb_diagnostic_s_NA,df_tile_processed[,1:2],by="tile_id")
-  
+  tb_diagnostic_s_NA$reg <- region_name #add region name
+  tb_diagnostic_s_NA$year_predicted <- year_predicted #add year
+
   write.table((tb_diagnostic_s_NA),
               file=file.path(out_dir,paste("tb_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   list_outfiles[[4]] <- file.path(out_dir,paste("tb_diagnostic_s_NA_",year_predicted,"_",out_prefix,".txt",sep=""))
@@ -358,7 +366,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
                     FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_month_tmp)
   data_month_NAM <- do.call(rbind.fill,data_month_tmp) #combined data_month for "NAM" North America
   data_month_NAM$tile_id <- unlist(tile_id)
-  
+  data_month_NAM$reg <- region_name #add region name
+  data_month_NAM$year_predicted <- year_predicted #add year
+
   write.table((data_month_NAM),
               file=file.path(out_dir,paste("data_month_s_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   list_outfiles[[5]] <- file.path(out_dir,paste("data_month_s_NAM_",year_predicted,"_",out_prefix,".txt",sep=""))
@@ -380,11 +390,15 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
                     FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_day_s_tmp)
   data_day_s_NAM <- do.call(rbind.fill,data_day_s_tmp) #combined data_month for "NAM" North America
   data_day_s_NAM$tile_id <- unlist(tile_id)
+  data_day_s_NAM$reg <- region_name #add region name
+  data_day_s_NAM$year_predicted <- year_predicted #add year predicted
   
   tile_id <- lapply(1:length(data_day_v_tmp),
                     FUN=function(i,x){rep(names(x)[i],nrow(x[[i]]))},x=data_day_v_tmp)
   data_day_v_NAM <- do.call(rbind.fill,data_day_v_tmp) #combined data_month for "NAM" North America
   data_day_v_NAM$tile_id <- unlist(tile_id)
+  data_day_v_NAM$reg <- region_name #add region name
+  data_day_v_NAM$year_predicted <- year_predicted #add year predicted
   
   write.table((data_day_s_NAM),
               file=file.path(out_dir,paste("data_day_s_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
@@ -419,6 +433,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
                       FUN=function(i,x){try(rep(names(x)[i],nrow(x[[i]])))},x=data_month_v_subsampling_tmp)
     data_month_v_subsmapling_NAM <- do.call(rbind.fill,ddata_month_v_subsampling_tmp) #combined data_month for "NAM" North America
     data_month_v_subsampling_NAM$tile_id <- unlist(tile_id)
+    data_month_v_subsampling_NAM$reg <- reg
+    data_month_v_subsampling_NAM$year_predicted <- year_predicted
+    
     write.table((data_month_v_subsampling_NAM),
                 file=file.path(out_dir,paste("data_month_v_subsampling_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
     list_outfiles[[8]] <- file.path(out_dir,paste("data_month_v_subsampling_NAM_",year_predicted,"_",out_prefix,".txt",sep=""))
@@ -478,6 +495,11 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   pred_data_month_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_month_info}))
   pred_data_day_info <- do.call(rbind,lapply(pred_data_info_tmp,function(x){x$pred_data_day_info}))
   
+  pred_data_month_info$reg <- region_name
+  pred_data_day_info$reg <- region_name
+  pred_data_month_info$year_predicted <- year_predicted
+  pred_data_day_info$year_predicted <- year_predicted
+    
   #putput inforamtion in csv !!
   write.table(pred_data_month_info,
               file=file.path(out_dir,paste("pred_data_month_info_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
@@ -502,6 +524,10 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   df_tiles_all$tile_coord <- l_shp
   #names(df_tiles_all) <- "list_shp_world"
   names(df_tiles_all) <- c("shp_files","tile_coord")
+  #add tiles id
+  df_tiles_all$reg <- region_name
+  df_tiles_all$year_predicted <- year_predicted
+  
   matching_index <- match(basename(in_dir_list),l_shp)
   list_shp_reg_files <- list_shp_world[matching_index]
   df_tile_processed$shp_files <-list_shp_reg_files
@@ -511,6 +537,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
   df_tile_processed$lat <- lat
   df_tile_processed$lon <- long
+
   
   #put that list in the df_processed and also the centroids!!
   write.table(df_tile_processed,
@@ -543,8 +570,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   df_assessment_files <- data.frame(filename=outfiles_names,files=unlist(list_outfiles),
                                     reg=region_name,year=year_predicted)
   ###Prepare files for copying back?
+  df_assessment_files_name <- file.path(out_dir,paste("df_assessment_files_",region_name,"_",year_predicted,"_",out_prefix,".txt",sep=""))
   write.table(df_assessment_files,
-              file=file.path(out_dir,paste("df_assessment_files_",region_name,"_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
+              file=df_assessment_files_name,sep=",")
 
   ######################################################
   ####### PART 5: run plotting functions to produce figures
@@ -554,33 +582,37 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   #interpolation_method <- c("gam_CAI") #PARAM2, already set
   out_suffix <- out_prefix #PARAM3
   #out_dir <-  #PARAM4, already set
-  #create_out_dir_param <- FALSE #PARAM 5, already created and set
+  create_out_dir_param <- FALSE #PARAM 5, already created and set
   #mosaic_plot <- FALSE #PARAM6
   #if daily mosaics NULL then mosaicas all days of the year
   #day_to_mosaic <- c("19920101","19920102","19920103") #PARAM7
   #CRS_locs_WGS84 already set
-  proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
+  proj_str<- CRS_locs_WGS84 #PARAM 8 #check this parameter
   #file_format <- ".rst" #PARAM 9, already set
   #NA_flag_val <- -9999 #PARAM 11, already set
   #multiple_region <- TRUE #PARAM 12
   #countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
   #plot_region <- TRUE
   #num_cores <- 6 #PARAM 14, already set
-  region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
+  #region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
   #use previous files produced in step 1a and stored in a data.frame
-  #df_assessment_files, #PARAM 17, set in the script
+  #df_assessment_files_name <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt"# #PARAM 17, set in the script
   #threshold_missing_day <- c(367,365,300,200) #PARM18
 
-  list_param_run_assessment_plotting <- list(y_var_name, interpolation_method, out_suffix, 
+  list_param_run_assessment_plotting <- list(in_dir,y_var_name, interpolation_method, out_suffix, 
                       out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_value,
                       multiple_region, countries_shp, plot_region, num_cores, 
-                      region_name, df_assessment_files, threshold_missing_day) 
+                      region_name, df_assessment_files_name, threshold_missing_day) 
 
-  names(list_param_run_assessment_plotting) <- c("y_var_name","interpolation_method","out_suffix", 
+  names(list_param_run_assessment_plotting) <- c("in_dir","y_var_name","interpolation_method","out_suffix", 
                       "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_value",
                       "multiple_region","countries_shp","plot_region","num_cores", 
-                      "region_name","df_assessment_files","threshold_missing_day") 
+                      "region_name","df_assessment_files_name","threshold_missing_day") 
+  
+  #function_assessment_part2 <- "global_run_scalingup_assessment_part2_01032016.R"
+  #source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
 
+  #debug(run_assessment_plotting_prediction_fun)
   df_assessment_figures_files <- run_assessment_plotting_prediction_fun(list_param_run_assessment_plotting) 
   
   ######################################################
