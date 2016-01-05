@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 01/01/2016            
+#MODIFIED ON: 01/05/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1992 for test of mosaicing using 1500x4500km and other tiles
@@ -37,90 +37,102 @@
 
 #### FUNCTION USED IN SCRIPT
 
-function_mosaicing <-"global_run_scalingup_mosaicing_function_12192015.R"
-
-in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
-#in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
-source(file.path(in_dir_script,function_mosaicing))
-
-load_obj <- function(f)
-{
-  env <- new.env()
-  nm <- load(f, env)[1]
-  env[[nm]]
-}
-
-create_dir_fun <- function(out_dir,out_suffix){
-  if(!is.null(out_suffix)){
-    out_name <- paste("output_",out_suffix,sep="")
-    out_dir <- file.path(out_dir,out_name)
-  }
-  #create if does not exists
-  if(!file.exists(out_dir)){
-    dir.create(out_dir)
-  }
-  return(out_dir)
-}
+# function_mosaicing <-"global_run_scalingup_mosaicing_function_12192015.R"
+# 
+# #in_dir_script <-"/home/parmentier/Data/IPLANT_project/env_layers_scripts" #NCEAS UCSB
+# in_dir_script <- "/nobackupp8/bparmen1/env_layers_scripts" #NASA NEX
+# source(file.path(in_dir_script,function_mosaicing))
+# 
+# load_obj <- function(f)
+# {
+#   env <- new.env()
+#   nm <- load(f, env)[1]
+#   env[[nm]]
+# }
+# 
+# create_dir_fun <- function(out_dir,out_suffix){
+#   if(!is.null(out_suffix)){
+#     out_name <- paste("output_",out_suffix,sep="")
+#     out_dir <- file.path(out_dir,out_name)
+#   }
+#   #create if does not exists
+#   if(!file.exists(out_dir)){
+#     dir.create(out_dir)
+#   }
+#   return(out_dir)
+# }
 
 ############################################
 #### Parameters and constants  
 
 #Data is on ATLAS or NASA NEX
 #PARAM 1
-in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NCEAS
-#in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
-
-in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
-y_var_name <- "dailyTmax" #PARAM2
-interpolation_method <- c("gam_CAI") #PARAM3
-region_name <- "reg4" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
-mosaicing_method <- c("unweighted","use_edge_weights") #PARAM5
-out_suffix <- paste(region_name,"_","run10_1500x4500_global_analyses_pred_1992_12072015",sep="") #PARAM 6
-out_suffix_str <- "run10_1500x4500_global_analyses_pred_1992_12072015" #PARAM 7
-metric_name <- "rmse" #RMSE, MAE etc. #PARAM 8
-pred_mod_name <- "mod1" #PARAM 9
-var_pred <- "res_mod1" #used in residuals mapping #PARAM 10
-
-out_dir <- in_dir #PARAM 11
-create_out_dir_param <- FALSE #PARAM 12
-
-#if daily mosaics NULL then mosaicas all days of the year #PARAM 13
-day_to_mosaic <- c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
-
-#CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
-#CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-#proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
- 
-file_format <- ".tif" #PARAM 14
-NA_value <- -9999 #PARAM 15
-NA_flag_val <- NA_value #PARAM 16
-     
-num_cores <- 6 #PARAM 17                 
-region_names <- c("reg23","reg4") #selected region names, ##PARAM 18 
-use_autokrige <- F #PARAM 19
-
-###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
-#infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_reg4.tif"
-infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
-## All of this is interesting so use df_assessment!!
-df_assessment_files_name <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt" # data.frame with all files used in assessmnet, PARAM 21
-
-#in_dir can be on NEX or Atlas
-
-#python script and gdal on NEX NASA:
-#mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
-#python script and gdal on Atlas NCEAS
-mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
-python_bin <- "/usr/bin" #PARAM 27
-
-algorithm <- "python" #PARAM 28 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
-#algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
-match_extent <- "FALSE" #PARAM 29 #try without matching!!!
-
-#for residuals...
-list_models <- NULL #PARAM 30
-#list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
+# in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NCEAS
+# #in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
+# 
+# in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
+# y_var_name <- "dailyTmax" #PARAM2
+# interpolation_method <- c("gam_CAI") #PARAM3
+# region_name <- "reg4" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+# mosaicing_method <- c("unweighted","use_edge_weights") #PARAM5
+# out_suffix <- paste(region_name,"_","run10_1500x4500_global_analyses_pred_1992_12072015",sep="") #PARAM 6
+# out_suffix_str <- "run10_1500x4500_global_analyses_pred_1992_12072015" #PARAM 7
+# metric_name <- "rmse" #RMSE, MAE etc. #PARAM 8
+# pred_mod_name <- "mod1" #PARAM 9
+# var_pred <- "res_mod1" #used in residuals mapping #PARAM 10
+# 
+# out_dir <- in_dir #PARAM 11
+# create_out_dir_param <- FALSE #PARAM 12
+# 
+# #if daily mosaics NULL then mosaicas all days of the year #PARAM 13
+# day_to_mosaic <- c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
+# 
+# #CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
+# #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+# #proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
+#  
+# file_format <- ".tif" #PARAM 14
+# NA_value <- -9999 #PARAM 15
+# NA_flag_val <- NA_value #PARAM 16
+#      
+# num_cores <- 6 #PARAM 17                 
+# region_names <- c("reg23","reg4") #selected region names, ##PARAM 18 
+# use_autokrige <- F #PARAM 19
+# 
+# ###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
+# #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_reg4.tif"
+# infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
+# ## All of this is interesting so use df_assessment!!
+# df_assessment_files_name <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt" # data.frame with all files used in assessmnet, PARAM 21
+# 
+# #in_dir can be on NEX or Atlas
+# 
+# #python script and gdal on NEX NASA:
+# #mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+# #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
+# #python script and gdal on Atlas NCEAS
+# mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
+# python_bin <- "/usr/bin" #PARAM 27
+# 
+# algorithm <- "python" #PARAM 28 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+# #algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+# match_extent <- "FALSE" #PARAM 29 #try without matching!!!
+# 
+# #for residuals...
+# list_models <- NULL #PARAM 30
+# #list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
+# 
+# list_param_run_mosaicing_prediction <- list(in_dir,y_var_name,interpolation_method,region_name,
+#                  mosaicing_method,out_suffix,out_suffix_str,metric_name,pred_mod_name,var_pred,
+#                  create_out_dir_param,day_to_mosaic,proj_str,file_format,NA_value,num_cores,
+#                  region_name,use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
+#                  python_bin,algorithm,match_extent,list_models)
+# param_names <- c("in_dir","y_var_name","interpolation_method","region_name",
+#                  "mosaicing_method","out_suffix","out_suffix_str","metric_name","pred_mod_name","var_pred",
+#                  "create_out_dir_param","day_to_mosaic","proj_str","file_format","NA_value","num_cores",
+#                  "region_name","use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
+#                  "python_bin","algorithm","match_extent","list_models")
+# names(list_param_run_mosaicing_prediction) <- param_names
 
 ########################## START SCRIPT ##############################
 
