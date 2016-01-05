@@ -5,7 +5,7 @@
 #Part 1 create summary tables and inputs files for figure in part 2 and part 3.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/03/2016            
+#MODIFIED ON: 01/04/2016            
 #Version: 5
 #PROJECT: Environmental Layers project  
 #TO DO:
@@ -433,7 +433,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
                       FUN=function(i,x){try(rep(names(x)[i],nrow(x[[i]])))},x=data_month_v_subsampling_tmp)
     data_month_v_subsmapling_NAM <- do.call(rbind.fill,ddata_month_v_subsampling_tmp) #combined data_month for "NAM" North America
     data_month_v_subsampling_NAM$tile_id <- unlist(tile_id)
-    data_month_v_subsampling_NAM$reg <- reg
+    data_month_v_subsampling_NAM$reg <- region_name
     data_month_v_subsampling_NAM$year_predicted <- year_predicted
     
     write.table((data_month_v_subsampling_NAM),
@@ -508,6 +508,8 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   list_outfiles[[10]] <- file.path(out_dir,paste("pred_data_month_info_",year_predicted,"_",out_prefix,".txt",sep=""))
   list_outfiles[[11]] <- file.path(out_dir,paste("pred_data_day_info_",year_predicted,"_",out_prefix,".txt",sep=""))
   
+  #browser() #debugging on 01/042016
+  
   ######################################################
   ####### PART 4: Get shapefiles defining region tiling with centroids ###
   
@@ -537,7 +539,6 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   long<- as.numeric(lapply(1:length(tx),function(i,x){x[[i]][2]},x=tx))
   df_tile_processed$lat <- lat
   df_tile_processed$lon <- long
-
   
   #put that list in the df_processed and also the centroids!!
   write.table(df_tile_processed,
@@ -550,7 +551,12 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   
   #Copy to local home directory on NAS-NEX
   dir.create(file.path(out_dir,"shapefiles"))
-  file.copy(list_shp_world,file.path(out_dir,"shapefiles"))
+  #list_shp_world_dbf <- gsub(".shp",".*",basename(list_shp_world)) #remove shp extension, did not owork with file.copy
+  #list_shp_world_dbf <- gsub(".shp",".dbf",basename(list_shp_world)) #remove shp extension
+  #list_shp_world_prj <- gsub(".shp",".dbf",basename(list_shp_world)) #remove shp extension
+  #list_shp_world_tmp <- file.path(dirname(list_shp_world), list_shp_world_tmp)
+  list_shp_all <- list.files(path=in_dir_shp,full.names=T)#need all the files!!! including .dbf etc.
+  file.copy(list_shp_all,file.path(out_dir,"shapefiles"))
   
   #save a list of all files...
   write.table(df_tiles_all,
@@ -574,9 +580,14 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   write.table(df_assessment_files,
               file=df_assessment_files_name,sep=",")
 
+  #with reg4 prediction 2014, it took 1h36minutes to reach this point in the code.
+  #this was processed using the bridge1 with 6 cores...
+  
   ######################################################
   ####### PART 5: run plotting functions to produce figures
 
+  #browser() #debugging on 01/042016
+  #out_dir <- "/nobackupp8/bparmen1/output_run_global_analyses_pred_12282015"
   in_dir <- out_dir #PARAM 0
   #y_var_name <- "dailyTmax" #PARAM1 , already set
   #interpolation_method <- c("gam_CAI") #PARAM2, already set
@@ -596,18 +607,19 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   #num_cores <- 6 #PARAM 14, already set
   #region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
   #use previous files produced in step 1a and stored in a data.frame
-  #df_assessment_files_name <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt"# #PARAM 17, set in the script
+  #df_assessment_files_name <- "df_assessment_files_reg4_2014_run_global_analyses_pred_12282015.txt"# #PARAM 17, set in the script
+  #df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
   #threshold_missing_day <- c(367,365,300,200) #PARM18
 
   list_param_run_assessment_plotting <- list(in_dir,y_var_name, interpolation_method, out_suffix, 
-                      out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_value,
+                      out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_flag_val,
                       multiple_region, countries_shp, plot_region, num_cores, 
-                      region_name, df_assessment_files_name, threshold_missing_day) 
+                      region_name, df_assessment_files_name, threshold_missing_day,year_predicted) 
 
   names(list_param_run_assessment_plotting) <- c("in_dir","y_var_name","interpolation_method","out_suffix", 
-                      "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_value",
+                      "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_flag_val",
                       "multiple_region","countries_shp","plot_region","num_cores", 
-                      "region_name","df_assessment_files_name","threshold_missing_day") 
+                      "region_name","df_assessment_files_name","threshold_missing_day","year_predicted") 
   
   #function_assessment_part2 <- "global_run_scalingup_assessment_part2_01032016.R"
   #source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
