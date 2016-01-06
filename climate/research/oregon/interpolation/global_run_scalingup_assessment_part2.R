@@ -5,15 +5,19 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/04/2016            
+#MODIFIED ON: 01/06/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
 #TODO:
-#1) Split functions and master script
-#2) Make this is a script/function callable from the shell/bash
-#3) Check image format for tif
+#1) Add plot broken down by year and region 
+#2) Modify code for overall assessment accross all regions and year
+#3) Clean up
 
+#First source these files:
+#Resolved call issues from R.
+#source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
+#
 #################################################################################################
 
 #### FUNCTION USED IN SCRIPT
@@ -132,24 +136,6 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   
   ####### Function used in the script #######
   
-  load_obj <- function(f){
-    env <- new.env()
-    nm <- load(f, env)[1]
-    env[[nm]]
-  }
-  
-  create_dir_fun <- function(out_dir,out_suffix){
-    if(!is.null(out_suffix)){
-      out_name <- paste("output_",out_suffix,sep="")
-      out_dir <- file.path(out_dir,out_name)
-    }
-    #create if does not exists
-    if(!file.exists(out_dir)){
-      dir.create(out_dir)
-    }
-    return(out_dir)
-  }
-  
   #function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_0923015.R"
   #source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 
@@ -172,6 +158,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   region_name <- list_param_run_assessment_plotting$region_name #<- "world" #PARAM 15
   df_assessment_files_name <- list_param_run_assessment_plotting$df_assessment_files_name #PARAM 16
   threshold_missing_day <- list_param_run_assessment_plotting$threshold_missing_day #PARM17
+  year_predicted <- list_param_run_assessment_plotting$year_predicted
  
   NA_value <- NA_flag_val 
 
@@ -188,8 +175,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
 
   setwd(out_dir)
   
-  list_outfiles <- vector("list", length=20) #collect names of output files
-  list_outfiles_names <- vector("list", length=20) #collect names of output files
+  list_outfiles <- vector("list", length=23) #collect names of output files
+  list_outfiles_names <- vector("list", length=23) #collect names of output files
   counter_fig <- 0 #index of figure to collect outputs
   
   #i <- year_predicted
@@ -226,8 +213,12 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   tb_s <- merge(tb_s,df_tile_processed,by="tile_id")
   tb_month_s<- merge(tb_month_s,df_tile_processed,by="tile_id")
   summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
-  #}
-  
+  #test <- merge(summary_metrics_v,df_tile_processed,by="tile_id",all=F)
+  #duplicate columns...need to be cleaned up later
+  try(tb$year_predicted <- tb$year_predicted.x)
+  try(tb$reg <- tb$reg.x)
+  try(summary_metrics_v$year_predicted <- summary_metrics_v$year_predicted.x)
+  try(summary_metrics_v$reg <- summary_metrics_v$reg.x)  
   #tb_all <- tb
   #summary_metrics_v_all <- summary_metrics_v 
   
@@ -331,6 +322,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   #text(lat-shp,)
   #union(list_shp_reg_files[[1]],list_shp_reg_files[[2]])
   list_outfiles[[counter_fig+1]] <- paste("Figure1_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
+  counter_fig <- counter_fig+1
   
   ###############
   ### Figure 2: boxplot of average accuracy by model and by tiles
@@ -639,7 +631,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_","_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   p<- bwplot(rmse~pred_mod | reg, data=tb,
@@ -651,7 +643,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   counter_fig <- counter_fig + 1
   
   ## Figure 8b
-  png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_","_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
@@ -662,6 +654,39 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   dev.off()
   
   list_outfiles[[counter_fig+1]] <- paste("Figure8b_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
+  counter_fig <- counter_fig + 1
+  
+  ## Select mod1 only now
+  tb_subset <- subset(tb,model_name=="mod1")
+  ## Figure 8c
+  
+  res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_","mod1","_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  p<- bwplot(rmse~pred_mod | reg, data=tb_subset,
+             main="RMSE per model and region over all tiles")
+  print(p)
+  dev.off()
+  
+  list_outfiles[[counter_fig+1]] <- paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
+  counter_fig <- counter_fig + 1
+  
+  ## Figure 8d
+  png(filename=paste("Figure8d_boxplot_overall_separated_by_region_scaling_","mod1","_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+  title("RMSE per model over all tiles")
+  p<- bwplot(rmse~pred_mod | reg, data=tb_subset,ylim=c(0,5),
+             main="RMSE per model and region over all tiles")
+  print(p)
+  dev.off()
+  
+  list_outfiles[[counter_fig+1]] <- paste("Figure8d_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
   counter_fig <- counter_fig + 1
 
   #####################################################
@@ -675,7 +700,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
 #   png(filename=paste("Figure9a_boxplot_overall_separated_by_region_year_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
 #       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 #   
-#   p<- bwplot(rmse~pred_mod | reg + year, data=tb,
+#   p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,
 #              main="RMSE per model and region over all tiles")
 #   print(p)
 #   dev.off()
@@ -686,7 +711,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
 #   
 #   boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
 #   title("RMSE per model over all tiles")
-#   p<- bwplot(rmse~pred_mod | reg, data=tb,ylim=c(0,5),
+#   p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,ylim=c(0,5),
 #              main="RMSE per model and region over all tiles")
 #   print(p)
 #   dev.off()
@@ -698,61 +723,62 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   ############## Prepare object to return
   ############## Collect information from assessment ##########
   
-  # #comments                                                                    
- comments_str <- c("tile processed for the region",
-  "boxplot with outlier",                                                          
-  "boxplot with outlier",
+  # This is hard coded and can be improved later on for flexibility. It works for now...                                                                 
+  comments_str <- c("tile processed for the region",
+  "boxplot with outliers",                                                          
+  "boxplot with outliers",
   "boxplot scaling by tiles",
   "boxplot scaling by tiles",
   "boxplot overall region with outliers",
   "boxplot overall region with scaling",
-  "Barplot of metrics ranked by tile",
-  "Barplot of metrics ranked by tile",
-  "Average metrics map centroids",
-  "Average metrics map centroids",
+  "boxplot overall region with outliers",
+  "boxplot overall region with scaling",
+  "Barplot of accuracy metrics ranked by tile",
+  "Barplot of accuracy metrics ranked by tile",
+  "Average accuracy metrics map at centroids",
+  "Average accuracy metrics map at centroids",
   "Number of missing day threshold1 map centroids",
-  "Number of missing day threshold1 map centroids",
-  "Number of missing day threshold1 map centroids",
-  "Number of missing day threshold1 map centroids",
+  "Number of missing day threshold2 map centroids",
+  "Number of missing day threshold3 map centroids",
+  "Number of missing day threshold4 map centroids",
   "number_daily_predictions_per_model",
   "histogram number_daily_predictions_per_models",
   "boxplot overall separated by region with_outliers",
+  "boxplot overall separated by region with_scaling",
+  "boxplot overall separated by region with_outliers",
   "boxplot overall separated by region with_scaling")
-  
-# c("figure_1","figure_2a","figure_2a","figure_2b","figure_2b","figure_3a","figure_3b","figure_5",
-#   "figure_5","figure_6","figure_6",
-#                             Figure_7a
-#                                    Figure_7a
-#Number of missing day threshold1 map centroids                                    Figure_7a
-#Number of missing day threshold1 map centroids                                    Figure_7a
-#number_daily_predictions_per_model                                                        Figure_7b
-#histogram number_daily_predictions_per_models                                    Figure_7c
-#boxplot_overall_separated_by_region_with_oultiers_                              Figure 8a
-#boxplot_overall_separated_by_region_with_scaling                                 Figure 8b
 
-  outfiles_names <- c("summary_metrics_v_names","tb_v_accuracy_name","tb_month_s_name","tb_s_accuracy_name", 
-  "data_month_s_name","data_day_v_name","data_day_s_name","data_month_v_name", "tb_month_v_name",
-  "pred_data_month_info_name","pred_data_day_info_name","df_tile_processed_name","df_tiles_all_name", 
-  "df_tiles_all_name") 
-  names(list_outfiles) <- outfiles_names
+  figure_no <- c("figure_1","figure_2a","figure_2a","figure_2b","figure_2b","figure_3a","figure_3a","figure_3b","figure_3b",
+                 "figure_5", "figure_5","figure_6","figure_6","Figure_7a","Figure_7a","Figure_7a","Figure_7a","Figure_7b",
+                 "Figure_7c","Figure 8a","Figure 8a","Figure 8b","Figure 8b")
+
+  col_model_name <- c(NA,"mod1","mod_kr","mod1","mod_kr","mod1","mod_kr","mod1","mod_kr","mod1","mod_kr",
+                  "mod1","mod_kr","mod1","mod1","mod1","mod1","mod1","mod1",NA,NA,"mod1","mod1")
+  col_reg <- rep(region_name,length(list_outfiles))
+  col_year_predicted <- rep(year_predicted,length(list_outfiles))
   
   #This data.frame contains all the files from the assessment
-  df_assessment_figures_files <- data.frame(filename=outfiles_names,files=unlist(list_outfiles),
-                                    reg=region_name,year=year_predicted)
+  df_assessment_figures_files <- data.frame(figure_no=figure_no,
+                                            comment = comments_str,
+                                            model_name=col_model_name,
+                                            reg=col_reg,
+                                            year_predicted=col_year_predicted,
+                                            filename=unlist(list_outfiles))
+  
   ###Prepare files for copying back?
-  df_assessment_figures_files_names <- file.path(out_dir,paste("df_assessment_files_",region_name,"_",year_predicted,"_",out_prefix,".txt",sep=""))
-  write.table(df_assessment_files,
-              file=df_assessment_files_name,sep=",")
+  df_assessment_figures_files_names <- file.path(out_dir,paste("df_assessment_figures_files_",region_name,"_",year_predicted,"_",out_suffix,".txt",sep=""))
+  write.table(df_assessment_figures_files,
+              file=df_assessment_figures_files_names ,sep=",")
 
   #df_assessment_figures_files_names
   
   ######################################################
   ##### Prepare objet to return ####
 
-  #assessment_obj <- list(df_assessment_files, df_assessment_figures_files)
-  #names(assessment_obj) <- c("df_assessment_files", "df_assessment_figures_files")
+  assessment_obj <- list(df_assessment_files, df_assessment_figures_files)
+  names(assessment_obj) <- c("df_assessment_files", "df_assessment_figures_files")
   ## Prepare list of files to return...
-  return(df_assessment_figures_files_names)
+  return(assessment_obj)
  
 }
   
@@ -765,6 +791,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
 # boxplot scaling by tiles                                                   figure_2b          reg4        mod1
 # boxplot scaling by tiles                                                   figure_2b          reg4        mod_kr
 # boxplot overall region with outliers                              figure_3a          reg4        NA
+# boxplot overall region with scaling                               figure_3b          reg4        NA
+# Barplot of metrics ranked by tile                                  Figure_5            
 # boxplot overall region with scaling                               figure_3b          reg4        NA
 # Barplot of metrics ranked by tile                                  Figure_5            
 # Barplot of metrics ranked by tile                                  Figure_5
