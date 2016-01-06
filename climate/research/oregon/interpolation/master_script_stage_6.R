@@ -11,12 +11,11 @@
 #STAGE 6: Assessement of predictions by tiles and regions with mosaicing of predictions and accuracy
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 01/03/2015  
-#PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
+#MODIFIED ON: 01/06/2016  
+#PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 ## TODO:
-# Add  assessment part 2 (figures)
-# Add mosaicing part 2
+# Add  assessment part 2 (figures): still testing
 # 
 ##################################################################################################
 
@@ -52,7 +51,7 @@ args<-commandArgs(TRUE)
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
 function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
-function_assessment_part2 <- "global_run_scalingup_assessment_part2_01042016.R"
+function_assessment_part2 <- "global_run_scalingup_assessment_part2_01062016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
 source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
@@ -131,6 +130,7 @@ names(list_param_run_assessment_prediction)<-list_names
 #max number of cells to read in memory
 max_mem<-args[11]
 #rasterOptions(maxmemory=1e+07,timer=TRUE)
+
 
 #debug(run_assessment_prediction_fun)
 #debug(debug_fun_test)
