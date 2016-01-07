@@ -1,5 +1,5 @@
 ---
-title       : Summary for year 1992, region 4 -Africa
+title       : Summary for year 1982, region 4 -Africa
 subtitle    : Global assessment interpolation
 author      : Benoit Parmentier and Alberto Guzman
 job         : NEX job world
@@ -11,16 +11,18 @@ mode        : selfcontained # {standalone, draft}
 knit        : slidify::knit2slides
 ---
 
-```{r,echo=F}
+```{r,echo=FALSE}
 
 #First let's set up the input parameters for the script in R:
-
-in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_09012015"
-
-#region_name <- "world" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
-#mosaicing_method <- c("unweighted","use_edge_weights")
-out_suffix <- paste(region_name,"_","pred_1992_09032015",sep="") 
-#_mosaic_run10_1500x4500_global_analyses_06212015
+in_dir <- "/data/project/layers/commons/NEX_data/output_run_global_analyses_pred_12282015"
+df_assessment_figures_files_names<-"df_assessment_figures_files_reg4_20014_run_global_analyses_pred_12282015.txt"   
+df_assessment_figures_files <- read.table(file.path(in_dir,df_assessment_figures_files_names),stringsAsFactors=F,sep=",")
+df_assessment_files_names <- ""#to be added
+#setwd(indir)
+#in_dir <- "/home/bparmentier/Dropbox/Data/NCEAS/env_layers_documents/output_run10_1500x4500_g#lobal_analyses_pred_1982_09152015"
+#region_name <- "reg4" #PARAM 13 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+#out_suffix <- paste(region_name,"_","pred_1992_09032015",sep="") 
+#out_suffix <- "pred_1982_09152015"
 #day_to_mosaic <- c("20100831",
 #                   "20100901") #PARAM7
 
@@ -28,11 +30,12 @@ out_suffix <- paste(region_name,"_","pred_1992_09032015",sep="")
 
 ## Tiles of 1500x4500 km
 
-There were 43 tiles for region 4 (Africa)
+
+There were 28 tiles for region 4 (South America)
 
 1. Tiles were run for 365 days.
-2. Year tested was 1992.
-3. Assessment of number of days predicted and accuracy was carried out.
+2. Year tested was 1982.
+3. Assessments for the number of days predicted and accuracy were carried out.
 
 
 --- .class #id 
@@ -46,24 +49,132 @@ img {
 </style>
  
 
-
 # Tiles of 1500x4500km global run 
 
 ```{r, echo=FALSE}
 #image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
 
-fname <- paste("Figure1_tile_processed_region_world_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-
+fname <- basename(df_assessment_figures_files$filename[1])
+#fname <- "Figure1_tile_processed_region_world_run10_1500x4500_global_analyses_pred_1982_09152015.#png"
 image_file1 <- file.path(in_dir,fname)
 
 ```
 
 ```{r image_file1, echo = F, results = 'asis'}
+md_str <- paste('\n<center>![](',image_file1,')<center>\n',sep="")
+
+cat(md_str)
+```
+
+---
+
+# ACCURACY PER TILES FOR MODEL 1
+
+```{r, echo=FALSE}
+
+fname <- basename(df_assessment_figures_files$filename[2])
+#fname <- paste("Figure2a_boxplot_with_oultiers_by_tiles_mod1_run10_1500x4500_global_analyses_",ou#t_suffix,".png",sep="")
+image_file2 <- file.path(in_dir,fname)
+
+fname <- basename(df_assessment_figures_files$filename[3])
+#fname <- paste("Figure2b_boxplot_scaling_by_tiles_mod1_run10_1500x4500_global_analyses_",out_suff#ix,".png",sep="")
+image_file3 <- file.path(in_dir,fname)
+
+```
+
+
+```{r image_file2, image_file3 , echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
+
+md_str <- paste('\n![](',image_file2,') ','![](',image_file3,')\n',sep="") 
+cat(md_str)
+
+#![alt-text-1](image1.png "title-1") ![alt-text-2](image2.png "title-2")
+
+
+```
+
+---
+
+# ACCURACY OVERALL FOR MODEL 1
+
+```{r, echo=FALSE}
+#image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
+
+fname <- basename(df_assessment_figures_files$filename[4])
+#fname <- paste("Figure3a_boxplot_overall_region_with_oultiers_mod_kr_run10_1500x4500_global_analy#ses_",out_suffix,".png",sep="")
+image_file4 <- file.path(in_dir,fname)
+
+fname <- basename(df_assessment_figures_files$filename[5])
+#fname <- paste("Figure3b_boxplot_overall_region_scaling_mod_kr_run10_1500x4500_global_analyses_",#out_suffix,".png",sep="")
+image_file5 <- file.path(in_dir,fname)
+
+```
+
+
+```{r image_file4,image_file5, echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
+
+md_str <- paste('\n![](',image_file4,') ','![](',image_file5,')\n',sep="") 
+cat(md_str)
+#md_str <- paste('\n![](',image_file2,')\n',sep="") 
+#cat(md_str)
+
+#![alt-text-1](image1.png "title-1") ![alt-text-2](image2.png "title-2")
+
+cat("Mod1: tmax <- s(lat,long,k=5) + s(elev_s,k=5)")
+
+```
+
+---
+
+# AVERAGE ACCURACY RANKED BY TILES 
+
+```{r, echo=FALSE}
+#image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
+
+fname <- basename(df_assessment_figures_files$filename[10])
+#fname <- paste("Figure5_ac_metrics_ranked_mod1_run10_1500x4500_global_analyses_",out_suffix,".png#",sep="")
+image_file6 <- file.path(in_dir,fname)
+
+fname <- basename(df_assessment_figures_files$filename[11])
+#fname <- paste("Figure5_ac_metrics_ranked_mod_kr_run10_1500x4500_global_analyses_",out_suffix,sep#="")
+image_file7 <- file.path(in_dir,fname)
+
+```
+
+
+```{r image_file6,image_file7, echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
+
+md_str <- paste('\n![](',image_file6,') ','![](',image_file7,')\n',sep="") 
+cat(md_str)
+#md_str <- paste('\n![](',image_file2,')\n',sep="") 
+#cat(md_str)
+
+#![alt-text-1](image1.png "title-1") ![alt-text-2](image2.png "title-2")
+
+
+
+```
+
+---
+
+# Averae RMSE mod1 for 1500x4500km 
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- basename(df_assessment_figures_files$filename[12])
+#fname <- paste("Figure6_ac_metrics_map_centroids_tile_mod1_run10_1500x4500_global_analyses_",out_#suffix,".png",sep="")
+
+image_file8 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file8, echo = F, results = 'asis'}
 #| I am text to the left  | ![Flowers](/flowers.jpeg) |
 #md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
 #md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
 #<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
-md_str <- paste('\n<center>![](',image_file1,')<center>\n',sep="")
+md_str <- paste('\n<center>![](',image_file8,')<center>\n',sep="")
 #md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
 #fig.align = "center"
 cat(md_str)
@@ -71,62 +182,90 @@ cat(md_str)
 
 ---
 
-# ACCUARY PER TILES FOR MODEL 1
+# Predicted tiles for 1982
 
 ```{r, echo=FALSE}
-#image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
 
+fname <- basename(df_assessment_figures_files$filename[14])
+#fname <- paste("Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_367_run10_1500x4500_globa#l_analyses_",out_suffix,".png",sep="")
 
-fname <- paste("Figure2a_boxplot_with_oultiers_by_tiles_mod1_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-image_file2 <- file.path(in_dir,fname)
-
-fname <- paste("Figure2b_boxplot_scaling_by_tiles_mod1_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-image_file3 <- file.path(in_dir,fname)
+image_file9 <- file.path(in_dir,fname)
 
 ```
 
-
-```{r image_file2, echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
-
-md_str <- paste('\n![](',image_file2,') ','![](',image_file3,')\n',sep="") 
+```{r image_file9, echo = F, results = 'asis'}
+#| I am text to the left  | ![Flowers](/flowers.jpeg) |
+#md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
+#md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
+#<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
+md_str <- paste('\n<center>![](',image_file9,')<center>\n',sep="")
+#md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
+#fig.align = "center"
 cat(md_str)
-#md_str <- paste('\n![](',image_file2,')\n',sep="") 
-#cat(md_str)
-
-#![alt-text-1](image1.png "title-1") ![alt-text-2](image2.png "title-2")
-
-
 ```
-
-# ACCUARY OVERALL FOR MODEL 1
-
-```{r, echo=FALSE}
-#image_file2 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_edge_weighted_20100831_world_mosaic_07092015.png")
-
-
-fname <- paste("Figure3a_boxplot_overall_region_with_oultiers_mod_kr_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-image_file2 <- file.path(in_dir,fname)
-
-fname <- paste("Figure3b_boxplot_overall_region_scaling_mod_kr_run10_1500x4500_global_analyses_pred_1992_09012015.png")
-image_file3 <- file.path(in_dir,fname)
-
-```
-
-
-```{r image_file2, echo = F, results = 'asis', fig.show = 'hold', out.width = '50%',out.extra='style=""'}
-
-md_str <- paste('\n![](',image_file2,') ','![](',image_file3,')\n',sep="") 
-cat(md_str)
-#md_str <- paste('\n![](',image_file2,')\n',sep="") 
-#cat(md_str)
-
-#![alt-text-1](image1.png "title-1") ![alt-text-2](image2.png "title-2")
-
-
-```
-
 
 ---
 
+# Predicted less than 365, at least one missing day
+
+```{r, echo=FALSE}
+#image_file1 <- file.path(in_dir,"Figure9_clim_mosaics_day_test_unweighted_20100831_world_mosaic_07092015")
+
+fname <- basename(df_assessment_figures_files$filename[15])
+#fname <- paste("Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_365_run10_1500x4500_globa#l_analyses_",out_suffix,".png",sep="")
+
+image_file10 <- file.path(in_dir,fname)
+
+```
+
+```{r image_file10, echo = F, results = 'asis'}
+#| I am text to the left  | ![Flowers](/flowers.jpeg) |
+#md_str <- paste('\n|        |![](',image_file1,')\n',sep="") 
+#md_str <- paste('\n->![alt text](',image_file1,'),<-\n',sep="")
+#<center>![Alt test](http://upload.wikimedia.org/wikipedia/en/b/bc/Wiki.png)</center>
+md_str <- paste('\n<center>![](',image_file10,')<center>\n',sep="")
+#md_str <- paste('\n![](',image_file1,'#center)\n',sep="")
+#fig.align = "center"
+cat(md_str)
+```
+---
+
+---
+# Missing days
+
+```{r echo = F}
+
+#tb <- read.table(file.path(in_dir,"tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred#_1992_09012015.txt"),sep=",")
+#tb_diagnostic_v_NA_run10_1500x4500_global_analyses_pred_1982_09152015.txt
+tb <- read.table(file=file.path(in_dir,paste("tb_diagnostic_v_NA_run10_1500x4500_global_analyses","_",out_suffix,".txt",sep="")),sep=",")
+
+
+#table(tb$pred_mod)
+#table(tb$index_d)
+#table(subset(tb,pred_mod!="mod_kr"))
+#table(subset(tb,pred_mod=="mod1")$index_d)
+#aggregate()
+tb$predicted <- 1
+test <- aggregate(predicted~pred_mod+tile_id,data=tb,sum)
+#as.character(unique(test$tile_id)) #141 tiles
+#dim(subset(test,test$predicted==365 & test$pred_mod=="mod1"))
+#histogram(subset(test, test$pred_mod=="mod1")$predicted)
+#unique(subset(test, test$pred_mod=="mod1")$predicted)
+summary_predicted <-table((subset(test, test$pred_mod=="mod1")$predicted))
+
+```
+
+```{r summary_predicted, echo = F}
+
+barplot(summary_predicted,main="Frequency of number of days predicted")
+print(summary_predicted)
+
+```
+
+---
+
+
+---
 
 #########
