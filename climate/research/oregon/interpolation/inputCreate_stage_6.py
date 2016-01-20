@@ -22,9 +22,58 @@ from osgeo import ogr
 #
 #Output:
 #    Places number of files into directory.
+#/nobackupp6/aguzman4/climateLayers/out/
+#
+#
+#
+#
 
 def main():
-  usage = "usage: %prog [options] <inLatLonList> <outputFolder> <outDirForShFiles> <filesPerDir> <lowFeatureCount> <highFeatureCount> <scriptFn> <prefix> <year>\n"+\
+  #usage = "usage: %prog [options] <inLatLonList> <outputFolder> <outDirForShFiles> <filesPerDir> <lowFeatureCount> <highFeatureCount> <scriptFn> <prefix> <year>\n"+\
+  #          "Prepare input for stage 4 "
+  #var <- args[1] # variable being interpolated #param 1, arg 1
+  #in_dir1 <- args[2] #param 5, arg 2
+  #region_name <- args[3] #param 6, arg 3
+  #out_prefix <- args[4] #param 7, arg 4
+  #out_dir <- args[5] #param 8, arg 5
+  #create_out_dir_param <- args[6] #param 9, arg 6
+  #list_year_predicted <- args[7] # param 10, arg 7, replaced by yearInt here
+  #num_cores <- args[8] #number of cores used # param 13, arg 8
+  #max_mem <- args[9] #param 21   
+
+  #python /nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/runSetup/inputCreate_stage_4.py 
+  #/nobackupp6/aguzman4/climateLayers/inputLayers/regionCSV/list_reg4.csv 
+  #/nobackupp6/aguzman4/climateLayers/out/reg4/ 
+  #/nobackupp6/aguzman4/climateLayers/out/reg4/serialStage6/2010/ 
+  #10 
+  #0 
+  #250000 
+  #/nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/master_script_stage_4.R 
+  #r4 
+  #2010
+
+  inFn = "/nobackupp6/aguzman4/climateLayers/inputLayers/regionCSV/list_reg4.csv"
+  outputFolder = "/nobackupp6/aguzman4/climateLayers/out/reg4/" 
+  outDir = "/nobackupp6/aguzman4/climateLayers/out/reg4/serialStage6/2010/"
+  fPer = 10 #subdivide the job for NEX
+  lowTresh = 0
+  hiTresh = int(250000)
+  scriptFn = "/nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01182016.R"
+  #scriptFn = "/nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/master_script_stage_4.R" 
+  prefix = r4
+  year = 2010 #give a range of date here
+  var = "TMAX" # variable being interpolated #param 1, arg 1
+  in_dir1 = "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
+  region_name = "reg4" #param 6, arg 3
+  out_prefix = "run_global_analyses_pred_12282015" #param 7, arg 4
+  out_dir = "/nobackupp8/bparmen1/" #param 8, arg 5
+  create_out_dir_param = "TRUE" #param 9, arg 6
+  list_year_predicted = 2010 # param 10, arg 7
+  num_cores = 6 #number of cores used # param 13, arg 8
+  max_mem = 1e+07 #param 21, arg 9
+  
+  usage = "usage: %prog [options] <inLatLonList> <outputFolder> <outDirForShFiles> <filesPerDir> <lowFeatureCount> <highFeatureCount> <scriptFn> <prefix> "+\         
+          " <var> <in_dir1> <region_name> <out_prefix> <out_dir> <create_out_dir_param> <yearInt> <num_cores> <max_mem> "+\
             "Prepare input for stage 4 "
   parser = OptionParser(usage=usage)
   opts,args=parser.parse_args()
@@ -44,7 +93,7 @@ def main():
   inPtr = open(inFn,"r") 
   if inPtr is None:
     print "Error: %s doesnt' exist" % inFn
-  lines = inPtr.readlines()
+  lines = inPtr.readlines() #tile directory one per line, 28 for region 4
   inPtr.close()
 
   found = 0
@@ -59,7 +108,7 @@ def main():
     print "Warning: %s doesn't exists, creating" % wrap
     wrapFn = os.path.abspath(os.path.dirname(sys.argv[0]))+"/wrapper.sh"
     shutil.copyfile(wrapFn,wrap)
-    os.chmod(wrap,0750)
+    os.chmod(wrap,0750) #set permission...
 
   qs = "%s/serial_TEMPLATE.qsub" % outDir
   if os.path.exists(qs) is False:
@@ -105,7 +154,7 @@ def main():
        #notFound += 1
        print "Error finding %s" % searchStr
   
-  sortedShpFiles = sorted(shpFiles,key=lambda x: x[1])
+  sortedShpFiles = sorted(shpFiles,key=lambda x: x[1]) #sort by numer of stations...
   #print sortedShpFiles
 
   stCFn = "%s/stationCounts.txt" % outDir
@@ -118,6 +167,7 @@ def main():
    outSt = "%s,%d\n" % (s[2],s[1])
    fPtrSt.write(outSt)
   fPtrSt.close()
+
 
   stDim = len(sortedShpFiles)-1
    
@@ -186,10 +236,11 @@ def main():
     ##Input files that contain Rscript command
     #binSingle: this contains a list of tiles to run ranked by time 
     #run by year 
-    for b in binSingle:
-      ll = b[2]#"%s_%s" % (baseSpl[1],baseSpl[2]) 
+    #for b in binSingle:
+    for year in yearInt:
+      #ll = b[2]#"%s_%s" % (baseSpl[1],baseSpl[2]) 
       #check for existence of files from stage2
-      metTest = "%s/%s/%s/met_stations_outfiles_obj_gam_CAI_%s.RData" % (outputFolder,ll,year,ll)
+      #metTest = "%s/%s/%s/met_stations_outfiles_obj_gam_CAI_%s.RData" % (outputFolder,ll,year,ll)
  
       #if os.path.exists(metTest) is False:
       #   print "No met object %s" % metTest
@@ -200,8 +251,32 @@ def main():
       #   print "Method object exists"
       #   continue 
     
-      yearInt = int(year)+1
-      outStr = "Rscript %s %s wgs84Grid %s %s %s %s/subset/mean_LST_%s_jan_6_wgs84.tif FALSE %s/%s/covar_obj_%s.RData %s/%s/%s/met_stations_outfiles_obj_gam_CAI_%s.RData 10 4800  %s %s > %s/outLogs/%s_stage4_%s.log 2>  %s/outLogs/%s_stage4_err_%s.log" % (scriptFn,ll,ll,outputFolder,b[0],outputFolder,ll,outputFolder,ll,ll,outputFolder,ll,year,ll,year,yearInt,outputFolder,ll,year,outputFolder,ll,year)
+      #yearInt = int(year)+1 #interval of year e.g. 201-2015
+      #var <- args[1] # variable being interpolated #param 1, arg 1
+      #in_dir1 <- args[2] #param 5, arg 2
+      #region_name <- args[3] #param 6, arg 3
+      #out_prefix <- args[4] #param 7, arg 4
+      #out_dir <- args[5] #param 8, arg 5
+      #create_out_dir_param <- args[6] #param 9, arg 6
+      #list_year_predicted <- args[7] # param 10, arg 7
+      #num_cores <- args[8] #number of cores used # param 13, arg 8
+      #max_mem <- args[9] #param 21
+      list_year_predicted = list(year) #list with one element
+      #"Rscript %s %s %s %s %s %s %s %s" % (var,in_dir1,region_name,out_prefix,out_dir,create_out_dir_param,list_year_predicted,num_cores,max_mem)
+      #var = "TMAX" # variable being interpolated #param 1, arg 1
+      #in_dir1 = "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
+      #region_name = "reg4" #param 6, arg 3
+      #out_prefix = "run_global_analyses_pred_12282015" #param 7, arg 4
+      #out_dir = "/nobackupp8/bparmen1/" #param 8, arg 5
+      #create_out_dir_param = "TRUE" #param 9, arg 6
+      #list_year_predicted = c(2010) # param 10, arg 7
+      #num_cores = 6 #number of cores used # param 13, arg 8
+      #max_mem = 1e+07 #param 21, arg 9
+         
+      #scriptFn= /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01182016.R   
+      outStr = "Rscript %s %s %s %s %s %s %s %s" % (scriptFn,var,in_dir1,region_name,out_prefix,out_dir,create_out_dir_param,list_year_predicted,num_cores,max_mem)
+
+      #outStr = "Rscript %s %s wgs84Grid %s %s %s %s/subset/mean_LST_%s_jan_6_wgs84.tif FALSE %s/%s/covar_obj_%s.RData %s/%s/%s/met_stations_outfiles_obj_gam_CAI_%s.RData 10 4800  %s %s > %s/outLogs/%s_stage4_%s.log 2>  %s/outLogs/%s_stage4_err_%s.log" % (scriptFn,ll,ll,outputFolder,b[0],outputFolder,ll,outputFolder,ll,ll,outputFolder,ll,year,ll,year,yearInt,outputFolder,ll,year,outputFolder,ll,year)
       #print outStr
 
       outFnSt = "%s/dirSub_%d/input_%d.in" % (outDir,dirCounter,rankCount)
@@ -369,4 +444,55 @@ if __name__ == '__main__':
 
 #python /nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/runSetup/inputCreate_stage_4.py /nobackupp6/aguzman4/climateLayers/inputLayers/regionCSV/list_reg4.csv /nobackupp6/aguzman4/climateLayers/out/reg4/ /nobackupp6/aguzman4/climateLayers/out/reg4/serialStage6/2010/ 10 0 250000 /nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/master_script_stage_4.R r4 2010
 #python /nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/runSetup/master_script_stage_6_01182016.R /nobackupp6/aguzman4/climateLayers/inputLayers/regionCSV/list_reg4.csv /nobackupp6/aguzman4/climateLayers/out/reg4/ /nobackupp6/aguzman4/climateLayers/out/reg4/serialStage6/2010/ 10 0 250000 /nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/master_script_stage_6_01182016.R r4 2010
+
+#Calculate times it takes by dates and region? 
+#Add all bin count together for each year
+#loop over year?
+
+#inFn = "/nobackupp6/aguzman4/climateLayers/inputLayers/regionCSV/list_reg4.csv"
+#outputFolder = "/nobackupp6/aguzman4/climateLayers/out/reg4/" 
+#outDir = "/nobackupp6/aguzman4/climateLayers/out/reg4/serialStage6/2010/"
+#fPer = 10 #subdivide the job for NEX
+lowTresh = 0
+hiTresh = int(250000)
+scriptFn = "/nobackupp6/aguzman4/climateLayers/finalCode/environmental-layers/climate/research/world/interpolation/master_script_stage_4.R" 
+prefix = r4
+year = 2010 #give a range of date here
+var = "TMAX" # variable being interpolated #param 1, arg 1
+in_dir1 = "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
+region_name = "reg4" #param 6, arg 3
+out_prefix = "run_global_analyses_pred_12282015" #param 7, arg 4
+out_dir = "/nobackupp8/bparmen1/" #param 8, arg 5
+create_out_dir_param = "TRUE" #param 9, arg 6
+list_year_predicted = 2010 # param 10, arg 7
+num_cores = 6 #number of cores used # param 13, arg 8
+max_mem = 1e+07 #param 21, arg 9
+
+
+inPtr = open(inFn,"r") 
+if inPtr is None:
+  print "Error: %s doesnt' exist" % inFn
+lines = inPtr.readlines()
+inPtr.close()
+  
+found = 0
+notFound = 0
+  
+if os.path.exists(outDir) is False:
+    print "Warning: %s doesn't exists, creating" % outDir
+    os.mkdir(outDir)
+    
+wrap = "%s/wrapper.sh" % outDir #this is the wrapper to launch all the codes together
+if os.path.exists(wrap) is False:
+    print "Warning: %s doesn't exists, creating" % wrap
+    wrapFn = os.path.abspath(os.path.dirname(sys.argv[0]))+"/wrapper.sh"
+    shutil.copyfile(wrapFn,wrap)
+    os.chmod(wrap,0750)
+
+qs = "%s/serial_TEMPLATE.qsub" % outDir
+if os.path.exists(qs) is False:
+    print "Warning: %s doesn't exists, creating" % qs
+    qsFn = os.path.abspath(os.path.dirname(sys.argv[0]))+"/serial_TEMPLATE.qsub"
+    shutil.copyfile(qsFn,qs)
+    os.chmod(wrap,0750)
 
