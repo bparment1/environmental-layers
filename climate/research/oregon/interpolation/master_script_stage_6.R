@@ -53,7 +53,7 @@
 #num_cores = 6 #number of cores used # param 13, arg 8
 #max_mem = 1e+07 #param 21, arg 9
   
-#"Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01182016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_12282015 /nobackupp8/bparmen1/ TRUE 2010 6 1e+07
+#"Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_12282015 /nobackupp8/bparmen1/ TRUE 2010 6 1e+07
 
 ###Loading R library and packages  ou 
 library(RPostgreSQL)
@@ -105,7 +105,8 @@ source(file.path(script_path,function_assessment_part2)) #source all functions u
 source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 
 ### Parameters, constants and arguments ###
-  
+stages_to_run<-c(0,0,0,0,0,6) #this stage 2 to 5 currently stored in another file.
+
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
 
 #var<-"TMAX" # variable being interpolated #param 1, arg 1
