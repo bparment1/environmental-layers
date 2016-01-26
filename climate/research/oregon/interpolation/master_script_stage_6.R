@@ -12,7 +12,7 @@
 #STAGE 7: Mosaicing of predictions and accuracy layer productions
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 01/22/2016  
+#MODIFIED ON: 01/26/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -52,8 +52,16 @@
 #list_year_predicted = c(2010) # param 10, arg 7
 #num_cores = 6 #number of cores used # param 13, arg 8
 #max_mem = 1e+07 #param 21, arg 9
-  
-#"Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_12282015 /nobackupp8/bparmen1/ TRUE 2010 6 1e+07
+
+### Testing several years on the bridge before running jobs on nodes with qsub
+#This can be made in a data.frame to run through...  
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_12282015 /nobackupp8/bparmen1/ TRUE 2010 6 1e+07
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_2011_reg4 /nobackupp8/bparmen1/ TRUE 2011 6 1e+07
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_2012_reg4 /nobackupp8/bparmen1/ TRUE 2012 6 1e+07
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_2013_reg4 /nobackupp8/bparmen1/ TRUE 2013 6 1e+07
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_2014_reg4 /nobackupp8/bparmen1/ TRUE 2014 6 1e+07
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_2009_reg4 /nobackupp8/bparmen1/ TRUE 2009 6 1e+07
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_6_01222016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 run_global_analyses_pred_2010_reg4 /nobackupp8/bparmen1/ TRUE 2010 6 1e+07
 
 ###Loading R library and packages  ou 
 library(RPostgreSQL)
