@@ -330,12 +330,20 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   for(i in 1:length(shps_tiles)){
     shp1 <- shps_tiles[[i]]
     pt <- centroids_pts[[i]]
+    #if(!inherits(shp1,"try-error")){
+    #  plot(shp1,add=T,border="blue")
+    #  #plot(pt,add=T,cex=2,pch=5)
+    #  label_id <- df_tile_processed$tile_id[i]
+    #  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
+    #}
+    #to be able to run on NEX set font and usePolypath, maybe add option NEX?
     if(!inherits(shp1,"try-error")){
-      plot(shp1,add=T,border="blue")
+      plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
       #plot(pt,add=T,cex=2,pch=5)
       label_id <- df_tile_processed$tile_id[i]
-      text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
+      text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
     }
+
   }
   #title(paste("Tiles ", tile_size,region_name,sep=""))
   
@@ -567,30 +575,34 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
     
     #summary_metrics_v$n_missing <- summary_metrics_v$n == 365
     #summary_metrics_v$n_missing <- summary_metrics_v$n < 365
-    summary_metrics_v$n_missing <- summary_metrics_v$n < threshold_missing_day[i]
+    summary_metrics_v$n_missing <- as.numeric(summary_metrics_v$n < threshold_missing_day[i])
     summary_metrics_v_subset <- subset(summary_metrics_v,model_name=="mod1")
     
-    #res_pix <- 1200
-    res_pix <- 960
-    
-    col_mfrow <- 1
-    row_mfrow <- 1
     fig_filename <- paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
                        "_",out_suffix,".png",sep="")
-    png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
+
+    if(sum(summary_metrics_v_subset$n_missing) > 0){#then there are centroids to plot!!!
+      
+      #res_pix <- 1200
+      res_pix <- 960
+      col_mfrow <- 1
+      row_mfrow <- 1
+      png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
                        "_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
-    model_name[j]
+      model_name[j]
     
-    p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
-    #title("(a) Mean for 1 January")
-    p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
+      p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+      #title("(a) Mean for 1 January")
+      p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
                                                                 threshold_missing_day[i]))
-    p1 <- p+p_shp
-    try(print(p1)) #error raised if number of missing values below a threshold does not exist
-    dev.off()
-    
+      p1 <- p+p_shp
+      try(print(p1)) #error raised if number of missing values below a threshold does not exist
+      dev.off()
+
+    } 
+     
     list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
@@ -718,45 +730,35 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   #####################################################
   #### Figure 9: plotting boxplot by year and regions ###########
   
-    #Ok fixed..now selection of model but should also offer an option for using both models!! so make this a function!!
-  for(i in  1:length(model_name)){ #there are two models!!
+  ## Figure 9a
+  res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure9a_boxplot_overall_separated_by_region_year_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,
+             main="RMSE per model and region over all tiles")
+  p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,
+             main="RMSE per model and region over all tiles")
+  print(p)
+  dev.off()
+  
+  ## Figure 9b
+  png(filename=paste("Figure8b_boxplot_overall_separated_by_region_year_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+  title("RMSE per model over all tiles")
+  p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,ylim=c(0,5),
+             main="RMSE per model and region over all tiles")
+  print(p)
+  dev.off()
 
-    ## Figure 9a
-    res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-    
-    png(filename=paste("Figure9a_boxplot_overall_separated_by_region_year_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    #p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,
-    #           main="RMSE per model and region over all tiles")
-    #p<- bwplot(rmse~year_predicted | reg  , subset(tb,tb$pred_mod==model_name[i]),
-               #main="RMSE per model and region over all tiles")
-    #p<- bwplot(rmse~year_predicted   , subset(tb,tb$pred_mod==model_name[i]),
-    #           main="RMSE per model and region over all tiles")
-    boxplot(rmse~year_predicted   , subset(tb,tb$pred_mod==model_name[i]))
-    title(paste("RMSE with outliers and by year for all tiles: ",model_name[i],sep=""))
-    #print(p)
-    dev.off()
-    
-    ## Figure 9b
-    png(filename=paste("Figure9b_boxplot_overall_separated_by_region_year_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-    #title("RMSE per model over all tiles")
-    #p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,ylim=c(0,5),
-    #           main="RMSE per model and region over all tiles")
-    boxplot(rmse~year_predicted,subset(tb,tb$pred_mod==model_name[i]),ylim=c(0,5),outline=FALSE)
-    title(paste("RMSE with scaling and by year for all tiles: ",model_name[i],sep=""))
+  list_outfiles[[counter_fig+1]] <- paste("Figure9a_boxplot_overall_separated_by_region_year_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
+  counter_fig <- counter_fig + 1
 
-    #print(p)
-    dev.off()
-    
-    list_outfiles[[counter_fig+1]] <- paste("Figure9a_boxplot_overall_separated_by_region_year_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
-    counter_fig <- counter_fig + 1
-  }
   ##############################################################
   ############## Prepare object to return
   ############## Collect information from assessment ##########
@@ -1044,3 +1046,5 @@ df_assessment_figures_files <-
 # Browse[3]> c
 # Error in grid.Call.graphics(L_setviewport, pvp, TRUE) : 
 #   non-finite location and/or size for viewport
+#Error in grid.Call.graphics(L_setviewport, vp, TRUE) : 
+#  non-finite location and/or size for viewport
