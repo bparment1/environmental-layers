@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/12/2016            
+#MODIFIED ON: 02/01/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -19,6 +19,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
+#setfacl -Rm user:aguzman4:rwx /nobackupp8/bparmen1/output_run_global_analyses_pred_12282015
 
 #################################################################################################
 
@@ -221,6 +222,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   try(tb$reg <- tb$reg.x)
   try(summary_metrics_v$year_predicted <- summary_metrics_v$year_predicted.x)
   try(summary_metrics_v$reg <- summary_metrics_v$reg.x)  
+  try(summary_metrics_v$lat <- summary_metrics_v$lat.x)
+  try(summary_metrics_v$lon <- summary_metrics_v$lon.x)
   #tb_all <- tb
   #summary_metrics_v_all <- summary_metrics_v 
   
@@ -310,14 +313,17 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
     shp1 <- shps_tiles[[i]]
     pt <- centroids_pts[[i]]
     if(!inherits(shp1,"try-error")){
-      plot(shp1,add=T,border="blue")
+      plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
       #plot(pt,add=T,cex=2,pch=5)
       label_id <- df_tile_processed$tile_id[i]
-      text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
+      text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
     }
   }
   #title(paste("Tiles ", tile_size,region_name,sep=""))
-  
+  #plot(shp1,add=T,border="blue",usePolypath = FALSE) #,add=T,
+  #plot(pt,add=T,cex=2,pch=5)
+  #label_id <- df_tile_processed$tile_id[i]
+  #text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
   dev.off()
   
   #unique(summaty_metrics$tile_id)
@@ -374,6 +380,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   ###############
   ### Figure 3: boxplot of average RMSE by model acrosss all tiles
   
+  #Ok fixed..now selection of model but should also offer an option for using both models!! so make this a function!!
   for(i in  1:length(model_name)){ #there are two models!!
     ## Figure 3a
     res_pix <- 480
@@ -383,23 +390,24 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
     png(filename=paste("Figure3a_boxplot_overall_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
-    boxplot(rmse~pred_mod,data=tb)#,names=tb$pred_mod)
-    title("RMSE per model over all tiles")
+    #boxplot(rmse~pred_mod,data=tb)#,names=tb$pred_mod)
+    boxplot(rmse~pred_mod,data=subset(tb,tb$pred_mod==model_name[i]))#,names=tb$pred_mod)
+    title(paste("RMSE with outliers for all tiles: ",model_name[i],sep=""))
     dev.off()
     list_outfiles[[counter_fig+1]] <- paste("Figure3a_boxplot_overall_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
     
     ## Figure 3b
     png(filename=paste("Figure3b_boxplot_overall_region_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-    title("RMSE per model over all tiles")
-    
+    #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+    boxplot(rmse~pred_mod,data=subset(tb,tb$pred_mod==model_name[i]),ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+    #title("RMSE per model over all tiles")
+    title(paste("RMSE with scaling for all tiles: ",model_name[i],sep=""))
     dev.off()
     list_outfiles[[counter_fig+2]] <- paste("Figure3b_boxplot_overall_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
   }
   counter_fig <- counter_fig + length(model_name)
-  
+
   ################ 
   ### Figure 4: plot predicted tiff for specific date per model
   
@@ -491,8 +499,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
     png(filename=paste("Figure6_ac_metrics_map_centroids_tile_",model_name[i],"_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
-    #coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
-    coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
+    coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
+    #coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
     p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
     #title("(a) Mean for 1 January")
     p <- bubble(ac_mod,"rmse",main=paste("Average RMSE per tile and by ",model_name[i]))
@@ -509,7 +517,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
     list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig+length(model_name)
-  
+
   
   ######################
   ### Figure 7: Number of predictions: daily and monthly
@@ -522,8 +530,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #80 of tiles with info
   
   #coordinates
-  #try(coordinates(summary_metrics_v) <- c("lon","lat"))
-  try(coordinates(summary_metrics_v) <- c("lon.y","lat.y"))
+  try(coordinates(summary_metrics_v) <- c("lon","lat"))
+  #try(coordinates(summary_metrics_v) <- c("lon.y","lat.y"))
   
   #threshold_missing_day <- c(367,365,300,200)
   
@@ -544,34 +552,38 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
     
     #summary_metrics_v$n_missing <- summary_metrics_v$n == 365
     #summary_metrics_v$n_missing <- summary_metrics_v$n < 365
-    summary_metrics_v$n_missing <- summary_metrics_v$n < threshold_missing_day[i]
+    summary_metrics_v$n_missing <- as.numeric(summary_metrics_v$n < threshold_missing_day[i])
     summary_metrics_v_subset <- subset(summary_metrics_v,model_name=="mod1")
     
-    #res_pix <- 1200
-    res_pix <- 960
-    
-    col_mfrow <- 1
-    row_mfrow <- 1
     fig_filename <- paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
                        "_",out_suffix,".png",sep="")
-    png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
+
+    if(sum(summary_metrics_v_subset$n_missing) > 0){#then there are centroids to plot!!!
+      
+      #res_pix <- 1200
+      res_pix <- 960
+      col_mfrow <- 1
+      row_mfrow <- 1
+      png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
                        "_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
-    model_name[j]
+      model_name[j]
     
-    p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
-    #title("(a) Mean for 1 January")
-    p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
+      p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+      #title("(a) Mean for 1 January")
+      p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
                                                                 threshold_missing_day[i]))
-    p1 <- p+p_shp
-    try(print(p1)) #error raised if number of missing values below a threshold does not exist
-    dev.off()
-    
+      p1 <- p+p_shp
+      try(print(p1)) #error raised if number of missing values below a threshold does not exist
+      dev.off()
+
+    } 
+     
     list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
-  
+
   ### Potential
   png(filename=paste("Figure7b_number_daily_predictions_per_models","_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
@@ -585,13 +597,13 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   
   table(tb$pred_mod)
   table(tb$index_d)
-  table(subset(tb,pred_mod!="mod_kr"))
+  #table(subset(tb,pred_mod!="mod_kr"))
   table(subset(tb,pred_mod=="mod1")$index_d)
   #aggregate()
   tb$predicted <- 1
   test <- aggregate(predicted~pred_mod+tile_id,data=tb,sum)
-  xyplot(predicted~pred_mod | tile_id,data=subset(as.data.frame(test),
-                                                  pred_mod!="mod_kr"),type="h")
+  #xyplot(predicted~pred_mod | tile_id,data=subset(as.data.frame(test),
+  #                                                pred_mod!="mod_kr"),type="h")
   
   as.character(unique(test$tile_id)) #141 tiles
   
@@ -628,70 +640,78 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   ##### Figure 8: Breaking down accuracy by regions!! #####
   
   #summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+  ##First plot with all models together
   
   ## Figure 8a
   res_pix <- 480
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_","_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   p<- bwplot(rmse~pred_mod | reg, data=tb,
-             main="RMSE per model and region over all tiles")
+             main="RMSE per model and region over all tiles with outliers")
   print(p)
   dev.off()
   
-  list_outfiles[[counter_fig+1]] <- paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
+  list_outfiles[[counter_fig+1]] <- paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",out_suffix,".png",sep="")
   counter_fig <- counter_fig + 1
   
   ## Figure 8b
-  png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_","_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-  title("RMSE per model over all tiles")
+  #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+  #title("RMSE per model over all tiles")
   p<- bwplot(rmse~pred_mod | reg, data=tb,ylim=c(0,5),
-             main="RMSE per model and region over all tiles")
+             main="RMSE per model and region over all tiles with scaling")
   print(p)
   dev.off()
   
   list_outfiles[[counter_fig+1]] <- paste("Figure8b_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
   counter_fig <- counter_fig + 1
   
-  ## Select mod1 only now
-  tb_subset <- subset(tb,model_name=="mod1")
-  ## Figure 8c
+  ##Second, plot for each model separately
   
-  res_pix <- 480
-  col_mfrow <- 1
-  row_mfrow <- 1
+  for(i in 1:length(model_name)){
+    
+    tb_subset <- subset(tb,pred_mod==model_name[i])#mod1 is i=1, mod_kr is last
+    ## Figure 8c
   
-  png(filename=paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_","mod1","_",out_suffix,".png",sep=""),
+    res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+  
+    fig_filename <- paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
+    png(filename=fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  p<- bwplot(rmse~pred_mod | reg, data=tb_subset,
-             main="RMSE per model and region over all tiles")
-  print(p)
-  dev.off()
+    p<- bwplot(rmse~pred_mod | reg, data=tb_subset,
+             main="RMSE per model and region over all tiles with outliers")
+    print(p)
+    dev.off()
   
-  list_outfiles[[counter_fig+1]] <- paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
-  counter_fig <- counter_fig + 1
+    list_outfiles[[counter_fig+1]] <- fig_filename
+    counter_fig <- counter_fig + 1
   
-  ## Figure 8d
-  png(filename=paste("Figure8d_boxplot_overall_separated_by_region_scaling_","mod1","_",out_suffix,".png",sep=""),
+    ## Figure 8d
+    fig_filename <- paste("Figure8d_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
+    png(filename=fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-  title("RMSE per model over all tiles")
-  p<- bwplot(rmse~pred_mod | reg, data=tb_subset,ylim=c(0,5),
-             main="RMSE per model and region over all tiles")
-  print(p)
-  dev.off()
+    #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+    #title("RMSE per model over all tiles")
+    p<- bwplot(rmse~pred_mod | reg, data=tb_subset,ylim=c(0,5),
+             main="RMSE per model and region over all tiles with scaling")
+    print(p)
+    dev.off()
   
-  list_outfiles[[counter_fig+1]] <- paste("Figure8d_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
-  counter_fig <- counter_fig + 1
+    list_outfiles[[counter_fig+1]] <- fig_filename
+    counter_fig <- counter_fig + 1
 
+  }
+ 
   #####################################################
   #### Figure 9: plotting boxplot by year and regions ###########
   
@@ -727,7 +747,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   ############## Collect information from assessment ##########
   
   # This is hard coded and can be improved later on for flexibility. It works for now...                                                                 
-  comments_str <- c("tile processed for the region",
+  comments_str <- 
+c("tile processed for the region",
   "boxplot with outliers",                                                          
   "boxplot with outliers",
   "boxplot scaling by tiles",
@@ -751,12 +772,83 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   "boxplot overall separated by region with_outliers",
   "boxplot overall separated by region with_scaling")
 
-  figure_no <- c("figure_1","figure_2a","figure_2a","figure_2b","figure_2b","figure_3a","figure_3a","figure_3b","figure_3b",
-                 "figure_5", "figure_5","figure_6","figure_6","Figure_7a","Figure_7a","Figure_7a","Figure_7a","Figure_7b",
-                 "Figure_7c","Figure 8a","Figure 8a","Figure 8b","Figure 8b")
+                                            model_name=col_model_name,
+                                            reg=col_reg,
+                                            year_predicted=col_year_predicted,
+                                            filename=unlist(list_outfiles))
+    comments_str <- 
+  #Should have this at the location of the figures!!! will be done later?    
+  r1 <-c("figure_1","tile processed for the region",NA,region_name,year_predicted,list_outfiles[[1]])
+  r2 <-c("figure_2a","boxplot with outliers","mod1",region_name,year_predicted,list_outfiles[[2]])  
+  r3 <-c("figure_2a","boxplot scaling by tiles","mod_kr",region_name,year_predicted,list_outfiles[[3]])  
+  r4 <-c("figure_2b","boxplot scaling by tiles","mod1",region_name,year_predicted,list_outfiles[[4]])  
+  r5 <-c("figure_2b","boxplot scaling by tiles","mod_kr",region_name,year_predicted,list_outfiles[[5]])  
+  r6 <-c("figure_3a","boxplot scaling by tiles","mod1",region_name,year_predicted,list_outfiles[[6]])  
+  r7 <-c("figure_3b","boxplot scaling by tiles","mod1",region_name,year_predicted,list_outfiles[[7]])  
+  r8 <-c("figure_3a","boxplot scaling by tiles","mod_kr",region_name,year_predicted,list_outfiles[[8]])
+  r9 <-c("figure_3b","boxplot scaling by tiles","mod_kr",region_name,year_predicted,list_outfiles[[9]])  
 
-  col_model_name <- c(NA,"mod1","mod_kr","mod1","mod_kr","mod1","mod_kr","mod1","mod_kr","mod1","mod_kr",
-                  "mod1","mod_kr","mod1","mod1","mod1","mod1","mod1","mod1",NA,NA,"mod1","mod1")
+  NA,"mod1","mod_kr","mod1","mod_kr","mod1","mod_1","mod_kr","mod_kr",
+
+  
+  c("tile processed for the region",
+  "boxplot with outliers",                                                          
+  "boxplot with outliers",
+  "boxplot scaling by tiles",
+  "boxplot scaling by tiles",
+  "boxplot overall region with outliers",
+  "boxplot overall region with scaling",
+  "boxplot overall region with outliers",
+  "boxplot overall region with scaling",
+  "Barplot of accuracy metrics ranked by tile",
+  "Barplot of accuracy metrics ranked by tile",
+  "Average accuracy metrics map at centroids",
+  "Average accuracy metrics map at centroids",
+  "Number of missing day threshold1 map centroids",
+  "Number of missing day threshold2 map centroids",
+  "Number of missing day threshold3 map centroids",
+  "Number of missing day threshold4 map centroids",
+  "number_daily_predictions_per_model",
+  "histogram number_daily_predictions_per_models",
+  "boxplot overall separated by region with_outliers",
+  "boxplot overall separated by region with_scaling",
+  "boxplot overall separated by region with_outliers",
+  "boxplot overall separated by region with_scaling")
+
+
+  figure_no <- c("figure_1","figure_2a","figure_2a","figure_2b","figure_2b","figure_3a","figure_3b","figure_3a","figure_3b",
+                 "figure_5", "figure_5","figure_6","figure_6","Figure_7a","Figure_7a","Figure_7a","Figure_7a","Figure_7b",
+                 "Figure_7c","Figure 8a","Figure 8b","Figure 8c","Figure 8d","Figure 8c","Figure 8d")
+
+  col_model_name <- c(NA,"mod1","mod_kr","mod1","mod_kr","mod1","mod_1","mod_kr","mod_kr",
+                      "mod1","mod_kr","mod1","mod_kr","mod1","mod1","mod1","mod1",NA,
+                      NA,NA,NA,"mod1","mod1","mod_kr","mod_kr")
+  
+-rw-r--r-- 1 parmentier layers  14441 Feb  2 16:06 Figure2a_boxplot_with_oultiers_by_tiles_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  13617 Feb  2 16:06 Figure2a_boxplot_with_oultiers_by_tiles_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   9638 Feb  2 16:07 Figure2b_boxplot_scaling_by_tiles_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   9606 Feb  2 16:07 Figure2b_boxplot_scaling_by_tiles_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   4925 Feb  2 16:07 Figure3a_boxplot_overall_region_with_oultiers_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   4527 Feb  2 16:07 Figure3b_boxplot_overall_region_scaling_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   5193 Feb  2 16:07 Figure3a_boxplot_overall_region_with_oultiers_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   4522 Feb  2 16:07 Figure3b_boxplot_overall_region_scaling_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   6079 Feb  2 16:07 Figure5_ac_metrics_ranked_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   6251 Feb  2 16:07 Figure5_ac_metrics_ranked_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers 120492 Feb  2 16:08 Figure6_ac_metrics_map_centroids_tile_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers 120345 Feb  2 16:08 Figure6_ac_metrics_map_centroids_tile_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  88938 Feb  2 16:09 Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_367_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  89437 Feb  2 16:09 Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_365_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  89284 Feb  2 16:10 Figure7a_ac_metrics_map_centroids_tile_mod1_missing_day_300_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  32506 Feb  2 16:10 Figure7b_number_daily_predictions_per_models_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  13970 Feb  2 16:10 Figure7c_histogram_number_daily_predictions_per_models_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  12726 Feb  2 16:11 Figure8a_boxplot_overall_separated_by_region_with_oultiers__global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  12061 Feb  2 16:11 Figure8b_boxplot_overall_separated_by_region_scaling__global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  10851 Feb  2 16:11 Figure8c_boxplot_overall_separated_by_region_with_oultiers_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   9814 Feb  2 16:11 Figure8d_boxplot_overall_separated_by_region_scaling_mod1_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers  11599 Feb  2 16:11 Figure8c_boxplot_overall_separated_by_region_with_oultiers_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+-rw-r--r-- 1 parmentier layers   9597 Feb  2 16:11 Figure8d_boxplot_overall_separated_by_region_scaling_mod_kr_global_analyses_overall_assessment_reg4_01272016.png
+
+  
   col_reg <- rep(region_name,length(list_outfiles))
   col_year_predicted <- rep(year_predicted,length(list_outfiles))
   
