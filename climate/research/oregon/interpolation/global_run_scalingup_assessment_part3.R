@@ -6,7 +6,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 01/27/2016            
+#MODIFIED ON: 02/02/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -50,7 +50,7 @@
 #in_dir <- "" #PARAM 0
 #y_var_name <- "dailyTmax" #PARAM1
 #interpolation_method <- c("gam_CAI") #PARAM2
-out_suffix<-"global_analyses_overall_assessment_reg4_01272016"
+out_suffix <- "global_analyses_overall_assessment_reg4_01272016"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
 #out_suffix <- "run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM3
 #out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
@@ -183,7 +183,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
 
   setwd(out_dir)
   
-  list_outfiles <- vector("list", length=23) #collect names of output files
+  list_outfiles <- vector("list", length=23) #collect names of output files, this should be dynamic?
   list_outfiles_names <- vector("list", length=23) #collect names of output files
   counter_fig <- 0 #index of figure to collect outputs
   
@@ -195,14 +195,16 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   list_tb_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_v_NA_.*._run_global_analyses_pred_.*._reg4.txt",full.names=T)
   list_df_fname <- list.files(path=file.path(in_dir,in_dir_list),"df_tile_processed_.*._run_global_analyses_pred_.*._reg4.txt",full.names=T)
   list_summary_metrics_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"summary_metrics_v2_NA_.*._run_global_analyses_pred_.*._reg4.txt",full.names=T)
+  #need to fix this !! has all of the files in one list (for a region)
+  #list_shp <- list.files(path=file.path(in_dir,file.path(in_dir_list,"shapefiles")),"*.shp",full.names=T)
 
-  
   list_tb <- lapply(list_tb_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   tb <- do.call(rbind,list_tb)
   list_df <- lapply(list_df_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   df_tile_processed <- do.call(rbind,list_df)  
   list_summary_metrics_v <- lapply(list_summary_metrics_v_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   summary_metrics_v <- do.call(rbind,list_summary_metrics_v)  
+  ##Stop added
   
   tb <-  read.table(list_tb[1],stringsAsFactors=F,sep=",")
   
@@ -242,6 +244,9 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   try(tb$reg <- tb$reg.x)
   try(summary_metrics_v$year_predicted <- summary_metrics_v$year_predicted.x)
   try(summary_metrics_v$reg <- summary_metrics_v$reg.x)  
+  try(summary_metrics_v$lat <- summary_metrics_v$lat.x)
+  try(summary_metrics_v$lon <- summary_metrics_v$lon.x)
+  #summary_metrics_v
   #tb_all <- tb
   #summary_metrics_v_all <- summary_metrics_v 
   
@@ -257,7 +262,11 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   
   #df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
   #list_shp_reg_files <- df_tiled_processed$shp_files
-  list_shp_reg_files<- as.character(df_tile_processed$shp_files)
+  
+  #list_shp_reg_files<- as.character(df_tile_processed$shp_files) #this could be the solution!!
+  list_shp_reg_files <- as.character(basename(list_df[[1]]$shp_files)) #this could be the solution!!
+  #the shapefiles must be copied in the proper folder!!!
+  #list_shp_reg_files<- file.path(in_dir,in_dir_list[1],"shapefile",list_shp_reg_files)
   #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
   #          as.character(df_tile_processed$tile_coord),"shapefiles",basename(list_shp_reg_files))
   #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
@@ -620,13 +629,13 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   
   table(tb$pred_mod)
   table(tb$index_d)
-  table(subset(tb,pred_mod!="mod_kr"))
+  #table(subset(tb,pred_mod!="mod_kr"))
   table(subset(tb,pred_mod=="mod1")$index_d)
   #aggregate()
   tb$predicted <- 1
   test <- aggregate(predicted~pred_mod+tile_id,data=tb,sum)
-  xyplot(predicted~pred_mod | tile_id,data=subset(as.data.frame(test),
-                                                  pred_mod!="mod_kr"),type="h")
+  #xyplot(predicted~pred_mod | tile_id,data=subset(as.data.frame(test),
+  #                                                pred_mod!="mod_kr"),type="h")
   
   as.character(unique(test$tile_id)) #141 tiles
   
@@ -663,6 +672,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   ##### Figure 8: Breaking down accuracy by regions!! #####
   
   #summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+  ##First plot with all models together
   
   ## Figure 8a
   res_pix <- 480
@@ -673,7 +683,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   p<- bwplot(rmse~pred_mod | reg, data=tb,
-             main="RMSE per model and region over all tiles")
+             main="RMSE per model and region over all tiles with outliers")
   print(p)
   dev.off()
   
@@ -684,48 +694,56 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_","_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-  title("RMSE per model over all tiles")
+  #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+  #title("RMSE per model over all tiles")
   p<- bwplot(rmse~pred_mod | reg, data=tb,ylim=c(0,5),
-             main="RMSE per model and region over all tiles")
+             main="RMSE per model and region over all tiles with scaling")
   print(p)
   dev.off()
   
   list_outfiles[[counter_fig+1]] <- paste("Figure8b_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
   counter_fig <- counter_fig + 1
   
-  ## Select mod1 only now
-  tb_subset <- subset(tb,model_name=="mod1")
-  ## Figure 8c
+  ##Second, plot for each model separately
   
-  res_pix <- 480
-  col_mfrow <- 1
-  row_mfrow <- 1
+  for(i in 1:length(model_name)){
+    
+    tb_subset <- subset(tb,pred_mod==model_name[i])#mod1 is i=1, mod_kr is last
+    ## Figure 8c
   
-  png(filename=paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_","mod1","_",out_suffix,".png",sep=""),
+    res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+  
+    fig_filename <- paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
+    png(filename=fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  p<- bwplot(rmse~pred_mod | reg, data=tb_subset,
-             main="RMSE per model and region over all tiles")
-  print(p)
-  dev.off()
+    p<- bwplot(rmse~pred_mod | reg, data=tb_subset,
+             main="RMSE per model and region over all tiles with outliers")
+    print(p)
+    dev.off()
   
-  list_outfiles[[counter_fig+1]] <- paste("Figure8c_boxplot_overall_separated_by_region_with_oultiers_",model_name[i],"_",out_suffix,".png",sep="")
-  counter_fig <- counter_fig + 1
+    list_outfiles[[counter_fig+1]] <- fig_filename
+    counter_fig <- counter_fig + 1
   
-  ## Figure 8d
-  png(filename=paste("Figure8d_boxplot_overall_separated_by_region_scaling_","mod1","_",out_suffix,".png",sep=""),
+    ## Figure 8d
+    fig_filename <- paste("Figure8d_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
+    png(filename=fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-  title("RMSE per model over all tiles")
-  p<- bwplot(rmse~pred_mod | reg, data=tb_subset,ylim=c(0,5),
-             main="RMSE per model and region over all tiles")
-  print(p)
-  dev.off()
+    #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+    #title("RMSE per model over all tiles")
+    p<- bwplot(rmse~pred_mod | reg, data=tb_subset,ylim=c(0,5),
+             main="RMSE per model and region over all tiles with scaling")
+    print(p)
+    dev.off()
   
-  list_outfiles[[counter_fig+1]] <- paste("Figure8d_boxplot_overall_separated_by_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
-  counter_fig <- counter_fig + 1
+    list_outfiles[[counter_fig+1]] <- fig_filename
+    counter_fig <- counter_fig + 1
+
+  }
+ 
 
   #####################################################
   #### Figure 9: plotting boxplot by year and regions ###########
@@ -734,12 +752,12 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   res_pix <- 480
   col_mfrow <- 1
   row_mfrow <- 1
-  
+
   png(filename=paste("Figure9a_boxplot_overall_separated_by_region_year_with_oultiers_",model_name[i],"_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-  
-  p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,
-             main="RMSE per model and region over all tiles")
+  #This will need to be changed, the layout is difficult at this stage 
+  #p<- bwplot(rmse~pred_mod + reg + year_predicted, data=tb,
+  #           main="RMSE per model and region over all tiles")
   p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,
              main="RMSE per model and region over all tiles")
   print(p)
@@ -749,8 +767,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   png(filename=paste("Figure8b_boxplot_overall_separated_by_region_year_scaling_",model_name[i],"_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
-  title("RMSE per model over all tiles")
+  #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
+  #title("RMSE per model over all tiles")
   p<- bwplot(rmse~pred_mod | reg + year_predicted, data=tb,ylim=c(0,5),
              main="RMSE per model and region over all tiles")
   print(p)
