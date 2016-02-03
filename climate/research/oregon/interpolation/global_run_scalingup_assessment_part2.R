@@ -850,118 +850,118 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
 
 #CALLED FROM MASTER SCRIPT:
 
-# script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-# function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
-# function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
-# function_assessment_part2 <- "global_run_scalingup_assessment_part2_01062016.R"
-# function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
-# source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
-# source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
-# source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
-# source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
-# 
-# ### Parameters and arguments ###
-#   
-# var<-"TMAX" # variable being interpolated
-# if (var == "TMAX") {
-#   y_var_name <- "dailyTmax"
-#   y_var_month <- "TMax"
-# }
-# if (var == "TMIN") {
-#   y_var_name <- "dailyTmin"
-#   y_var_month <- "TMin"
-# }
-# 
-# #interpolation_method<-c("gam_fusion") #other otpions to be added later
-# interpolation_method<-c("gam_CAI")
-# CRS_interp<-"+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs";
-# #CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
-# CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-# 
-# out_region_name<-""
-# list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)")
-# 
-# #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
-# #master directory containing the definition of tile size and tiles predicted
-# in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/"
-# #/nobackupp6/aguzman4/climateLayers/out_15x45/1982
-# 
-# #region_names <- c("reg23","reg4") #selected region names, #PARAM2
-# region_name <- c("reg4") #run assessment by region, this is a unique region only
-# #region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
-# interpolation_method <- c("gam_CAI") #PARAM4
-# out_prefix <- "run_global_analyses_pred_12282015" #PARAM5
-# #out_dir <- "/nobackupp8/bparmen1/" #PARAM6
-# out_dir <- "/nobackupp8/bparmen1/output_run_global_analyses_pred_12282015"
-# #out_dir <-paste(out_dir,"_",out_prefix,sep="")
-# create_out_dir_param <- FALSE #PARAM7
-# 
-# #CRS_interp<-"+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs";
-# #CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
-# CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-# 
-# #list_year_predicted <- 1984:2004
-# list_year_predicted <- c("2014")
-# #year_predicted <- list_year_predicted[1]
-# 
-# file_format <- ".tif" #format for mosaiced files #PARAM10
-# NA_flag_val <- -9999  #No data value, #PARAM11
-# num_cores <- 6 #number of cores used #PARAM13
-# plotting_figures <- TRUE #running part2 of assessment to generate figures...
-#   
-# ##Additional parameters used in part 2, some these may be removed as code is simplified
-# mosaic_plot <- FALSE #PARAM14
-# day_to_mosaic <- c("19920102","19920103","19920103") #PARAM15
-# multiple_region <- TRUE #PARAM16
-# countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp" #PARAM17
-# #countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
-# plot_region <- TRUE  #PARAM18
-# threshold_missing_day <- c(367,365,300,200)#PARAM19
-# 
-# year_predicted <- list_year_predicted[1]
-# in_dir <- out_dir #PARAM 0
-# #y_var_name <- "dailyTmax" #PARAM1 , already set
-# #interpolation_method <- c("gam_CAI") #PARAM2, already set
-# out_suffix <- out_prefix #PARAM3
-# #out_dir <-  #PARAM4, already set
-# create_out_dir_param <- FALSE #PARAM 5, already created and set
-# #mosaic_plot <- FALSE #PARAM6
-# #if daily mosaics NULL then mosaicas all days of the year
-# #day_to_mosaic <- c("19920101","19920102","19920103") #PARAM7
-# #CRS_locs_WGS84 already set
-# proj_str <- CRS_locs_WGS84 #PARAM 8 #check this parameter
-# #file_format <- ".rst" #PARAM 9, already set
-# #NA_flag_val <- -9999 #PARAM 11, already set
-# #multiple_region <- TRUE #PARAM 12
-# #countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
-# #plot_region <- TRUE
-# #num_cores <- 6 #PARAM 14, already set
-# #region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
-# #use previous files produced in step 1a and stored in a data.frame
-# df_assessment_files_name <- "df_assessment_files_reg4_2014_run_global_analyses_pred_12282015.txt"# #PARAM 17, set in the script
-# df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
-# #threshold_missing_day <- c(367,365,300,200) #PARM18
-# 
-# list_param_run_assessment_plotting <-list(
-#     in_dir,y_var_name, interpolation_method, out_suffix,
-#     out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_flag_val,
-#     multiple_region, countries_shp, plot_region, num_cores,
-#     region_name, df_assessment_files_name, threshold_missing_day,year_predicted
-#   )
-# 
-# names(list_param_run_assessment_plotting) <- c(
-#     "in_dir","y_var_name","interpolation_method","out_suffix",
-#     "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_flag_val",
-#     "multiple_region","countries_shp","plot_region","num_cores",
-#     "region_name","df_assessment_files_name","threshold_missing_day","year_predicted"
-#   )
-# 
-# #function_assessment_part2 <- "global_run_scalingup_assessment_part2_01032016.R"
-# #source(file.path(script_path,function_assessment_part2)) #source all functions used in this script
-# 
-# debug(run_assessment_plotting_prediction_fun)
-# df_assessment_figures_files <-
-#   run_assessment_plotting_prediction_fun(list_param_run_assessment_plotting)
+script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
+function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
+function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
+function_assessment_part2 <- "global_run_scalingup_assessment_part2_01062016.R"
+function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
+source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
+
+### Parameters and arguments ###
+  
+var<-"TMAX" # variable being interpolated
+if (var == "TMAX") {
+  y_var_name <- "dailyTmax"
+  y_var_month <- "TMax"
+}
+if (var == "TMIN") {
+  y_var_name <- "dailyTmin"
+  y_var_month <- "TMin"
+}
+
+#interpolation_method<-c("gam_fusion") #other otpions to be added later
+interpolation_method<-c("gam_CAI")
+CRS_interp<-"+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs";
+#CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
+CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+
+out_region_name<-""
+list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)")
+
+#reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
+#master directory containing the definition of tile size and tiles predicted
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/"
+#/nobackupp6/aguzman4/climateLayers/out_15x45/1982
+
+#region_names <- c("reg23","reg4") #selected region names, #PARAM2
+region_name <- c("reg4") #run assessment by region, this is a unique region only
+#region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
+interpolation_method <- c("gam_CAI") #PARAM4
+out_prefix <- "run_global_analyses_pred_12282015" #PARAM5
+#out_dir <- "/nobackupp8/bparmen1/" #PARAM6
+out_dir <- "/nobackupp8/bparmen1/output_run_global_analyses_pred_12282015"
+#out_dir <-paste(out_dir,"_",out_prefix,sep="")
+create_out_dir_param <- FALSE #PARAM7
+
+#CRS_interp<-"+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs";
+#CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
+CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+
+#list_year_predicted <- 1984:2004
+list_year_predicted <- c("2014")
+#year_predicted <- list_year_predicted[1]
+
+file_format <- ".tif" #format for mosaiced files #PARAM10
+NA_flag_val <- -9999  #No data value, #PARAM11
+num_cores <- 6 #number of cores used #PARAM13
+plotting_figures <- TRUE #running part2 of assessment to generate figures...
+  
+##Additional parameters used in part 2, some these may be removed as code is simplified
+mosaic_plot <- FALSE #PARAM14
+day_to_mosaic <- c("19920102","19920103","19920103") #PARAM15
+multiple_region <- TRUE #PARAM16
+countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp" #PARAM17
+#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
+plot_region <- TRUE  #PARAM18
+threshold_missing_day <- c(367,365,300,200)#PARAM19
+
+year_predicted <- list_year_predicted[1]
+in_dir <- out_dir #PARAM 0
+#y_var_name <- "dailyTmax" #PARAM1 , already set
+#interpolation_method <- c("gam_CAI") #PARAM2, already set
+out_suffix <- out_prefix #PARAM3
+#out_dir <-  #PARAM4, already set
+create_out_dir_param <- FALSE #PARAM 5, already created and set
+#mosaic_plot <- FALSE #PARAM6
+#if daily mosaics NULL then mosaicas all days of the year
+#day_to_mosaic <- c("19920101","19920102","19920103") #PARAM7
+#CRS_locs_WGS84 already set
+proj_str <- CRS_locs_WGS84 #PARAM 8 #check this parameter
+#file_format <- ".rst" #PARAM 9, already set
+#NA_flag_val <- -9999 #PARAM 11, already set
+#multiple_region <- TRUE #PARAM 12
+#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
+#plot_region <- TRUE
+#num_cores <- 6 #PARAM 14, already set
+#region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
+#use previous files produced in step 1a and stored in a data.frame
+df_assessment_files_name <- "df_assessment_files_reg4_2014_run_global_analyses_pred_12282015.txt"# #PARAM 17, set in the script
+df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
+#threshold_missing_day <- c(367,365,300,200) #PARM18
+
+list_param_run_assessment_plotting <-list(
+    in_dir,y_var_name, interpolation_method, out_suffix,
+    out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_flag_val,
+    multiple_region, countries_shp, plot_region, num_cores,
+    region_name, df_assessment_files_name, threshold_missing_day,year_predicted
+  )
+
+names(list_param_run_assessment_plotting) <- c(
+    "in_dir","y_var_name","interpolation_method","out_suffix",
+    "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_flag_val",
+    "multiple_region","countries_shp","plot_region","num_cores",
+    "region_name","df_assessment_files_name","threshold_missing_day","year_predicted"
+  )
+
+#function_assessment_part2 <- "global_run_scalingup_assessment_part2_01032016.R"
+#source(file.path(script_path,function_assessment_part2)) #source all functions used in this script
+
+debug(run_assessment_plotting_prediction_fun)
+df_assessment_figures_files <-
+  run_assessment_plotting_prediction_fun(list_param_run_assessment_plotting)
 
 
 
