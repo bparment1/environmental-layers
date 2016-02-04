@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/03/2016            
+#MODIFIED ON: 02/07/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses for run 10 global analyses,all regions 1500x4500km with additional tiles to increase overlap 
@@ -196,8 +196,10 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   tb_month_s <- read.table(file.path(in_dir,basename(df_assessment_files$files[3])),sep=",")
   pred_data_month_info <- read.table(file.path(in_dir, basename(df_assessment_files$files[10])),sep=",")
   pred_data_day_info <- read.table(file.path(in_dir, basename(df_assessment_files$files[11])),sep=",")
-  df_tile_processed <- read.table(file.path(in_dir, basename(df_assessment_files$files[12])),sep=",")
+  df_tile_processed <- read.table(file.path(in_dir, basename(df_assessment_files$files[12])),stringsAsFactors=F,sep=",")
   
+  ##Screen for non shapefiles tiles due to dir
+  df_tile_processed <- df_tile_processed[!is.na(df_tile_processed$shp_files),] 
   #add column for tile size later on!!!
   
   tb$pred_mod <- as.character(tb$pred_mod)
@@ -308,7 +310,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   png(filename=paste("Figure1_tile_processed_region_",region_name,"_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  plot(reg_layer)
+  plot(reg_layer,border="black",usePolypath = FALSE)
   #Add polygon tiles...
   for(i in 1:length(shps_tiles)){
     shp1 <- shps_tiles[[i]]
@@ -635,7 +637,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   as.character(unique(test$tile_id)) #141 tiles
   
   dim(subset(test,test$predicted==365 & test$pred_mod=="mod1"))
-  histogram(subset(test, test$pred_mod=="mod1")$predicted)
+  #histogram(subset(test, test$pred_mod=="mod1")$predicted)
   unique(subset(test, test$pred_mod=="mod1")$predicted)
   table((subset(test, test$pred_mod=="mod1")$predicted))
   
@@ -678,7 +680,8 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png(filename=paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",out_suffix,".png",sep=""),
+  fig_filename <- paste("Figure8a_boxplot_overall_separated_by_region_with_oultiers_",out_suffix,".png",sep="")
+  png(filename=fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   p<- bwplot(rmse~pred_mod | reg, data=tb,
@@ -686,11 +689,12 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   print(p)
   dev.off()
   
-  list_outfiles[[counter_fig+1]] <- paste("Figure8a_boxplot_overall_accuracy_by_model_separated_by_region_with_oultiers_",out_suffix,".png",sep="")
+  list_outfiles[[counter_fig+1]] <- fig_filename
   counter_fig <- counter_fig + 1
   
   ## Figure 8b
-  png(filename=paste("Figure8b_boxplot_overall_separated_by_region_scaling_",out_suffix,".png",sep=""),
+  fig_filename <- paste("Figure8b_boxplot_overall_separated_by_region_scaling_",out_suffix,".png",sep="")
+  png(filename=fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
@@ -700,7 +704,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   print(p)
   dev.off()
   
-  list_outfiles[[counter_fig+1]] <- paste("Figure8b_boxplot_overall_accuracy_by_model_separated_by_region_scaling_",out_suffix,".png",sep="")
+  list_outfiles[[counter_fig+1]] <- fig_filename
   counter_fig <- counter_fig + 1
   
   
@@ -748,10 +752,10 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
 
   }
   
-  r22 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[20]])  
-  r23 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[21]])  
-  r24 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[20]])  
-  r25 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[21]])  
+  r22 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[22]])  
+  r23 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[23]])  
+  r24 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[24]])  
+  r25 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[25]])  
 
   #####################################################
   #### Figure 9: plotting boxplot by year and regions ###########
