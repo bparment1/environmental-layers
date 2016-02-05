@@ -12,7 +12,7 @@
 #STAGE 7: Mosaicing of predictions and accuracy layer productions
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 01/26/2016  
+#MODIFIED ON: 02/04/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -105,7 +105,7 @@ args <- commandArgs(TRUE)
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
 function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
-function_assessment_part2 <- "global_run_scalingup_assessment_part2_01062016.R"
+function_assessment_part2 <- "global_run_scalingup_assessment_part2_02042016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
 source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
