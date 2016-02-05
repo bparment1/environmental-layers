@@ -6,7 +6,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/02/2016            
+#MODIFIED ON: 02/05/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -47,6 +47,13 @@
 #parent output dir for the current script analyes
 #out_dir <- "/nobackup/bparmen1/" #on NEX
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
+
+in_dir <- "/data/project/layers/commons/NEX_data"
+#list_in_dir_run <-
+#in_dir_list <-  c("output_run_global_analyses_pred_2009_reg4","output_run_global_analyses_pred_2010_reg4",
+#                  "output_run_global_analyses_pred_2011_reg4","output_run_global_analyses_pred_2012_reg4",
+#                  "output_run_global_analyses_pred_2013_reg4","output_run_global_analyses_pred_2014_reg4")
+in_dir_list_filename <- "/data/project/layers/commons/NEX_data/regions_input_files/stage6_in_dir_list_02052016.txt"
 #in_dir <- "" #PARAM 0
 #y_var_name <- "dailyTmax" #PARAM1
 #interpolation_method <- c("gam_CAI") #PARAM2
@@ -86,7 +93,7 @@ threshold_missing_day <- c(367,365,300,200) #PARM18
 
 #run_assessment_plotting_prediction_fun(list_param_run_assessment_plottingin_dir) 
 
-run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plotting){
+run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run_assessment_plotting){
   
   ####
   #1) in_dir: input directory containing data tables and shapefiles for plotting #PARAM 0
@@ -144,11 +151,7 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 
   ####### PARSE INPUT ARGUMENTS/PARAMETERS #####
-  in_dir <- "/data/project/layers/commons/NEX_data"
-  in_dir_list <-  c("output_run_global_analyses_pred_2009_reg4","output_run_global_analyses_pred_2010_reg4",
-                    "output_run_global_analyses_pred_2011_reg4","output_run_global_analyses_pred_2012_reg4",
-                    "output_run_global_analyses_pred_2013_reg4","output_run_global_analyses_pred_2014_reg4")
-  
+  list_param_run_assessment_plotting$in_dir_list_filename #PARAM 0
   in_dir <- list_param_run_assessment_plotting$in_dir #PARAM 1
   y_var_name <- list_param_run_assessment_plotting$y_var_name #PARAM2
   interpolation_method <- list_param_run_assessment_plotting$interpolation_method #c("gam_CAI") #PARAM3
@@ -943,14 +946,14 @@ df_assessment_files_name <- "df_assessment_files_reg4_2014_run_global_analyses_p
 df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
 #threshold_missing_day <- c(367,365,300,200) #PARM18
 
-list_param_run_assessment_plotting <-list(
+list_param_run_assessment_plotting <-list(  list_param_run_assessment_plotting,
     in_dir,y_var_name, interpolation_method, out_suffix,
     out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_flag_val,
     multiple_region, countries_shp, plot_region, num_cores,
     region_name, df_assessment_files_name, threshold_missing_day,year_predicted
   )
 
-names(list_param_run_assessment_plotting) <- c(
+names(list_param_run_assessment_plotting) <- c("list_param_run_assessment_plotting$in_dir_list_filename #PARAM 0"
     "in_dir","y_var_name","interpolation_method","out_suffix",
     "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_flag_val",
     "multiple_region","countries_shp","plot_region","num_cores",
