@@ -241,8 +241,9 @@ run_assessment_plotting_prediction_fun <-function(list_param_run_assessment_plot
   ### Figure 1: plot location of the study area with tiles processed
   
   #df_tiled_processed <- na.omit(df_tile_processed) #remove other list of folders irrelevant
-  #list_shp_reg_files <- df_tiled_processed$shp_files
-  list_shp_reg_files<- as.character(df_tile_processed$shp_files)
+  list_shp_reg_files <- df_tile_processed$shp_files
+  #list_shp_reg_files <- as.character(basename(list_df[[1]]$shp_files)) #this could be the solution!!
+
   #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
   #          as.character(df_tile_processed$tile_coord),"shapefiles",basename(list_shp_reg_files))
   #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
