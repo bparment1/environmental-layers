@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/07/2016            
+#MODIFIED ON: 02/08/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -147,12 +147,12 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   
   ####### Function used in the script #######
   
-  script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
-  function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
-  source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
+  #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
+  #function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
+  #source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 
   ####### PARSE INPUT ARGUMENTS/PARAMETERS #####
-  list_param_run_assessment_plotting$in_dir_list_filename #PARAM 0
+  in_dir_list_filename <- list_param_run_assessment_plotting$in_dir_list_filename #PARAM 0
   in_dir <- list_param_run_assessment_plotting$in_dir #PARAM 1
   y_var_name <- list_param_run_assessment_plotting$y_var_name #PARAM2
   interpolation_method <- list_param_run_assessment_plotting$interpolation_method #c("gam_CAI") #PARAM3
@@ -187,41 +187,48 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   setwd(out_dir)
   
-  list_outfiles <- vector("list", length=23) #collect names of output files, this should be dynamic?
-  list_outfiles_names <- vector("list", length=23) #collect names of output files
+  list_outfiles <- vector("list", length=29) #collect names of output files, this should be dynamic?
+  list_outfiles_names <- vector("list", length=29) #collect names of output files
   counter_fig <- 0 #index of figure to collect outputs
   
   #i <- year_predicted
   ###Table 1: Average accuracy metrics
   ###Table 2: daily accuracy metrics for all tiles
 
-  ##As a first quick set up for the meeting 01/27 just read in from the in_dir_list
-  list_tb_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_v_NA_.*._run_global_analyses_pred_.*._reg4.txt",full.names=T)
-  list_df_fname <- list.files(path=file.path(in_dir,in_dir_list),"df_tile_processed_.*._run_global_analyses_pred_.*._reg4.txt",full.names=T)
-  list_summary_metrics_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"summary_metrics_v2_NA_.*._run_global_analyses_pred_.*._reg4.txt",full.names=T)
+  in_dir_list <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
+  
+  ##Read in data list from in_dir_list
+  list_tb_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_v_NA_.*.txt",full.names=T)
+  list_df_fname <- list.files(path=file.path(in_dir,in_dir_list),"df_tile_processed_.*..txt",full.names=T)
+  list_summary_metrics_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"summary_metrics_v2_NA_.*.txt",full.names=T)
+  list_tb_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_s_NA.*.txt",full.names=T)
+  list_tb_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_month_diagnostic_s.*.txt",full.names=T)
+  list_data_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_month_s.*.txt",full.names=T)
+  list_data_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_s.*.txt",full.names=T)
+  list_data_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_v.*.txt",full.names=T)
+  list_pred_data_month_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_month_info.*.txt",full.names=T)
+  list_pred_data_day_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_day_info.*.txt",full.names=T)
+  
   #need to fix this !! has all of the files in one list (for a region)
   #list_shp <- list.files(path=file.path(in_dir,file.path(in_dir_list,"shapefiles")),"*.shp",full.names=T)
 
+  ## Step 2: only read what is necessary at this stage...
   list_tb <- lapply(list_tb_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   tb <- do.call(rbind,list_tb)
+  list_tb_s <- lapply(list_tb_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  tb_s <- do.call(rbind,list_tb_s)
+  
   list_df <- lapply(list_df_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   df_tile_processed <- do.call(rbind,list_df)  
   list_summary_metrics_v <- lapply(list_summary_metrics_v_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   summary_metrics_v <- do.call(rbind,list_summary_metrics_v)  
+
+  list_tb_month_s <- lapply(list_tb_month_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  tb_month_s <- do.call(rbind,list_tb_month_s)  
+
   ##Stop added
-  
-  tb <-  read.table(list_tb[1],stringsAsFactors=F,sep=",")
-  
-  df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
-  #df_assessment_files, note that in_dir indicate the path of the textfiles
-  summary_metrics_v <- read.table(file.path(in_dir,basename(df_assessment_files$files[1])),sep=",")
-  tb <- read.table(file.path(in_dir, basename(df_assessment_files$files[2])),sep=",")
-  tb_s <- read.table(file.path(in_dir, basename(df_assessment_files$files[4])),sep=",")
-  
-  tb_month_s <- read.table(file.path(in_dir,basename(df_assessment_files$files[3])),sep=",")
-  pred_data_month_info <- read.table(file.path(in_dir, basename(df_assessment_files$files[10])),sep=",")
-  pred_data_day_info <- read.table(file.path(in_dir, basename(df_assessment_files$files[11])),sep=",")
-  df_tile_processed <- read.table(file.path(in_dir, basename(df_assessment_files$files[12])),sep=",")
+  ##Screen for non shapefiles tiles due to dir
+  df_tile_processed <- df_tile_processed[!is.na(df_tile_processed$shp_files),] 
   
   #add column for tile size later on!!!
   
@@ -250,15 +257,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   try(summary_metrics_v$reg <- summary_metrics_v$reg.x)  
   try(summary_metrics_v$lat <- summary_metrics_v$lat.x)
   try(summary_metrics_v$lon <- summary_metrics_v$lon.x)
-  #summary_metrics_v
-  #tb_all <- tb
-  #summary_metrics_v_all <- summary_metrics_v 
-  
-  #table(summary_metrics_v_all$reg)
-  #table(summary_metrics_v$reg)
-  #table(tb_all$reg)
-  #table(tb$reg)
-  
+
   ############ PART 2: PRODUCE FIGURES ################
   
   ###########################
@@ -268,7 +267,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #list_shp_reg_files <- df_tiled_processed$shp_files
   
   #list_shp_reg_files<- as.character(df_tile_processed$shp_files) #this could be the solution!!
-  list_shp_reg_files <- as.character(basename(list_df[[1]]$shp_files)) #this could be the solution!!
+  list_shp_reg_files <- as.character(basename(unique(df_tile_processed$shp_files))) #this could be the solution!!
   #the shapefiles must be copied in the proper folder!!!
   #list_shp_reg_files<- file.path(in_dir,in_dir_list[1],"shapefile",list_shp_reg_files)
   #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
@@ -362,12 +361,11 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   
   dev.off()
   
-  #unique(summaty_metrics$tile_id)
-  #text(lat-shp,)
-  #union(list_shp_reg_files[[1]],list_shp_reg_files[[2]])
   list_outfiles[[counter_fig+1]] <- paste("Figure1_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
   counter_fig <- counter_fig+1
-  
+  #this will be changed to be added to data.frame on the fly
+  r1 <-c("figure_1","Tiles processed for the region",NA,NA,region_name,year_predicted,list_outfiles[[1]]) 
+
   ###############
   ### Figure 2: boxplot of average accuracy by model and by tiles
   
@@ -391,6 +389,10 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig + length(model_name)
+  
+  r2 <-c("figure_2a","Boxplot of accuracy with outliers by tiles","mod1",metric_name,region_name,year_predicted,list_outfiles[[2]]) 
+  r3 <-c("figure_2a","boxplot of accuracy with outliers by tiles","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[3]])
+  
   ## Figure 2b
   #with ylim and removing trailing...
   for(i in  1:length(model_name)){ #there are two models!!
@@ -412,6 +414,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   }
   counter_fig <- counter_fig + length(model_name)
   #bwplot(rmse~tile_id, data=subset(tb,tb$pred_mod=="mod1"))
+  r4 <-c("figure_2b","Boxplot of accuracy with scaling by tiles","mod1",metric_name,region_name,year_predicted,list_outfiles[[4]])  
+  r5 <-c("figure_2b","Boxplot of accuracy with scaling by tiles","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[5]])  
  
   ###############
   ### Figure 3: boxplot of average RMSE by model acrosss all tiles
@@ -845,102 +849,3 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 }
   
 ##################### END OF SCRIPT ######################
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### CURRENT ERROR ON NEX
-
-# #comments                                                                     #figure_no    #region   #models       
-# tile processed for the region                                           figure_1           reg4        NA
-# boxplot with outlier                                                        figure_2a          reg4        mod1
-# boxplot with outlier                                                        figure_2a          reg4        mod_kr
-# boxplot scaling by tiles                                                   figure_2b          reg4        mod1
-# boxplot scaling by tiles                                                   figure_2b          reg4        mod_kr
-# boxplot overall region with outliers                              figure_3a          reg4        NA
-# boxplot overall region with scaling                               figure_3b          reg4        NA
-# Barplot of metrics ranked by tile                                  Figure_5            
-# boxplot overall region with scaling                               figure_3b          reg4        NA
-# Barplot of metrics ranked by tile                                  Figure_5            
-# Barplot of metrics ranked by tile                                  Figure_5
-# Average metrics map centroids                                  Figure_6
-# Average metrics map centroids                                  Figure_6
-# Number of missing day threshold1 map centroids                                    Figure_7a
-# Number of missing day threshold1 map centroids                                    Figure_7a
-# Number of missing day threshold1 map centroids                                    Figure_7a
-# Number of missing day threshold1 map centroids                                    Figure_7a
-# number_daily_predictions_per_model                                                        Figure_7b
-# histogram number_daily_predictions_per_models                                    Figure_7c
-# boxplot_overall_separated_by_region_with_oultiers_                              Figure 8a
-# boxplot_overall_separated_by_region_with_scaling                                 Figure 8b
-
-# Browse[3]> c
-# Error in text.default(coordinates(pt)[1], coordinates(pt)[2], labels = i,  : 
-#                         X11 font -adobe-helvetica-%s-%s-*-*-%d-*-*-*-*-*-*-*, face 2 at size 16 could not be loaded
-#                       In addition: Warning message:
-#                         In polypath(x = mcrds[, 1], y = mcrds[, 2], border = border, col = col,  :
-#                                       Path drawing not available for this device
-
-
-
-# Browse[2]>   for(i in 1:length(threshold_missing_day)){
-# +     
-# +     #summary_metrics_v$n_missing <- summary_metrics_v$n == 365
-# +     #summary_metrics_v$n_missing <- summary_metrics_v$n < 365
-# +     summary_metrics_v$n_missing <- summary_metrics_v$n < threshold_missing_day[i]
-# +     summary_metrics_v_subset <- subset(summary_metrics_v,model_name=="mod1")
-# +     
-# +     #res_pix <- 1200
-# +     res_pix <- 960
-# +     
-# +     col_mfrow <- 1
-# +     row_mfrow <- 1
-# +     fig_filename <- paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
-# +                        "_",out_suffix,".png",sep="")
-# +     png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
-# +                        "_",out_suffix,".png",sep=""),
-# +         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-# +     
-# +     model_name[j]
-# +     
-# +     p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
-# +     #title("(a) Mean for 1 January")
-# +     p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
-# +                                                                 threshold_missing_day[i]))
-# +     p1 <- p+p_shp
-# +     try(print(p1)) #error raised if number of missing values below a threshold does not exist
-# +     dev.off()
-# +     
-# +     list_outfiles[[counter_fig+i]] <- fig_filename
-# +   }
-# debug at /nobackupp8/bparmen1/env_layers_scripts/global_run_scalingup_assessment_part2_01042016.R#272: i
-# Browse[3]>   counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
-# Browse[3]> c
-# Error in grid.Call.graphics(L_setviewport, pvp, TRUE) : 
-#   non-finite location and/or size for viewport
-#Error in grid.Call.graphics(L_setviewport, vp, TRUE) : 
-#  non-finite location and/or size for viewport
