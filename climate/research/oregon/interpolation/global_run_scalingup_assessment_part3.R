@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/08/2016            
+#MODIFIED ON: 02/09/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -168,7 +168,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   plot_region <- list_param_run_assessment_plotting$plot_region # PARAM13 
   num_cores <- list_param_run_assessment_plotting$num_cores # 6 #PARAM 14
   region_name <- list_param_run_assessment_plotting$region_name #<- "world" #PARAM 15
-  df_assessment_files_name <- list_param_run_assessment_plotting$df_assessment_files_name #PARAM 16
+  #df_assessment_files_name <- list_param_run_assessment_plotting$df_assessment_files_name #PARAM 16
   threshold_missing_day <- list_param_run_assessment_plotting$threshold_missing_day #PARM17
   year_predicted <- list_param_run_assessment_plotting$year_predicted
  
@@ -455,6 +455,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   ################ 
   ### Figure 4: plot predicted tiff for specific date per model
+  ## Replace by break out by season?
   
   #y_var_name <-"dailyTmax"
   #index <-244 #index corresponding to Sept 1
