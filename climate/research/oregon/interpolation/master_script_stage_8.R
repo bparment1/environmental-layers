@@ -10,10 +10,10 @@
 #STAGE 5: Output analyses: assessment of results for specific dates... (tile based)
 #STAGE 6: Assessement of predictions by tiles and region: summary tables and figures 
 #STAGE 7: Mosaicing of predictions and accuracy layer productions
-#STAGE 8: Comparison of predictions across regions and years with figure generation.
+#STAGE 8: Comparison of predictions across regions and years with figures generation.
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 02/08/2016  
+#MODIFIED ON: 02/09/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -105,13 +105,13 @@ args <- commandArgs(TRUE)
 
 #CALLED FROM MASTER SCRIPT:
 
-script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
+#script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
 function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
 function_assessment_part2 <- "global_run_scalingup_assessment_part2_02072016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
-function_assessment_part3 <- "global_run_scalingup_assessment_part3_02082016.R"
+function_assessment_part3 <- "global_run_scalingup_assessment_part3_02092016.R"
 source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
@@ -148,7 +148,7 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
 in_dir <- args[2] #param 5, arg 2
-in_dir <- "/data/project/layers/commons/NEX_data/reg4_assessment"
+in_dir <- "/data/project/layers/commons/NEX_data/reg5_assessment"
 
 #in_dir <- "" #PARAM 0
 #y_var_name <- "dailyTmax" #PARAM1
@@ -158,18 +158,17 @@ in_dir <- "/data/project/layers/commons/NEX_data/reg4_assessment"
 #region_names <- c("reg23","reg4") #selected region names,
 #run assessment by region, this is a unique region only 
 region_name <- args[3] #param 6, arg 3
-region_name <- c("reg4") #param 6, arg 3
+region_name <- c("reg5") #param 6, arg 3
 
 #out_prefix <- "run_global_analyses_pred_12282015" #param 7, arg 4
 #out_dir <- "/nobackupp8/bparmen1/" #param 8, arg 5
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE #param 9, arg 6
 out_prefix <- args[4] #param 7, arg 4
-out_suffix <- args[4] #param 7, arg 4s
-out_suffix <- "global_analyses_overall_assessment_reg4_02072016"
+out_suffix <- "global_analyses_overall_assessment_reg5_02092016"
 
 out_dir <- args[5] #param 8, arg 5
-out_dir <- "/data/project/layers/commons/NEX_data/reg4_assessment"
+out_dir <- "/data/project/layers/commons/NEX_data/reg5_assessment"
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- args[6] #param 9, arg 6
@@ -203,7 +202,7 @@ threshold_missing_day <- c(367,365,300,200) # param 20
 max_mem <- args[9] #param 21
 max_mem <- 1e+07
 #in_dir_list_filename <- args[10] #param 22
-in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
+in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg5_assessment/stage6_reg5_in_dir_list_02092016.txt"
 #in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
 run_figure_by_year <- args[11] # param 10, arg 7, if true will create figures for individual years...
 run_figure_by_year <- TRUE # param 10, arg 7, if true will create figures for individual years...
@@ -212,19 +211,20 @@ run_figure_by_year <- TRUE # param 10, arg 7, if true will create figures for in
 proj_str <- CRS_interp
 list_in_dir <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
 
+#removed df_assessment_file_names from parameters, note the difference compared to part2
 list_param_run_assessment_combined_region_plotting_prediction <-list(  
     in_dir_list_filename,
     in_dir,y_var_name, interpolation_method, out_suffix,
     out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_flag_val,
     multiple_region, countries_shp, plot_region, num_cores,
-    region_name, df_assessment_files_name, threshold_missing_day,list_year_predicted)
+    region_name, threshold_missing_day,list_year_predicted)
 
 names(list_param_run_assessment_combined_region_plotting_prediction) <- c(
     "in_dir_list_filename",
     "in_dir","y_var_name","interpolation_method","out_suffix",
     "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_flag_val",
     "multiple_region","countries_shp","plot_region","num_cores",
-    "region_name","df_assessment_files_name","threshold_missing_day","year_predicted")
+    "region_name","threshold_missing_day","year_predicted")
 
 i <- 1 #this select the first year of list_year_predicted
 #Step 1: run figures production by region using table (part2 assessment script)
@@ -237,6 +237,7 @@ if (stages_to_run[8]==8){
   #Step 1: run individual figure production if needed:
   if(run_figure_by_year==TRUE){
     #debug(run_assessment_plotting_prediction_fun)
+    #Make this a function!!! needs to be call in parallel with mclapply, it takes 3 to 4 minutes by year
     l_list_param_run_assessment_part2_plotting <- vector("list",length=length(list_in_dir))
     list_df_assessment_files <- lapply(list_in_dir,FUN=function(x,y){list.files(path=file.path(y,x),pattern="df_assessment_files_.*.txt",full.names=T)},y=in_dir)
     for(j in 1:length(list_in_dir)){
