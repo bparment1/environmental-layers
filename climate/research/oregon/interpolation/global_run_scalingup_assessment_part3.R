@@ -219,8 +219,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   list_tb_s <- lapply(list_tb_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   tb_s <- do.call(rbind,list_tb_s)
   
-  list_df <- lapply(list_df_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
-  df_tile_processed <- do.call(rbind,list_df)  
+  list_df_tile_processed <- lapply(list_df_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  df_tile_processed <- do.call(rbind,list_df_tile_processed)  
   list_summary_metrics_v <- lapply(list_summary_metrics_v_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   summary_metrics_v <- do.call(rbind,list_summary_metrics_v)  
 
@@ -296,9 +296,10 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #This is slow...make a function and use mclapply??
   #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
   
+  in_dir_shp <- file.path(in_dir,in_dir_list[[1]],"shapefiles") #this should be set as a input parameter!!!
   for(i in 1:length(list_shp_reg_files)){
     #path_to_shp <- dirname(list_shp_reg_files[[i]])
-    path_to_shp <- file.path(out_dir,"/shapefiles")
+    path_to_shp <- in_dir_shp
     layer_name <- sub(".shp","",basename(list_shp_reg_files[[i]]))
     shp1 <- try(readOGR(path_to_shp, layer_name)) #use try to resolve error below
     #shp_61.0_-160.0
@@ -550,7 +551,10 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     
     coordinates(ac_mod) <- ac_mod[,c("lon","lat")] 
     #coordinates(ac_mod) <- ac_mod[,c("lon.x","lat.x")] #solve this later
-    p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+    #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+    #p_shp <- spplot(reg_layer,border="black",col="transparent")
+    p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+
     #title("(a) Mean for 1 January")
     p <- bubble(ac_mod,"rmse",main=paste("Average RMSE per tile and by ",model_name[i]))
     p1 <- p+p_shp
@@ -623,7 +627,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     
       model_name[j]
     
-      p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+      #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+      p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
       #title("(a) Mean for 1 January")
       p <- bubble(summary_metrics_v_subset,"n_missing",main=paste("Missing per tile and by ",model_name[j]," for ",
                                                                 threshold_missing_day[i]))
