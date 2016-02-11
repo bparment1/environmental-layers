@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/09/2016            
+#MODIFIED ON: 02/10/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -188,8 +188,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   setwd(out_dir)
   
-  list_outfiles <- vector("list", length=31) #collect names of output files, this should be dynamic?
-  list_outfiles_names <- vector("list", length=31) #collect names of output files
+  list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
+  list_outfiles_names <- vector("list", length=35) #collect names of output files
   counter_fig <- 0 #index of figure to collect outputs
   
   #i <- year_predicted
@@ -447,51 +447,73 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     title(paste("RMSE with scaling for all tiles: ",model_name[i],sep=""))
     dev.off()
     list_outfiles[[counter_fig+2]] <- paste("Figure3b_boxplot_overall_region_scaling_",model_name[i],"_",out_suffix,".png",sep="")
+    counter_fig <- counter_fig +2
   }
-  counter_fig <- counter_fig + length(model_name)
+  #counter_fig <- counter_fig + length(model_name)
   r6 <-c("figure_3a","Boxplot overall accuracy with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[6]])  
   r7 <-c("figure_3b","Boxplot overall accuracy with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[7]])  
   r8 <-c("figure_3a","Boxplot overall accuracy with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[8]])
   r9 <-c("figure_3b","Boxplot overall accuracy with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[9]])  
 
   ################ 
-  ### Figure 4: plot predicted tiff for specific date per model
+  ### Figure 4: plot accuracy metric by month
   ## Replace by break out by season?
   
-  #y_var_name <-"dailyTmax"
-  #index <-244 #index corresponding to Sept 1
+  for(i in 1:length(model_name)){
+    
+    tb_subset <- subset(tb,pred_mod==model_name[i])#mod1 is i=1, mod_kr is last
+    labels <- month.abb # abbreviated names for each month
+    
+    ## Figure 4a
+    fig_filename <- paste("Figure4a_boxplot_overall_accuracy_separated_by_month_with_outliers_",model_name[i],"_",out_suffix,".png",sep="")
+    png(filename=fig_filename,
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  # if (mosaic_plot==TRUE){
-  #   index  <- 1 #index corresponding to Jan 1
-  #   date_selected <- "20100901"
-  #   name_method_var <- paste(interpolation_method,"_",y_var_name,"_",sep="")
-  # 
-  #   pattern_str <- paste("mosaiced","_",name_method_var,"predicted",".*.",date_selected,".*.tif",sep="")
-  #   lf_pred_list <- list.files(pattern=pattern_str)
-  # 
-  #   for(i in 1:length(lf_pred_list)){
-  #     
-  #   
-  #     r_pred <- raster(lf_pred_list[i])
-  #   
-  #     res_pix <- 480
-  #     col_mfrow <- 1
-  #     row_mfrow <- 1
-  #   
-  #     png(filename=paste("Figure4_models_predicted_surfaces_",model_name[i],"_",name_method_var,"_",data_selected,"_",out_suffix,".png",sep=""),
-  #        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-  #   
-  #     plot(r_pred)
-  #     title(paste("Mosaiced",model_name[i],name_method_var,date_selected,sep=" "))
-  #     dev.off()
-  #   }
-  #   #Plot Delta and clim...
-  # 
-  #    ## plotting of delta and clim for later scripts...
-  # 
-  # }
+    boxplot(rmse~month_no,data=tb_subset,ylab=metric_name,xlab="averaged by month",axes=F)#,names=tb$pred_mod)
+    axis(1, labels = FALSE)
+    ## Plot x axis labels at default tick marks
+    text(1:length(labels), par("usr")[3] - 0.25, srt = 45, adj = 1,cex=0.8,
+           labels = labels, xpd = TRUE)
+    axis(2)
+    box()
+    title(paste("Overall accuracy for ", model_name[i], " by month for ",region_name,sep=""))
+    
+    #p<- bwplot(rmse~year_predicted | reg , data=tb_subset,ylim=c(0,5),
+             #main="RMSE per model and region over all tiles")
+    #print(p)
+    dev.off()
+    
+    list_outfiles[[counter_fig+1]] <- fig_filename
+    counter_fig <- counter_fig + 1
+
+    fig_filename <- paste("Figure4b_boxplot_overall_separated_by_month_scaling_",model_name[i],"_",out_suffix,".png",sep="")
+    png(filename=fig_filename,
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  
+    boxplot(rmse~month_no,data=tb_subset,ylim=c(0,5),outline=FALSE,ylab=metric_name,
+            xlab="averaged by month",axes=F)#,names=tb$pred_mod)
+    axis(1, labels = FALSE)
+    ## Plot x axis labels at default tick marks
+    text(1:length(labels), par("usr")[3] - 0.25, srt = 45, adj = 1,cex=0.8,
+           labels = labels, xpd = TRUE)
+    axis(2)
+    box()
+
+    title(paste("Overall accuracy for ", model_name[i], " by month for ",region_name,sep=""))
+    #p<- bwplot(rmse~year_predicted | reg , data=tb_subset,ylim=c(0,5),
+             #main="RMSE per model and region over all tiles")
+    #print(p)
+    dev.off()
+
+    list_outfiles[[counter_fig+1]] <- fig_filename
+    counter_fig <- counter_fig + 1
+  }
+  #counter_fig <- counter_fig + length(model_name)
+  r10 <-c("figure_4a","Boxplot overall accuracy by month with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[10]])  
+  r11 <-c("figure_4b","Boxplot overall accuracy by month with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[11]])  
+  r12 <-c("figure_4a","Boxplot overall accuracy by month with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[12]])
+  r13 <-c("figure_4b","Boxplot overall accuracy by month with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[13]])  
+
   ######################
   ### Figure 5: plot accuracy ranked 
   
@@ -519,13 +541,14 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     title(paste("RMSE ranked by tile for ",model_name[i],sep=""))
     
     dev.off()
-    list_outfiles[[counter_fig+i]] <- fig_filename
+    list_outfiles[[counter_fig+1]] <- fig_filename
+    counter_fig <- counter_fig + 1
   }
   
-  counter_fig <- counter_fig + length(model_name)
+  #counter_fig <- counter_fig + length(model_name)
   
-  r10 <-c("figure_5","Barplot of accuracy metrics ranked by tiles","mod1",metric_name,region_name,year_predicted,list_outfiles[[8]])
-  r11 <-c("figure_5","Barplot of accuracy metrics ranked by tiles","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[9]])  
+  r14 <-c("figure_5","Barplot of accuracy metrics ranked by tiles","mod1",metric_name,region_name,year_predicted,list_outfiles[[14]])
+  r15 <-c("figure_5","Barplot of accuracy metrics ranked by tiles","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[15]])  
 
   ######################
   ### Figure 6: plot map of average RMSE per tile at centroids
@@ -571,8 +594,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   }
   counter_fig <- counter_fig+length(model_name)
 
-  r12 <-c("figure_6","Average accuracy metrics map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[8]])
-  r13 <-c("figure_6","Average accuracy metrics map at centroids","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[9]])  
+  r16 <-c("figure_6","Average accuracy metrics map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[16]])
+  r17 <-c("figure_6","Average accuracy metrics map at centroids","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[17]])  
   
   
   ######################
@@ -594,14 +617,6 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   nb<-nrow(subset(summary_metrics_v,model_name=="mod1"))  
   sum(subset(summary_metrics_v,model_name=="mod1")$n_missing)/nb #33/35
   
-  ## Make this a figure...
-  
-  #plot(summary_metrics_v)
-  #Make this a function later so that we can explore many thresholds...
-  #Problem here
-  #Browse[3]> c
-   #Error in grid.Call.graphics(L_setviewport, pvp, TRUE) : 
-  #non-finite location and/or size for viewport
 
   j<-1 #for model name 1,mod1
   for(i in 1:length(threshold_missing_day)){
@@ -613,6 +628,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     
     fig_filename <- paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
                        "_",out_suffix,".png",sep="")
+    list_outfiles[[counter_fig+i]] <- fig_filename
 
     if(sum(summary_metrics_v_subset$n_missing) > 0){#then there are centroids to plot!!!
       
@@ -638,14 +654,14 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
     } 
      
-    list_outfiles[[counter_fig+i]] <- fig_filename
+    #list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
 
-  r14 <-c("figure_7","Number of missing days threshold1 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[8]])
-  r15 <-c("figure_7","Number of missing days threshold2 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[9]])  
-  r16 <-c("figure_7","Number of missing days threshold3 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[8]])
-  r17 <-c("figure_7","Number of missing days threshold4 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[9]])  
+  r18 <-c("figure_7","Number of missing days threshold1 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[18]])
+  r19 <-c("figure_7","Number of missing days threshold2 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[19]])  
+  r20 <-c("figure_7","Number of missing days threshold3 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[20]])
+  r21 <-c("figure_7","Number of missing days threshold4 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[21]])  
 
   ### Potential
   png(filename=paste("Figure7b_number_daily_predictions_per_models","_",out_suffix,".png",sep=""),
@@ -657,7 +673,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   
   list_outfiles[[counter_fig+1]] <- paste("Figure7b_number_daily_predictions_per_models","_",out_suffix,".png",sep="")
   counter_fig <- counter_fig + 1
-  r18 <-c("figure_7b","Number of daily predictions per_models","mod1",metric_name,region_name,year_predicted,list_outfiles[[9]])  
+  r22 <-c("figure_7b","Number of daily predictions per_models","mod1",metric_name,region_name,year_predicted,list_outfiles[[22]])  
   
   table(tb$pred_mod)
   table(tb$index_d)
@@ -685,9 +701,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   
   list_outfiles[[counter_fig+1]] <- paste("Figure7c_histogram_number_daily_predictions_per_models","_",out_suffix,".png",sep="")
   counter_fig <- counter_fig + 1
-  r19 <-c("figure_7c","Histogram number daily predictions per models","mod1",metric_name,region_name,year_predicted,list_outfiles[[9]])  
+  r23 <-c("figure_7c","Histogram number daily predictions per models","mod1",metric_name,region_name,year_predicted,list_outfiles[[23]])  
 
-  
   #table(tb)
   ## Figure 7b
   #png(filename=paste("Figure7b_number_daily_predictions_per_models","_",out_suffix,".png",sep=""),
@@ -743,8 +758,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   counter_fig <- counter_fig + 1
   
   
-  r20 <-c("figure 8a","Boxplot overall accuracy by model separated by region with outliers",NA,metric_name,region_name,year_predicted,list_outfiles[[20]])  
-  r21 <-c("figure 8b","Boxplot overall accuracy by model separated by region with scaling",NA,metric_name,region_name,year_predicted,list_outfiles[[21]])  
+  r24 <-c("figure 8a","Boxplot overall accuracy by model separated by region with outliers",NA,metric_name,region_name,year_predicted,list_outfiles[[24]])  
+  r25 <-c("figure 8b","Boxplot overall accuracy by model separated by region with scaling",NA,metric_name,region_name,year_predicted,list_outfiles[[25]])  
 
   #######
   ##Second, plot for each model separately
@@ -787,10 +802,10 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   }
   
-  r22 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[22]])  
-  r23 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[23]])  
-  r24 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[24]])  
-  r25 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[25]])  
+  r26 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[26]])  
+  r27 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[27]])  
+  r28 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[28]])  
+  r29 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[29]])  
 
   #####################################################
   #### Figure 9: plotting boxplot by year and regions ###########
@@ -799,8 +814,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   res_pix <- 480
   col_mfrow <- 1
   row_mfrow <- 1
-
-  png(filename=paste("Figure9a_boxplot_overall_separated_by_year_and_model_with_oultiers_",out_suffix,".png",sep=""),
+  fig_filename <- paste("Figure9a_boxplot_overall_separated_by_year_and_model_with_oultiers_",out_suffix,".png",sep="")
+  png(filename= fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   #This will need to be changed, the layout is difficult at this stage 
   #p<- bwplot(rmse~pred_mod + reg + year_predicted, data=tb,
@@ -809,9 +824,12 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
              main="RMSE per model and region over all tiles")
   print(p)
   dev.off()
-  
+  list_outfiles[[counter_fig+1]] <- fig_filename
+  counter_fig <- counter_fig + 1
+
   ## Figure 9b
-  png(filename=paste("Figure9b_boxplot_overall_separated_by_year_and_model_scaling_",out_suffix,".png",sep=""),
+  fig_filename <- paste("Figure9b_boxplot_overall_separated_by_year_and_model_scaling_",out_suffix,".png",sep="")
+  png(filename= fig_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   #boxplot(rmse~pred_mod,data=tb,ylim=c(0,5),outline=FALSE)#,names=tb$pred_mod)
@@ -820,6 +838,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
              main="RMSE per model and region over all tiles")
   print(p)
   dev.off()
+  list_outfiles[[counter_fig+1]] <- fig_filename
+  counter_fig <- counter_fig + 1
 
   for(i in 1:length(model_name)){
     
@@ -855,12 +875,12 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     counter_fig <- counter_fig + 1
   }
   
-  r26 <-c("figure 9a","Boxplot overall accuracy separated_by year and model with oultiers",NA,metric_name,region_name,year_predicted,list_outfiles[[22]])  
-  r27 <-c("figure 9b","Boxplot overall accuracy separated_by year and model with scaling",NA,metric_name,region_name,year_predicted,list_outfiles[[23]])  
-  r28 <-c("figure 9c","Boxplot overall accuracy separated by year with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[24]])  
-  r29 <-c("figure 9d","Boxplot overall accuracy separated by year with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[25]])  
-  r30 <-c("figure 9c","Boxplot overall accuracy separated by year with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[24]])  
-  r31 <-c("figure 9d","Boxplot overall accuracy separated by year with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[25]])  
+  r30 <-c("figure 9a","Boxplot overall accuracy separated_by year and model with oultiers",NA,metric_name,region_name,year_predicted,list_outfiles[[30]])  
+  r31 <-c("figure 9b","Boxplot overall accuracy separated_by year and model with scaling",NA,metric_name,region_name,year_predicted,list_outfiles[[31]])  
+  r32 <-c("figure 9c","Boxplot overall accuracy separated by year with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[32]])  
+  r33 <-c("figure 9d","Boxplot overall accuracy separated by year with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[33]])  
+  r34 <-c("figure 9c","Boxplot overall accuracy separated by year with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[34]])  
+  r35 <-c("figure 9d","Boxplot overall accuracy separated by year with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[35]])  
 
   ##############################################################
   ############## Prepare object to return
@@ -869,36 +889,9 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   # This is hard coded and can be improved later on for flexibility. It works for now...                                                                 
   #This data.frame contains all the files from the assessment
 
-  #Should have this at the location of the figures!!! will be done later?    
-  #r1 <-c("figure_1","Tiles processed for the region",NA,NA,region_name,year_predicted,list_outfiles[[1]])
-  #r2 <-c("figure_2a","Boxplot of accuracy with outliers by tiles","mod1",metric_name,region_name,year_predicted,list_outfiles[[2]]) 
-  #r3 <-c("figure_2a","boxplot of accuracy with outliers by tiles","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[3]])
-  #r4 <-c("figure_2b","Boxplot of accuracy with scaling by tiles","mod1",metric_name,region_name,year_predicted,list_outfiles[[4]])  
-  #r5 <-c("figure_2b","Boxplot of accuracy with scaling by tiles","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[5]])  
-  #r6 <-c("figure_3a","Boxplot overall accuracy with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[6]])  
-  #r7 <-c("figure_3b","Boxplot overall accuracy with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[7]])  
-  #r8 <-c("figure_3a","Boxplot overall accuracy with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[8]])
-  #r9 <-c("figure_3b","Boxplot overall accuracy with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[9]])  
-  #r10 <-c("figure_5","Barplot of accuracy metrics ranked by tiles","mod1",metric_name,region_name,year_predicted,list_outfiles[[10]])
-  #r11 <-c("figure_5","Barplot of accuracy metrics ranked by tiles","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[11]])  
-  #r12 <-c("figure_6","Average accuracy metrics map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[12]])
-  #r13 <-c("figure_6","Average accuracy metrics map at centroids","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[13]])  
-  #r14 <-c("figure_7","Number of missing days threshold1 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[14]])
-  #r15 <-c("figure_7","Number of missing days threshold2 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[15]])  
-  #r16 <-c("figure_7","Number of missing days threshold3 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[16]])
-  #r17 <-c("figure_7","Number of missing days threshold4 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[17]])  
-  #r18 <-c("figure_7b","Number of daily predictions per_models","mod1",metric_name,region_name,year_predicted,list_outfiles[[18]])  
-  #r19 <-c("figure_7c","Histogram number daily predictions per models","mod1",metric_name,region_name,year_predicted,list_outfiles[[19]])  
-  #r20 <-c("figure 8a","Boxplot overall accuracy by model separated by region with outliers",NA,metric_name,region_name,year_predicted,list_outfiles[[20]])  
-  #r21 <-c("figure 8b","Boxplot overall accuracy by model separated by region with scaling",NA,metric_name,region_name,year_predicted,list_outfiles[[21]])  
-  #r22 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod1",metric_name,region_name,year_predicted,list_outfiles[[22]])  
-  #r23 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod1",metric_name,region_name,year_predicted,list_outfiles[[23]])  
-  #r24 <-c("figure 8c","Boxplot overall accuracy separated by region with outliers","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[24]])  
-  #r25 <-c("figure 8d","Boxplot overall accuracy separated by region with scaling","mod_kr",metric_name,region_name,year_predicted,list_outfiles[[25]])  
-
   #Assemble all the figures description and information in a data.frame for later use
   list_rows <-list(r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16,r17,r18,r19,r20,r21,r22,r23,r24,
-                   r25,r26,r27,r28,r29,r30,r31)
+                   r25,r26,r27,r28,r29,r30,r31,r32,r33,r34,r35)
   df_assessment_figures_files <- as.data.frame(do.call(rbind,list_rows))
   names(df_assessment_figures_files) <- c("figure_no","comment","model_name","reg","metric_name","year_predicted","filename")
   
@@ -912,7 +905,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   ######################################################
   ##### Prepare objet to return ####
 
-  assessment_obj <- list(df_assessment_files, df_assessment_figures_files)
+  assessment_obj <- list(list_df_assessment_files, df_assessment_figures_files)
   names(assessment_obj) <- c("df_assessment_files", "df_assessment_figures_files")
   ## Prepare list of files to return...
   return(assessment_obj)
