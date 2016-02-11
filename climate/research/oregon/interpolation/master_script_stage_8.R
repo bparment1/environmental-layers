@@ -13,7 +13,7 @@
 #STAGE 8: Comparison of predictions across regions and years with figures generation.
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 02/09/2016  
+#MODIFIED ON: 02/10/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -43,9 +43,9 @@
 #list_year_predicted <- args[7] # enter a range, min and max year #arg 7
 #num_cores <- args[8] #number of cores used # param 13, arg 8
 #max_mem <- args[9] # maximum memory, param 21
-in_dir_list_filename <- args[10]
+#in_dir_list_filename <- args[10]
 #in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
-run_figure_by_year <- args[11] # param 10, arg 7, if true will create figures for individual years...
+#run_figure_by_year <- args[11] # param 10, arg 7, if true will create figures for individual years...
 
 #var = "TMAX" # variable being interpolated #param 1, arg 1
 #in_dir1 = "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
@@ -109,9 +109,9 @@ args <- commandArgs(TRUE)
 script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
 function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
-function_assessment_part2 <- "global_run_scalingup_assessment_part2_02072016.R"
+function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
-function_assessment_part3 <- "global_run_scalingup_assessment_part3_02092016.R"
+function_assessment_part3 <- "global_run_scalingup_assessment_part3_02102016.R"
 source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
@@ -264,7 +264,7 @@ if (stages_to_run[8]==8){
             "multiple_region","countries_shp","plot_region","num_cores",
             "region_name","df_assessment_files_name","threshold_missing_day","year_predicted"
       )
-      #undebug(run_assessment_plotting_prediction_fun)
+      #debug(run_assessment_plotting_prediction_fun)
       df_assessment_figures_files <-
       run_assessment_plotting_prediction_fun(list_param_run_assessment_part2_plotting)
       l_list_param_run_assessment_part2_plotting[[j]] <- list_param_run_assessment_part2_plotting
@@ -277,7 +277,7 @@ if (stages_to_run[8]==8){
   #function_assessment_part2 <- "global_run_scalingup_assessment_part2_01032016.R"
   #source(file.path(script_path,function_assessment_part2)) #source all functions used in this script
 
-  debug(run_assessment_combined_region_plotting_prediction_fun)
+  #debug(run_assessment_combined_region_plotting_prediction_fun)
   df_assessment_combined_figures_files <-
   run_assessment_combined_region_plotting_prediction_fun(list_param_run_assessment_combined_region_plotting_prediction)
 }
