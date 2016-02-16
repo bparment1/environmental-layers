@@ -13,7 +13,7 @@
 #STAGE 8: Comparison of predictions across regions and years with figures generation.
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 02/10/2016  
+#MODIFIED ON: 02/17/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -165,7 +165,7 @@ region_name <- c("reg5") #param 6, arg 3
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE #param 9, arg 6
 out_prefix <- args[4] #param 7, arg 4
-out_suffix <- "global_analyses_overall_assessment_reg5_02092016"
+out_suffix <- "global_analyses_overall_assessment_reg5_02172016"
 
 out_dir <- args[5] #param 8, arg 5
 out_dir <- "/data/project/layers/commons/NEX_data/reg5_assessment"
@@ -180,7 +180,7 @@ create_out_dir_param <- TRUE #param 9, arg
 list_year_predicted <- args[7] # param 10, arg 7, min and max year
 
 #run_figure_by_year <- TRUE # param 10, arg 7
-list_year_predicted <- "2010,2013"
+list_year_predicted <- "1996,2014"
 
 file_format <- ".tif" #format for mosaiced files # param 11
 NA_flag_val <- -9999  #No data value, # param 12
@@ -202,7 +202,7 @@ threshold_missing_day <- c(367,365,300,200) # param 20
 max_mem <- args[9] #param 21
 max_mem <- 1e+07
 #in_dir_list_filename <- args[10] #param 22
-in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg5_assessment/stage6_reg5_in_dir_list_02092016.txt"
+in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg5_assessment/stage6_reg5_in_dir_list_02172016.txt"
 #in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
 run_figure_by_year <- args[11] # param 10, arg 7, if true will create figures for individual years...
 run_figure_by_year <- TRUE # param 10, arg 7, if true will create figures for individual years...
