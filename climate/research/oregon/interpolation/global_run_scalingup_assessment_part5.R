@@ -283,20 +283,17 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   stat_val <- c(std_dev_val,mean_val,median_val,max_val,min_val,n_val)
   df_stat <- data.frame(stat_name=stat_name,stat_val=stat_val)
   
-  threshol_val <- c(5,6,10)
-  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshol_val[1])
+  threshold_val <- c(5,6,10)
+  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshold_val[1])
   100*n_threshold_val/n_val
 
-  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshol_val[2])
+  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshold_val[2])
   100*n_threshold_val/n_val
   
-  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshol_val[3])
+  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshold_val[3])
   100*n_threshold_val/n_val
   
   #Find out where these values are located...by mapping extremes!
-  
-  
-  
   
   
   
@@ -407,6 +404,97 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #this will be changed to be added to data.frame on the fly
   r1 <-c("figure_1","Tiles processed for the region",NA,NA,region_name,year_predicted,list_outfiles[[1]]) 
 
+
+  ######################
+  ### Figure 2: Number of predictions: daily and monthly
+  
+  ## Figure 2a
+ 
+  #Plot location of extremes and select them for further analyses?
+  
+
+  ## Number of tiles with information:
+  sum(df_tile_processed$metrics_v) #26,number of tiles with raster object
+  length(df_tile_processed$metrics_v) #26,number of tiles in the region
+  sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #80 of tiles with info
+  
+  #coordinates
+  try(coordinates(summary_metrics_v) <- c("lon","lat"))
+  #try(coordinates(summary_metrics_v) <- c("lon.y","lat.y"))
+  
+  #threshold_missing_day <- c(367,365,300,200)
+  
+  nb<-nrow(subset(summary_metrics_v,model_name=="mod1"))  
+  sum(subset(summary_metrics_v,model_name=="mod1")$n_missing)/nb #33/35
+  
+
+  j<-1 #for model name 1,mod1
+  model_name <- c("mod1","mod_kr")
+  for(i in 1:length(threshold_val)){
+    
+    
+    tb_subset <- subset(tb_subset,tb_subset[[metric_name]]>threshold_val[i])
+    
+    df_extremes <- as.data.frame(table(tb_subset$tile_id))
+    names(df_extremes)<- c("tile_id","freq_extremes")
+    tb_sorted <- merge(tb_subset,df_extremes,"tile_id")
+    tb_sorted <- arrange(tb_sorted,desc(freq_extremes)) #[,c("pred_mod","rmse","mae","tile_id")]
+    coordinates(tb_sorted) <- c("lon","lat")
+    
+    fig_filename <- paste("Figure2a_barplot_extremes_val_centroids_tile_",model_name[j],"_",threshold_val[i],
+                       "_",out_suffix,".png",sep="")
+
+    barplot(table(tb_subset$tile_id),main=paste("Extremes threshold val for ",threshold_val[i],sep=""),
+            ylab="frequency",xlab="tile_id",las=2)
+    dev.off()
+
+    test<-(subset(tb,tb$tile_id==unique(tb_subset$tile_id)))
+    #df_ac_mod <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("pred_mod","rmse","mae","tile_id")]
+    
+    #plot top three, then all,and histogram...make this a function...
+    list_df_ac_mod[[i]] <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("rmse","mae","tile_id")]
+
+    #summary_metrics_v$n_missing <- summary_metrics_v$n == 365
+    #summary_metrics_v$n_missing <- summary_metrics_v$n < 365
+    #summary_metrics_v$n_missing <- as.numeric(summary_metrics_v$n < threshold_missing_day[i])
+    #summary_metrics_v_subset <- subset(summary_metrics_v,model_name=="mod1")
+    
+    fig_filename <- paste("Figure7a_ac_metrics_extremes_map_centroids_tile_",model_name[j],"_",threshold_val[i],
+                       "_",out_suffix,".png",sep="")
+    list_outfiles[[counter_fig+i]] <- fig_filename
+
+    if(sum(summary_metrics_v_subset$n_missing) > 0){#then there are centroids to plot!!!
+      
+      #res_pix <- 1200
+      res_pix <- 960
+      col_mfrow <- 1
+      row_mfrow <- 1
+      #only mod1 right now
+      png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
+                       "_",out_suffix,".png",sep=""),
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+      model_name[j]
+    
+      #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+      p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+      #title("(a) Mean for 1 January")
+      p <- bubble(tb_sorted,"freq_extremes",main=paste("Extremes per tile and by ",model_name[j]," for ",
+                                                                threshold_val[i]))
+      p1 <- p+p_shp
+      try(print(p1)) #error raised if number of missing values below a threshold does not exist
+      dev.off()
+
+    } 
+     
+    #list_outfiles[[counter_fig+i]] <- fig_filename
+  }
+  counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
+
+  r18 <-c("figure_7","Number of missing days threshold1 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[18]])
+  r19 <-c("figure_7","Number of missing days threshold2 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[19]])  
+  r20 <-c("figure_7","Number of missing days threshold3 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[20]])
+  r21 <-c("figure_7","Number of missing days threshold4 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[21]])  
 
   ######################################################
   ##### Prepare objet to return ####
