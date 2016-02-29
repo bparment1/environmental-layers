@@ -283,19 +283,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   stat_val <- c(std_dev_val,mean_val,median_val,max_val,min_val,n_val)
   df_stat <- data.frame(stat_name=stat_name,stat_val=stat_val)
   
-  threshold_val <- c(5,6,10)
-  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshold_val[1])
-  100*n_threshold_val/n_val
-
-  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshold_val[2])
-  100*n_threshold_val/n_val
-  
-  n_threshold_val <- sum((tb_subset[[metric_name]]) > threshold_val[3])
-  100*n_threshold_val/n_val
-  
-  #Find out where these values are located...by mapping extremes!
-  
-  
+  model_name <- c("mod1","mod_kr")
+  threshold_val <- c(5,10,20,50)
   
   ###########################
   ### Figure 1: plot location of the study area with tiles processed
@@ -304,14 +293,18 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #list_shp_reg_files <- df_tiled_processed$shp_files
   
   #list_shp_reg_files<- as.character(df_tile_processed$shp_files) #this could be the solution!!
+  #Use melt!! quick solution
   list_shp_reg_files <- as.character(basename(unique(df_tile_processed$shp_files))) #this could be the solution!!
-  #the shapefiles must be copied in the proper folder!!!
-  #list_shp_reg_files<- file.path(in_dir,in_dir_list[1],"shapefile",list_shp_reg_files)
-  #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
-  #          as.character(df_tile_processed$tile_coord),"shapefiles",basename(list_shp_reg_files))
-  #list_shp_reg_files <- file.path("/data/project/layers/commons/NEX_data/",out_dir,
-                                  #"shapefiles",basename(list_shp_reg_files))
-  
+  list_tile_id <- as.character((unique(df_tile_processed$tile_id))) #this is in the order of appearance
+  #list_tile_lat <- as.character((unique(df_tile_processed$lat))) #this is in the order of appearance
+  #list_tile_lon <- as.character((unique(df_tile_processed$lon))) #this is in the order of appearance
+
+  #df_tile_processed$shp_files2 <- basename(df_tile_processed$shp_files)
+  df_tiles_reg <- data.frame(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
+  df_tiles_reg$tile_id <- as.character(df_tiles_reg$tile_id)
+  #,lat=list_tile_lat,lon=list_tile_lon)
+  #cast(df_tile_processed, shp_files ~ tile_id+lat+lon, mean, value = 'income')
+
   ### Potential function starts here:
   #function(in_dir,out_dir,list_shp_reg_files,title_str,region_name,num_cores,out_suffix,out_suffix)
   
@@ -367,12 +360,17 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
   #centroids_pts <- tmp_pts 
   
-  #plot info: with labels
+  df_pts <- as.data.frame(do.call(rbind,tmp_pts))
+  #df_pts <- cbind(df_pts,df_tiles_reg)
+  df_tiles_reg <- cbind(df_pts,df_tiles_reg) #(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
+  df_tiles_reg$id <- unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]}))
+  
+    #plot info: with labels
   res_pix <-1200
   col_mfrow <- 1 
   row_mfrow <- 1
   
-  png(filename=paste("Figure1_tile_processed_region_",region_name,"_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure1a_tile_processed_region_",region_name,"_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   plot(reg_layer)
@@ -399,6 +397,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   
   dev.off()
   
+  
   list_outfiles[[counter_fig+1]] <- paste("Figure1_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
   counter_fig <- counter_fig+1
   #this will be changed to be added to data.frame on the fly
@@ -411,67 +410,61 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   ## Figure 2a
  
   #Plot location of extremes and select them for further analyses?
-  
 
-  ## Number of tiles with information:
-  sum(df_tile_processed$metrics_v) #26,number of tiles with raster object
-  length(df_tile_processed$metrics_v) #26,number of tiles in the region
-  sum(df_tile_processed$metrics_v)/length(df_tile_processed$metrics_v) #80 of tiles with info
-  
-  #coordinates
-  try(coordinates(summary_metrics_v) <- c("lon","lat"))
-  #try(coordinates(summary_metrics_v) <- c("lon.y","lat.y"))
-  
-  #threshold_missing_day <- c(367,365,300,200)
-  
-  nb<-nrow(subset(summary_metrics_v,model_name=="mod1"))  
-  sum(subset(summary_metrics_v,model_name=="mod1")$n_missing)/nb #33/35
-  
 
   j<-1 #for model name 1,mod1
-  model_name <- c("mod1","mod_kr")
+  #model_name <- c("mod1","mod_kr")
+  #threshold_val <- c(5,10,20,50)
+  
   for(i in 1:length(threshold_val)){
     
+    tb_tmp <- try(subset(tb_subset,tb_subset[[metric_name]]>threshold_val[i]))
+    hist(tb_tmp$rmse)
     
-    tb_subset <- subset(tb_subset,tb_subset[[metric_name]]>threshold_val[i])
+    if(nrow(tb_subset)>0){
+      
+      df_extremes <- as.data.frame(table(tb_tmp$tile_id))
+      names(df_extremes)<- c("tile_id","freq_extremes")
+      tb_sorted <- merge(tb_tmp,df_extremes,"tile_id")
+      tb_sorted <- arrange(tb_sorted,desc(freq_extremes)) #[,c("pred_mod","rmse","mae","tile_id")]
+      coordinates(tb_sorted) <- c("lon","lat")
+      df_extremes <- arrange(df_extremes,desc(freq_extremes))
     
-    df_extremes <- as.data.frame(table(tb_subset$tile_id))
-    names(df_extremes)<- c("tile_id","freq_extremes")
-    tb_sorted <- merge(tb_subset,df_extremes,"tile_id")
-    tb_sorted <- arrange(tb_sorted,desc(freq_extremes)) #[,c("pred_mod","rmse","mae","tile_id")]
-    coordinates(tb_sorted) <- c("lon","lat")
-    
-    fig_filename <- paste("Figure2a_barplot_extremes_val_centroids_tile_",model_name[j],"_",threshold_val[i],
+      fig_filename <- paste("Figure2a_barplot_extremes_val_centroids_tile_",model_name[j],"_",threshold_val[i],
                        "_",out_suffix,".png",sep="")
-
-    barplot(table(tb_subset$tile_id),main=paste("Extremes threshold val for ",threshold_val[i],sep=""),
-            ylab="frequency",xlab="tile_id",las=2)
-    dev.off()
-
-    test<-(subset(tb,tb$tile_id==unique(tb_subset$tile_id)))
-    #df_ac_mod <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("pred_mod","rmse","mae","tile_id")]
-    
-    #plot top three, then all,and histogram...make this a function...
-    list_df_ac_mod[[i]] <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("rmse","mae","tile_id")]
-
-    #summary_metrics_v$n_missing <- summary_metrics_v$n == 365
-    #summary_metrics_v$n_missing <- summary_metrics_v$n < 365
-    #summary_metrics_v$n_missing <- as.numeric(summary_metrics_v$n < threshold_missing_day[i])
-    #summary_metrics_v_subset <- subset(summary_metrics_v,model_name=="mod1")
-    
-    fig_filename <- paste("Figure7a_ac_metrics_extremes_map_centroids_tile_",model_name[j],"_",threshold_val[i],
-                       "_",out_suffix,".png",sep="")
-    list_outfiles[[counter_fig+i]] <- fig_filename
-
-    if(sum(summary_metrics_v_subset$n_missing) > 0){#then there are centroids to plot!!!
       
       #res_pix <- 1200
       res_pix <- 960
       col_mfrow <- 1
       row_mfrow <- 1
       #only mod1 right now
-      png(filename=paste("Figure7a_ac_metrics_map_centroids_tile_",model_name[j],"_","missing_day_",threshold_missing_day[i],
-                       "_",out_suffix,".png",sep=""),
+      png(filename=fig_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+      #barplot(df_ac_mod$rmse, names.arg=x)
+      barplot(df_extremes$freq_extremes,main=paste("Extremes threshold val for ",threshold_val[i],"deg C",sep=""),
+            ylab="frequency",xlab="tile_id",names.arg=df_extremes$tile_id,las=2)    
+      #barplot(table(tb_subset$tile_id),main=paste("Extremes threshold val for ",threshold_val[i],sep=""),
+       #        ylab="frequency",xlab="tile_id",las=2)
+      dev.off()
+      list_outfiles[[counter_fig+i]] <- fig_filename
+
+
+      #test<-(subset(tb,tb$tile_id==unique(tb_subset$tile_id)))
+      #df_ac_mod <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("pred_mod","rmse","mae","tile_id")]
+    
+      #plot top three, then all,and histogram...make this a function...
+      #list_df_ac_mod[[i]] <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("rmse","mae","tile_id")]
+
+      fig_filename <- paste("Figure2b_ac_metrics_extremes_map_centroids_tile_",model_name[j],"_",threshold_val[i],
+                       "_",out_suffix,".png",sep="")
+
+      #res_pix <- 1200
+      res_pix <- 960
+      col_mfrow <- 1
+      row_mfrow <- 1
+      #only mod1 right now
+      png(filename=fig_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
       model_name[j]
@@ -485,8 +478,9 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
       try(print(p1)) #error raised if number of missing values below a threshold does not exist
       dev.off()
 
-    } 
-     
+    }
+
+
     #list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
