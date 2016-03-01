@@ -363,9 +363,11 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   df_pts <- as.data.frame(do.call(rbind,tmp_pts))
   #df_pts <- cbind(df_pts,df_tiles_reg)
   df_tiles_reg <- cbind(df_pts,df_tiles_reg) #(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
-  df_tiles_reg$id <- unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]}))
+  df_tiles_reg$id <- as.numeric(unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]})))
   
-    #plot info: with labels
+  coordinates(df_tiles_reg)<- cbind(df_tiles_reg$x,df_tiles_reg$y)
+  
+  #plot info: with labels
   res_pix <-1200
   col_mfrow <- 1 
   row_mfrow <- 1
@@ -397,7 +399,38 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   
   dev.off()
   
+  res_pix <-1200
+  col_mfrow <- 1 
+  row_mfrow <- 1
   
+  png(filename=paste("Figure1b_tile_processed_centroids_region_",region_name,"_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  #plot(reg_layer)
+  #Add polygon tiles...
+  #title(paste("Tiles ", tile_size,region_name,sep=""))
+  #plot(df_tiles_reg,add=T,pch=2)
+  #label_id <- df_tiles_reg$id
+  #text(coordinates(df_tiles_reg)[1],coordinates(df_tiles_reg)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
+
+  p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  #title("(a) Mean for 1 January")
+  df_tiles_reg$lab <- 1
+  sl1 <- list('sp.points',df_tiles_reg, pch=19, cex=.8, col='red')
+  sl2 <- list('sp.pointLabel', df_tiles_reg, label=list_id,
+            cex=2.4, font=2,col='red',col.regions="red",
+            fontfamily='Palatino') #Add labels at centroids
+ 
+  p <- spplot(df_tiles_reg,"id",main=paste("Tile id processed",sep=""),sp.layout=list(sl1, sl2))
+  #spplot(meuse.grid["dist"], col.regions=myCols, sp.layout=list(sl1, sl2)
+  #p <- spplot(df_tiles_reg,"lab",main=paste("Tile id processed",sep=""))
+  p1 <- p+p_shp
+  try(print(p1)) #error raised if number of missing values below a threshold does not exist
+  #ltext(coordinates(df_tiles_reg)[,1],coordinates(df_tiles_reg)[,2],labels=list_tile_id)
+
+  #list_id <- df_tiles_reg$id
+  dev.off()
+
   list_outfiles[[counter_fig+1]] <- paste("Figure1_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
   counter_fig <- counter_fig+1
   #this will be changed to be added to data.frame on the fly
@@ -420,7 +453,13 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     
     tb_tmp <- try(subset(tb_subset,tb_subset[[metric_name]]>threshold_val[i]))
     hist(tb_tmp$rmse)
-    
+    fig_filename1 <-paste("Figure2a_barplot_extremes_val_centroids_tile_",model_name[j],"_",threshold_val[i],
+                       "_",out_suffix,".png",sep="")
+    fig_filename2 <- paste("Figure2b_ac_metrics_extremes_map_centroids_tile_",model_name[j],"_",threshold_val[i],
+                       "_",out_suffix,".png",sep="")
+    list_outfiles[[counter_fig+i]] <- fig_filename1
+    list_outfiles[[counter_fig+i]] <- fig_filename2
+        
     if(nrow(tb_subset)>0){
       
       df_extremes <- as.data.frame(table(tb_tmp$tile_id))
@@ -447,8 +486,6 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
       #barplot(table(tb_subset$tile_id),main=paste("Extremes threshold val for ",threshold_val[i],sep=""),
        #        ylab="frequency",xlab="tile_id",las=2)
       dev.off()
-      list_outfiles[[counter_fig+i]] <- fig_filename
-
 
       #test<-(subset(tb,tb$tile_id==unique(tb_subset$tile_id)))
       #df_ac_mod <- arrange(as.data.frame(ac_mod),desc(rmse))[,c("pred_mod","rmse","mae","tile_id")]
@@ -480,7 +517,6 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
     }
 
-
     #list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
@@ -490,6 +526,18 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   r20 <-c("figure_7","Number of missing days threshold3 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[20]])
   r21 <-c("figure_7","Number of missing days threshold4 map at centroids","mod1",metric_name,region_name,year_predicted,list_outfiles[[21]])  
 
+  ##### Figure 3 ###
+  
+  test<- subset(tb_subset,tb_subset$tile_id=="tile_14")
+  test2 <- aggregate(rmse~date,test,min)
+  idx <- test$date #transform this format...
+  d_z <- zoo(test,idx) #make a time series ...
+  #add horizontal line...
+
+  plot(test$rmse,type="b")
+  unique(test$year_predicted)
+   unique(tb$year_predicted)
+   
   ######################################################
   ##### Prepare objet to return ####
 
