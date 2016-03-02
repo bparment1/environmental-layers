@@ -448,10 +448,13 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   j<-1 #for model name 1,mod1
   #model_name <- c("mod1","mod_kr")
   #threshold_val <- c(5,10,20,50)
-  
+  list_tb_extremes <- vector("list",length=length(threshold_val))
   for(i in 1:length(threshold_val)){
-    
+    #formula_str <- paste0(metric_name,"~","date+tile_id+lat+lon")
+    #test2 <- aggregate(formula_str,tb_subset,min)
     tb_tmp <- try(subset(tb_subset,tb_subset[[metric_name]]>threshold_val[i]))
+    #test2 <- aggregate(rmse~date,test,min)
+
     hist(tb_tmp$rmse)
     fig_filename1 <-paste("Figure2a_barplot_extremes_val_centroids_tile_",model_name[j],"_",threshold_val[i],
                        "_",out_suffix,".png",sep="")
@@ -460,9 +463,9 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     list_outfiles[[counter_fig+i]] <- fig_filename1
     list_outfiles[[counter_fig+i]] <- fig_filename2
         
-    if(nrow(tb_subset)>0){
-      
-      df_extremes <- as.data.frame(table(tb_tmp$tile_id))
+    if(nrow(tb_tmp)>0){
+      table(tb_sorted$date)
+      df_extremes <- as.data.frame(table(tb_tmp$tile_id)/17)
       names(df_extremes)<- c("tile_id","freq_extremes")
       tb_sorted <- merge(tb_tmp,df_extremes,"tile_id")
       tb_sorted <- arrange(tb_sorted,desc(freq_extremes)) #[,c("pred_mod","rmse","mae","tile_id")]
@@ -509,14 +512,21 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
       #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
       p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
       #title("(a) Mean for 1 January")
+      #tb_sorted$freq_extremes2 <- tb_sorted$freq_extremes/17
       p <- bubble(tb_sorted,"freq_extremes",main=paste("Extremes per tile and by ",model_name[j]," for ",
                                                                 threshold_val[i]))
       p1 <- p+p_shp
       try(print(p1)) #error raised if number of missing values below a threshold does not exist
       dev.off()
 
+    }else{
+      df_extremes <- NULL
+      tb_sorted <- NULL
     }
-
+    extremes_obj <- list(tb_tmp,df_extremes,tb_sorted)
+    names(extremes_obj) <- c("tb_tmp","df_extremes","tb_sorted")
+    list_tb_extremes[[i]] <- extremes_obj
+      
     #list_outfiles[[counter_fig+i]] <- fig_filename
   }
   counter_fig <- counter_fig+length(threshold_missing_day) #currently 4 days...
@@ -528,15 +538,29 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   ##### Figure 3 ###
   
-  test<- subset(tb_subset,tb_subset$tile_id=="tile_14")
+  
+  for(i in 1:length(tile_selected_extremes)){
+    d
+    d
+    d
+      test<- subset(tb_subset,tb_subset$tile_id=="tile_14")
   test2 <- aggregate(rmse~date,test,min)
-  idx <- test$date #transform this format...
-  d_z <- zoo(test,idx) #make a time series ...
+  #idx <- test2$date #transform this format...
+
+  idx <- as.Date(strptime(test2$date, "%Y%m%d"))   # interpolation date being processed
+ 
+
+  d_z <- zoo(test2,idx) #make a time series ...
   #add horizontal line...
+  plot(d_z[[metric_name]])
+  plot(d_z$rmse,ylab=metric_name,xlab="dates")
+  title(title_str)
 
   plot(test$rmse,type="b")
-  unique(test$year_predicted)
-   unique(tb$year_predicted)
+  length(unique(test$year_predicted))
+  unique(tb$year_predicted)
+
+  }
    
   ######################################################
   ##### Prepare objet to return ####
