@@ -538,30 +538,88 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   ##### Figure 3 ###
   
+  tile_selected_extremes <- as.character(list_tb_extremes[[3]]$df_extremes$tile_id)
+  
+  list_fig_filename <- vector("list",length=length(tile_selected_extremes))
   
   for(i in 1:length(tile_selected_extremes)){
-    d
-    d
-    d
-      test<- subset(tb_subset,tb_subset$tile_id=="tile_14")
-  test2 <- aggregate(rmse~date,test,min)
-  #idx <- test2$date #transform this format...
+    tile_selected <- tile_selected_extremes[i]
+    #tb_subset$tile_id
+    tb_tile_tmp <- subset(tb_subset,tb_subset$tile_id==tile_selected)
+    tb_tile <- aggregate(rmse~date,tb_tile_tmp,min)
+    #idx <- test2$date #transform this format...
 
-  idx <- as.Date(strptime(test2$date, "%Y%m%d"))   # interpolation date being processed
- 
+    idx <- as.Date(strptime(tb_tile$date, "%Y%m%d"))   # interpolation date being processed
+    d_z <- zoo(tb_tile,idx) #make a time series ...
+    #add horizontal line...
+    #plot(d_z[[metric_name]])
+    
+    fig_filename <- paste("Figure3a_time_series_extremes_tile_",model_name[j],"_",tile_selected,"_",
+                      region_name,"_",out_suffix,".png",sep="")
 
-  d_z <- zoo(test2,idx) #make a time series ...
-  #add horizontal line...
-  plot(d_z[[metric_name]])
-  plot(d_z$rmse,ylab=metric_name,xlab="dates")
-  title(title_str)
+    res_pix <- 960
+    col_mfrow <- 1
+    row_mfrow <- 1
+    #only mod1 right now
+    png(filename=fig_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-  plot(test$rmse,type="b")
-  length(unique(test$year_predicted))
-  unique(tb$year_predicted)
+    title_str <- paste("Time series of",metric_name,"for",tile_selected,"and",region_name,sep=" ")
+    plot(d_z$rmse,ylab=metric_name,xlab="dates")
+    title(title_str)
+
+    #length(unique(test$year_predicted))
+    #unique(tb$year_predicted)
+    dev.off()
+    list_fig_filename[[i]] <- fig_filename
+    
+    ##Now plot the location
+    #Take the max for now?
+    val_selected <- max(d_z$rmse)
+    d_z_selected <- d_z[d_z$rmse==val_selected,]
+    date_selected <- d_z_selected$date
+    #data_v_selected <- subset(tb_data_v,tb_data_v$date==date_selected)# & tb_data_v$tile_id==tile_selected)
+
+    data_v_selected <- subset(tb_data_v,tb_data_v$date==date_selected & tb_data_v$tile_id==tile_selected)
+    #tb_tile[,rmse==]
+
+    data_s_selected <- subset(tb_data_s,tb_data_s$date==date_selected & tb_data_s$tile_id==tile_selected)
+    
+    fig_filename <- paste("Figure3b_data_stations_trainaing_testing_extremes_tile_",model_name[j],"_",tile_selected,"_",
+                      region_name,"_",out_suffix,".png",sep="")
+    coordinates(data_s_selected)<- c(data_s_selected$lon,data_s_selected$lat)
+    coordinates(data_v_selected)<- c(data_v_selected$lon,data_v_selected$lat)
+    
+    res_pix <- 960
+    col_mfrow <- 1
+    row_mfrow <- 1
+    #only mod1 right now
+    png(filename=fig_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+    title_str <- paste("Data stations",metric_name,"for",tile_selected,"and",region_name,sep=" ")
+    
+    p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+    #title("(a) Mean for 1 January")
+    #tb_sorted$freq_extremes2 <- tb_sorted$freq_extremes/17
+    p <- bubble(tb_sorted,"freq_extremes",main=paste("Extremes per tile and by ",model_name[j]," for ",
+                                                                threshold_val[i]))
+
+    plot(d_z$rmse,ylab=metric_name,xlab="dates")
+    title(title_str)
+
+    #length(unique(test$year_predicted))
+    #unique(tb$year_predicted)
+    dev.off()
 
   }
    
+  #Now plot the location
+  
+  tile_selected_extremes <- as.character(list_tb_extremes[[3]]$df_extremes$tile_id)
+  list_fig_filename <- vector("list",length=length(tile_selected_extremes))
+  
+  
   ######################################################
   ##### Prepare objet to return ####
 
