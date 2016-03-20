@@ -13,7 +13,7 @@
 #STAGE 8: Comparison of predictions across regions and years with figures generation.
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 02/17/2016  
+#MODIFIED ON: 03/21/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -23,11 +23,12 @@
 #module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 
 ## TODO:
-# Add  assessment part 2 (figures): still testing
 # Make this callable from the shell
 # Adapt for python script
 # Fix figure for part2
 # Call also use library(optparse)
+
+#COMMENTS: Assessment region23 from NEX runs
 
 ##################################################################################################
 #
@@ -148,7 +149,7 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 #master directory containing the definition of tile size and tiles predicted
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
 in_dir <- args[2] #param 5, arg 2
-in_dir <- "/data/project/layers/commons/NEX_data/reg5_assessment"
+in_dir <- "/data/project/layers/commons/NEX_data/reg23_assessment"
 
 #in_dir <- "" #PARAM 0
 #y_var_name <- "dailyTmax" #PARAM1
@@ -158,17 +159,17 @@ in_dir <- "/data/project/layers/commons/NEX_data/reg5_assessment"
 #region_names <- c("reg23","reg4") #selected region names,
 #run assessment by region, this is a unique region only 
 region_name <- args[3] #param 6, arg 3
-region_name <- c("reg5") #param 6, arg 3
+region_name <- c("reg23") #param 6, arg 3
 
 #out_prefix <- "run_global_analyses_pred_12282015" #param 7, arg 4
 #out_dir <- "/nobackupp8/bparmen1/" #param 8, arg 5
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE #param 9, arg 6
 out_prefix <- args[4] #param 7, arg 4
-out_suffix <- "global_analyses_overall_assessment_reg5_02172016"
+out_suffix <- "global_analyses_overall_assessment_reg23_03212016"
 
 out_dir <- args[5] #param 8, arg 5
-out_dir <- "/data/project/layers/commons/NEX_data/reg5_assessment"
+out_dir <- "/data/project/layers/commons/NEX_data/reg23_assessment"
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- args[6] #param 9, arg 6
@@ -202,7 +203,7 @@ threshold_missing_day <- c(367,365,300,200) # param 20
 max_mem <- args[9] #param 21
 max_mem <- 1e+07
 #in_dir_list_filename <- args[10] #param 22
-in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg5_assessment/stage6_reg5_in_dir_list_02172016.txt"
+in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg23_assessment/stage6_reg23_in_dir_list_03212016.txt"
 #in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
 run_figure_by_year <- args[11] # param 10, arg 7, if true will create figures for individual years...
 run_figure_by_year <- TRUE # param 10, arg 7, if true will create figures for individual years...
