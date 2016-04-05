@@ -10,10 +10,18 @@
 #STAGE 5: Output analyses: assessment of results for specific dates and tiles
 #STAGE 6: Assessement of predictions by tiles and regions 
 #STAGE 7: Mosaicing of predicted surfaces and accuracy metrics (RMSE,MAE) by regions 
+#STAGE 8: Comparison of predictions across regions and years with figures generation.
+
 #AUTHOR: Benoit Parmentier                                                                        
-#CREATED ON: 01/01/2015  
-#MODIFIED ON: 01/05/2016  
+#CREATED ON: 01/01/2016  
+#MODIFIED ON: 04/05/2016  
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
+
+#First source these files:
+#Resolved call issues from R.
+#source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh  
+#MODULEPATH=$MODULEPATH:/nex/modules/files
+#module load pythonkits/gdal_1.10.0_python_2.7.3_nex
 
 ## TODO:
 # 
@@ -50,11 +58,23 @@ args<-commandArgs(TRUE)
 
 #CALLED FROM MASTER SCRIPT:
 
+#script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_12192015.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_01012016.Rglobal_run_scalingup_mosaicing_01052016.R"
-source(file.path(function_mosaicing)) #source all functions used in this script 
-source(file.path(function_mosaicing_functions)) #source all functions used in this script 
+function_mosaicing <-"global_run_scalingup_mosaicing_04052016.R"
+source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
+source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
+
+function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
+function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
+function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
+function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
+function_assessment_part3 <- "global_run_scalingup_assessment_part3_02102016.R"
+source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 ### Parameters and arguments ###
   
@@ -68,80 +88,102 @@ if (var == "TMIN") {
   y_var_month <- "TMin"
 }
 
-#interpolation_method<-c("gam_fusion") #other otpions to be added later
-interpolation_method<-c("gam_CAI")
-CRS_interp<-"+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs";
-#CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 
-out_region_name<-""
-list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)")
+#####mosaicing parameters
 
-#reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
-#master directory containing the definition of tile size and tiles predicted
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/"
-#/nobackupp6/aguzman4/climateLayers/out_15x45/1982
+#Data is on ATLAS or NASA NEX
+#PARAM 1
+#in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NCEAS
+#in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
+in_dir <- "/nobackupp6/aguzman4/climateLayers/out/"
 
-#region_names <- c("reg23","reg4") #selected region names, #PARAM2
-region_name <- c("reg4") #run assessment by region, this is a unique region only
-#region_names <- c("reg1","reg2","reg3","reg4","reg5","reg6") #selected region names, #PARAM2
-interpolation_method <- c("gam_CAI") #PARAM4
-out_prefix <- "run_global_analyses_pred_12282015" #PARAM5
-out_dir <- "/nobackupp8/bparmen1/" #PARAM6
-#out_dir <-paste(out_dir,"_",out_prefix,sep="")
-create_out_dir_param <- TRUE #PARAM7
+y_var_name <- "dailyTmax" #PARAM2
+interpolation_method <- c("gam_CAI") #PARAM3
+region_name <- "reg4" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+mosaicing_method <- c("unweighted","use_edge_weights") #PARAM5
+#out_suffix <- paste(region_name,"_","run10_1500x4500_global_analyses_pred_1991_04052016",sep="") #PARAM 6
+#out_suffix_str <- "run10_1500x4500_global_analyses_pred_1991_04052016" #PARAM 7
 
-#CRS_interp<-"+proj=sinu +lon_0=0 +x_0=0 +y_0=0 +a=6371007.181 +b=6371007.181 +units=m +no_defs";
-#CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
-CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+out_suffix <- region_name #PARAM 6
+out_suffix_str <- region_name #PARAM 7
 
-#list_year_predicted <- 1984:2004
-list_year_predicted <- c("2014")
-#year_predicted <- list_year_predicted[1]
+metric_name <- "rmse" #RMSE, MAE etc. #PARAM 8
+pred_mod_name <- "mod1" #PARAM 9
+var_pred <- "res_mod1" #used in residuals mapping #PARAM 10
 
-file_format <- ".tif" #format for mosaiced files #PARAM10
-NA_flag_val <- -9999  #No data value, #PARAM11
-num_cores <- 6 #number of cores used #PARAM13
-plotting_figures <- TRUE #running part2 of assessment to generate figures...
-  
-##Additional parameters used in part 2, some these may be removed as code is simplified
-mosaic_plot <- FALSE #PARAM14
-day_to_mosaic <- c("19920102","19920103","19920103") #PARAM15
-multiple_region <- TRUE #PARAM16
-countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp" #PARAM17
-#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
-plot_region <- TRUE  #PARAM18
-threshold_missing_day <- c(367,365,300,200)#PARAM19
+#out_dir <- in_dir #PARAM 11
+out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg4" #PARAM 11, use this location for now
+create_out_dir_param <- TRUE #PARAM 12
 
-list_param_run_assessment_prediction <- list(in_dir1,region_name,y_var_name,interpolation_method,out_prefix,
-                                  out_dir,create_out_dir_param,CRS_locs_WGS84,list_year_predicted,
-                                  file_format,NA_flag_val,num_cores,plotting_figures,
-                                  mosaic_plot,day_to_mosaic,multiple_region,countries_shp,plot_region)
-list_names <- c("in_dir1","region_name","y_var_name","interpolation_method","out_prefix",
-                                  "out_dir","create_out_dir_param","CRS_locs_WGS84","list_year_predicted",
-                                  "file_format","NA_flag_val","num_cores","plotting_figures",
-                                  "mosaic_plot","day_to_mosaic","multiple_region","countries_shp","plot_region")
-                                      
+#if daily mosaics NULL then mosaicas all days of the year #PARAM 13
+day_to_mosaic <- c("19910101","19910102","19910103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
 
-names(list_param_run_assessment_prediction)<-list_names
+#CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
+#CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+#proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
+ 
+file_format <- ".tif" #PARAM 14
+NA_value <- -9999 #PARAM 15
+NA_flag_val <- NA_value #PARAM 16
+     
+num_cores <- 6 #PARAM 17                 
+region_names <- c("reg23","reg4") #selected region names, ##PARAM 18 
+use_autokrige <- F #PARAM 19
+proj_str <- CRS_locs_WGS84
+
+###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_reg4.tif"
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_reg4.tif"
+## All of this is interesting so use df_assessment!!
+
+year_processed <- 1991 #PARAM 31
+#path_assessment <- "/nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1991"
+#path_assessment <- file.path(in_dir,region_name,"assessment",paste("output_",region_name,year_processed,sep=""))
+df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1991/df_assessment_files_reg4_1991_reg4_1991.txt" # data.frame with all files used in assessmnet, PARAM 21
+
+#in_dir can be on NEX or Atlas
+
+#python script and gdal on NEX NASA:
+mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin"
+#python script and gdal on Atlas NCEAS
+#mosaic_python <- "/data/project/layers/commons/NEX_data/sharedCode" #PARAM 26
+#python_bin <- "/usr/bin" #PARAM 27
+
+algorithm <- "python" #PARAM 28 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+#algorithm <- "R" #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+match_extent <- "FALSE" #PARAM 29 #try without matching!!!
+
+#for residuals...
+list_models <- NULL #PARAM 30
+#list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
   
 #max number of cells to read in memory
 max_mem<-args[11]
-#rasterOptions(maxmemory=1e+07,timer=TRUE)
+#in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
 
-#debug(run_assessment_prediction_fun)
+#rasterOptions(maxmemory=1e+07,timer=TRUE)
+list_param_run_mosaicing_prediction <- list(in_dir,y_var_name,interpolation_method,region_name,
+                 mosaicing_method,out_suffix,out_suffix_str,metric_name,pred_mod_name,var_pred,
+                 create_out_dir_param,day_to_mosaic,proj_str,file_format,NA_value,num_cores,
+                 region_name,use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
+                 python_bin,algorithm,match_extent,list_models)
+param_names <- c("in_dir","y_var_name","interpolation_method","region_name",
+                 "mosaicing_method","out_suffix","out_suffix_str","metric_name","pred_mod_name","var_pred",
+                 "create_out_dir_param","day_to_mosaic","proj_str","file_format","NA_value","num_cores",
+                 "region_name","use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
+                 "python_bin","algorithm","match_extent","list_models")
+names(list_param_run_mosaicing_prediction) <- param_names
+#list_param_run_mosaicing_prediction
+#debug(run_mosaicing_prediction_fun)
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
-if (stages_to_run[6]==6){
-  assessment_prediction_obj <- run_assessment_prediction_fun(i,list_param_run_assessment_prediction)
+if (stages_to_run[7]==7){
+  assessment_prediction_obj <- run_mosaicing_prediction_fun(i,list_param_run_mosaicing_prediction)
+  #list_param_run_mosaicing_prediction
 }
-
-## Add stage 7 (mosaicing) here??
-#i <- 1 #this select the first year of list_year_predicted
-#if (stages_to_run[7]==7){
-#  assessment_prediction_obj <- run_assessment_prediction_fun(i,list_param_run_assessment_prediction)
-#}
 
 ###############   END OF SCRIPT   ###################
 #####################################################
