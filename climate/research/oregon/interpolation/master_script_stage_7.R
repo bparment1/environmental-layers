@@ -60,8 +60,8 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_12192015.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_04052016.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04062016b.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_04062016.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -117,8 +117,8 @@ out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg4" #PARAM 11, use this loc
 create_out_dir_param <- TRUE #PARAM 12
 
 #if daily mosaics NULL then mosaicas all days of the year #PARAM 13
-day_to_mosaic <- c("19910101","19910102","19910103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
-
+#day_to_mosaic <- c("19910101","19910102","19910103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
+day_to_mosaic_range <- c("19910101","19910103") #if null run all year
 #CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
 #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 #proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
@@ -166,13 +166,13 @@ max_mem<-args[11]
 #rasterOptions(maxmemory=1e+07,timer=TRUE)
 list_param_run_mosaicing_prediction <- list(in_dir,y_var_name,interpolation_method,region_name,
                  mosaicing_method,out_suffix,out_suffix_str,metric_name,pred_mod_name,var_pred,
-                 create_out_dir_param,day_to_mosaic,proj_str,file_format,NA_value,num_cores,
-                 region_name,use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
+                 create_out_dir_param,day_to_mosaic_range,proj_str,file_format,NA_value,num_cores,
+                 use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
                  python_bin,algorithm,match_extent,list_models)
 param_names <- c("in_dir","y_var_name","interpolation_method","region_name",
                  "mosaicing_method","out_suffix","out_suffix_str","metric_name","pred_mod_name","var_pred",
-                 "create_out_dir_param","day_to_mosaic","proj_str","file_format","NA_value","num_cores",
-                 "region_name","use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
+                 "create_out_dir_param","day_to_mosaic_range","proj_str","file_format","NA_value","num_cores",
+                 "use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
                  "python_bin","algorithm","match_extent","list_models")
 names(list_param_run_mosaicing_prediction) <- param_names
 #list_param_run_mosaicing_prediction
@@ -180,6 +180,11 @@ names(list_param_run_mosaicing_prediction) <- param_names
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04062016b.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_04062016.R"
+source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
+source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
+
 if (stages_to_run[7]==7){
   assessment_prediction_obj <- run_mosaicing_prediction_fun(i,list_param_run_mosaicing_prediction)
   #list_param_run_mosaicing_prediction
