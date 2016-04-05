@@ -153,7 +153,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #9) pred_mod_name : model name used e.g. "mod1" #PARAM 9
   #10) var_pred : variable for use in residuals mapping (e.g. "res_mod1") #PARAM 10
   #11) create_out_dir_param: if TRUE then create a new dir #PARAM 11
-  #12) day_to_mosaic: daily mosaics NULL then mosaic all days of the year #PARAM 12
+  #12) day_to_mosaic_range: start and end date for daily mosaics, if NULL then mosaic all days of the year #PARAM 12
   #13) proj_str :porjection used by tiles e.g. CRS_WGS84 #PARAM 13
   #14) file_format: output file format used for raster eg ".tif" #PARAM 14
   #15) NA_value: NA value used e.g. -9999 #PARAM 15
@@ -220,7 +220,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   create_out_dir_param <- list_param_run_mosaicing_prediction$create_out_dir_param # FALSE #PARAM 12
   
   #if daily mosaics NULL then mosaicas all days of the year #PARAM 13
-  day_to_mosaic <- list_param_run_mosaicing_prediction$day_to_mosaic # c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
+  day_to_mosaic_range <- list_param_run_mosaicing_prediction$day_to_mosaic_range # c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
   
   #CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
   #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
@@ -260,7 +260,6 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   ####### PART 1: Read in data and process data ########
   
-    
   #out_dir <- in_dir #PARAM 11
   #in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
   NA_flag_val <- NA_value #PARAM 16
@@ -268,8 +267,11 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #in_dir <- file.path(in_dir,region_name)
   #out_dir <- in_dir
   if(create_out_dir_param==TRUE){
-    create_dir_fun()
     out_dir_tmp <- file.path(out_dir,"mosaic")
+    #   #create if does not exists
+    if(!file.exists(out_dir_tmp)){
+      dir.create(out_dir_tmp)
+    }
     out_dir <- create_dir_fun(out_dir_tmp,out_suffix)
     setwd(out_dir)
   }else{
@@ -278,31 +280,20 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   setwd(out_dir)
   
-  ###on 04/05 skipping this for now
   ### Read in assessment and accuracy files
   df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
 
-  #tb_v_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[2])) 
-  #tb_s_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[4])) 
-  #tb_s_month_accuracy_name <- file.path(in_dir, basename(df_assessment_files$files[3])) 
-  #data_month_s_name <- file.path(in_dir,basename(df_assessment_files$files[5])) 
-  #data_day_v_name <- file.path(in_dir, basename(df_assessment_files$files[6])) 
-  #data_day_s_name <- file.path(in_dir, basename(df_assessment_files$files[7])) 
-  ##data_month_v_name <- file.path(in_dir,basename(df_assessment_files$files[8])) 
-  #pred_data_month_info_name <- file.path(in_dir, basename(df_assessment_files$files[9]))
-  #pred_data_day_info_name <- file.path(in_dir, basename(df_assessment_files$files[10]))
-  #df_tile_processed_name <- file.path(in_dir, basename(df_assessment_files$files[11]))
-  
   tb_v_accuracy_name <- df_assessment_files$files[2] 
   tb_s_accuracy_name <- df_assessment_files$files[4] 
   tb_s_month_accuracy_name <- df_assessment_files$files[3] 
   data_month_s_name <- df_assessment_files$files[5] 
-  data_day_v_name <- df_assessment_files$files[6] 
-  data_day_s_name <- df_assessment_files$files[7] 
+  data_day_s_name <- df_assessment_files$files[6] 
+  data_day_v_name <- df_assessment_files$files[7] 
+
   ##data_month_v_name <- file.path(in_dir,basename(df_assessment_files$files[8])) 
-  pred_data_month_info_name <- df_assessment_files$files[9]
-  pred_data_day_info_name <- df_assessment_files$files[10]
-  df_tile_processed_name <- df_assessment_files$files[11]
+  pred_data_month_info_name <- df_assessment_files$files[10]
+  pred_data_day_info_name <- df_assessment_files$files[11]
+  df_tile_processed_name <- df_assessment_files$files[12]
   # accuracy table by tiles
   tb <- read.table(tb_v_accuracy_name,sep=",")
   tb_s <- read.table(tb_s_accuracy_name,sep=",")
@@ -311,40 +302,38 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   data_day_v <- read.table(data_day_v_name,sep=",") #daily training stations by dates and tiles
   df_tile_processed <- read.table(df_tile_processed_name,sep=",")
   
-  #list all files to mosaic for a list of day
-  #Take into account multiple region in some cases!!!  
-  reg_lf_mosaic <- vector("list",length=length(region_name))
-  
-  #for(k in 1:length(region_names)){
   #this part needs to be improve make this a function and use multicore to loop through files...
   #give a range of dates to run...
-  if(is.null(day_to_mosaic)){
-    start_date <- #first date
-    end_date <-  
+  
+  if(is.null(day_to_mosaic_range)){
+  #  start_date <- #first date
+     start_date <- paste0(year_processed,"0101") #change this later!!
+     end_date <-   paste0(year_processed,"0101") #change this later!!
+     day_to_mosaic <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
+     day_to_mosaic <- format(day_to_mosaic,"%Y%m%d") #format back to the relevant date format for files
+  }else{
+    start_date <- day_to_mosaic_range[1]
+    end_date <- day_to_mosaic_range[2]
+    day_to_mosaic <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
+    day_to_mosaic <- format(day_to_mosaic,"%Y%m%d") #format back to the relevant date format for files
   }
   
-  for(k in 1:length(region_name)){
-    in_dir_tiles_tmp <- file.path(in_dir, region_name[k])
-    #fix this later and add the year..
-    #gam_CAI_dailyTmax_predicted_mod1
-    reg_lf_mosaic[[k]] <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
+  in_dir_tiles_tmp <- file.path(in_dir, region_name)
+  #fix this later and add the year..
+  #gam_CAI_dailyTmax_predicted_mod1
+
+  lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
                                                                                     pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=T)})
-  }
-  
+
   #reg_lf_mosaic[[k]] <- list.files(path=file.path(in_dir_tiles_tmp),pattern=paste(".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=T)
   ##################### PART 2: produce the mosaic ##################
   
   #This is is assuming a list of file for a region!! 
   #this is where the main function for mosaicing region starts!!
   #use reg4 to test the code for now, redo later for any regions!!!
-  k<-1
-  #for(k in 1:length(region_name)){
-  region_selected <- region_name[k]
-  ##########################
-  #### First generate rmse images for each date and tile for the region
-    
-    
-  lf_mosaic <- reg_lf_mosaic[[k]] #list of files to mosaic by regions
+
+  region_selected <- region_name
+
   #There a 28 files for reg4, South America
     
   #######################################
@@ -383,6 +372,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #Plot as quick check
   #r1 <- raster(lf_mosaic[[1]][1]) 
   #plot(r1)
+  #browser()
     
   ####################################
   ### Now create accuracy surfaces from residuals...
@@ -407,8 +397,11 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #NA_flag_val 
   #file_format 
   out_dir_str <- out_dir
-  out_suffix_str <- out_suffix 
+  #out_suffix_str <- out_suffix 
   days_to_process <- day_to_mosaic
+  out_suffix_str <- paste("data_day_v_",out_suffix,sep="") 
+    
+  #browser()
   df_tile_processed$path_NEX <- as.character(df_tile_processed$path_NEX) 
   df_tile_processed$reg <- basename(dirname(df_tile_processed$path_NEX))
     
@@ -502,7 +495,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   ##took 31 minutes to generate the residuals maps for each tiles (28) for region 4
     
   ######################################################
-  #### PART 2: GENETATE MOSAIC FOR LIST OF FILES #####
+  #### PART 2: GENERATE MOSAIC FOR LIST OF FILES #####
   #################################
   #### Mosaic tiles for the variable predicted and accuracy metric
     
