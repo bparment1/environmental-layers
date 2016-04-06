@@ -418,7 +418,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                                             "var_pred","list_models","use_autokrige","y_var_name","interpolation_method",
                                                             "days_to_process","num_cores_tmp","NA_flag_val","file_format","out_dir_str",
                                                             "out_suffix_str") 
-    
+  #browser()  
   list_create_accuracy_residuals_raster_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_residuals_raster,
                                                         list_param=list_param_create_accuracy_residuals_raster)
     
@@ -426,7 +426,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #list_create_accuracy_residuals_raster_obj <- lapply(1:1,FUN=create_accuracy_residuals_raster,
   #                                list_param=list_param_create_accuracy_residuals_raster)
     
-  #create_accuracy_residuals_raster_obj <- create_accuracy_metric_raster(1, list_param_create_accuracy_residuals_raster_obj)
+  #create_accuracy_residuals_raster_obj <- create_accuracy_residuals_raster(1, list_param_create_accuracy_residuals_raster_obj)
     
   #note that three tiles did not produce a residuals surface!!! find out more later, join the output
   #to df_raste_tile to keep track of which one did not work...
@@ -436,7 +436,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #Plot as quick check
   #r1 <- raster(lf_mosaic[[1]][1]) 
   #list_create_accuracy_residuals_raster_obj
-    
+  #browser()  
+  
+  #########################################
   ##Run for data_day_s
   ##
   data_df <- data_day_s # data.frame table/spdf containing stations with residuals and variable
@@ -477,7 +479,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                                             "var_pred","list_models","use_autokrige","y_var_name","interpolation_method",
                                                             "days_to_process","num_cores_tmp","NA_flag_val","file_format","out_dir_str",
                                                             "out_suffix_str") 
-    
+  browser()  
   list_create_accuracy_residuals_raster_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_residuals_raster,
                                                         list_param=list_param_create_accuracy_residuals_raster)
     
