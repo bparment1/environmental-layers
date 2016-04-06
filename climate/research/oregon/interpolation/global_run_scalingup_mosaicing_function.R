@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 12/19/2015            
+#MODIFIED ON: 04/06/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -153,7 +153,7 @@ create_accuracy_metric_raster <- function(i, list_param){
   
     extension_str <- extension(inFilename)
     raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
-    outFilename <- file.path(out_dir,paste(raster_name_tmp,"_",metric_name,"_",out_suffix,file_format,sep="")) #for use in function later...
+    outFilename <- file.path(out_dir_str,paste(raster_name_tmp,"_",metric_name,"_",out_suffix,file_format,sep="")) #for use in function later...
   
     writeRaster(r1, NAflag=NA_flag_val,filename=outFilename,overwrite=TRUE)  
     #list_raster_name[[j]] <- outFilename
@@ -202,7 +202,7 @@ create_accuracy_metric_raster <- function(i, list_param){
 
   #use mclapply  
   #list_raster_name <- vector("list",length=length(lf))
-  list_param_raster_df_centroids <- list(df_centroids,metric_name,NA_flag_val,file_format,out_dir,out_suffix)
+  list_param_raster_df_centroids <- list(df_centroids,metric_name,NA_flag_val,file_format,out_dir_str,out_suffix)
   names(list_param_raster_df_centroids) <- c("df_centroids","metric_name","NA_flag_val","file_format","out_dir","out_suffix")
 
   #undebug(create_raster_df_centroids_fun)
