@@ -1343,6 +1343,7 @@ create_accuracy_residuals_raster <- function(i,list_param){
     data_df <- list_param$data_df
     df_raster_pred_tiles <- list_param$df_raster_pred_tiles
     list_formulas <- list_param$list_formulas
+    use_autokrige <- list_param$use_autokrige
     NA_flag_val <- list_param$NA_flag_val
     file_format <- list_param$file_format
     out_dir_str <- list_param$out_dir_str
@@ -1360,7 +1361,7 @@ create_accuracy_residuals_raster <- function(i,list_param){
     #create output name for predicted raster
     extension_str <- extension(inFilename)
     raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
-    out_filename <- file.path(out_dir,paste(raster_name_tmp,"_","kriged_residuals_",var_pred,"_",out_suffix,file_format,sep="")) #for use in function later...
+    out_filename <- file.path(out_dir_str,paste(raster_name_tmp,"_","kriged_residuals_",var_pred,"_",out_suffix_str,file_format,sep="")) #for use in function later...
 
     #tile_selected <- as.character(df_raster_pred_tiles$tile_id[j])
     data_df$tile_id <- as.character(data_df$tile_id)
@@ -1412,8 +1413,8 @@ create_accuracy_residuals_raster <- function(i,list_param){
   NA_flag_val <- list_param$NA_flag_val
   #NAflag,file_format,out_suffix etc...
   file_format <- list_param$file_format
-  out_dir_str <- list_param$out_dir
-  out_suffix_str <- list_param$out_suffix
+  out_dir_str <- list_param$out_dir_str
+  out_suffix_str <- list_param$out_suffix_str
   
   ######## START SCRIPT ###############
   
@@ -1427,11 +1428,18 @@ create_accuracy_residuals_raster <- function(i,list_param){
   #Now match the correct tiles with data used in kriging...
   #match the correct tile!!! df_tile_processed
   #pattern_str <- as.character(unique(df_tile_processed$tile_coord))
+  
+  #check that all the rows are tile related (this is related to the bug of "output_test)
+  df_tile_processed_reg <- df_tile_processed_reg[!is.na(df_tile_processed_reg$shp_files),]
+  
   list_tile_coord <- as.character(df_tile_processed_reg$tile_coord)
   pattern_str <- glob2rx(paste("*",list_tile_coord,"*","*.tif",sep=""))
   keywords_str <- pattern_str
   tmp_str2 <-unlist(lapply(keywords_str,grep,lf_day_tiles,value=TRUE))
-  df_raster_pred_tiles_tmp <- data.frame(files =tmp_str2, tile_coord=list_tile_coord)
+  list_coord_tf <- basename(dirname(dirname(tmp_str2)))
+  df_raster_pred_tiles_tmp <- data.frame(files =tmp_str2, tile_coord=list_coord_tf)
+   
+  #df_raster_pred_tiles_tmp <- data.frame(files =tmp_str2, tile_coord=list_tile_coord)
   df_raster_pred_tiles <- merge(df_raster_pred_tiles_tmp,df_tile_processed_reg,by="tile_coord")
   df_raster_pred_tiles$path_NEX <- as.character(df_raster_pred_tiles$path_NEX)
   df_raster_pred_tiles$reg <- basename(dirname(df_raster_pred_tiles$path_NEX))
@@ -1449,11 +1457,11 @@ create_accuracy_residuals_raster <- function(i,list_param){
   lf <- df_raster_pred_tiles$files
   
   ##Make this loop a function later on, testing right now
-  list_param_generate_residuals_raster <- list(lf,var_pred,data_df,df_raster_pred_tiles,list_formulas,NA_flag_val,file_format,out_dir,out_suffix)
-  names(list_param_generate_residuals_raster) <- c("lf","var_pred","data_df","df_raster_pred_tiles","list_formulas","NA_flag_val","file_format","out_dir","out_suffix")
+  list_param_generate_residuals_raster <- list(lf,var_pred,data_df,df_raster_pred_tiles,list_formulas,use_autokrige,NA_flag_val,file_format,out_dir_str,out_suffix_str)
+  names(list_param_generate_residuals_raster) <- c("lf","var_pred","data_df","df_raster_pred_tiles","list_formulas","use_autokrige","NA_flag_val","file_format","out_dir_str","out_suffix_str")
 
   #debug(generate_residuals_raster)
-  #test_lf <- lapply(1,FUN=generate_residuals_raster,list_param=list_param_generate_residuals_raster)                           
+  #test_lf <- lapply(3,FUN=generate_residuals_raster,list_param=list_param_generate_residuals_raster)                           
   
   list_pred_res_obj <- mclapply(1:length(lf),FUN=generate_residuals_raster,list_param=list_param_generate_residuals_raster,mc.preschedule=FALSE,mc.cores = num_cores)                           
   ## Add to df_raster_pred_tiles
@@ -1462,7 +1470,7 @@ create_accuracy_residuals_raster <- function(i,list_param){
   #write output
   accuracy_residuals_obj <-list(list_pred_res_obj,data_df,df_raster_pred_tiles)
   names(accuracy_residuals_obj)<-c("list_pred_res_obj","data_df","df_raster_pred_tiles")
-  save(accuracy_residuals_obj,file= file.path(out_dir,paste("accuracy_residuals_obj_",date_processed,"_",var_pred,
+  save(accuracy_residuals_obj,file= file.path(out_dir_str,paste("accuracy_residuals_obj_",date_processed,"_",var_pred,
                                                             out_suffix_str,".RData",sep="")))
   
   return(accuracy_residuals_obj) 
