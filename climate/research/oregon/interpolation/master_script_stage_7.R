@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 04/05/2016  
+#MODIFIED ON: 04/08/2016  
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -60,8 +60,8 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04062016b.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_04062016.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04072016.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_04072016b.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -76,8 +76,18 @@ source(file.path(script_path,function_assessment_part2)) #source all functions u
 source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
-### Parameters and arguments ###
+### Parameters, constants and arguments ###
+stages_to_run<-c(0,0,0,0,0,0,7) #this is stage, other stages are stored in files.
   
+CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+
+#####mosaicing parameters
+
+#Data is on ATLAS or NASA NEX
+
+var <- args[1] # variable being interpolated #param 1, arg 1
+var<-"TMAX" # variable being interpolated #param 1, arg 1
+
 var<-"TMAX" # variable being interpolated
 if (var == "TMAX") {
   y_var_name <- "dailyTmax"
@@ -88,18 +98,13 @@ if (var == "TMIN") {
   y_var_month <- "TMin"
 }
 
-CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-
-#####mosaicing parameters
-
-#Data is on ATLAS or NASA NEX
-#PARAM 1
+#PARAM 2
 #in_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NCEAS
 #in_dir <- "/nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_12072015" #NEX
 in_dir <- "/nobackupp6/aguzman4/climateLayers/out/"
 
-y_var_name <- "dailyTmax" #PARAM2
 interpolation_method <- c("gam_CAI") #PARAM3
+
 region_name <- "reg4" #PARAM 4 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
 mosaicing_method <- c("unweighted","use_edge_weights") #PARAM5
 #out_suffix <- paste(region_name,"_","run10_1500x4500_global_analyses_pred_1991_04052016",sep="") #PARAM 6
@@ -128,7 +133,7 @@ NA_value <- -9999 #PARAM 15
 NA_flag_val <- NA_value #PARAM 16
      
 num_cores <- 6 #PARAM 17                 
-region_names <- c("reg23","reg4") #selected region names, ##PARAM 18 
+#region_names <- c("reg23","reg4") #selected region names, ##PARAM 18 
 use_autokrige <- F #PARAM 19
 proj_str <- CRS_locs_WGS84
 
@@ -162,28 +167,30 @@ list_models <- NULL #PARAM 30
 #max number of cells to read in memory
 max_mem<-args[11]
 #in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
+layers_option <- c("var_pred") #options are:
+#res_training, res_testing,ac_training, ac_testing, var_pred
 
 #rasterOptions(maxmemory=1e+07,timer=TRUE)
 list_param_run_mosaicing_prediction <- list(in_dir,y_var_name,interpolation_method,region_name,
                  mosaicing_method,out_suffix,out_suffix_str,metric_name,pred_mod_name,var_pred,
                  create_out_dir_param,day_to_mosaic_range,proj_str,file_format,NA_value,num_cores,
                  use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
-                 python_bin,algorithm,match_extent,list_models)
+                 python_bin,algorithm,match_extent,list_models,layers_option)
 param_names <- c("in_dir","y_var_name","interpolation_method","region_name",
                  "mosaicing_method","out_suffix","out_suffix_str","metric_name","pred_mod_name","var_pred",
                  "create_out_dir_param","day_to_mosaic_range","proj_str","file_format","NA_value","num_cores",
                  "use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
-                 "python_bin","algorithm","match_extent","list_models")
+                 "python_bin","algorithm","match_extent","list_models","layers_option")
 names(list_param_run_mosaicing_prediction) <- param_names
 #list_param_run_mosaicing_prediction
 #debug(run_mosaicing_prediction_fun)
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04062016b.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_04062016.R"
-source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
-source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
+#function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04072016.R" #PARAM12
+#function_mosaicing <-"global_run_scalingup_mosaicing_04072016.R"
+#source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
+#source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
 if (stages_to_run[7]==7){
   assessment_prediction_obj <- run_mosaicing_prediction_fun(i,list_param_run_mosaicing_prediction)
