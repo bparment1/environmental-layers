@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/07/2016            
+#MODIFIED ON: 04/08/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -79,7 +79,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #27) algorithm: python or R, if R use mosaic function for R, if python use modified gdal merge, PARAM 27
   #28) match_extent : if "FALSE" try without matching geographic extent #PARAM 28 
   #29) list_models : if NULL use y~1 formula #PARAM 29
-
+  #30) layers_option: mosaic to create as a layer from var_pred (e.g. TMax), res_training, res_testing, ac_testing
+  
   ###OUTPUT
   # 
   #
@@ -167,7 +168,10 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
   layers_option <- list_param_run_mosaicing_prediction$layers_option
   
+  
+  #################################################################
   ####### PART 1: Read in data and process data ########
+  ########################################################
   
   #out_dir <- in_dir #PARAM 11
   #in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
@@ -230,12 +234,13 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   in_dir_tiles_tmp <- file.path(in_dir, region_name)
   #fix this later and add the year..
   #gam_CAI_dailyTmax_predicted_mod1
-
+  #this is very slow!!! it takes 8 minutes?!
   lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
                                                                                     pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=T)})
 
-  #reg_lf_mosaic[[k]] <- list.files(path=file.path(in_dir_tiles_tmp),pattern=paste(".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=T)
+  #########################################################################
   ##################### PART 2: produce the mosaic ##################
+  ######################################################################
   
   #This is is assuming a list of file for a region!! 
   #this is where the main function for mosaicing region starts!!
@@ -292,7 +297,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   ### Now create accuracy surfaces from residuals...
     
   if(layers_option=="res_testing"){
-
+    #This part took 19 minutes and 45 seconds
+    
     ## Create accuracy surface by kriging
     num_cores_tmp <-num_cores
     lf_day_tiles  <- lf_mosaic #list of raster files by dates
@@ -357,7 +363,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   ##Run for data_day_s
   ##
   
-  if(layers_option=="res_testing"){
+  if(layers_option=="res_training"){
+    #This part took 19 minutes and 40 seconds
     
     data_df <- data_day_s # data.frame table/spdf containing stations with residuals and variable
     
@@ -413,11 +420,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     lf_accuracy_residuals_data_s_raster <- lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){as.character(unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name")))},x=list_create_accuracy_residuals_raster_obj)
     
   }
-  ##took 31 minutes to generate the residuals maps for each tiles (28) for region 4
-  ##Revised on 04/07 for three dates, it took 40 minutes
   
   ######################################################
-  #### PART 2: GENERATE MOSAIC FOR LIST OF FILES #####
+  #### PART 3: GENERATE MOSAIC FOR LIST OF FILES #####
   #################################
   #### Mosaic tiles for the variable predicted and accuracy metric
     
@@ -427,15 +432,18 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
   for(i in 1:length(day_to_mosaic)){
     #
-    mosaic_method <- "use_edge_weights" #this is distance from edge
-    out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
-    #debug(mosaicFiles)
-    #can also loop through methods!!!
-    #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
-    #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
-    #gdal_merge_sum_noDataTest.py
+    
+    if(layers_option=="var_pred"){
       
-    mosaic_edge_obj_prediction <- mosaicFiles(lf_mosaic[[i]],
+      mosaic_method <- "use_edge_weights" #this is distance from edge
+      out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
+      #debug(mosaicFiles)
+      #can also loop through methods!!!
+      #python_bin <- "/usr/bin/" #python gdal bin, on Atlas NCEAS
+      #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin" #on NEX
+      #gdal_merge_sum_noDataTest.py
+      
+      mosaic_obj <- mosaicFiles(lf_mosaic[[i]],
                                                 mosaic_method="use_edge_weights",
                                                 num_cores=num_cores,
                                                 r_mask_raster_name=infile_mask,
@@ -448,16 +456,19 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                                 file_format=file_format,
                                                 out_suffix=out_suffix_tmp,
                                                 out_dir=out_dir)
-    #runs in 15-16 minutes for 3 dates and mosaicing of 28 tiles...  
+      #runs in 15-16 minutes for 3 dates and mosaicing of 28 tiles...
+      list_mosaic_obj[[i]] <- mosaic_obj
+    }
     
-    ## Now accuracy based on center of centroids
-    mosaic_method <- "use_edge_weights" #this is distance from edge
-    #Adding metric name in the name...
-    out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
-      
-    #debug(mosaicFiles)
-    #can also loop through methods!!!
-    mosaic_edge_obj_accuracy <- mosaicFiles(lf_accuracy_raster[[i]],
+    if(layers_option=="ac_testing"){
+      ## Now accuracy based on center of centroids
+      mosaic_method <- "use_edge_weights" #this is distance from edge
+      #Adding metric name in the name...
+      out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
+    
+      #debug(mosaicFiles)
+      #can also loop through methods!!!
+      mosaic_obj <- mosaicFiles(lf_accuracy_raster[[i]],
                                               mosaic_method="use_edge_weights",
                                               num_cores=num_cores,
                                               r_mask_raster_name=infile_mask,
@@ -469,18 +480,22 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                               file_format=file_format,
                                               out_suffix=out_suffix_tmp,
                                               out_dir=out_dir)
-    ##Took 39 minutes for 28 tiles and one date...!!!  
-    list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
-      
+      ##Took 29 minutes for 28 tiles and one date...!!! 
+      list_mosaic_obj[[i]] <- mosaic_obj
+    }
+    
+    #list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy)
+
     ### produce residuals mosaics
-    #for now add data_day_s in the name!!
-    mosaic_method <- "use_edge_weights" #this is distance from edge
-    out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_s",day_to_mosaic[i],out_suffix,sep="_")
-    #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
-    lf_tmp <- lf_accuracy_residuals_raster[[i]]
-    #lf_accuracy_residuals_raster[[i]]
-    #debug(mosaicFiles)
-    mosaic_edge_obj_residuals <- mosaicFiles(lf_tmp,
+    if(layers_option=="res_testing"){
+      #for now add data_day_s in the name!!
+      mosaic_method <- "use_edge_weights" #this is distance from edge
+      out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_v",day_to_mosaic[i],out_suffix,sep="_")
+      #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
+      lf_tmp <- lf_accuracy_residuals_raster[[i]]
+      #lf_accuracy_residuals_raster[[i]]
+      #debug(mosaicFiles)
+      mosaic_obj <- mosaicFiles(lf_tmp,
                                                mosaic_method="use_edge_weights",
                                                num_cores=num_cores,
                                                r_mask_raster_name=infile_mask,
@@ -493,81 +508,45 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                                file_format=file_format,
                                                out_suffix=out_suffix_tmp,
                                                out_dir=out_dir)
-    #Took 11 to 12 minues for one day and 28 tiles in region 4
-    list_mosaic_obj[[i]] <- list(prediction=mosaic_edge_obj_prediction,accuracy=mosaic_edge_obj_accuracy,mosaic_edge_obj_residuals)
-    #}
+      #Took 11 to 12 minues for one day and 28 tiles in region 4
+      list_mosaic_obj[[i]] <- mosaic_obj
+    }      
+    
+    ### produce residuals mosaics
+    if(layers_option=="res_training"){
+      #for now add data_day_s in the name!!
+      mosaic_method <- "use_edge_weights" #this is distance from edge
+      out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_s",day_to_mosaic[i],out_suffix,sep="_")
+      #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
+      lf_tmp <- lf_accuracy_residuals_raster[[i]]
+      #lf_accuracy_residuals_raster[[i]]
+      #debug(mosaicFiles)
+      mosaic_obj <- mosaicFiles(lf_tmp,
+                                               mosaic_method="use_edge_weights",
+                                               num_cores=num_cores,
+                                               r_mask_raster_name=infile_mask,
+                                               python_bin=python_bin,
+                                               mosaic_python=mosaic_python,
+                                               algorithm=algorithm,
+                                               match_extent=match_extent,
+                                               df_points=NULL,
+                                               NA_flag=NA_flag_val,
+                                               file_format=file_format,
+                                               out_suffix=out_suffix_tmp,
+                                               out_dir=out_dir)
+      list_mosaic_obj[[i]] <- mosaic_obj
+      #Took 11 to 12 minues for one day and 28 tiles in region 4
+    }
     
     ##End of mosaicing function for region predictions
-  }
-  
-  
-  #####################
-  ###### PART 2: Analysis and figures for the outputs of mosaic function #####
-  
-  #### compute and aspect and slope with figures
-  #list_lf_mosaic_obj <- vector("list",length(day_to_mosaic))
-  #lf_mean_mosaic <- vector("list",length(mosaicing_method))#2methods only
-  #l_method_mosaic <- vector("list",length(mosaicing_method))
-  #list_out_suffix <- vector("list",length(mosaicing_method))
-  
-  #for(i in 1:length(day_to_mosaic)){
-  #  list_lf_mosaic_obj[[i]] <- list.files(path=out_dir,pattern=paste("*",day_to_mosaic[i],
-  #                                                                   "_.*.RData",sep=""))
-  #  lf_mean_mosaic[[i]] <- unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["mean_mosaic"]]}))
-  #  l_method_mosaic[[i]] <- paste(unlist(lapply(list_lf_mosaic_obj[[i]],function(x){load_obj(x)[["method"]]})),day_to_mosaic[i],sep="_")
-  #  list_out_suffix[[i]] <- unlist(paste(l_method_mosaic[[i]],day_to_mosaic[[i]],out_suffix,sep="_"))
-  #}
-  
-  #if(plot_figures==TRUE){
-    
-    #list_param_plot_mosaic <- list(lf_mosaic=unlist(lf_mean_mosaic),
-    #                               method=unlist(l_method_mosaic),
-    #                               out_suffix=unlist(list_out_suffix))
-    
-    #plot and produce png movie...
-    #plot_mosaic(1,list_param=list_param_plot_mosaic)
-    #num_cores <- 1
-    #l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)),FUN=plot_mosaic,
-    #                        list_param= list_param_plot_mosaic,
-    #                        mc.preschedule=FALSE,mc.cores = num_cores)
-    
-    #lf_plot<- list.files(pattern="r_m_use.*.mask.*.tif$")
-    #lf_mean_mosaic <- lf_plot
-    
-    
-    #list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[1:2]),
-    #                               screenRast=TRUE,
-    #                               l_dates=day_to_mosaic,
-    #                               out_dir_str=out_dir,
-    #                               out_prefix_str <- "dailyTmax_",
-    #                               out_suffix_str=out_suffix)
-    #debug(plot_screen_raster_val)
-    #plot_screen_raster_val(1,list_param_plot_mosaic)
-    
-    
-    #num_cores <- 2
-    #l_png_files <- mclapply(1:length(unlist(lf_mean_mosaic)[1:2]),FUN=plot_screen_raster_val,
-    #                        list_param= list_param_plot_mosaic,
-    #                        mc.preschedule=FALSE,mc.cores = num_cores)
-    
-    
-    #list_param_plot_mosaic <- list(lf_raster_fname=unlist(lf_mean_mosaic[4:6]),
-    #                               screenRast=FALSE,
-    #                               l_dates=day_to_mosaic,
-    #                               out_dir_str=out_dir,
-    #                               out_prefix_str <- paste("rmse_",out_suffix,sep=""),
-    #                               out_suffix_str=paste("rmse_",out_suffix,sep=""))
-    #num_cores <- 3
-    #l_png_files_rmse <- mclapply(1:length(unlist(lf_mean_mosaic)[4:6]),FUN=plot_screen_raster_val,
-    #                             list_param= list_param_plot_mosaic,
-    #                             mc.preschedule=FALSE,mc.cores = num_cores)
-    
-  #}
+  }## end of day_to_mosaic loop
   
   ##Create return object
-  #list of mosaiced files
-  
+  #list of mosaiced files: get the list of files now to include in the output object!!
+  mosaicing_prediction_obj <- list(list_mosaic_obj,layer_option)
+  names(mosaicing_prediction_obj) <- c("list_mosaic_obj","layer_option")
   return(run_mosaicing_prediction_obj)
+  
 }
 
 ###############
