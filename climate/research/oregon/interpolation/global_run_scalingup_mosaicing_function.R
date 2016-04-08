@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/06/2016            
+#MODIFIED ON: 04/08/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -238,10 +238,16 @@ create_weights_fun <- function(i, list_param){
   #This function generates weights from a point location on a raster layer.
   #Note that the weights are normatlized on 0-1 scale using max and min values.
   #Inputs:
-  #lf: list of raster files
-  #df_points: reference points from which to compute distance
-  #r_feature: reference features as raster image from which to compute distance from
-  #methods: options available: use_sine_weights,use_edge,use_linear_weights
+  #1)lf: list of raster files
+  #2)df_points: reference points from which to compute distance
+  #3)r_feature: reference features as raster image from which to compute distance from
+  #4)methods: options available: use_sine_weights,use_edge,use_linear_weights
+  #5)NA_flag : raster flag values, e.g. -9999
+  #6)file_format: raster format used, default is ".tif"
+  #7)out_suffix_str: output suffix, default is NULL, it is recommended to add the variable name etc.
+  #             here e.g. dailyTmax and date!!
+  #8)out_dir_str: output directory, default is NULL
+
   #Outputs:
   #raster list of weights and product of wegihts and inuts
   #TODO: 
@@ -252,18 +258,25 @@ create_weights_fun <- function(i, list_param){
   #
   ############
   
+  ##### START SCRIPT #####
+  
+  ##### Parse out the input parameters
+  
   lf <- list_param$lf
   df_points <- list_param$df_points
   r_feature <- list_param$r_feature #this should be change to a list
   padding <- TRUE #if padding true then make buffer around edges??
   method <- list_param$method #differnt methods available to create weights
   #NAflag,file_format,out_suffix etc...
+  NA_flag_val <- list_param$NA_flag
+  file_format <- list_param$file_format
+  out_suffix_str <- list_param$out_suffix_str
   out_dir_str <- list_param$out_dir_str
     
-  ####### START SCRIPT #####
+  ##### Prepare weight layers  
   
   r_in <- raster(lf[i]) #input image
-  tile_no <- i
+  tile_no <- i #file being processed, assuming tiles by tiles
   
   set1f <- function(x){rep(NA, x)}
   r_init <- init(r_in, fun=set1f)
@@ -323,11 +336,12 @@ create_weights_fun <- function(i, list_param){
       r_init[1:n_row,1] <- 1
       r_init[1:n_row,n_col] <- 1
       #r_dist <- distance(r_init)
-      srcfile <- file.path(out_dir,paste("feature_target_",tile_no,"_",Sys.getpid(),".tif",sep=""))
+      #out_suffix_str
+      srcfile <- file.path(out_dir_str,paste("feature_target_",tile_no,"_",Sys.getpid(),out_suffix_str,file_format,sep=""))
 
       writeRaster(r_init,filename=srcfile,overwrite=T)
       #Sys.getpid
-      dstfile <- file.path(out_dir,paste("feature_target_edge_distance",tile_no,"_",Sys.getpid(),".tif",sep=""))
+      dstfile <- file.path(out_dir_str,paste("feature_target_edge_distance",tile_no,"_",Sys.getpid(),out_suffix_str,file_format,sep=""))
       n_values <- "1"
         
       cmd_str <- paste("gdal_proximity.py", srcfile, dstfile,"-values",n_values,sep=" ")
@@ -348,11 +362,11 @@ create_weights_fun <- function(i, list_param){
   
   extension_str <- extension(lf[i])
   raster_name_tmp <- gsub(extension_str,"",basename(lf[i]))
-  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",method,"_weights.tif",sep=""))
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",method,"_weights_",out_suffix_str,file_format,sep=""))
   writeRaster(r, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
   
   r_var_prod <- r_in*r
-  raster_name_prod <- file.path(out_dir_str, paste(raster_name_tmp,"_",method,"_prod_weights.tif",sep=""))
+  raster_name_prod <- file.path(out_dir_str, paste(raster_name_tmp,"_",method,"_prod_weights_",out_suffix_str,file_format,sep=""))
   writeRaster(r_var_prod, NAflag=NA_flag_val,filename=raster_name_prod,overwrite=TRUE)  
     
   weights_obj <- list(raster_name,raster_name_prod)
@@ -449,7 +463,7 @@ raster_match <- function(i,list_param){
   return(raster_name)
 }
 
-mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum_noDataTest.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL){
+mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum_noDataTest.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL,tmp_files=FALSE){
   #This functions mosaics tiles/files give a list of files. 
   #There are four options to mosaic:   use_sine_weights,use_edge,use_linear_weights, unweighted
   #Sine weights fits sine fuctions across rows and column producing elliptical/spherical patterns from center
@@ -473,6 +487,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #11)out_dir: output directory, default is NULL
   #12)algorithm: use R or python function
   #13)match extent: if TRUE match extent before mosaicing
+  #14)tmp_files: if TRUE then keep temporary files
   #
   #OUTPUT:
   # Object is produced with 3 components:
@@ -487,6 +502,10 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   
   out_dir_str <- out_dir
 
+  if(tmp_file==T){
+    out_suffix_str_tmp <- paste0(out_suffix,"_tmp")
+  }
+  
   lf_r_weights <- vector("list",length=length(lf_mosaic))
   
   ###############
@@ -499,8 +518,18 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #df_points <- NULL
     r_feature <- NULL
 
-    list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
-    names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
+    #lf <- list_param$lf
+    #df_points <- list_param$df_points
+    #r_feature <- list_param$r_feature #this should be change to a list
+    #padding <- TRUE #if padding true then make buffer around edges??
+    #method <- list_param$method #differnt methods available to create weights
+    #NAflag,file_format,out_suffix etc...
+    #NA_flag_val <- list_param$NA_flag
+    #file_format <- list_param$file_format
+    #out_suffix_str <- list_param$out_suffix_str
+    #out_dir_str <- list_param$out_dir_str
+    list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,NA_flag_val,file_format,out_suffix_str_tmp,out_dir_str) 
+    names(list_param_create_weights) <- c("lf","df_points","r_feature","method","NA_flag","file_format","out_suffix_str","out_dir_str") 
     #num_cores <- 11
 
     #debug(create_weights_fun)
@@ -525,8 +554,11 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     df_points <- NULL
     r_feature <- NULL
 
-    list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
-    names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
+    #list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
+    #names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
+    list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,NA_flag_val,file_format,out_suffix_str_tmp,out_dir_str) 
+    names(list_param_create_weights) <- c("lf","df_points","r_feature","method","NA_flag","file_format","out_suffix_str","out_dir_str") 
+
     #num_cores <- 11
 
     #debug(create_weights_fun)
@@ -550,8 +582,11 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     method <- "use_edge"
     df_points <- NULL
     r_feature <- NULL
-    list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
-    names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
+    
+    list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,NA_flag_val,file_format,out_suffix_str_tmp,out_dir_str) 
+    names(list_param_create_weights) <- c("lf","df_points","r_feature","method","NA_flag","file_format","out_suffix_str","out_dir_str") 
+    #list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
+    #names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
     #num_cores <- 11
     #debug(create_weights_fun)
     #weights_obj <- create_weights_fun(3,list_param=list_param_create_weights)
