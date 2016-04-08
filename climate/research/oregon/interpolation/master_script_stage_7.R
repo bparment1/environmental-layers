@@ -60,8 +60,8 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04072016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_04072016b.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04102016.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_04082016.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -169,18 +169,19 @@ max_mem<-args[11]
 #in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
 layers_option <- c("var_pred") #options are:
 #res_training, res_testing,ac_training, ac_testing, var_pred
+tmp_files <- FALSE
 
 #rasterOptions(maxmemory=1e+07,timer=TRUE)
 list_param_run_mosaicing_prediction <- list(in_dir,y_var_name,interpolation_method,region_name,
                  mosaicing_method,out_suffix,out_suffix_str,metric_name,pred_mod_name,var_pred,
                  create_out_dir_param,day_to_mosaic_range,proj_str,file_format,NA_value,num_cores,
                  use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
-                 python_bin,algorithm,match_extent,list_models,layers_option)
+                 python_bin,algorithm,match_extent,list_models,layers_option,tmp_files)
 param_names <- c("in_dir","y_var_name","interpolation_method","region_name",
                  "mosaicing_method","out_suffix","out_suffix_str","metric_name","pred_mod_name","var_pred",
                  "create_out_dir_param","day_to_mosaic_range","proj_str","file_format","NA_value","num_cores",
                  "use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
-                 "python_bin","algorithm","match_extent","list_models","layers_option")
+                 "python_bin","algorithm","match_extent","list_models","layers_option","tmp_files")
 names(list_param_run_mosaicing_prediction) <- param_names
 #list_param_run_mosaicing_prediction
 #debug(run_mosaicing_prediction_fun)
