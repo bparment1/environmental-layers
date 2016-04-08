@@ -80,6 +80,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #28) match_extent : if "FALSE" try without matching geographic extent #PARAM 28 
   #29) list_models : if NULL use y~1 formula #PARAM 29
   #30) layers_option: mosaic to create as a layer from var_pred (e.g. TMax), res_training, res_testing, ac_testing
+  #31) tmp_files: if TRUE keep temporary files generated during mosaicing
   
   ###OUTPUT
   # 
@@ -167,7 +168,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   list_models <- list_param_run_mosaicing_prediction$list_models #  NULL #PARAM 26
   #list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
   layers_option <- list_param_run_mosaicing_prediction$layers_option
-  
+  tmp_files <- list_param_run_mosaicing_prediction$tmp_files 
   
   #################################################################
   ####### PART 1: Read in data and process data ########
@@ -421,6 +422,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     
   }
   
+  #browser()
+  
   ######################################################
   #### PART 3: GENERATE MOSAIC FOR LIST OF FILES #####
   #################################
@@ -444,18 +447,19 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       #gdal_merge_sum_noDataTest.py
       
       mosaic_obj <- mosaicFiles(lf_mosaic[[i]],
-                                                mosaic_method="use_edge_weights",
-                                                num_cores=num_cores,
-                                                r_mask_raster_name=infile_mask,
-                                                python_bin=python_bin,
-                                                mosaic_python=mosaic_python,
-                                                algorithm=algorithm,
-                                                match_extent=match_extent,
-                                                df_points=NULL,
-                                                NA_flag=NA_flag_val,
-                                                file_format=file_format,
-                                                out_suffix=out_suffix_tmp,
-                                                out_dir=out_dir)
+                                mosaic_method="use_edge_weights",
+                                num_cores=num_cores,
+                                r_mask_raster_name=infile_mask,
+                                python_bin=python_bin,
+                                mosaic_python=mosaic_python,
+                                algorithm=algorithm,
+                                match_extent=match_extent,
+                                df_points=NULL,
+                                NA_flag=NA_flag_val,
+                                file_format=file_format,
+                                out_suffix=out_suffix_tmp,
+                                out_dir=out_dir,
+                                tmp_files=tmp_files)
       #runs in 15-16 minutes for 3 dates and mosaicing of 28 tiles...
       list_mosaic_obj[[i]] <- mosaic_obj
     }
@@ -469,17 +473,18 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       #debug(mosaicFiles)
       #can also loop through methods!!!
       mosaic_obj <- mosaicFiles(lf_accuracy_raster[[i]],
-                                              mosaic_method="use_edge_weights",
-                                              num_cores=num_cores,
-                                              r_mask_raster_name=infile_mask,
-                                              python_bin=python_bin,
-                                              mosaic_python=mosaic_python,
-                                              algorithm=algorithm,
-                                              df_points=NULL,
-                                              NA_flag=NA_flag_val,
-                                              file_format=file_format,
-                                              out_suffix=out_suffix_tmp,
-                                              out_dir=out_dir)
+                                mosaic_method="use_edge_weights",
+                                num_cores=num_cores,
+                                r_mask_raster_name=infile_mask,
+                                python_bin=python_bin,
+                                mosaic_python=mosaic_python,
+                                algorithm=algorithm,
+                                df_points=NULL,
+                                NA_flag=NA_flag_val,
+                                file_format=file_format,
+                                out_suffix=out_suffix_tmp,
+                                out_dir=out_dir,
+                                tmp_files=tmp_files)
       ##Took 29 minutes for 28 tiles and one date...!!! 
       list_mosaic_obj[[i]] <- mosaic_obj
     }
@@ -507,7 +512,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                                NA_flag=NA_flag_val,
                                                file_format=file_format,
                                                out_suffix=out_suffix_tmp,
-                                               out_dir=out_dir)
+                                               out_dir=out_dir,
+                                               tmp_files=tmp_files)
       #Took 11 to 12 minues for one day and 28 tiles in region 4
       list_mosaic_obj[[i]] <- mosaic_obj
     }      
@@ -533,7 +539,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                                NA_flag=NA_flag_val,
                                                file_format=file_format,
                                                out_suffix=out_suffix_tmp,
-                                               out_dir=out_dir)
+                                               out_dir=out_dir,
+                                               tmp_files=tmp_files)
       list_mosaic_obj[[i]] <- mosaic_obj
       #Took 11 to 12 minues for one day and 28 tiles in region 4
     }
