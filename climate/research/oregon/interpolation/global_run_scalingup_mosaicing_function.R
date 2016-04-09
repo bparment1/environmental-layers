@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/08/2016            
+#MODIFIED ON: 04/09/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -502,9 +502,9 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   
   out_dir_str <- out_dir
 
-  if(tmp_file==T){
-    out_suffix_str_tmp <- paste0(out_suffix,"_tmp")
-  }
+  #if(tmp_files==T){
+  out_suffix_str_tmp <- paste0(out_suffix,"_tmp")
+  #}
   
   lf_r_weights <- vector("list",length=length(lf_mosaic))
   
@@ -562,7 +562,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #num_cores <- 11
 
     #debug(create_weights_fun)
-    weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
+    #weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
     #This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
     #the edges...can use rows and columsn to set edges to 1 and 0 for the others.
@@ -588,7 +588,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #list_param_create_weights <- list(lf_mosaic,df_points,r_feature,method,out_dir_str) 
     #names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
     #num_cores <- 11
-    #debug(create_weights_fun)
+    #undebug(create_weights_fun)
     #weights_obj <- create_weights_fun(3,list_param=list_param_create_weights)
 
     #This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
@@ -650,7 +650,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
         ##Maching resolution is probably only necessary for the r mosaic function
         #Modify later to take into account option R or python...
-        list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+        list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix_str_tmp,out_dir_str)
         names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
         #undebug(raster_match)
@@ -660,7 +660,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
         list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
         lf_files <- unlist(list_weights_prod)
-        list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+        list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix_str_tmp,out_dir_str)
         names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
         #num_cores <-11
@@ -681,8 +681,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #write.table(lf_day_to_mosaic,file=file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep="")))
       #filename_list_mosaics <- file.path(out_dir,paste("list_to_mosaics_",day_to_mosaic[i],".txt",sep=""))
 
-      filename_list_mosaics_weights_m <- file.path(out_dir,paste("list_to_mosaics_","weights_",mosaic_method,"_",out_suffix,".txt",sep=""))
-      filename_list_mosaics_prod_weights_m <- file.path(out_dir,paste("list_to_mosaics_","prod_weights_",mosaic_method,"_",out_suffix,".txt",sep=""))
+      filename_list_mosaics_weights_m <- file.path(out_dir_str,paste("list_to_mosaics_","weights_",mosaic_method,"_",out_suffix_str_tmp,".txt",sep=""))
+      filename_list_mosaics_prod_weights_m <- file.path(out_dir_str,paste("list_to_mosaics_","prod_weights_",mosaic_method,"_",out_suffix_str_tmp,".txt",sep=""))
       
       #writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
       #writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
@@ -692,8 +692,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
       #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
       #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
-      out_mosaic_name_weights_m  <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
-      out_mosaic_name_prod_weights_m <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+      out_mosaic_name_weights_m  <- file.path(out_dir_str,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
+      out_mosaic_name_prod_weights_m <- file.path(out_dir_str,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
 
       #in_file_to_mosaics <- filename_list_mosaics        
       #in_dir_mosaics <- file.path(in_dir1,region_names[i])
@@ -754,7 +754,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
       ##Maching resolution is probably only necessary for the r mosaic function
       #MOdify later to take into account option R or python...
-      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix_str_tmp,out_dir_str)
       names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
       #undebug(raster_match)
@@ -764,7 +764,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
       lf_files <- unlist(list_weights_prod)
-      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix_str_tmp,out_dir_str)
       names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
       #num_cores <-11
@@ -791,14 +791,14 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       list_args_weights_prod <- lapply(1:length(list_args_weights_prod), FUN=function(i,x){raster(x[[i]])},x=list_args_weights_prod)
       list_args_weights_prod$fun <- "sum" #use sum while mosaicing
       list_args_weights_prod$na.rm <- TRUE #deal with NA by removal
-      r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+      r_weights_sum_raster_name <- file.path(out_dir_str,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
       list_args_weights$filename <- r_weights_sum_raster_name
       list_args_weights$overwrite<- TRUE
       list_args_weights_prod$overwrite<- TRUE  #add to overwrite existing image  
     
       list_args_weights$fun <- "sum" #we want the sum to compute the weighted mean
       list_args_weights$na.rm <- TRUE
-      r_prod_sum_raster_name <- file.path(out_dir,paste("r_prod_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+      r_prod_sum_raster_name <- file.path(out_dir_str,paste("r_prod_sum_m_",method_str,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
       list_args_weights_prod$filename <- r_prod_sum_raster_name
 
       #Mosaic files: this is where we can use Alberto Python function but modified with option for
@@ -813,7 +813,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
     #r_m_weighted_mean <- r_prod_sum/r_weights_sum #this is the mosaic using weighted mean...
 
-    r_m_weighted_mean_raster_name <- file.path(out_dir,paste("r_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+    r_m_weighted_mean_raster_name <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
 
     if(is.null(python_bin)){
       python_bin=""
@@ -850,7 +850,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #undebug(raster_match)
       r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
 
-      r_m_weighted_mean_mask_raster_name <- file.path(out_dir,paste("r_m_",mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
+      r_m_weighted_mean_mask_raster_name <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
       mask(raster(r_m_weighted_mean_raster_name_matched),mask=raster(r_mask_raster_name),
            filename=r_m_weighted_mean_mask_raster_name,overwrite=TRUE)
       raster_name <- r_m_weighted_mean_mask_raster_name
@@ -862,12 +862,15 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   if(mosaic_method=="unweighted"){
     #### Fourth use original images
     #macth file to mosaic extent using the original predictions
-    lf_files <- lf_mosaic
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
-
-    list_pred_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
-
+    
+    if(match_extent==TRUE){
+      lf_files <- lf_mosaic
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,out_suffix,out_dir)
+      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","out_suffix","out_dir_str")
+      list_pred_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
+    }else{
+      list_pred_m <- lf_mosaic
+    }
     #list_mosaiced_files <- list.files(pattern="r_m.*._weighted_mean_.*.tif")
 
     #names(list_mosaiced_files) <- c("edge","linear","sine")
@@ -919,10 +922,18 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
   }
   
+  ########## clean up the disk/directories before ending the function ####
+  
+  if(tmp_files==F){ #if false...delete all files with "_tmp"
+    lf_tmp <- list.files(pattern="*.*tmp*.*",path=out_dir_str,full.names=T)
+    ##now delete temporary files...
+    file.remove(lf_tmp)
+  }
+  
   #Create return object
   mosaic_obj <- list(raster_name,list_weights,list_weights_prod,mosaic_method)
   names(mosaic_obj) <- c("mean_mosaic","r_weights","r_weigths_prod","method")
-  save(mosaic_obj,file=file.path(out_dir,paste(mosaic_method,"_","mosaic_obj_",out_suffix,".RData",sep="")))
+  save(mosaic_obj,file=file.path(out_dir_str,paste(mosaic_method,"_","mosaic_obj_",out_suffix,".RData",sep="")))
   return(mosaic_obj)
 }
 
