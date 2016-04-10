@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/09/2016            
+#MODIFIED ON: 04/11/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
