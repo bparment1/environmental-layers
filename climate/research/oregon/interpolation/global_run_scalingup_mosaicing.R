@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/08/2016            
+#MODIFIED ON: 04/10/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -550,8 +550,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   ##Create return object
   #list of mosaiced files: get the list of files now to include in the output object!!
-  mosaicing_prediction_obj <- list(list_mosaic_obj,layer_option)
-  names(mosaicing_prediction_obj) <- c("list_mosaic_obj","layer_option")
+  mosaicing_prediction_obj <- list(list_mosaic_obj,layers_option) #debugged
+  names(mosaicing_prediction_obj) <- c("list_mosaic_obj","layers_option")
   return(run_mosaicing_prediction_obj)
   
 }
