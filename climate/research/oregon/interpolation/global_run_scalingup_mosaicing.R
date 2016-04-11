@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/10/2016            
+#MODIFIED ON: 04/11/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -60,27 +60,28 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #8) metric_name: metric or columns to use for additional mosaicing: "rmse" #RMSE, MAE etc. #PARAM 8
   #9) pred_mod_name : model name used e.g. "mod1" #PARAM 9
   #10) var_pred : variable for use in residuals mapping (e.g. "res_mod1") #PARAM 10
-  #11) create_out_dir_param: if TRUE then create a new dir #PARAM 11
-  #12) day_to_mosaic_range: start and end date for daily mosaics, if NULL then mosaic all days of the year #PARAM 12
-  #13) proj_str :porjection used by tiles e.g. CRS_WGS84 #PARAM 13
-  #14) file_format: output file format used for raster eg ".tif" #PARAM 14
-  #15) NA_value: NA value used e.g. -9999 #PARAM 15
-  #16) num_cores: number of cores #PARAM 16                 
-  #17) region_names: selected region names e.g. reg4 #PARAM 17 
-  #18) use_autokrige: use_autokrige if FALSE use kriging from Fields package #PARAM 18
-  #19) infile_mask: input file mask used for the region under process #PARAM 19
-  #20) tb_accuracy_name: daily accuracy from testing/validation stations by tiles #PARAM 20
-  #21) data_month_s_name: training stations for climatology time steps  #PARAM 21
-  #22) data_day_v_name:  testing stations for daily predictions combined #PARAM 22
-  #23) data_day_s_name: training stations for daily predictions cominbed #PARAM 23
-  #24) df_tile_processed_name: processed tiles from the accuracy assessment ##PARAM 24
-  #25) mosaic_python: python script used in the mosoicing (gdalmerge script from Alberto Guzmann) #PARAM 25
-  #26) python_bin: directory for general python "/usr/bin" #PARAM 26
-  #27) algorithm: python or R, if R use mosaic function for R, if python use modified gdal merge, PARAM 27
-  #28) match_extent : if "FALSE" try without matching geographic extent #PARAM 28 
-  #29) list_models : if NULL use y~1 formula #PARAM 29
-  #30) layers_option: mosaic to create as a layer from var_pred (e.g. TMax), res_training, res_testing, ac_testing
-  #31) tmp_files: if TRUE keep temporary files generated during mosaicing
+  #11) out_dir: output directory #PARAM 11
+  #12) create_out_dir_param: if TRUE then create a new dir #PARAM 12
+  #13) day_to_mosaic_range: start and end date for daily mosaics, if NULL then mosaic all days of the year #PARAM 12
+  #14) year_predicted: year of the prediction being mosaiced (process is done by year)
+  #15) proj_str :porjection used by tiles e.g. CRS_WGS84 #PARAM 13
+  #16) file_format: output file format used for raster eg ".tif" #PARAM 14
+  #17) NA_value: NA value used e.g. -9999 #PARAM 15
+  #18) num_cores: number of cores #PARAM 16                 
+  #19) use_autokrige: use_autokrige if FALSE use kriging from Fields package #PARAM 18
+  #20) infile_mask: input file mask used for the region under process #PARAM 19
+  #21) tb_accuracy_name: daily accuracy from testing/validation stations by tiles #PARAM 20
+  #22) data_month_s_name: training stations for climatology time steps  #PARAM 21
+  #23) data_day_v_name:  testing stations for daily predictions combined #PARAM 22
+  #24) data_day_s_name: training stations for daily predictions cominbed #PARAM 23
+  #25) df_tile_processed_name: processed tiles from the accuracy assessment ##PARAM 24
+  #26) mosaic_python: python script used in the mosoicing (gdalmerge script from Alberto Guzmann) #PARAM 25
+  #27) python_bin: directory for general python "/usr/bin" #PARAM 26
+  #28) algorithm: python or R, if R use mosaic function for R, if python use modified gdal merge, PARAM 27
+  #29) match_extent : if "FALSE" try without matching geographic extent #PARAM 28 
+  #30) list_models : if NULL use y~1 formula #PARAM 29
+  #31) layers_option: mosaic to create as a layer from var_pred (e.g. TMax), res_training, res_testing, ac_testing
+  #32) tmp_files: if TRUE keep temporary files generated during mosaicing
   
   ###OUTPUT
   # 
@@ -127,11 +128,12 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   metric_name <- list_param_run_mosaicing_prediction$metric_name # "rmse" #RMSE, MAE etc. #PARAM 8
   pred_mod_name <- list_param_run_mosaicing_prediction$pred_mod_name #"mod1" #PARAM 9
   var_pred <- list_param_run_mosaicing_prediction$var_pred # "res_mod1" #used in residuals mapping #PARAM 10
+  out_dir <- list_param_run_mosaicing_prediction$out_dir #PARAM 11
   create_out_dir_param <- list_param_run_mosaicing_prediction$create_out_dir_param # FALSE #PARAM 12
   
   #if daily mosaics NULL then mosaicas all days of the year #PARAM 13
   day_to_mosaic_range <- list_param_run_mosaicing_prediction$day_to_mosaic_range # c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
-  
+  year_processed <- list_param_run_mosaicing_prediction$year_predicted
   #CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
   #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
   proj_str <- list_param_run_mosaicing_prediction$proj_str# CRS_WGS84 #PARAM 8 #check this parameter
@@ -552,8 +554,10 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #list of mosaiced files: get the list of files now to include in the output object!!
   mosaicing_prediction_obj <- list(list_mosaic_obj,layers_option) #debugged
   names(mosaicing_prediction_obj) <- c("list_mosaic_obj","layers_option")
-  return(run_mosaicing_prediction_obj)
-  
+  fname_mosaicing_prediction_obj <- file.path(out_dir,paste("mosaicing_prediction_obj_",out_suffix_str,".RData",sep=""))
+  save(mosaicing_prediction_obj,file= fname_mosaicing_prediction_obj)
+
+  return(mosaicing_prediction_obj)
 }
 
 ###############
