@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/11/2016            
+#MODIFIED ON: 04/20/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -26,8 +26,8 @@
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 #
 #reg1   : North America
-#reg23" : Europe + Asia
-#reg4"  : South America
+#reg23  : Europe + Asia
+#reg4   : South America
 #reg5   : Africa
 #reg6   : Oceania+ South East Asia
 #
@@ -46,13 +46,13 @@
 
 run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
 
-  ##Function to predict temperature interpolation with 12 input parameters
-  #12 parameters used in the data preparation stage and input in the current script
+  ##This is a general function to mosaic predicted tiles and accuracy layers with 34 input parameters.
+  #
   #
   #Input Parameters:
-  #1) in_dir <- list_param_run_mosaicing_prediction$in_dir #PARAM1
-  #2) y_var_name <- list_param_run_mosaicing_prediction$y_var_name # #PARAM2
-  #3) interpolation_method <- list_param_run_mosaicing_prediction$interpolation_method ##PARAM3
+  #1) in_dir: input directory, parent directory containing predictions for all regions #PARAM1
+  #2) y_var_name: climate variable predicted (dailyTmax, dailyTmin, dailyPrecip) # #PARAM2
+  #3) interpolation_method: interpolation method being used, gam_CAI currently ##PARAM3
   #4) region_name: region_name e.g. reg4 South America #PARAM4
   #5) mosaicing_method: options include "unweighted","use_edge_weights" #PARAM5
   #6) out_suffix : output suffix #PARAM 6
@@ -82,6 +82,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #30) list_models : if NULL use y~1 formula #PARAM 29
   #31) layers_option: mosaic to create as a layer from var_pred (e.g. TMax), res_training, res_testing, ac_testing
   #32) tmp_files: if TRUE keep temporary files generated during mosaicing
+  #33) use_int: if TRUE, use int32 in the final output
+  #34) scaling: scaling factor to multiply the original variable before conversation to int
   
   ###OUTPUT
   # 
@@ -132,27 +134,27 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   create_out_dir_param <- list_param_run_mosaicing_prediction$create_out_dir_param # FALSE #PARAM 12
   
   #if daily mosaics NULL then mosaicas all days of the year #PARAM 13
-  day_to_mosaic_range <- list_param_run_mosaicing_prediction$day_to_mosaic_range # c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM9, two dates note in /tiles for now on NEX
-  year_processed <- list_param_run_mosaicing_prediction$year_predicted
+  day_to_mosaic_range <- list_param_run_mosaicing_prediction$day_to_mosaic_range # c("19920101","19920102","19920103") #,"19920104","19920105") #PARAM14, two dates note in /tiles for now on NEX
+  year_processed <- list_param_run_mosaicing_prediction$year_predicted #PARAM 15
   #CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
   #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-  proj_str <- list_param_run_mosaicing_prediction$proj_str# CRS_WGS84 #PARAM 8 #check this parameter
+  proj_str <- list_param_run_mosaicing_prediction$proj_str# CRS_WGS84 #PARAM 16 #check this parameter
   
-  file_format <- list_param_run_mosaicing_prediction$file_format # ".tif" #PARAM 14
-  NA_value <- list_param_run_mosaicing_prediction$NA_value # -9999 #PARAM 15
+  file_format <- list_param_run_mosaicing_prediction$file_format # ".tif" #PARAM 17
+  NA_value <- list_param_run_mosaicing_prediction$NA_value # -9999 #PARAM 18
   
-  num_cores <- list_param_run_mosaicing_prediction$num_cores  #6 #PARAM 17                 
+  num_cores <- list_param_run_mosaicing_prediction$num_cores  #6 #PARAM 19                 
   #region_names <- list_param_run_mosaicing_prediction$region_names # c("reg23","reg4") #selected region names, ##PARAM 18 
-  use_autokrige <- list_param_run_mosaicing_prediction$use_autokrige # F #PARAM 19
+  use_autokrige <- list_param_run_mosaicing_prediction$use_autokrige # F #PARAM 20
   
-  ###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 20
+  ###Separate folder for masks by regions, should be listed as just the dir!!... #PARAM 21
   #infile_mask <- "/nobackupp8/bparmen1/regions_input_files/r_mask_reg4.tif"
   infile_mask <- list_param_run_mosaicing_prediction$infile_mask # input mask used in defining the region
   
   #in_dir can be on NEX or Atlas
   
   ##skip this for now
-  #df_assessment_files_name <- list_param_run_mosaicing_prediction$df_assessment_files_name # data.frame with all files used in assessmnet, PARAM 21
+  df_assessment_files_name <- list_param_run_mosaicing_prediction$df_assessment_files_name # data.frame with all files used in assessmnet, PARAM 21
 
   #python script and gdal on NEX NASA:
   #mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
@@ -169,8 +171,10 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #for residuals...
   list_models <- list_param_run_mosaicing_prediction$list_models #  NULL #PARAM 26
   #list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
-  layers_option <- list_param_run_mosaicing_prediction$layers_option
-  tmp_files <- list_param_run_mosaicing_prediction$tmp_files 
+  layers_option <- list_param_run_mosaicing_prediction$layers_option #PARAM 27
+  tmp_files <- list_param_run_mosaicing_prediction$tmp_files  #PARAM 28
+  use_int <- list_param_run_mosaicing_prediction$use_int #PARAM 29
+  scaling <- list_param_run_mosaicing_prediction$scaling 
   
   #################################################################
   ####### PART 1: Read in data and process data ########
@@ -238,9 +242,21 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #fix this later and add the year..
   #gam_CAI_dailyTmax_predicted_mod1
   #this is very slow!!! it takes 8 minutes?!
-  lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
-                                                                                    pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=T)})
+  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+  #  list.files(path=file.path(in_dir_tiles_tmp),    
+  #  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),
+  #  full.names=T,recursive=T)})
 
+  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
+  #                                                                                  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=F)})
+  #Using changes from Alberto
+  lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+    searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+    #print(searchStr)
+    Sys.glob(searchStr)})
+  
+  browser()
+  
   #########################################################################
   ##################### PART 2: produce the mosaic ##################
   ######################################################################
@@ -255,7 +271,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     
   #######################################
   ################### PART I: Accuracy layers by tiles #############
-  #first generate accuracy layers using tiles definitions and output from the accuracy assessment
+  ###Depending on value of layers_option, create accuracy surfaces based on day testing metric (e.g. rmse)...
+  #Generate accuracy layers using tiles definitions and output from the accuracy assessment
     
   if(layers_option=="ac_testing"){
     #this takes about 1 minute and 35 seconds for 3 days and 28 tiles...
@@ -297,7 +314,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   }
     
   ####################################
-  ### Now create accuracy surfaces from residuals...
+  ###Depending on value of layers_option, create accuracy surfaces based on testing residuals...
     
   if(layers_option=="res_testing"){
     #This part took 19 minutes and 45 seconds
@@ -363,7 +380,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   }
   
   #########################################
-  ##Run for data_day_s
+  ###Depending on value of layers_option, create accuracy surfaces based on training residuals...
   ##
   
   if(layers_option=="res_training"){
@@ -429,11 +446,12 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   ######################################################
   #### PART 3: GENERATE MOSAIC FOR LIST OF FILES #####
   #################################
-  #### Mosaic tiles for the variable predicted and accuracy metric
+  #### Mosaic tiles for the variable predicted and accuracy metrics, residuals surfaces or other options
     
   #methods availbable:use_sine_weights,use_edge,use_linear_weights
   #only use edge method for now
   #loop to dates..., make this a function...
+  #This is a loop but uses multicores when calling the mosaic function
   list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
   for(i in 1:length(day_to_mosaic)){
     #
@@ -461,7 +479,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 file_format=file_format,
                                 out_suffix=out_suffix_tmp,
                                 out_dir=out_dir,
-                                tmp_files=tmp_files)
+                                tmp_files=tmp_files,
+                                use_int=use_int,
+                                scaling=scaling)
       #runs in 15-16 minutes for 3 dates and mosaicing of 28 tiles...
       list_mosaic_obj[[i]] <- mosaic_obj
     }
@@ -486,7 +506,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 file_format=file_format,
                                 out_suffix=out_suffix_tmp,
                                 out_dir=out_dir,
-                                tmp_files=tmp_files)
+                                tmp_files=tmp_files,
+                                use_int=use_int,
+                                scaling=scaling)
       ##Took 29 minutes for 28 tiles and one date...!!! 
       list_mosaic_obj[[i]] <- mosaic_obj
     }
@@ -503,19 +525,21 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       #lf_accuracy_residuals_raster[[i]]
       #debug(mosaicFiles)
       mosaic_obj <- mosaicFiles(lf_tmp,
-                                               mosaic_method="use_edge_weights",
-                                               num_cores=num_cores,
-                                               r_mask_raster_name=infile_mask,
-                                               python_bin=python_bin,
-                                               mosaic_python=mosaic_python,
-                                               algorithm=algorithm,
-                                               match_extent=match_extent,
-                                               df_points=NULL,
-                                               NA_flag=NA_flag_val,
-                                               file_format=file_format,
-                                               out_suffix=out_suffix_tmp,
-                                               out_dir=out_dir,
-                                               tmp_files=tmp_files)
+                                mosaic_method="use_edge_weights",
+                                num_cores=num_cores,
+                                r_mask_raster_name=infile_mask,
+                                python_bin=python_bin,
+                                mosaic_python=mosaic_python,
+                                algorithm=algorithm,
+                                match_extent=match_extent,
+                                df_points=NULL,
+                                NA_flag=NA_flag_val,
+                                file_format=file_format,
+                                out_suffix=out_suffix_tmp,
+                                out_dir=out_dir,
+                                tmp_files=tmp_files,
+                                use_int,
+                                scaling)
       #Took 11 to 12 minues for one day and 28 tiles in region 4
       list_mosaic_obj[[i]] <- mosaic_obj
     }      
@@ -530,19 +554,22 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       #lf_accuracy_residuals_raster[[i]]
       #debug(mosaicFiles)
       mosaic_obj <- mosaicFiles(lf_tmp,
-                                               mosaic_method="use_edge_weights",
-                                               num_cores=num_cores,
-                                               r_mask_raster_name=infile_mask,
-                                               python_bin=python_bin,
-                                               mosaic_python=mosaic_python,
-                                               algorithm=algorithm,
-                                               match_extent=match_extent,
-                                               df_points=NULL,
-                                               NA_flag=NA_flag_val,
-                                               file_format=file_format,
-                                               out_suffix=out_suffix_tmp,
-                                               out_dir=out_dir,
-                                               tmp_files=tmp_files)
+                                mosaic_method="use_edge_weights",
+                                num_cores=num_cores,
+                                r_mask_raster_name=infile_mask,
+                                python_bin=python_bin,
+                                mosaic_python=mosaic_python,
+                                algorithm=algorithm,
+                                match_extent=match_extent,
+                                df_points=NULL,
+                                NA_flag=NA_flag_val,
+                                file_format=file_format,
+                                out_suffix=out_suffix_tmp,
+                                out_dir=out_dir,
+                                tmp_files=tmp_files,
+                                use_int=use_int,
+                                scaling=scaling)
+      
       list_mosaic_obj[[i]] <- mosaic_obj
       #Took 11 to 12 minues for one day and 28 tiles in region 4
     }
