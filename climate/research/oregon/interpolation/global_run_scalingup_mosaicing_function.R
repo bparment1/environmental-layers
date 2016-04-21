@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/11/2016            
+#MODIFIED ON: 04/20/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -463,7 +463,7 @@ raster_match <- function(i,list_param){
   return(raster_name)
 }
 
-mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum_noDataTest.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL,tmp_files=FALSE){
+mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum_noDataTest.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL,tmp_files=FALSE,use_int=TRUE,scaling=100){
   #This functions mosaics tiles/files give a list of files. 
   #There are four options to mosaic:   use_sine_weights,use_edge,use_linear_weights, unweighted
   #Sine weights fits sine fuctions across rows and column producing elliptical/spherical patterns from center
@@ -488,6 +488,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #12)algorithm: use R or python function
   #13)match extent: if TRUE match extent before mosaicing
   #14)tmp_files: if TRUE then keep temporary files
+  #15)use_int: if TRUE use int values for mosaicing
+  #16)scaling: numeric value to multiply the values before conversion to integer
   #
   #OUTPUT:
   # Object is produced with 3 components:
@@ -814,20 +816,100 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #r_m_weighted_mean <- r_prod_sum/r_weights_sum #this is the mosaic using weighted mean...
 
     r_m_weighted_mean_raster_name <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
-
+    #r_m_weighted_mean_raster_name <- "test_tmp.tif"
     if(is.null(python_bin)){
       python_bin=""
     }
+    
+    ##Add here the int and scaling?
+    #note that the nodata was fixed...
+    #browser()
+    if(use_int==TRUE){
+      data_type <- "int16"
+    }else{
+      data_type <- "Float32"
+    }
+    if(is.null(scaling)){
+      scaling <- 1
+    }
+    #if not null use the value specificied in the parameters
     
     python_cmd <- file.path(python_bin,"gdal_calc.py")
     cmd_str <- paste(python_cmd, 
                      paste("-A ", r_prod_sum_raster_name,sep=""),
                      paste("-B ", r_weights_sum_raster_name,sep=""),
                      paste("--outfile=",r_m_weighted_mean_raster_name,sep=""),
-                     paste("NoDataValue=",NA_flag_val,sep=""),
-                     "--calc='A/B'","--overwrite",sep=" ") #division by zero is problematic...
+                     paste("--type=",data_type,sep=""),
+                     paste("--NoDataValue=",NA_flag_val,sep=""),
+                     #"--calc='A/B'","--overwrite",sep=" ") #division by zero is problematic...
+                     paste("--calc='(A/B)*",scaling,"'",sep=""),
+                     "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str)
+    
+    ##Can merge one and 2 with parentheses operations!!
+    ##Reclassify with valid range: -100,100
+    max_val <- 100*scaling #set min_valid
+    r_m_weighted_mean_raster_name_rec1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec1_",out_suffix,"_tmp",".tif",sep=""))
+    #rec_tmp1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,".tif",sep=""))
+    cmd_str4 <- paste(python_cmd, 
+                     paste("-A ", r_m_weighted_mean_raster_name,sep=""),
+                     paste("--outfile=",r_m_weighted_mean_raster_name_rec1,sep=""),
+                     paste("--type=",data_type,sep=""),
+                     paste("--NoDataValue=",NA_flag_val,sep=""),
+                     paste("--calc='(A>",max_val,")*",NA_flag_val,"'",sep=""),
+                     "--overwrite",sep=" ") #division by zero is problematic...
+    system(cmd_str4)
+    
+    r_m_weighted_mean_raster_name_rec2 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec2_",out_suffix,"_tmp",".tif",sep=""))
+    min_val <- -100*scaling #set min_valid as a input
+    cmd_str5 <- paste(python_cmd, 
+                     paste("-A ", r_m_weighted_mean_raster_name,sep=""),
+                     paste("--outfile=",r_m_weighted_mean_raster_name_rec2,sep=""),
+                     paste("--type=",data_type,sep=""),
+                     paste("--NoDataValue=",NA_flag_val,sep=""),
+                     paste("--calc='(A<",min_val,")*",NA_flag_val,"'",sep=""),
+                     "--overwrite",sep=" ") #division by zero is problematic...
+    system(cmd_str5)
+    
+    #r_m_weighted_mean_raster_name_rec3 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec3_",out_suffix,"_tmp",".tif",sep=""))
+    #min_valid <- -100*scaling #set min_valid as a input
+    #cmd_str6 <- paste(python_cmd, 
+    #                 paste("-A ", r_m_weighted_mean_raster_name,sep=""),
+    #                 paste("--outfile=",r_m_weighted_mean_raster_name_rec2,sep=""),
+    #                 paste("--type=",data_type,sep=""),
+    #                 paste("--NoDataValue=",NA_flag_val,sep=""),
+    #                 paste("--calc='(",min_val,"<A<",max_val,")","'",sep=""),
+    #                 "--overwrite",sep=" ") #division by zero is problematic...
+    #system(cmd_str6)
+    
+    ##Now combine A and B and multiply by mask??
+    r_m_weighted_mean_raster_name_rec3 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec3_",out_suffix,"_tmp",".tif",sep=""))
+    min_valid <- -100*scaling #set min_valid as a input
+    cmd_str6 <- paste(python_cmd, 
+                     paste("-A ", r_m_weighted_mean_raster_name_rec1,sep=""),
+                     paste("-B ", r_m_weighted_mean_raster_name_rec2,sep=""),
+                     paste("-C ", r_m_weighted_mean_raster_name,sep=""), #if mask exists
+                     paste("--outfile=",r_m_weighted_mean_raster_name_rec3,sep=""),
+                     paste("--type=",data_type,sep=""),
+                     paste("--NoDataValue=",NA_flag_val,sep=""),
+                     paste("--calc='(((((A+B))<",min_val,")*",NA_flag_val,")+1)*C'",sep=""),
+                     "--overwrite",sep=" ") #division by zero is problematic...
+    system(cmd_str6)    
+    
+    #r_m_weighted_mean_raster_name_rec4 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec4_",out_suffix,"_tmp",".tif",sep=""))
+    #min_valid <- -100*scaling #set min_valid as a input
+    #cmd_str6 <- paste(python_cmd, 
+    #                 paste("-A ", r_m_weighted_mean_raster_name_rec3,sep=""),
+    #                 #paste("-C ", r_m_weighted_mean_raster_name_rec2,sep=""), #if mask exists
+    #                 paste("--outfile=",r_m_weighted_mean_raster_name_rec4,sep=""),
+    #                 paste("--type=",data_type,sep=""),
+    #                 paste("--NoDataValue=",NA_flag_val,sep=""),
+    #                 paste("--calc='(A+1)'",sep=""),
+    #                 "--overwrite",sep=" ") #division by zero is problematic...
+    #system(cmd_str6)   
+    
     cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+    
     writeLines(cmd_str1,con=cmd_mosaic_logfile) #weights files to mosaic 
     #writeLines(cmd_str2,con=file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))) #weights files to mosaic 
     cat(cmd_str2, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
