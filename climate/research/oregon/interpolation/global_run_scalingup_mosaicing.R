@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/20/2016            
+#MODIFIED ON: 04/22/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -250,12 +250,15 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
   #                                                                                  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=F)})
   #Using changes from Alberto
-  lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+  #  #print(searchStr)
+  #  Sys.glob(searchStr)})
+  # Making listing of files faster with multicores use
+  lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
     searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-    #print(searchStr)
-    Sys.glob(searchStr)})
-  
-  browser()
+    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
+  #browser()
   
   #########################################################################
   ##################### PART 2: produce the mosaic ##################
@@ -458,7 +461,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     
     if(layers_option=="var_pred"){
       
-      mosaic_method <- "use_edge_weights" #this is distance from edge
+      #mosaic_method <- "use_edge_weights" #this is distance from edge
+      mosaic_method <- mosaicing_method
       out_suffix_tmp <- paste(interpolation_method,y_var_name,day_to_mosaic[i],out_suffix,sep="_")
       #debug(mosaicFiles)
       #can also loop through methods!!!
