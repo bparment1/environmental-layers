@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 04/20/2016  
+#MODIFIED ON: 04/23/2016  
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -63,8 +63,8 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04202016b.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_04202016b.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04222016b.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_04222016.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -113,13 +113,14 @@ CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Stat
 #algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 #tmp_files <- FALSE #arg 18, param 18
-#use_int <- TRUE #, param 19, use int32 for output layers mosaiced
-#scaling <- 100 #, param 20, 
+#data_type <- Int16 #, param 19, use int32 for output layers mosaiced
+#scaling <- 100 #, param 20, if null use 1
+#values_range <- c(-100,100)
 
-var<-"TMAX" # variable being interpolated #param 1, arg 1
+var <- "TMAX" # variable being interpolated #param 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/out/" #PARAM2,arg 2
 region_name <- "reg4" #PARAM 3, arg 3 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
-out_suffix <- "reg4" #PARAM 4, arg 4
+out_suffix <- "reg4_1991" #PARAM 4, arg 4
 out_suffix_str <- region_name #PARAM 4, CONST 3
 out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg4" #PARAM 5,arg 5 use this location for now
 create_out_dir_param <- TRUE #PARAM 6, arg 6
@@ -130,19 +131,21 @@ mosaicing_method <- "use_edge_weights" #PARAM10, arg 10
 metric_name <- "rmse" #RMSE, MAE etc. #PARAM 11, arg 11
 day_start <- "19910101" #PARAM 12 arg 12
 day_end <- "19910103" #PARAM 13 arg 13
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_reg4.tif" #PARAM 14, arg 14
+#infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_reg4.tif" #PARAM 14, arg 14
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST.tif"
 df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1991/df_assessment_files_reg4_1991_reg4_1991.txt"  # data.frame with all files used in assessmnet, PARAM 15
 algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 tmp_files <- FALSE #arg 18, param 18
-use_int <- TRUE #, param 19, use int32 for output layers mosaiced
-scaling <- 100 #, param 20, 
+data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
+scaling <- 100 #, param 20, if NULL don't rescale values
+values_range <- c(-100,100) #args 21, if NULL don't screen values
 
 #path_assessment <- NOT USED "/nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1991" #PARAM 14a, arg 14
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #Use the following command to run as script via the shell on the bridge 
-#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_04202016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 reg4 /nobackupp8/bparmen1/climateLayers/out/reg4 TRUE 1991 6 1e+07 use_edge_weights rmse 19910101 19910103 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_reg4.tif /nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1991/df_assessment_files_reg4_1991_reg4_1991.txt python var_pred FALSE TRUE 100 
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_04202016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 reg4 /nobackupp8/bparmen1/climateLayers/out/reg4 TRUE 1991 6 1e+07 use_edge_weights rmse 19910101 19910103 /nobackupp8/bparmen1/NEX_data/regions_input_files/mask_reg4_bool.tif /nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1991/df_assessment_files_reg4_1991_reg4_1991.txt python var_pred FALSE Int16 100 -100,100
 
 ############################
 
@@ -209,8 +212,9 @@ layers_option <- args[17] # PARAM 17 options are:
 #layers_option <- c("var_pred") #options are:
 #res_training, res_testing,ac_training, ac_testing, var_pred
 tmp_files <- args[18] #PARAM 18
-use_int <- args[19] #PARAM 19 #use integer 32 for layers outputs
+data_type <- args[19] #PARAM 19 #use integer 32 for layers outputs
 scaling <- args[20] #PARAM 19 #use integer 32 for layers outputs
+values_range <-  args[21] #Param 21, args 21
 
 #tmp_files <- FALSE
 interpolation_method <- c("gam_CAI") #PARAM21
@@ -219,7 +223,8 @@ var_pred <- "res_mod1" #used in residuals mapping #PARAM 23
 proj_str<- CRS_WGS84 #PARAM 24 #check this parameter
 file_format <- ".tif" #PARAM 25
 NA_value <- -9999 #PARAM 26
-NA_flag_val <- NA_value #PARAM 27
+#NA_value <- -32768 #PARAM 26
+NA_flag_val <- NA_value #PARAM 26
 use_autokrige <- F #PARAM 28
 #proj_str <- CRS_locs_WGS84 #PARAM 29
 #python script and gdal on NEX NASA:
@@ -254,14 +259,14 @@ if(!(is.null(day_start)) & !(is.null(day_end))){
 ##30 parameters passed
 list_param_run_mosaicing_prediction <- list(in_dir,y_var_name,interpolation_method,region_name,
                  mosaicing_method,out_suffix,out_suffix_str,metric_name,pred_mod_name,var_pred, out_dir,
-                 create_out_dir_param,day_to_mosaic_range,year_predicted,proj_str,file_format,NA_value,num_cores,
-                 use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
-                 python_bin,algorithm,match_extent,list_models,layers_option,tmp_files,use_int,scaling)
+                 create_out_dir_param,day_to_mosaic_range,year_predicted,proj_str,file_format,NA_value,
+                 num_cores,use_autokrige,infile_mask,df_assessment_files_name,mosaic_python,
+                 python_bin,algorithm,match_extent,list_models,layers_option,tmp_files,data_type,scaling,values_range)
 param_names <- c("in_dir","y_var_name","interpolation_method","region_name",
                  "mosaicing_method","out_suffix","out_suffix_str","metric_name","pred_mod_name","var_pred","out_dir",
-                 "create_out_dir_param","day_to_mosaic_range","year_predicted","proj_str","file_format","NA_value","num_cores",
-                 "use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
-                 "python_bin","algorithm","match_extent","list_models","layers_option","tmp_files","use_int","scaling")
+                 "create_out_dir_param","day_to_mosaic_range","year_predicted","proj_str","file_format","NA_value",
+                 "num_cores","use_autokrige","infile_mask","df_assessment_files_name","mosaic_python",
+                 "python_bin","algorithm","match_extent","list_models","layers_option","tmp_files","data_type","scaling","values_range")
 names(list_param_run_mosaicing_prediction) <- param_names
 #list_param_run_mosaicing_prediction
 #debug(run_mosaicing_prediction_fun)
