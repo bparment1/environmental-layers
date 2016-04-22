@@ -508,6 +508,16 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   out_suffix_str_tmp <- paste0(out_suffix,"_tmp")
   #}
   
+  if(use_int==TRUE){
+    data_type <- "Int16" #should be a parameter!!
+  }else{
+    data_type <- "Float32"
+  }
+  if(is.null(scaling)){
+    scaling <- 1
+  }
+  valid_range <- c(-100,100) #pass this as parameter!! (in the next update)
+  
   lf_r_weights <- vector("list",length=length(lf_mosaic))
   
   ###############
@@ -823,15 +833,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     
     ##Add here the int and scaling?
     #note that the nodata was fixed...
-    #browser()
-    if(use_int==TRUE){
-      data_type <- "int16"
-    }else{
-      data_type <- "Float32"
-    }
-    if(is.null(scaling)){
-      scaling <- 1
-    }
+
+
     #if not null use the value specificied in the parameters
     
     python_cmd <- file.path(python_bin,"gdal_calc.py")
@@ -840,15 +843,17 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      paste("-B ", r_weights_sum_raster_name,sep=""),
                      paste("--outfile=",r_m_weighted_mean_raster_name,sep=""),
                      paste("--type=",data_type,sep=""),
+                     "--co='COMPRESS=LZW'",
                      paste("--NoDataValue=",NA_flag_val,sep=""),
-                     #"--calc='A/B'","--overwrite",sep=" ") #division by zero is problematic...
                      paste("--calc='(A/B)*",scaling,"'",sep=""),
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str)
     
-    ##Can merge one and 2 with parentheses operations!!
+    ###Starting rescaling
+    ##Can merge one and 2 with parentheses operations!!, make this a function?
     ##Reclassify with valid range: -100,100
-    max_val <- 100*scaling #set min_valid
+
+    max_val <- valid_range[2]*scaling #set min_valid
     r_m_weighted_mean_raster_name_rec1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec1_",out_suffix,"_tmp",".tif",sep=""))
     #rec_tmp1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,".tif",sep=""))
     cmd_str4 <- paste(python_cmd, 
@@ -856,57 +861,41 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      paste("--outfile=",r_m_weighted_mean_raster_name_rec1,sep=""),
                      paste("--type=",data_type,sep=""),
                      paste("--NoDataValue=",NA_flag_val,sep=""),
+                     "--co='COMPRESS=LZW'",
                      paste("--calc='(A>",max_val,")*",NA_flag_val,"'",sep=""),
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str4)
     
     r_m_weighted_mean_raster_name_rec2 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec2_",out_suffix,"_tmp",".tif",sep=""))
-    min_val <- -100*scaling #set min_valid as a input
+    min_val <- valid_range[1]*scaling #set min_valid as a input
     cmd_str5 <- paste(python_cmd, 
                      paste("-A ", r_m_weighted_mean_raster_name,sep=""),
                      paste("--outfile=",r_m_weighted_mean_raster_name_rec2,sep=""),
                      paste("--type=",data_type,sep=""),
+                     "--co='COMPRESS=LZW'",
                      paste("--NoDataValue=",NA_flag_val,sep=""),
                      paste("--calc='(A<",min_val,")*",NA_flag_val,"'",sep=""),
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str5)
     
-    #r_m_weighted_mean_raster_name_rec3 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec3_",out_suffix,"_tmp",".tif",sep=""))
-    #min_valid <- -100*scaling #set min_valid as a input
-    #cmd_str6 <- paste(python_cmd, 
-    #                 paste("-A ", r_m_weighted_mean_raster_name,sep=""),
-    #                 paste("--outfile=",r_m_weighted_mean_raster_name_rec2,sep=""),
-    #                 paste("--type=",data_type,sep=""),
-    #                 paste("--NoDataValue=",NA_flag_val,sep=""),
-    #                 paste("--calc='(",min_val,"<A<",max_val,")","'",sep=""),
-    #                 "--overwrite",sep=" ") #division by zero is problematic...
-    #system(cmd_str6)
-    
     ##Now combine A and B and multiply by mask??
-    r_m_weighted_mean_raster_name_rec3 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec3_",out_suffix,"_tmp",".tif",sep=""))
-    min_valid <- -100*scaling #set min_valid as a input
+    r_m_weighted_mean_raster_name_rec <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,"_tmp",".tif",sep=""))
     cmd_str6 <- paste(python_cmd, 
                      paste("-A ", r_m_weighted_mean_raster_name_rec1,sep=""),
                      paste("-B ", r_m_weighted_mean_raster_name_rec2,sep=""),
                      paste("-C ", r_m_weighted_mean_raster_name,sep=""), #if mask exists
-                     paste("--outfile=",r_m_weighted_mean_raster_name_rec3,sep=""),
+                     paste("--outfile=",r_m_weighted_mean_raster_name_rec,sep=""),
                      paste("--type=",data_type,sep=""),
+                     "--co='COMPRESS=LZW'",
                      paste("--NoDataValue=",NA_flag_val,sep=""),
                      paste("--calc='(((((A+B))<",min_val,")*",NA_flag_val,")+1)*C'",sep=""),
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str6)    
     
-    #r_m_weighted_mean_raster_name_rec4 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec4_",out_suffix,"_tmp",".tif",sep=""))
-    #min_valid <- -100*scaling #set min_valid as a input
-    #cmd_str6 <- paste(python_cmd, 
-    #                 paste("-A ", r_m_weighted_mean_raster_name_rec3,sep=""),
-    #                 #paste("-C ", r_m_weighted_mean_raster_name_rec2,sep=""), #if mask exists
-    #                 paste("--outfile=",r_m_weighted_mean_raster_name_rec4,sep=""),
-    #                 paste("--type=",data_type,sep=""),
-    #                 paste("--NoDataValue=",NA_flag_val,sep=""),
-    #                 paste("--calc='(A+1)'",sep=""),
-    #                 "--overwrite",sep=" ") #division by zero is problematic...
-    #system(cmd_str6)   
+    ### End of rescaling section
+    #r_m_use_edge_weights_weighted_mean_rec_gam_CAI_dailyTmax_19910101_reg4_tmp.tif
+    
+    #browser()
     
     cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
     
@@ -922,7 +911,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #different extent between mask and output if match extent is false!!
       #match resolution and extent first
       
-      lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
+      #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
+      lf_files <- c(r_m_weighted_mean_raster_name_rec)
       rast_ref <- r_mask_raster_name
       ##Maching resolution is probably only necessary for the r mosaic function
       #Modify later to take into account option R or python...
@@ -998,8 +988,12 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       mask(raster( r_m_mean_raster_name_matched),mask=raster(r_mask_raster_name),
            filename=r_m_mean_mask_raster_name,overwrite=TRUE)
       raster_name <- r_m_mean_mask_raster_name
+      r_raster <- raster(raster_name)
+      r_raster <- setMinMax(r_raster) #set correct min and max in the file
     }else{
       raster_name <- r_m_mean_raster_name
+      r_raster <- raster(raster_name)
+      r_raster <- setMinMax(r_raster) #set correct min and max in the file
     }
 
   }
@@ -1139,6 +1133,7 @@ plot_daily_mosaics <- function(i,list_param_plot_daily_mosaics){
   m <- c(-Inf, -100, NA,  
          -100, 100, 1, 
          100, Inf, NA) #can change the thresholds later
+
   rclmat <- matrix(m, ncol=3, byrow=TRUE)
   rc <- reclassify(r_test, rclmat,filename=paste("rc_tmp_",i,".tif",sep=""),dataType="FLT4S",overwrite=T)
   file_name <- unlist(strsplit(basename(lf_m[i]),"_"))
