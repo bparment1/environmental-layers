@@ -82,8 +82,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #30) list_models : if NULL use y~1 formula #PARAM 29
   #31) layers_option: mosaic to create as a layer from var_pred (e.g. TMax), res_training, res_testing, ac_testing
   #32) tmp_files: if TRUE keep temporary files generated during mosaicing
-  #33) use_int: if TRUE, use int32 in the final output
+  #33) data_type: if NULL, use Float32, other possibilities are gdal based in the final output
   #34) scaling: scaling factor to multiply the original variable before conversation to int
+  #35) values_range: valid range for predicted values and mosaic e.g. -100,100
   
   ###OUTPUT
   # 
@@ -173,8 +174,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #list_models <- paste(var_pred,"~","1",sep=" ") #if null then this is the default...
   layers_option <- list_param_run_mosaicing_prediction$layers_option #PARAM 27
   tmp_files <- list_param_run_mosaicing_prediction$tmp_files  #PARAM 28
-  use_int <- list_param_run_mosaicing_prediction$use_int #PARAM 29
+  data_type <- list_param_run_mosaicing_prediction$data_type #PARAM 29
   scaling <- list_param_run_mosaicing_prediction$scaling 
+  values_range <- list_param_run_mosaicing_prediction$values_range
   
   #################################################################
   ####### PART 1: Read in data and process data ########
@@ -484,8 +486,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 out_suffix=out_suffix_tmp,
                                 out_dir=out_dir,
                                 tmp_files=tmp_files,
-                                use_int=use_int,
-                                scaling=scaling)
+                                data_type=data_type,
+                                scaling=scaling,
+                                values_range=values_range)
       #runs in 15-16 minutes for 3 dates and mosaicing of 28 tiles...
       list_mosaic_obj[[i]] <- mosaic_obj
     }
@@ -511,8 +514,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 out_suffix=out_suffix_tmp,
                                 out_dir=out_dir,
                                 tmp_files=tmp_files,
-                                use_int=use_int,
-                                scaling=scaling)
+                                data_type=data_type,
+                                scaling=scaling,
+                                values_range=values_range)
       ##Took 29 minutes for 28 tiles and one date...!!! 
       list_mosaic_obj[[i]] <- mosaic_obj
     }
@@ -542,8 +546,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 out_suffix=out_suffix_tmp,
                                 out_dir=out_dir,
                                 tmp_files=tmp_files,
-                                use_int,
-                                scaling)
+                                data_type=data_type,
+                                scaling=scaling,
+                                vales_range=values_range)
       #Took 11 to 12 minues for one day and 28 tiles in region 4
       list_mosaic_obj[[i]] <- mosaic_obj
     }      
@@ -571,8 +576,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 out_suffix=out_suffix_tmp,
                                 out_dir=out_dir,
                                 tmp_files=tmp_files,
-                                use_int=use_int,
-                                scaling=scaling)
+                                data_type=data_type,
+                                scaling=scaling,
+                                values_range=values_range)
       
       list_mosaic_obj[[i]] <- mosaic_obj
       #Took 11 to 12 minues for one day and 28 tiles in region 4
