@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/20/2016            
+#MODIFIED ON: 04/22/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -463,7 +463,7 @@ raster_match <- function(i,list_param){
   return(raster_name)
 }
 
-mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum_noDataTest.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL,tmp_files=FALSE,use_int=TRUE,scaling=100){
+mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_raster_name=NULL,python_bin=NULL,mosaic_python="/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum_noDataTest.py",algorithm="R",match_extent=TRUE,df_points=NULL,NA_flag_val=-9999,file_format=".tif",out_suffix=NULL,out_dir=NULL,tmp_files=FALSE,data_type="Float32",scaling=NULL,values_range=NULL){
   #This functions mosaics tiles/files give a list of files. 
   #There are four options to mosaic:   use_sine_weights,use_edge,use_linear_weights, unweighted
   #Sine weights fits sine fuctions across rows and column producing elliptical/spherical patterns from center
@@ -488,8 +488,9 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #12)algorithm: use R or python function
   #13)match extent: if TRUE match extent before mosaicing
   #14)tmp_files: if TRUE then keep temporary files
-  #15)use_int: if TRUE use int values for mosaicing
-  #16)scaling: numeric value to multiply the values before conversion to integer
+  #15)data_type: Float32 is default values for mosaicing
+  #16)scaling: if NULL, use scaling 1, numeric value to multiply the values before conversion to integer
+  #17)values_range: if NULL, don't screen
   #
   #OUTPUT:
   # Object is produced with 3 components:
@@ -508,15 +509,16 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   out_suffix_str_tmp <- paste0(out_suffix,"_tmp")
   #}
   
-  if(use_int==TRUE){
-    data_type <- "Int16" #should be a parameter!!
-  }else{
-    data_type <- "Float32"
-  }
+  #if(data_type==NULL){
+  #  data_type <- "Int16" #should be a parameter!!
+  #}else{
+  #  data_type <- "Float32"
+  #}
   if(is.null(scaling)){
     scaling <- 1
   }
-  valid_range <- c(-100,100) #pass this as parameter!! (in the next update)
+  valid_range <- values_range #if NULL don't screen values!!
+  #valid_range <- c(-100,100) #pass this as parameter!! (in the next update)
   
   lf_r_weights <- vector("list",length=length(lf_mosaic))
   
@@ -838,7 +840,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #if not null use the value specificied in the parameters
     
     python_cmd <- file.path(python_bin,"gdal_calc.py")
-    cmd_str <- paste(python_cmd, 
+    cmd_str3 <- paste(python_cmd, 
                      paste("-A ", r_prod_sum_raster_name,sep=""),
                      paste("-B ", r_weights_sum_raster_name,sep=""),
                      paste("--outfile=",r_m_weighted_mean_raster_name,sep=""),
@@ -847,7 +849,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      paste("--NoDataValue=",NA_flag_val,sep=""),
                      paste("--calc='(A/B)*",scaling,"'",sep=""),
                      "--overwrite",sep=" ") #division by zero is problematic...
-    system(cmd_str)
+    system(cmd_str3)
     
     ###Starting rescaling
     ##Can merge one and 2 with parentheses operations!!, make this a function?
@@ -892,17 +894,24 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str6)    
     
+    cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+    #check if file exists first...
+    
     ### End of rescaling section
     #r_m_use_edge_weights_weighted_mean_rec_gam_CAI_dailyTmax_19910101_reg4_tmp.tif
     
-    #browser()
+    #browser() #22minutes for one mosaic
     
-    cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+    #cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
     
     writeLines(cmd_str1,con=cmd_mosaic_logfile) #weights files to mosaic 
     #writeLines(cmd_str2,con=file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))) #weights files to mosaic 
     cat(cmd_str2, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
-
+    cat(cmd_str3, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+    cat(cmd_str4, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+    cat(cmd_str5, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+    cat(cmd_str6, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+    
     #cmd_str <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin/gdal_calc.py -A r_prod_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif -B r_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif --outfile='test2.tif' --calc='A/B' --overwrite"
     
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
@@ -921,11 +930,35 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
 
       #undebug(raster_match)
       r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
-
+      #output
       r_m_weighted_mean_mask_raster_name <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
-      mask(raster(r_m_weighted_mean_raster_name_matched),mask=raster(r_mask_raster_name),
-           filename=r_m_weighted_mean_mask_raster_name,overwrite=TRUE)
+      
+      #mask(raster(r_m_weighted_mean_raster_name_matched),mask=raster(r_mask_raster_name),
+      #     filename=r_m_weighted_mean_mask_raster_name,overwrite=TRUE)
+         
+      ##Now combine A and B and multiply by mask?? This must be faster than the mask option in R
+      #The mask must be in 1,NA format with 1 being valid values being considered in roi.
+      #r_m_weighted_mean_raster_name_rec <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,"_tmp",".tif",sep=""))
+      browser()
+      
+      cmd_str7 <- paste(python_cmd, 
+                     paste("-A ", r_m_weighted_mean_raster_name_matched,sep=""),
+                     paste("-B ", r_mask_raster_name,sep=""),
+                     paste("--outfile=",r_m_weighted_mean_mask_raster_name,sep=""),
+                     paste("--type=",data_type,sep=""),
+                     "--co='COMPRESS=LZW'",
+                     paste("--NoDataValue=",NA_flag_val,sep=""),
+                     paste("--calc='(A*B)'",sep=""),
+                     "--overwrite",sep=" ") #division by zero is problematic...
+      system(cmd_str7)  
+      cat(cmd_str7, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+      
+      ##Set min max and NA value
+      r_mosaiced <- raster(r_m_weighted_mean_mask_raster_name)
+      r_mosaiced <- setMinMax(r_mosaiced)
+      NAvalue(r_mosaiced) <- NA_flag_val
       raster_name <- r_m_weighted_mean_mask_raster_name
+      
     }else{
       raster_name <- r_m_weighted_mean_raster_name
     }
