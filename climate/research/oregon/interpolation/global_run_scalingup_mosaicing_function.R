@@ -650,10 +650,6 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   #plot(r_ref)
   
   if(mosaic_method%in%c("use_linear_weights","use_sine_weights","use_edge_weights")){
-    
-
-    #####################
-    ###### PART 4: compute the weighted mean with the mosaic function #####
 
     if(algorithm=="python"){
       
@@ -835,8 +831,6 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     
     ##Add here the int and scaling?
     #note that the nodata was fixed...
-
-
     #if not null use the value specificied in the parameters
     
     python_cmd <- file.path(python_bin,"gdal_calc.py")
@@ -851,16 +845,18 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str3)
     
-    ###Starting rescaling
+    #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+
+    ###Starting rescaling, switched by masking first then screening to avoid potential problems
     ##Can merge one and 2 with parentheses operations!!, make this a function?
     ##Reclassify with valid range: -100,100
-
+    raster_name <- r_m_weighted_mean_raster_name
     max_val <- valid_range[2]*scaling #set min_valid
-    r_m_weighted_mean_raster_name_rec1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec1_",out_suffix,"_tmp",".tif",sep=""))
+    raster_name_rec1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec1_",out_suffix,"_tmp",".tif",sep=""))
     #rec_tmp1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,".tif",sep=""))
     cmd_str4 <- paste(python_cmd, 
-                     paste("-A ", r_m_weighted_mean_raster_name,sep=""),
-                     paste("--outfile=",r_m_weighted_mean_raster_name_rec1,sep=""),
+                     paste("-A ", raster_name,sep=""),
+                     paste("--outfile=",raster_name_rec1,sep=""),
                      paste("--type=",data_type,sep=""),
                      paste("--NoDataValue=",NA_flag_val,sep=""),
                      "--co='COMPRESS=LZW'",
@@ -868,11 +864,11 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str4)
     
-    r_m_weighted_mean_raster_name_rec2 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec2_",out_suffix,"_tmp",".tif",sep=""))
+    raster_name_rec2 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec2_",out_suffix,"_tmp",".tif",sep=""))
     min_val <- valid_range[1]*scaling #set min_valid as a input
     cmd_str5 <- paste(python_cmd, 
-                     paste("-A ", r_m_weighted_mean_raster_name,sep=""),
-                     paste("--outfile=",r_m_weighted_mean_raster_name_rec2,sep=""),
+                     paste("-A ", raster_name,sep=""),
+                     paste("--outfile=",raster_name_rec2,sep=""),
                      paste("--type=",data_type,sep=""),
                      "--co='COMPRESS=LZW'",
                      paste("--NoDataValue=",NA_flag_val,sep=""),
@@ -881,11 +877,11 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     system(cmd_str5)
     
     ##Now combine A and B and multiply by mask??
-    r_m_weighted_mean_raster_name_rec <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,"_tmp",".tif",sep=""))
+    r_m_weighted_mean_raster_name_rec <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_masked_",out_suffix,".tif",sep=""))
     cmd_str6 <- paste(python_cmd, 
-                     paste("-A ", r_m_weighted_mean_raster_name_rec1,sep=""),
-                     paste("-B ", r_m_weighted_mean_raster_name_rec2,sep=""),
-                     paste("-C ", r_m_weighted_mean_raster_name,sep=""), #if mask exists
+                     paste("-A ", raster_name_rec1,sep=""),
+                     paste("-B ", raster_name_rec2,sep=""),
+                     paste("-C ", raster_name,sep=""), #if mask exists
                      paste("--outfile=",r_m_weighted_mean_raster_name_rec,sep=""),
                      paste("--type=",data_type,sep=""),
                      "--co='COMPRESS=LZW'",
@@ -894,7 +890,6 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str6)    
     
-    cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
     #check if file exists first...
     
     ### End of rescaling section
@@ -914,14 +909,13 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     
     #cmd_str <- "/nobackupp6/aguzman4/climateLayers/sharedModules/bin/gdal_calc.py -A r_prod_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif -B r_weights_sum_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_run10_1500x4500_global_analyses_pred_1992_10052015.tif --outfile='test2.tif' --calc='A/B' --overwrite"
     
-    #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
     #now use the mask
     if(!is.null(r_mask_raster_name)){
       #different extent between mask and output if match extent is false!!
       #match resolution and extent first
       
       #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
-      lf_files <- c(r_m_weighted_mean_raster_name_rec)
+      lf_files <- c(r_m_weighted_mean_raster_name_rec) #match to mask
       rast_ref <- r_mask_raster_name
       ##Maching resolution is probably only necessary for the r mosaic function
       #Modify later to take into account option R or python...
@@ -939,8 +933,9 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       ##Now combine A and B and multiply by mask?? This must be faster than the mask option in R
       #The mask must be in 1,NA format with 1 being valid values being considered in roi.
       #r_m_weighted_mean_raster_name_rec <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,"_tmp",".tif",sep=""))
-      browser()
-      
+      #browser()
+      cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+
       cmd_str7 <- paste(python_cmd, 
                      paste("-A ", r_m_weighted_mean_raster_name_matched,sep=""),
                      paste("-B ", r_mask_raster_name,sep=""),
@@ -958,12 +953,15 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       r_mosaiced <- setMinMax(r_mosaiced)
       NAvalue(r_mosaiced) <- NA_flag_val
       raster_name <- r_m_weighted_mean_mask_raster_name
-      
+      browser()
+      #-32,768 is NA
     }else{
       raster_name <- r_m_weighted_mean_raster_name
     }
-  }
 
+  } #end of weighted
+  
+  ###
   if(mosaic_method=="unweighted"){
     #### Fourth use original images
     #macth file to mosaic extent using the original predictions
