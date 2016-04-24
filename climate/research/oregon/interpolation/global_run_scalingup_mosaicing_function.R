@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/22/2016            
+#MODIFIED ON: 04/24/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -519,7 +519,9 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
   }
   valid_range <- values_range #if NULL don't screen values!!
   #valid_range <- c(-100,100) #pass this as parameter!! (in the next update)
-  
+  if(data_type=="Int16"){
+    data_type_str <- "INT2S"
+  }
   lf_r_weights <- vector("list",length=length(lf_mosaic))
   
   ###############
@@ -845,12 +847,30 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str3)
     
+    if(!is.null(r_mask_raster_name)){
+      #different extent between mask and output if match extent is false!!
+      #match resolution and extent first
+      
+      #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
+      lf_files <- c(r_m_weighted_mean_raster_name) #match to mask
+      rast_ref <- r_mask_raster_name
+      ##Maching resolution is probably only necessary for the r mosaic function
+      #Modify later to take into account option R or python...
+      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+
+      #undebug(raster_match)
+      r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
+    }
+    
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
 
     ###Starting rescaling, switched by masking first then screening to avoid potential problems
     ##Can merge one and 2 with parentheses operations!!, make this a function?
     ##Reclassify with valid range: -100,100
-    raster_name <- r_m_weighted_mean_raster_name
+    
+    #raster_name <- r_m_weighted_mean_raster_name
+    raster_name <- r_m_weighted_mean_raster_name_matched
     max_val <- valid_range[2]*scaling #set min_valid
     raster_name_rec1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec1_",out_suffix,"_tmp",".tif",sep=""))
     #rec_tmp1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,".tif",sep=""))
@@ -897,7 +917,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     
     #browser() #22minutes for one mosaic
     
-    #cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+    cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
     
     writeLines(cmd_str1,con=cmd_mosaic_logfile) #weights files to mosaic 
     #writeLines(cmd_str2,con=file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))) #weights files to mosaic 
@@ -915,45 +935,53 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #match resolution and extent first
       
       #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
-      lf_files <- c(r_m_weighted_mean_raster_name_rec) #match to mask
+      #lf_files <- c(r_m_weighted_mean_raster_name_rec) #match to mask
       rast_ref <- r_mask_raster_name
       ##Maching resolution is probably only necessary for the r mosaic function
       #Modify later to take into account option R or python...
-      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
-      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+      #list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+      #names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
       #undebug(raster_match)
-      r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
+      #r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
       #output
       r_m_weighted_mean_mask_raster_name <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_mask_",out_suffix,".tif",sep=""))
       
-      #mask(raster(r_m_weighted_mean_raster_name_matched),mask=raster(r_mask_raster_name),
-      #     filename=r_m_weighted_mean_mask_raster_name,overwrite=TRUE)
+      in_raster_name <- r_m_weighted_mean_raster_name_rec
+      mask(raster(in_raster_name),
+           mask=raster(r_mask_raster_name),
+           filename=r_m_weighted_mean_mask_raster_name,
+           datatype=data_type_str,
+           options=c("COMPRESS=LZW"),
+           overwrite=TRUE,
+           NAflag=NA_flag_val)
          
       ##Now combine A and B and multiply by mask?? This must be faster than the mask option in R
       #The mask must be in 1,NA format with 1 being valid values being considered in roi.
       #r_m_weighted_mean_raster_name_rec <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,"_tmp",".tif",sep=""))
       #browser()
-      cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+      #cmd_mosaic_logfile <- file.path(out_dir,paste("cmd_mosaic_",out_suffix,".txt",sep=""))
+      #in_raster_name <- r_m_weighted_mean_raster_name_matched
 
-      cmd_str7 <- paste(python_cmd, 
-                     paste("-A ", r_m_weighted_mean_raster_name_matched,sep=""),
-                     paste("-B ", r_mask_raster_name,sep=""),
-                     paste("--outfile=",r_m_weighted_mean_mask_raster_name,sep=""),
-                     paste("--type=",data_type,sep=""),
-                     "--co='COMPRESS=LZW'",
-                     paste("--NoDataValue=",NA_flag_val,sep=""),
-                     paste("--calc='(A*B)'",sep=""),
-                     "--overwrite",sep=" ") #division by zero is problematic...
-      system(cmd_str7)  
-      cat(cmd_str7, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
+        
+      #cmd_str7 <- paste(python_cmd, 
+      #               paste("-A ", in_raster_name,sep=""),
+      #               paste("-B ", r_mask_raster_name,sep=""),
+      #               paste("--outfile=",r_m_weighted_mean_mask_raster_name,sep=""),
+      #               paste("--type=",data_type,sep=""),
+      #               "--co='COMPRESS=LZW'",
+      #               paste("--NoDataValue=",NA_flag_val,sep=""),
+      #               paste("--calc='(A*B)'",sep=""),
+      #               "--overwrite",sep=" ") #division by zero is problematic...
+      #system(cmd_str7)  
+      #cat(cmd_str7, file=cmd_mosaic_logfile, append=TRUE, sep = "\n")
       
       ##Set min max and NA value
       r_mosaiced <- raster(r_m_weighted_mean_mask_raster_name)
       r_mosaiced <- setMinMax(r_mosaiced)
       NAvalue(r_mosaiced) <- NA_flag_val
       raster_name <- r_m_weighted_mean_mask_raster_name
-      browser()
+      #browser()
       #-32,768 is NA
     }else{
       raster_name <- r_m_weighted_mean_raster_name
