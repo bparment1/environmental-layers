@@ -196,19 +196,47 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   ###Table 1: Average accuracy metrics
   ###Table 2: daily accuracy metrics for all tiles
 
-  in_dir_list <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
-  
+  if(!is.null(in_dir_list_filename)){
+    in_dir_list <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
+  }else{
+    pattern_str <- paste0("^output_",region_name,".*.")
+    in_dir_list_all <- list.dirs(path=in_dir,recursive = T)
+    in_dir_list <- in_dir_list_all[grep(pattern_str,basename(in_dir_list_all),invert=FALSE)] #select directory with shapefiles...
+    #in_dir_shp <- file.path(in_dir_list_all,"shapefiles")
+  }
+  #pattern_str <- file.path(in_dir,paste0("output_",region_name,".*."))
+  #test <- Sys.glob(pattern_str,FALSE)
+  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+  #  #print(searchStr)
+  #  Sys.glob(searchStr)})
+
+  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+  #  #print(searchStr)
+  #  Sys.glob(searchStr)})
+
   ##Read in data list from in_dir_list
-  list_tb_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_v_NA_.*.txt",full.names=T)
-  list_df_fname <- list.files(path=file.path(in_dir,in_dir_list),"df_tile_processed_.*..txt",full.names=T)
-  list_summary_metrics_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"summary_metrics_v2_NA_.*.txt",full.names=T)
-  list_tb_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_s_NA.*.txt",full.names=T)
-  list_tb_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_month_diagnostic_s.*.txt",full.names=T)
-  list_data_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_month_s.*.txt",full.names=T)
-  list_data_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_s.*.txt",full.names=T)
-  list_data_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_v.*.txt",full.names=T)
-  list_pred_data_month_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_month_info.*.txt",full.names=T)
-  list_pred_data_day_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_day_info.*.txt",full.names=T)
+  #list_tb_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_v_NA_.*.txt",full.names=T)
+  #list_df_fname <- list.files(path=file.path(in_dir,in_dir_list),"df_tile_processed_.*..txt",full.names=T)
+  #list_summary_metrics_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"summary_metrics_v2_NA_.*.txt",full.names=T)
+  #list_tb_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_s_NA.*.txt",full.names=T)
+  #list_tb_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_month_diagnostic_s.*.txt",full.names=T)
+  #list_data_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_month_s.*.txt",full.names=T)
+  #list_data_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_s.*.txt",full.names=T)
+  #list_data_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_v.*.txt",full.names=T)
+  #list_pred_data_month_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_month_info.*.txt",full.names=T)
+  #list_pred_data_day_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_day_info.*.txt",full.names=T)
+  
+  list_tb_fname <- list.files(path=in_dir_list,"tb_diagnostic_v_NA_.*.txt",full.names=T)
+  list_df_fname <- list.files(path=in_dir_list,"df_tile_processed_.*..txt",full.names=T)
+  list_summary_metrics_v_fname <- list.files(path=in_dir_list,"summary_metrics_v2_NA_.*.txt",full.names=T)
+  list_tb_s_fname <- list.files(path=in_dir_list,"tb_diagnostic_s_NA.*.txt",full.names=T)
+  list_tb_month_s_fname <- list.files(path=in_dir_list,"tb_month_diagnostic_s.*.txt",full.names=T)
+  list_data_month_s_fname <- list.files(path=in_dir_list,"data_month_s.*.txt",full.names=T)
+  list_data_s_fname <- list.files(path=in_dir_list,"data_day_s.*.txt",full.names=T)
+  list_data_v_fname <- list.files(path=in_dir_list,"data_day_v.*.txt",full.names=T)
+  list_pred_data_month_info_fname <- list.files(path=in_dir_list,"pred_data_month_info.*.txt",full.names=T)
+  list_pred_data_day_info_fname <- list.files(path=in_dir_list,"pred_data_day_info.*.txt",full.names=T)
   
   #need to fix this !! has all of the files in one list (for a region)
   #list_shp <- list.files(path=file.path(in_dir,file.path(in_dir_list,"shapefiles")),"*.shp",full.names=T)
@@ -219,6 +247,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   list_tb_s <- lapply(list_tb_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   tb_s <- do.call(rbind,list_tb_s)
   
+  #summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = num_cores)                         
+
   list_df_tile_processed <- lapply(list_df_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   df_tile_processed <- do.call(rbind,list_df_tile_processed)  
   list_summary_metrics_v <- lapply(list_summary_metrics_v_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
@@ -246,6 +276,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #multiple regions? #this needs to be included in the previous script!!!
   #if(multiple_region==TRUE){
   df_tile_processed$reg <- as.character(df_tile_processed$reg)
+  #1.05pm... very slow
   tb <- merge(tb,df_tile_processed,by="tile_id")
   tb_s <- merge(tb_s,df_tile_processed,by="tile_id")
   tb_month_s<- merge(tb_month_s,df_tile_processed,by="tile_id")
