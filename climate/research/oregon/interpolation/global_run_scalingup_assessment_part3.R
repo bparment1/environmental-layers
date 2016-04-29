@@ -7,7 +7,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 02/10/2016            
+#MODIFIED ON: 04/29/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -243,6 +243,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   ## Step 2: only read what is necessary at this stage...
   list_tb <- lapply(list_tb_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+
   tb <- do.call(rbind,list_tb)
   list_tb_s <- lapply(list_tb_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   tb_s <- do.call(rbind,list_tb_s)
@@ -289,7 +290,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   try(summary_metrics_v$reg <- summary_metrics_v$reg.x)  
   try(summary_metrics_v$lat <- summary_metrics_v$lat.x)
   try(summary_metrics_v$lon <- summary_metrics_v$lon.x)
-
+  #browser()
+  
   ############ PART 2: PRODUCE FIGURES ################
   
   ###########################
@@ -327,7 +329,10 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #This is slow...make a function and use mclapply??
   #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
   
-  in_dir_shp <- file.path(in_dir,in_dir_list[[1]],"shapefiles") #this should be set as a input parameter!!!
+  centroids_shp_fun <- function(i,list_shp_reg_files,in_dir_shp){
+    
+  }
+  in_dir_shp <- file.path(in_dir_list[[1]],"shapefiles") #this should be set as a input parameter!!!
   for(i in 1:length(list_shp_reg_files)){
     #path_to_shp <- dirname(list_shp_reg_files[[i]])
     path_to_shp <- in_dir_shp
@@ -384,6 +389,8 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     #to be able to run on NEX set font and usePolypath, maybe add option NEX?
     if(!inherits(shp1,"try-error")){
       plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+      #plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+
       #plot(pt,add=T,cex=2,pch=5)
       label_id <- df_tile_processed$tile_id[i]
       text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
@@ -402,7 +409,11 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   ###############
   ### Figure 2: boxplot of average accuracy by model and by tiles
   
-  tb$tile_id <- factor(tb$tile_id, levels=unique(tb$tile_id))
+  #tb$tile_id <- factor(tb$tile_id, levels=unique(mixedsort(tb$tile_id)))#fix level ordering for plotting
+  #fix level ordering for plotting
+  #tb$tile_nb <- unlist(mclapply(as.character(tb$tile_id),FUN=function(x){strsplit(x,"_")[[1]][2]},mc.preschedule=FALSE,mc.cores = num_cores))
+  #unlist(mclapply(as.character(tb$tile_id[1:10]),FUN=function(x){strsplit(x,"_")[[1]][2]},mc.preschedule=FALSE,mc.cores = num_cores))
+  
   model_name <- as.character(unique(tb$pred_mod))
   
   ## Figure 2a
@@ -415,7 +426,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     png(filename=paste("Figure2a_boxplot_with_oultiers_by_tiles_",model_name[i],"_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
-    boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod==model_name[i]))
+    boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod==model_name[i]),las=2)
     title(paste("RMSE per ",model_name[i]))
     
     dev.off()
@@ -439,7 +450,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
     
     model_name <- unique(tb$pred_mod)
     boxplot(rmse~tile_id,data=subset(tb,tb$pred_mod==model_name[i])
-            ,ylim=c(0,4),outline=FALSE)
+            ,ylim=c(0,4),outline=FALSE,las=2)
     title(paste("RMSE per ",model_name[i]))
     dev.off()
     #we already stored one figure
