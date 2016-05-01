@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/24/2016            
+#MODIFIED ON: 05/01/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -834,7 +834,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     ##Add here the int and scaling?
     #note that the nodata was fixed...
     #if not null use the value specificied in the parameters
-    
+    #browser()
     python_cmd <- file.path(python_bin,"gdal_calc.py")
     cmd_str3 <- paste(python_cmd, 
                      paste("-A ", r_prod_sum_raster_name,sep=""),
