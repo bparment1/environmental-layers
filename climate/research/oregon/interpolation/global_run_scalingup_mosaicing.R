@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 04/22/2016            
+#MODIFIED ON: 05/01/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -279,6 +279,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   ###Depending on value of layers_option, create accuracy surfaces based on day testing metric (e.g. rmse)...
   #Generate accuracy layers using tiles definitions and output from the accuracy assessment
     
+  #browser()
+  
   if(layers_option=="ac_testing"){
     #this takes about 1 minute and 35 seconds for 3 days and 28 tiles...
     #add options to clean up file after use!!
