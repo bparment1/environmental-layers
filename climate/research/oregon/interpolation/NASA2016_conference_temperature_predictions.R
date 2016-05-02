@@ -22,15 +22,6 @@
 
 #################################################################################################
 
-#### FUNCTION USED IN SCRIPT
-
-#function_analyses_paper1 <-"contribution_of_covariates_paper_interpolation_functions_07182014.R" #first interp paper
-#function_analyses_paper2 <-"multi_timescales_paper_interpolation_functions_08132014.R"
-#function_global_run_assessment_part2 <- "global_run_scalingup_assessment_part2_functions_0923015.R"
-
-############################################
-#### Parameters and constants  
-
 
 ### Loading R library and packages        
 #library used in the workflow production:
@@ -84,124 +75,6 @@ source(file.path(script_path,function_assessment_part1a)) #source all functions 
 source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
-
-### Parameters, constants and arguments ###
-
-CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
-
-var<-"TMAX" # variable being interpolated #param 1, arg 1
-
-##Add for precip later...
-if (var == "TMAX") {
-  y_var_name <- "dailyTmax"
-  y_var_month <- "TMax"
-}
-if (var == "TMIN") {
-  y_var_name <- "dailyTmin"
-  y_var_month <- "TMin"
-}
-
-
-##Add for precip later...
-if (var == "TMAX") {
-  variable_name <- "maximum temperature"
-}
-if (var == "TMIN") {
-  variable_name <- "minimum temperature"
-}
-
-#interpolation_method<-c("gam_fusion") #other otpions to be added later
-interpolation_method<-c("gam_CAI") #param 2
-CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
-#CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
-
-out_region_name<-""
-list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
-
-#reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
-#master directory containing the definition of tile size and tiles predicted
-in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics"
-
-region_name <- c("reg4") #param 6, arg 3
-
-create_out_dir_param <- TRUE #param 9, arg 6
-out_suffix <- "_meeting_NASA_reg4_04292016"
-
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
-
-create_out_dir_param <- TRUE #param 9, arg 
-
-#run_figure_by_year <- TRUE # param 10, arg 7
-list_year_predicted <- "1984,2014"
-
-file_format <- ".tif" #format for mosaiced files # param 11
-NA_flag_val <- -32768  #No data value, # param 12
-#-32768
-#num_cores <- 6 #number of cores used # param 13, arg 8
-plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
-#num_cores <- args[8] #number of cores used # param 13, arg 8
-num_cores <- 11 #number of cores used # param 13, arg 8
-#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
-python_bin <- "/usr/bin" #PARAM 30
-
-day_start <- "19990101" #PARAM 12 arg 12
-day_end <- "19990103" #PARAM 13 arg 13
-
-#infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
-infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
-
-#run_figure_by_year <- TRUE # param 10, arg 7
-list_year_predicted <- "1984,2014"
-scaling <- 0.01 #was scaled on 100 
-
-df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
-
-raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990101_reg4_1999_m_gam_CAI_dailyTmax_19990101_reg4_1999.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990103_reg4_1999_m_gam_CAI_dailyTmax_19990103_reg4_1999.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990701_reg4_1999_m_gam_CAI_dailyTmax_19990701_reg4_1999.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990702_reg4_1999_m_gam_CAI_dailyTmax_19990702_reg4_1999.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990703_reg4_1999_m_gam_CAI_dailyTmax_19990703_reg4_1999.tif")
-
-l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
-
-##################### START SCRIPT #################
-
-####### PART 1: Read in data ########
-out_dir <- in_dir
-if (create_out_dir_param == TRUE) {
-  out_dir <- create_dir_fun(out_dir,out_suffix)
-  setwd(out_dir)
-}else{
-  setwd(out_dir) #use previoulsy defined directory
-}
-
-setwd(out_dir)
-
-
-###########  ####################
-
-#start_date <- day_to_mosaic_range[1]
-#end_date <- day_to_mosaic_range[2]
-#start_date <- day_start #PARAM 12 arg 12
-#end_date <- day_end #PARAM 13 arg 13
-
-#date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
-#l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
-
-
-
-mask_pred <- TRUE
-list_param_pre_process <- list(raster_name_lf,python_bin,infile_mask,scaling,mask_pred,NA_flag_val,out_suffix,out_dir) 
-names(list_param_pre_process) <- c("lf","python_bin","infile_mask","scaling","mask_pred","NA_flag_val","out_suffix","out_dir") 
-  
-#debug(pre_process_raster_mosaic_fun)
-
-#lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
-lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
-
-test <- pre_process_raster_mosaic_fun(2,list_param_pre_process)
 
 pre_process_raster_mosaic_fun <- function(i,list_param){
   
@@ -268,6 +141,136 @@ pre_process_raster_mosaic_fun <- function(i,list_param){
   return(raster_name_out)
 }
 
+###############################
+####### Parameters, constants and arguments ###
+
+CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
+
+var<-"TMAX" # variable being interpolated #param 1, arg 1
+
+##Add for precip later...
+if (var == "TMAX") {
+  y_var_name <- "dailyTmax"
+  y_var_month <- "TMax"
+}
+if (var == "TMIN") {
+  y_var_name <- "dailyTmin"
+  y_var_month <- "TMin"
+}
+
+##Add for precip later...
+if (var == "TMAX") {
+  variable_name <- "maximum temperature"
+}
+if (var == "TMIN") {
+  variable_name <- "minimum temperature"
+}
+
+#interpolation_method<-c("gam_fusion") #other otpions to be added later
+interpolation_method<-c("gam_CAI") #param 2
+CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
+#CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
+
+out_region_name<-""
+list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
+
+#reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
+#master directory containing the definition of tile size and tiles predicted
+in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics"
+
+region_name <- c("reg4") #param 6, arg 3
+
+create_out_dir_param <- TRUE #param 9, arg 6
+out_suffix <- "_meeting_NASA_reg4_04292016"
+
+out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+
+create_out_dir_param <- TRUE #param 9, arg 
+
+#run_figure_by_year <- TRUE # param 10, arg 7
+list_year_predicted <- "1984,2014"
+
+file_format <- ".tif" #format for mosaiced files # param 11
+NA_flag_val <- -32768  #No data value, # param 12
+#-32768
+#num_cores <- 6 #number of cores used # param 13, arg 8
+plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
+#num_cores <- args[8] #number of cores used # param 13, arg 8
+num_cores <- 11 #number of cores used # param 13, arg 8
+#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
+python_bin <- "/usr/bin" #PARAM 30
+
+day_start <- "19990101" #PARAM 12 arg 12
+day_end <- "19990103" #PARAM 13 arg 13
+
+#infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
+infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
+
+#run_figure_by_year <- TRUE # param 10, arg 7
+list_year_predicted <- "1984,2014"
+scaling <- 0.01 #was scaled on 100 
+
+df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
+
+#raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990101_reg4_1999_m_gam_CAI_dailyTmax_19990101_reg4_1999.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990103_reg4_1999_m_gam_CAI_dailyTmax_19990103_reg4_1999.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990701_reg4_1999_m_gam_CAI_dailyTmax_19990701_reg4_1999.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990702_reg4_1999_m_gam_CAI_dailyTmax_19990702_reg4_1999.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990703_reg4_1999_m_gam_CAI_dailyTmax_19990703_reg4_1999.tif")
+
+raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920103_reg4_1992_m_gam_CAI_dailyTmax_19920103_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920701_reg4_1992_m_gam_CAI_dailyTmax_19920701_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920702_reg4_1992_m_gam_CAI_dailyTmax_19920702_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
+
+#l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
+l_dates <- c("19920101","19920102","19920103","19920701","19920702","19990703")
+
+
+##################### START SCRIPT #################
+
+####### PART 1: Read in data ########
+out_dir <- in_dir
+if (create_out_dir_param == TRUE) {
+  out_dir <- create_dir_fun(out_dir,out_suffix)
+  setwd(out_dir)
+}else{
+  setwd(out_dir) #use previoulsy defined directory
+}
+
+setwd(out_dir)
+
+
+###########  ####################
+
+#start_date <- day_to_mosaic_range[1]
+#end_date <- day_to_mosaic_range[2]
+#start_date <- day_start #PARAM 12 arg 12
+#end_date <- day_end #PARAM 13 arg 13
+
+#date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
+#l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
+mask_pred <- TRUE
+list_param_pre_process <- list(raster_name_lf,python_bin,infile_mask,scaling,mask_pred,NA_flag_val,out_suffix,out_dir) 
+names(list_param_pre_process) <- c("lf","python_bin","infile_mask","scaling","mask_pred","NA_flag_val","out_suffix","out_dir") 
+  
+#debug(pre_process_raster_mosaic_fun)
+
+#lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
+lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
+
+#test <- pre_process_raster_mosaic_fun(2,list_param_pre_process)
+lf_mosaic_scaled <- unlist(lf_mosaic_scaled)
+
+r_mosaic_scaled <- stack(lf_mosaic_scaled)
+NAvalue(r_mosaic_scaled)<- -3399999901438340239948148078125514752.000
+plot(r_mosaic_scaled,y=6,zlim=c(-50,50))
+plot(r_mosaic_scaled,zlim=c(-50,50),col=matlab.like(255))
+
 month_name <- month.name()
 l_dates <- as.Date(strptime(date_proc,"%Y%m%d"))
 
@@ -275,46 +278,53 @@ l_dates <- as.Date(strptime(date_proc,"%Y%m%d"))
 #s.range <- s.range+c(5,-5)
 #col.breaks <- pretty(s.range, n=200)
 #lab.breaks <- pretty(s.range, n=100)
-temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-max_val<-s.range[2]
-min_val <-s.range[1]
+#temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
+#max_val<-s.range[2]
+#min_val <-s.range[1]
 #max_val<- -10
-min_val <- 0
+#min_val <- 0
 
 #layout_m<-c(1,3) #one row two columns
 date_proc <- l_dates[i]
+levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
+#levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
 
 #png(paste("Figure7a__spatial_pattern_tmax_prediction_levelplot_",date_selected,out_prefix,".png", sep=""),
 #    height=480*layout_m[1],width=480*layout_m[2])
 #plot(r_pred,col=temp.colors(255),zlim=c(-3500,4500))
-plot(r_pred,col=matlab.like(255),zlim=c(-35,45))
+#plot(r_pred,col=matlab.like(255),zlim=c(-40,50))
 #paste(raster_name[1:7],collapse="_")
 #add filename option later
 
+for (i in 1:length(nlayers(r_mosaic_scaled))){
+  
+  date_proc <- l_dates[i]
+  r_pred <- subset(r_mosaic_scaled,i)
+  
+  res_pix <- 1200
+  #res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png_filename <-  file.path(out_dir_str,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep =""))
+  title_str <-  paste("Predicted ",variable_name, " on ",date_proc , " ", sep = "")
+  
+  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255))
+  dev.off()
 
-
-res_pix <- 1200
-#res_pix <- 480
-
-col_mfrow <- 1
-row_mfrow <- 1
-date_proc <- 
-png_filename <-  file.path(out_dir_str,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep =""))
-
-png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-
-plot(r_pred,main = paste("Predicted ",variable_name, " on ",date_proc , " ", ,sep = ""),cex.main =1.5)
-
-dev.off()
-
-#col.regions=temp.colors(25))
-#dev.off()
+}
 
 #### Extract time series
 
 #-65,-22
 
 df_centroids <- read.table(df_centroids_fname,sep=",")
+coordinates(df_centroids)<- c("long","lat")
+proj4string(df_centroids) <- CRS_locs_WGS84
+
+extract(df_centroids,)
 
 raster()
+
 ############################ END OF SCRIPT ##################################
