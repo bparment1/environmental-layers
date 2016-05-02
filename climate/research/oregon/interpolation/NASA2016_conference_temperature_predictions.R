@@ -5,7 +5,7 @@
 #Figures and data for the AAG conference are also produced.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/01/2016  
-#MODIFIED ON: 05/01/2016            
+#MODIFIED ON: 05/02/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -101,6 +101,15 @@ if (var == "TMIN") {
   y_var_month <- "TMin"
 }
 
+
+##Add for precip later...
+if (var == "TMAX") {
+  variable_name <- "maximum temperature"
+}
+if (var == "TMIN") {
+  variable_name <- "minimum temperature"
+}
+
 #interpolation_method<-c("gam_fusion") #other otpions to be added later
 interpolation_method<-c("gam_CAI") #param 2
 CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
@@ -133,6 +142,8 @@ NA_flag_val <- -32768  #No data value, # param 12
 plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
 #num_cores <- args[8] #number of cores used # param 13, arg 8
 num_cores <- 11 #number of cores used # param 13, arg 8
+#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
+python_bin <- "/usr/bin" #PARAM 30
 
 day_start <- "19990101" #PARAM 12 arg 12
 day_end <- "19990103" #PARAM 13 arg 13
@@ -160,26 +171,48 @@ setwd(out_dir)
 
 ###########  ####################
 
-pred_temp_s <- raster("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990101_reg4_1999_m_gam_CAI_dailyTmax_19990101_reg4_1999.tif")
+#start_date <- day_to_mosaic_range[1]
+#end_date <- day_to_mosaic_range[2]
+start_date <- day_start #PARAM 12 arg 12
+end_date <- day_end #PARAM 13 arg 13
+
+date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
+l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
+
+raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990101_reg4_1999_m_gam_CAI_dailyTmax_19990101_reg4_1999.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990103_reg4_1999_m_gam_CAI_dailyTmax_19990103_reg4_1999.tif")
+
+pred_temp_s <- raster(raster_name_lf[1])
+
+lf_files <- c(raster_name_in) #match to mask
+rast_ref <- infile_mask
+##Maching resolution is probably only necessary for the r mosaic function
+#Modify later to take into account option R or python...
+list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+r_pred_matched <- raster_match(1,list_param_raster_match)
+raster_name_in <- c(r_pred_matched)
 
 if(mask_pred==TRUE){
   
   r_mask <- raster(infile_mask)
-  extension_str <- extension(filename(pred_temp_s ))
-  raster_name_tmp <-
-  gsub(extension_str,"",basename(filename(pred_temp_s )))
+  extension_str <- extension(raster_name_in)
+  raster_name_tmp <- gsub(extension_str,"",basename(raster_name_in))
   raster_name <- file.path(out_dir,paste(raster_name_tmp,"_masked.tif",sep = ""))
-  r_pred <- mask(pred_temp_s,r_mask,filename = raster_name,overwrite = TRUE)
-
+  r_pred <- mask(raster(raster_name_in),r_mask,filename = raster_name,overwrite = TRUE)
 }
 
-r_pred <- mask(pred_temp_s*1/scaling,r_mask,filename=)
-#predictions<-mask(predictions,mask_rast)
+extension_str <- extension(filename(r_pred))
+raster_name_tmp <- gsub(extension_str,"",basename(filename(r_pred)))
+raster_name <- file.path(out_dir,paste(raster_name_tmp,"_rescaled.tif",sep = ""))
 
+r_pred <- overlay(r_pred, fun=function(x){x*1/scaling},filename=raster_name)
+NAvalue(r_pred) <- NA_flag_val
+r_pred <- setMinMax(r_pred)
 
-NAvalue(pred_temp_s) <- NA_flag_val
-pred_temp_s <- setMinMax(pred_temp_s)
-
+month_name <- month.name()
+l_dates <- as.Date(strptime(date_proc,"%Y%m%d"))
 
 #s.range <- c(min(minValue(pred_temp_s)), max(maxValue(pred_temp_s)))
 #s.range <- s.range+c(5,-5)
@@ -191,14 +224,13 @@ min_val <-s.range[1]
 #max_val<- -10
 min_val <- 0
 
-layout_m<-c(1,3) #one row two columns
+#layout_m<-c(1,3) #one row two columns
+date_proc <- l_dates[i]
 
 #png(paste("Figure7a__spatial_pattern_tmax_prediction_levelplot_",date_selected,out_prefix,".png", sep=""),
 #    height=480*layout_m[1],width=480*layout_m[2])
-plot(pred_temp_s,col=temp.colors(255),zlim=c(-5000,5000))
-plot(pred_temp_s,col=heat.colors(255),zlim=c(-5000,5000))
-plot(pred_temp_s,zlim=c(-5000,5000))
-date_proc <- l_dates[i]
+#plot(r_pred,col=temp.colors(255),zlim=c(-3500,4500))
+plot(r_pred,col=matlab.like(255),zlim=c(-35,45))
 #paste(raster_name[1:7],collapse="_")
 #add filename option later
 
@@ -207,25 +239,18 @@ res_pix <- 1200
 
 col_mfrow <- 1
 row_mfrow <- 1
+date_proc <- 
+png_filename <-  file.path(out_dir_str,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep =""))
 
-png(
-  filename = file.path(
-    out_dir_str,
-    paste(
-      "Figure9_clim_mosaics_day_test","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep =
-        ""
-    )
-  ),
-  width = col_mfrow * res_pix,height = row_mfrow * res_pix
-)
+png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
 
-plot(
-  r_pred,main = paste("Predicted on ",date_proc , " ", reg_name,sep = ""),cex.main =
-    1.5
-)
+plot(r_pred,main = paste("Predicted ",variable_name, " on ",date_proc , " ", ,sep = ""),cex.main =1.5)
+
 dev.off()
 
 #col.regions=temp.colors(25))
 #dev.off()
+
+
 
 ############################ END OF SCRIPT ##################################
