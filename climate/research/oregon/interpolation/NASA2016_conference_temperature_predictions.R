@@ -186,17 +186,14 @@ out_suffix <- "_meeting_NASA_reg4_04292016"
 
 out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
 
-create_out_dir_param <- TRUE #param 9, arg 
-
 #run_figure_by_year <- TRUE # param 10, arg 7
 list_year_predicted <- "1984,2014"
 
 file_format <- ".tif" #format for mosaiced files # param 11
 NA_flag_val <- -32768  #No data value, # param 12
-#-32768
+
 #num_cores <- 6 #number of cores used # param 13, arg 8
 plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
-#num_cores <- args[8] #number of cores used # param 13, arg 8
 num_cores <- 11 #number of cores used # param 13, arg 8
 #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
 python_bin <- "/usr/bin" #PARAM 30
@@ -213,13 +210,6 @@ scaling <- 0.01 #was scaled on 100
 
 df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
 
-#raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990101_reg4_1999_m_gam_CAI_dailyTmax_19990101_reg4_1999.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990103_reg4_1999_m_gam_CAI_dailyTmax_19990103_reg4_1999.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990701_reg4_1999_m_gam_CAI_dailyTmax_19990701_reg4_1999.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990702_reg4_1999_m_gam_CAI_dailyTmax_19990702_reg4_1999.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990703_reg4_1999_m_gam_CAI_dailyTmax_19990703_reg4_1999.tif")
-
 raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
                     "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
                     "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920103_reg4_1992_m_gam_CAI_dailyTmax_19920103_reg4_1992.tif",
@@ -229,7 +219,6 @@ raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
 l_dates <- c("19920101","19920102","19920103","19920701","19920702","19990703")
-
 
 ##################### START SCRIPT #################
 
@@ -243,7 +232,6 @@ if (create_out_dir_param == TRUE) {
 }
 
 setwd(out_dir)
-
 
 ###########  ####################
 
@@ -271,22 +259,8 @@ NAvalue(r_mosaic_scaled)<- -3399999901438340239948148078125514752.000
 plot(r_mosaic_scaled,y=6,zlim=c(-50,50))
 plot(r_mosaic_scaled,zlim=c(-50,50),col=matlab.like(255))
 
-month_name <- month.name()
-l_dates <- as.Date(strptime(date_proc,"%Y%m%d"))
-
-#s.range <- c(min(minValue(pred_temp_s)), max(maxValue(pred_temp_s)))
-#s.range <- s.range+c(5,-5)
-#col.breaks <- pretty(s.range, n=200)
-#lab.breaks <- pretty(s.range, n=100)
-#temp.colors <- colorRampPalette(c('blue', 'white', 'red'))
-#max_val<-s.range[2]
-#min_val <-s.range[1]
-#max_val<- -10
-#min_val <- 0
-
 #layout_m<-c(1,3) #one row two columns
-date_proc <- l_dates[i]
-levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
+#levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
 #levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
 
 #png(paste("Figure7a__spatial_pattern_tmax_prediction_levelplot_",date_selected,out_prefix,".png", sep=""),
@@ -300,20 +274,34 @@ for (i in 1:length(nlayers(r_mosaic_scaled))){
   
   date_proc <- l_dates[i]
   r_pred <- subset(r_mosaic_scaled,i)
-  
+  NAvalue(r_pred)<- -3399999901438340239948148078125514752.000
+ 
+  date_proc <- l_dates[i]
+  date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
+  #month_name <- month.name(date_val)
+  month_str <- format(date_val, "%b") ## Month, char, abbreviated
+  year_str <- format(date_val, "%Y") ## Year with century
+  day_str <- as.numeric(format(date_val, "%d")) ## numeric month
+  date_str <- paste(month_str," ",day_str,", ",year_str,sep="")
+ 
   res_pix <- 1200
   #res_pix <- 480
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir_str,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",reg_name,"_",out_suffix,".png",sep =""))
-  title_str <-  paste("Predicted ",variable_name, " on ",date_proc , " ", sep = "")
+  png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_",out_suffix,".png",sep =""))
+  title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
   
   png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255))
+  plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=c(-50,50),
+       legend.shrink=0.8,legend.width=0.8)
+       #axis.args = list(cex.axis = 1.6), #control size of legend z
+       #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
+       #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
   dev.off()
 
 }
+
 
 #### Extract time series
 
