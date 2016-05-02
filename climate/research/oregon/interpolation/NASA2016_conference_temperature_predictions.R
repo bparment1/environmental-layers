@@ -153,7 +153,18 @@ infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 list_year_predicted <- "1984,2014"
-scaling <- 100
+scaling <- 0.01 #was scaled on 100 
+
+df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
+
+raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990101_reg4_1999_m_gam_CAI_dailyTmax_19990101_reg4_1999.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990103_reg4_1999_m_gam_CAI_dailyTmax_19990103_reg4_1999.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990701_reg4_1999_m_gam_CAI_dailyTmax_19990701_reg4_1999.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990702_reg4_1999_m_gam_CAI_dailyTmax_19990702_reg4_1999.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990703_reg4_1999_m_gam_CAI_dailyTmax_19990703_reg4_1999.tif")
+
+l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
 
 ##################### START SCRIPT #################
 
@@ -173,43 +184,89 @@ setwd(out_dir)
 
 #start_date <- day_to_mosaic_range[1]
 #end_date <- day_to_mosaic_range[2]
-start_date <- day_start #PARAM 12 arg 12
-end_date <- day_end #PARAM 13 arg 13
+#start_date <- day_start #PARAM 12 arg 12
+#end_date <- day_end #PARAM 13 arg 13
 
-date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
-l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
+#date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
+#l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
 
-raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990101_reg4_1999_m_gam_CAI_dailyTmax_19990101_reg4_1999.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990103_reg4_1999_m_gam_CAI_dailyTmax_19990103_reg4_1999.tif")
 
-pred_temp_s <- raster(raster_name_lf[1])
 
-lf_files <- c(raster_name_in) #match to mask
-rast_ref <- infile_mask
-##Maching resolution is probably only necessary for the r mosaic function
-#Modify later to take into account option R or python...
-list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
-names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
-r_pred_matched <- raster_match(1,list_param_raster_match)
-raster_name_in <- c(r_pred_matched)
-
-if(mask_pred==TRUE){
+mask_pred <- TRUE
+list_param_pre_process <- list(raster_name_lf,python_bin,infile_mask,scaling,mask_pred,NA_flag_val,out_suffix,out_dir) 
+names(list_param_pre_process) <- c("lf","python_bin","infile_mask","scaling","mask_pred","NA_flag_val","out_suffix","out_dir") 
   
-  r_mask <- raster(infile_mask)
+#debug(pre_process_raster_mosaic_fun)
+
+#lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
+lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
+
+test <- pre_process_raster_mosaic_fun(2,list_param_pre_process)
+
+pre_process_raster_mosaic_fun <- function(i,list_param){
+  
+  
+  ## Extract parameters
+  
+  lf <- list_param$lf
+  python_bin <- list_param$python_bin
+  infile_mask <- list_param$infile_mask
+  scaling <- list_param$scaling
+  mask_pred <- list_param$mask_pred
+  NA_flag_val <- list_param$NA_flag_val
+  out_suffix <- list_param$out_suffix
+  out_dir <- list_param$out_dir
+  
+  raster_name_in <- lf[i]
+  
+  #Step 1: match extent and resolution
+  
+  lf_files <- c(raster_name_in) #match to mask
+  rast_ref <- infile_mask
+  ##Maching resolution is probably only necessary for the r mosaic function
+  #Modify later to take into account option R or python...
+  list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+  names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+  r_pred_matched <- raster_match(1,list_param_raster_match)
+  raster_name_in <- c(r_pred_matched)
+
+  #Step 2: mask
+  if(mask_pred==TRUE){
+    r_mask <- raster(infile_mask)
+    extension_str <- extension(raster_name_in)
+    raster_name_tmp <- gsub(extension_str,"",basename(raster_name_in))
+    raster_name <- file.path(out_dir,paste(raster_name_tmp,"_masked.tif",sep = ""))
+    r_pred <- mask(raster(raster_name_in),r_mask,filename = raster_name,overwrite = TRUE)
+  }
+  
+  NAvalue(r_pred) <- NA_flag_val
+  #r_pred <- setMinMax(r_pred)
+
+  #Step 3: remove scaling factor
+  raster_name_in <- filename(r_pred)
   extension_str <- extension(raster_name_in)
-  raster_name_tmp <- gsub(extension_str,"",basename(raster_name_in))
-  raster_name <- file.path(out_dir,paste(raster_name_tmp,"_masked.tif",sep = ""))
-  r_pred <- mask(raster(raster_name_in),r_mask,filename = raster_name,overwrite = TRUE)
+  raster_name_tmp <- gsub(extension_str,"",basename(filename(r_pred)))
+  raster_name_out <- file.path(out_dir,paste(raster_name_tmp,"_rescaled.tif",sep = ""))
+  #r_pred <- overlay(r_pred, fun=function(x){x*1/scaling},filename=raster_name,overwrite=T)
+
+  #raster_name_in <- "comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999_m__meeting_NASA_reg4_04292016_masked.tif"
+  python_cmd <- file.path(python_bin,"gdal_calc.py")
+  cmd_str3 <- paste(python_cmd, 
+                     paste("-A ", raster_name_in,sep=""),
+                     paste("--outfile=",raster_name_out,sep=""),
+                     #paste("--type=","Int32",sep=""),
+                     "--co='COMPRESS=LZW'",
+                     paste("--NoDataValue=",NA_flag_val,sep=""),
+                     paste("--calc='(A)*",scaling,"'",sep=""),
+                     "--overwrite",sep=" ") #division by zero is problematic...
+  #system(cmd_str3)
+  system(cmd_str3)
+  #NAvalue(r_pred) <- NA_flag_val
+  #r_pred <- 
+  r_pred <- setMinMax(raster(raster_name_out))
+  
+  return(raster_name_out)
 }
-
-extension_str <- extension(filename(r_pred))
-raster_name_tmp <- gsub(extension_str,"",basename(filename(r_pred)))
-raster_name <- file.path(out_dir,paste(raster_name_tmp,"_rescaled.tif",sep = ""))
-
-r_pred <- overlay(r_pred, fun=function(x){x*1/scaling},filename=raster_name)
-NAvalue(r_pred) <- NA_flag_val
-r_pred <- setMinMax(r_pred)
 
 month_name <- month.name()
 l_dates <- as.Date(strptime(date_proc,"%Y%m%d"))
@@ -234,6 +291,8 @@ plot(r_pred,col=matlab.like(255),zlim=c(-35,45))
 #paste(raster_name[1:7],collapse="_")
 #add filename option later
 
+
+
 res_pix <- 1200
 #res_pix <- 480
 
@@ -251,6 +310,11 @@ dev.off()
 #col.regions=temp.colors(25))
 #dev.off()
 
+#### Extract time series
 
+#-65,-22
 
+df_centroids <- read.table(df_centroids_fname,sep=",")
+
+raster()
 ############################ END OF SCRIPT ##################################
