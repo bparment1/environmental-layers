@@ -277,7 +277,7 @@ names(d_z_tmp)<-"ID_8"
 min(d_z_tmp$ID_8)
 max(d_z_tmp$ID_8)
 
-plot(d_z_tmp)
+plot(d_z_tmp) #this is the whole time series
 
 day_start <- "1986-01-01" #PARAM 12 arg 12
 day_end <- "1998-12-31" #PARAM 13 arg 13
@@ -290,11 +290,51 @@ end_year <- year(end_date)
 d_z <- window(d_z_tmp,start=start_date,end=end_date)
 #d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
 
+res_pix <- 1000
+#res_pix <- 480
+col_mfrow <- 2
+row_mfrow <- 1
+  
+png_filename <-  file.path(out_dir,paste("Figure5a_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
 title_str <- paste("Predicted daily ",variable_name," for the ", start_year,"-",end_year," time period",sep="")
-plot(d_z,ylab="tmax in deg C",xlab="daily time steps",
-     main=title_str,
+  
+png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+
+plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=3,font=2,
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
      lty=3)
 
+dev.off()
+
+#### Subset for 5b
+
+day_start <- "1991-01-01" #PARAM 12 arg 12
+day_end <- "1992-12-31" #PARAM 13 arg 13
+
+start_date <- as.Date(day_start)
+end_date <- as.Date(day_end)
+start_year <- year(start_date)
+end_year <- year(end_date)
+d_z <- window(d_z_tmp,start=start_date,end=end_date)
+#d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+
+res_pix <- 1000
+#res_pix <- 480
+col_mfrow <- 2
+row_mfrow <- 1
+  
+png_filename <-  file.path(out_dir,paste("Figure5b_subset_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
+title_str <- paste("Predicted daily ",variable_name," for the ", start_year,"-",end_year," time period",sep="")
+  
+png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+
+plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=3,font=2,
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+
+dev.off()
 
 #data_pixel <- data_df[id_selected,]
 #data_pixel$rainfall <- as.numeric(data_pixel$rainfall)
