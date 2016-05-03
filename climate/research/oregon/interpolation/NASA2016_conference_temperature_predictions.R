@@ -198,8 +198,8 @@ num_cores <- 11 #number of cores used # param 13, arg 8
 #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
 python_bin <- "/usr/bin" #PARAM 30
 
-day_start <- "19990101" #PARAM 12 arg 12
-day_end <- "19990103" #PARAM 13 arg 13
+day_start <- "19840101" #PARAM 12 arg 12
+day_end <- "20021231" #PARAM 13 arg 13
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
@@ -219,6 +219,8 @@ raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
 l_dates <- c("19920101","19920102","19920103","19920701","19920702","19990703")
+
+df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/data_points_extracted.txt"
 
 ##################### START SCRIPT #################
 
@@ -270,11 +272,31 @@ plot(r_mosaic_scaled,zlim=c(-50,50),col=matlab.like(255))
 #paste(raster_name[1:7],collapse="_")
 #add filename option later
 
-for (i in 1:length(nlayers(r_mosaic_scaled))){
+NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
+
+list_param_plot_raster_mosaic <- list(l_dates,r_mosaic_scaled,NA_flag_val_mosaic,out_dir,out_suffix,
+                                      region_name,variable_name)
+names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
+                                          "region_name","variable_name")
+
+lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
+
+plot_raster_mosaic <- function(i,list_param){
+  #Function to plot mosaic for poster
+  #
+  l_dates <- list_param$l_dates
+  r_mosaiced_scaled <- list_param$r_mosaiced_scaled
+  NA_flag_val <- list_param$NA_flag_val
+  out_dir <- list_param$out_dir
+  out_suffix <- list_param$out_suffix
+  region_name <- list_param$region_name
+  variable_name <- list_param$variable_name
+
+#for (i in 1:length(nlayers(r_mosaic_scaled))){
   
   date_proc <- l_dates[i]
   r_pred <- subset(r_mosaic_scaled,i)
-  NAvalue(r_pred)<- -3399999901438340239948148078125514752.000
+  NAvalue(r_pred)<- NA_flag_val 
  
   date_proc <- l_dates[i]
   date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
@@ -283,7 +305,7 @@ for (i in 1:length(nlayers(r_mosaic_scaled))){
   year_str <- format(date_val, "%Y") ## Year with century
   day_str <- as.numeric(format(date_val, "%d")) ## numeric month
   date_str <- paste(month_str," ",day_str,", ",year_str,sep="")
- 
+  
   res_pix <- 1200
   #res_pix <- 480
   col_mfrow <- 1
@@ -300,19 +322,61 @@ for (i in 1:length(nlayers(r_mosaic_scaled))){
        #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
   dev.off()
 
+  return(png_filename)
 }
 
-
+############### PART2: temporal profile #############
 #### Extract time series
-
+###
 #-65,-22
 
+df_points <- read.table(df_points_extracted_fname,sep=",") 
 df_centroids <- read.table(df_centroids_fname,sep=",")
+
 coordinates(df_centroids)<- c("long","lat")
 proj4string(df_centroids) <- CRS_locs_WGS84
 
-extract(df_centroids,)
+lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern="*.tif")
+#r_mosaic_ts <- stack(lf_mosaic_list)
+#df_centroids <- extract(df_centroids,r_mosaic_ts)
 
-raster()
+df_points$files <- lf_mosaic_list
+
+extract_date <- function(i,x){
+  y <- unlist(strsplit(x[[i]],"_"))
+  date_str <- y[length(y)-2]
+}
+#debug(extract_date)
+#test <- (extract_date(1,lf_mosaic_list))
+
+list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,mc.preschedule=FALSE,mc.cores = num_cores))                         
+#list_dates_produced <- mclapply(1:11,FUN=extract_date,mc.preschedule=FALSE,x=lf_mosaic_list,mc.cores = num_cores)                         
+
+
+list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
+month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
+year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
+day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
+
+df_points$date <- list_dates_produced_date_val
+df_points$month <- month_str
+df_points$year <- year_str
+df_points$day <- day_str
+
+#data_pixel <- data_df[id_selected,]
+#data_pixel$rainfall <- as.numeric(data_pixel$rainfall)
+#d_z_tmp <-zoo(data_pixel$rainfall,as.Date(data_pixel$date))
+#names(d_z_tmp)<- "rainfall"
+#data_pixel <- as.data.frame(data_pixel)
+#d_z_tmp2 <- zoo(data_pixel[[var_name]],as.Date(data_pixel$date))
+    
+#start_date <-input$dates[1]
+#end_date <-input$dates[2]
+    
+#d_z <- window(d_z_tmp,start=start_date,end=end_date)
+#d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+#df2 <- as.data.frame(d_z2)
+#names(df2)<- var_name
+
 
 ############################ END OF SCRIPT ##################################
