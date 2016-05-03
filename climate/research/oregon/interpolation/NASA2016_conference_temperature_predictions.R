@@ -5,7 +5,7 @@
 #Figures and data for the AAG conference are also produced.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/01/2016  
-#MODIFIED ON: 05/02/2016            
+#MODIFIED ON: 05/03/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -51,20 +51,24 @@ library(pgirmess)                            # Krusall Wallis test with mulitple
 library(colorRamps)
 library(zoo)
 library(xts)
+library(lubridate)
 
 ###### Function used in the script #######
   
 #script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts" #path to script
 
-#Mosaic related
+## NASA poster and paper related
+source(file.path(script_path,"NASA2016_conference_temperature_predictions_function_05032016b.R"))
+
+#Mosaic related on NEX
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04232016.R" #PARAM12
 function_mosaicing <-"global_run_scalingup_mosaicing_05012016.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
-#Assessment
+#Assessment on NEX
 function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
 function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
 function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
@@ -75,125 +79,6 @@ source(file.path(script_path,function_assessment_part1a)) #source all functions 
 source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
-
-pre_process_raster_mosaic_fun <- function(i,list_param){
-  
-  
-  ## Extract parameters
-  
-  lf <- list_param$lf
-  python_bin <- list_param$python_bin
-  infile_mask <- list_param$infile_mask
-  scaling <- list_param$scaling
-  mask_pred <- list_param$mask_pred
-  NA_flag_val <- list_param$NA_flag_val
-  out_suffix <- list_param$out_suffix
-  out_dir <- list_param$out_dir
-  
-  raster_name_in <- lf[i]
-  
-  #Step 1: match extent and resolution
-  
-  lf_files <- c(raster_name_in) #match to mask
-  rast_ref <- infile_mask
-  ##Maching resolution is probably only necessary for the r mosaic function
-  #Modify later to take into account option R or python...
-  list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
-  names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
-  r_pred_matched <- raster_match(1,list_param_raster_match)
-  raster_name_in <- c(r_pred_matched)
-
-  #Step 2: mask
-  if(mask_pred==TRUE){
-    r_mask <- raster(infile_mask)
-    extension_str <- extension(raster_name_in)
-    raster_name_tmp <- gsub(extension_str,"",basename(raster_name_in))
-    raster_name <- file.path(out_dir,paste(raster_name_tmp,"_masked.tif",sep = ""))
-    r_pred <- mask(raster(raster_name_in),r_mask,filename = raster_name,overwrite = TRUE)
-  }
-  
-  NAvalue(r_pred) <- NA_flag_val
-  #r_pred <- setMinMax(r_pred)
-
-  #Step 3: remove scaling factor
-  raster_name_in <- filename(r_pred)
-  extension_str <- extension(raster_name_in)
-  raster_name_tmp <- gsub(extension_str,"",basename(filename(r_pred)))
-  raster_name_out <- file.path(out_dir,paste(raster_name_tmp,"_rescaled.tif",sep = ""))
-  #r_pred <- overlay(r_pred, fun=function(x){x*1/scaling},filename=raster_name,overwrite=T)
-
-  #raster_name_in <- "comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19990102_reg4_1999_m_gam_CAI_dailyTmax_19990102_reg4_1999_m__meeting_NASA_reg4_04292016_masked.tif"
-  python_cmd <- file.path(python_bin,"gdal_calc.py")
-  cmd_str3 <- paste(python_cmd, 
-                     paste("-A ", raster_name_in,sep=""),
-                     paste("--outfile=",raster_name_out,sep=""),
-                     #paste("--type=","Int32",sep=""),
-                     "--co='COMPRESS=LZW'",
-                     paste("--NoDataValue=",NA_flag_val,sep=""),
-                     paste("--calc='(A)*",scaling,"'",sep=""),
-                     "--overwrite",sep=" ") #division by zero is problematic...
-  #system(cmd_str3)
-  system(cmd_str3)
-  #NAvalue(r_pred) <- NA_flag_val
-  #r_pred <- 
-  r_pred <- setMinMax(raster(raster_name_out))
-  
-  return(raster_name_out)
-}
-
-plot_raster_mosaic <- function(i,list_param){
-  #Function to plot mosaic for poster
-  #
-  l_dates <- list_param$l_dates
-  r_mosaiced_scaled <- list_param$r_mosaiced_scaled
-  NA_flag_val <- list_param$NA_flag_val
-  out_dir <- list_param$out_dir
-  out_suffix <- list_param$out_suffix
-  region_name <- list_param$region_name
-  variable_name <- list_param$variable_name
-
-#for (i in 1:length(nlayers(r_mosaic_scaled))){
-  
-  date_proc <- l_dates[i]
-  r_pred <- subset(r_mosaic_scaled,i)
-  NAvalue(r_pred)<- NA_flag_val 
- 
-  date_proc <- l_dates[i]
-  date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
-  #month_name <- month.name(date_val)
-  month_str <- format(date_val, "%b") ## Month, char, abbreviated
-  year_str <- format(date_val, "%Y") ## Year with century
-  day_str <- as.numeric(format(date_val, "%d")) ## numeric month
-  date_str <- paste(month_str," ",day_str,", ",year_str,sep="")
-  
-  res_pix <- 1200
-  #res_pix <- 480
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_",out_suffix,".png",sep =""))
-  title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
-  
-  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=c(-50,50),
-       legend.shrink=0.8,legend.width=0.8)
-       #axis.args = list(cex.axis = 1.6), #control size of legend z
-       #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
-       #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
-  dev.off()
-
-  return(png_filename)
-}
-
-extract_date <- function(i,x,item_no=NULL){
-  y <- unlist(strsplit(x[[i]],"_"))
-  if(is.null(item_no)){
-    date_str <- y[length(y)-2] #count from end
-  }else{
-    date_str <- y[item_no]
-  }
-  return(date_str)
-}
 
 ###############################
 ####### Parameters, constants and arguments ###
@@ -252,8 +137,8 @@ num_cores <- 11 #number of cores used # param 13, arg 8
 #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
 python_bin <- "/usr/bin" #PARAM 30
 
-day_start <- "19840101" #PARAM 12 arg 12
-day_end <- "20021231" #PARAM 13 arg 13
+day_start <- "1986101" #PARAM 12 arg 12
+day_end <- "19981231" #PARAM 13 arg 13
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
@@ -275,6 +160,7 @@ raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg
 l_dates <- c("19920101","19920102","19920103","19920701","19920702","19990703")
 
 df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/data_points_extracted.txt"
+NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
 
 ##################### START SCRIPT #################
 
@@ -326,7 +212,7 @@ plot(r_mosaic_scaled,zlim=c(-50,50),col=matlab.like(255))
 #paste(raster_name[1:7],collapse="_")
 #add filename option later
 
-NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
+#NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
 
 list_param_plot_raster_mosaic <- list(l_dates,r_mosaic_scaled,NA_flag_val_mosaic,out_dir,out_suffix,
                                       region_name,variable_name)
@@ -334,8 +220,6 @@ names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_v
                                           "region_name","variable_name")
 
 lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
-
-
 
 ############### PART2: temporal profile #############
 #### Extract time series
@@ -379,22 +263,39 @@ unique_date <- unique(df_points$date)
 
 station_id <- 8
 var_name <-paste0("ID_",station_id)
-#aggregate(sdf_tmp
+
+##Screen for unique date values
 if(max(unique_date_tb)>1){
 #  formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
    var_pix <- aggregate(ID_8 ~ date, data = df_points, mean) #aggregate by date
 }
 
- 
-#start_date <-input$dates[1]
-#end_date <-input$dates[2]
+var_pix$ID_8 <- var_pix$ID_8*scaling
 
-d_z_tmp <- zoo(df_points[,station_id],df_points$date)
+d_z_tmp <- zoo(var_pix$ID_8,var_pix$date)
+names(d_z_tmp)<-"ID_8"
+min(d_z_tmp$ID_8)
+max(d_z_tmp$ID_8)
+
+plot(d_z_tmp)
+
+day_start <- "1986-01-01" #PARAM 12 arg 12
+day_end <- "1998-12-31" #PARAM 13 arg 13
+
+start_date <- as.Date(day_start)
+end_date <- as.Date(day_end)
+start_year <- year(start_date)
+end_year <- year(end_date)
+
+d_z <- window(d_z_tmp,start=start_date,end=end_date)
+#d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+
+title_str <- paste("Predicted daily ",variable_name," for the ", start_year,"-",end_year," time period",sep="")
+plot(d_z,ylab="tmax in deg C",xlab="daily time steps",
+     main=title_str,
+     lty=3)
 
 
-d_z <- window(d_z_tmp,start=start_date,end=end_date)   
-
-  
 #data_pixel <- data_df[id_selected,]
 #data_pixel$rainfall <- as.numeric(data_pixel$rainfall)
 #d_z_tmp <-zoo(data_pixel$rainfall,as.Date(data_pixel$date))
@@ -402,14 +303,6 @@ d_z <- window(d_z_tmp,start=start_date,end=end_date)
 #data_pixel <- as.data.frame(data_pixel)
 #d_z_tmp2 <- zoo(data_pixel[[var_name]],as.Date(data_pixel$date))
     
-#start_date <-input$dates[1]
-#end_date <-input$dates[2]
-    
-#d_z <- window(d_z_tmp,start=start_date,end=end_date)
-#d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
-#df2 <- as.data.frame(d_z2)
-#names(df2)<- var_name
-
 #df_tmp <- subset(data_var,data_var$ID_stat==id_name)
 #if(da)
 
