@@ -141,6 +141,60 @@ pre_process_raster_mosaic_fun <- function(i,list_param){
   return(raster_name_out)
 }
 
+plot_raster_mosaic <- function(i,list_param){
+  #Function to plot mosaic for poster
+  #
+  l_dates <- list_param$l_dates
+  r_mosaiced_scaled <- list_param$r_mosaiced_scaled
+  NA_flag_val <- list_param$NA_flag_val
+  out_dir <- list_param$out_dir
+  out_suffix <- list_param$out_suffix
+  region_name <- list_param$region_name
+  variable_name <- list_param$variable_name
+
+#for (i in 1:length(nlayers(r_mosaic_scaled))){
+  
+  date_proc <- l_dates[i]
+  r_pred <- subset(r_mosaic_scaled,i)
+  NAvalue(r_pred)<- NA_flag_val 
+ 
+  date_proc <- l_dates[i]
+  date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
+  #month_name <- month.name(date_val)
+  month_str <- format(date_val, "%b") ## Month, char, abbreviated
+  year_str <- format(date_val, "%Y") ## Year with century
+  day_str <- as.numeric(format(date_val, "%d")) ## numeric month
+  date_str <- paste(month_str," ",day_str,", ",year_str,sep="")
+  
+  res_pix <- 1200
+  #res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_",out_suffix,".png",sep =""))
+  title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
+  
+  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=c(-50,50),
+       legend.shrink=0.8,legend.width=0.8)
+       #axis.args = list(cex.axis = 1.6), #control size of legend z
+       #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
+       #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
+  dev.off()
+
+  return(png_filename)
+}
+
+extract_date <- function(i,x,item_no=NULL){
+  y <- unlist(strsplit(x[[i]],"_"))
+  if(is.null(item_no)){
+    date_str <- y[length(y)-2] #count from end
+  }else{
+    date_str <- y[item_no]
+  }
+  return(date_str)
+}
+
 ###############################
 ####### Parameters, constants and arguments ###
 
@@ -281,49 +335,7 @@ names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_v
 
 lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
 
-plot_raster_mosaic <- function(i,list_param){
-  #Function to plot mosaic for poster
-  #
-  l_dates <- list_param$l_dates
-  r_mosaiced_scaled <- list_param$r_mosaiced_scaled
-  NA_flag_val <- list_param$NA_flag_val
-  out_dir <- list_param$out_dir
-  out_suffix <- list_param$out_suffix
-  region_name <- list_param$region_name
-  variable_name <- list_param$variable_name
 
-#for (i in 1:length(nlayers(r_mosaic_scaled))){
-  
-  date_proc <- l_dates[i]
-  r_pred <- subset(r_mosaic_scaled,i)
-  NAvalue(r_pred)<- NA_flag_val 
- 
-  date_proc <- l_dates[i]
-  date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
-  #month_name <- month.name(date_val)
-  month_str <- format(date_val, "%b") ## Month, char, abbreviated
-  year_str <- format(date_val, "%Y") ## Year with century
-  day_str <- as.numeric(format(date_val, "%d")) ## numeric month
-  date_str <- paste(month_str," ",day_str,", ",year_str,sep="")
-  
-  res_pix <- 1200
-  #res_pix <- 480
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_",out_suffix,".png",sep =""))
-  title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
-  
-  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=c(-50,50),
-       legend.shrink=0.8,legend.width=0.8)
-       #axis.args = list(cex.axis = 1.6), #control size of legend z
-       #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
-       #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
-  dev.off()
-
-  return(png_filename)
-}
 
 ############### PART2: temporal profile #############
 #### Extract time series
@@ -331,7 +343,11 @@ plot_raster_mosaic <- function(i,list_param){
 #-65,-22
 
 df_points <- read.table(df_points_extracted_fname,sep=",") 
-df_centroids <- read.table(df_centroids_fname,sep=",")
+df_points_tmp <- df_points
+df_points <- as.data.frame(t(df_points))
+names(df_points) <- paste0("ID_",1:ncol(df_points))
+
+#df_centroids <- read.table(df_centroids_fname,sep=",")
 
 coordinates(df_centroids)<- c("long","lat")
 proj4string(df_centroids) <- CRS_locs_WGS84
@@ -342,16 +358,11 @@ lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern="*.tif")
 
 df_points$files <- lf_mosaic_list
 
-extract_date <- function(i,x){
-  y <- unlist(strsplit(x[[i]],"_"))
-  date_str <- y[length(y)-2]
-}
 #debug(extract_date)
-#test <- (extract_date(1,lf_mosaic_list))
+#test <- extract_date(6431,lf_mosaic_list,12) #extract item number 12 from the name of files to get the data
 
-list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,mc.preschedule=FALSE,mc.cores = num_cores))                         
-#list_dates_produced <- mclapply(1:11,FUN=extract_date,mc.preschedule=FALSE,x=lf_mosaic_list,mc.cores = num_cores)                         
-
+list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,x=lf_mosaic_list,item_no=12,mc.preschedule=FALSE,mc.cores = num_cores))                         
+#list_dates_produced <-  mclapply(6400:6431,FUN=extract_date,x=lf_mosaic_list,item_no=12,mc.preschedule=FALSE,mc.cores = num_cores)                         
 
 list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
 month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
@@ -363,6 +374,27 @@ df_points$month <- month_str
 df_points$year <- year_str
 df_points$day <- day_str
 
+unique_date_tb <-table(df_points$date)
+unique_date <- unique(df_points$date)
+
+station_id <- 8
+var_name <-paste0("ID_",station_id)
+#aggregate(sdf_tmp
+if(max(unique_date_tb)>1){
+#  formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
+   var_pix <- aggregate(ID_8 ~ date, data = df_points, mean) #aggregate by date
+}
+
+ 
+#start_date <-input$dates[1]
+#end_date <-input$dates[2]
+
+d_z_tmp <- zoo(df_points[,station_id],df_points$date)
+
+
+d_z <- window(d_z_tmp,start=start_date,end=end_date)   
+
+  
 #data_pixel <- data_df[id_selected,]
 #data_pixel$rainfall <- as.numeric(data_pixel$rainfall)
 #d_z_tmp <-zoo(data_pixel$rainfall,as.Date(data_pixel$date))
@@ -377,6 +409,9 @@ df_points$day <- day_str
 #d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
 #df2 <- as.data.frame(d_z2)
 #names(df2)<- var_name
+
+#df_tmp <- subset(data_var,data_var$ID_stat==id_name)
+#if(da)
 
 
 ############################ END OF SCRIPT ##################################
