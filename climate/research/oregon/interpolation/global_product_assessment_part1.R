@@ -72,7 +72,7 @@ function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_fu
 function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
 function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
-function_assessment_part3 <- "global_run_scalingup_assessment_part3_04292016b.R"
+function_assessment_part3 <- "global_run_scalingup_assessment_part3_05162016.R"
 source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
@@ -155,7 +155,7 @@ raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg
                     "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
-l_dates <- c("19920101","19920102","19920103","19920701","19920702","19990703")
+l_dates <- c("19920101","19920102","19920103","19920701","19920702","19920703") #dates to plot and analze
 
 df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/data_points_extracted.txt"
 NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
@@ -196,9 +196,86 @@ list_data_v_fname <- list.files(path=in_dir_list,"data_day_v.*.txt",full.names=T
 list_pred_data_month_info_fname <- list.files(path=in_dir_list,"pred_data_month_info.*.txt",full.names=T)
 list_pred_data_day_info_fname <- list.files(path=in_dir_list,"pred_data_day_info.*.txt",full.names=T)
 
+### Get data information
+data_date <- unlist(lapply(list_data_s_fname, function(x){unlist(strsplit(basename(x),"_"))[5]}))
+df_data_s_fname <- data.frame(data_date,region_name,dataset="data_s",file=list_data_s_fname)
+
+year_str <- as.character(unlist(lapply(list_data_v_fname, function(x){unlist(strsplit(basename(x),"_"))[5]})))
+df_data_v_fname <- data.frame(year_str,region_name,dataset="data_v",file=list_data_s_fname)
+
+df_data_v_fname$year <- df_data_v_fname$year_str
+df_data_v_fname$year <- as.character(df_data_v_fname$year_str)
+
+
 ## Use station from specific year and date?
 
+list_dates_val <- as.Date(strptime(l_dates,"%Y%m%d"))
+month_str <- format(list_dates_val, "%b") ## Month, char, abbreviated
+year_str <- format(list_dates_val, "%Y") ## Year with century
+day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 
+for(i in 1:length(unique(year_str))){
+  df_data_v_fname$data_date==year_str[i]
+  filename_tmp <- as.character(df_data_v_fname$file[9])
+  df_stations_tmp <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
+  
+}
+
+df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
+table(df_points$tile_id)
+plot(df_points,add=T)
+coordinates(df_points) <- cbind(df_points$x,df_points$y)
+proj4string(df_points) <- CRS_locs_WGS84
+
+#####################
+#select one station based on id or coordinates and find that in the list of data.frame??
+
+id_selected <- "82111099999"
+dim(df_points)
+
+
+### loop through all files and get the time series
+extract_from_df <- function(x,col_selected,val_selected){
+  df_tmp <- read.table(x,stringsAsFactors=F,sep=",")
+  #data_subset <- subset(data_stations,col_selected==val_selected)
+  data_subset <- subset(df_tmp,df_tmp$id%in%val_selected)
+  return(data_subset)
+}
+
+lf_data_s_subset <- mclapply(list_data_s_fname,
+                           FUN=extract_from_df,
+                           col_selected="id",
+                           val_selected=id_selected,
+                           mc.preschedule=FALSE,
+                           mc.cores = num_cores)                         
+lf_data_v_subset <- mclapply(list_data_v_fname,
+                           FUN=extract_from_df,
+                           col_selected="id",
+                           val_selected=id_selected,
+                           mc.preschedule=FALSE,
+                           mc.cores = num_cores)   
+
+data_v_subset <- do.call(rbind,lf_data_v_subset)
+data_s_subset <- do.call(rbind,lf_data_s_subset)
+
+data_s_subset$training <- 1
+data_v_subset$training <- 0
+
+data_stations <- rbind(data_s_subset,data_v_subset)
+dim(data_s_subset)
+dim(data_v_subset)
+
+#rbind.fill(mtcars[c("mpg", "wt")], mtcars[c("wt", "cyl")])
+data_stations <- rbind.fill(data_v_subset, data_s_subset)
+
+coordinates(data_stations) <- cbind(data_stations$x,data_stations$y)
+proj4string(data_stations) <- CRS_locs_WGS84
+
+dim(data_stations)
+
+
+
+##Now grab year year 1992 or matching year...maybe put this in a data.frame??
 
 pattern_str <-"*.tif"
 lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
@@ -255,6 +332,12 @@ lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic
 
 #Use the global output??
 
+dim(data_stations)
+
+
+df_points_extracted <- extract(r_mosaic,data_stations,df=T)
+df_points_extracted_fname <- paste0("df_points_extracted_fname",".txt")
+write.table(df_points_extracted,file=df_points_extracted_fname) 
 
 df_points <- read.table(df_points_extracted_fname,sep=",") 
 df_points_tmp <- df_points
