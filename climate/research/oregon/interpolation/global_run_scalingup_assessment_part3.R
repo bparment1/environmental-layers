@@ -243,6 +243,20 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
 
   ## Step 2: only read what is necessary at this stage...
   list_tb <- lapply(list_tb_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  
+  list_tb_updated <- mclapply(list_tb,FUN=adding_tile_nb_fun,mc.preschedule=FALSE,mc.cores = num_cores,num_cores_tmp=1)
+
+  
+  adding_tile_nb_fun <- function(x,num_cores_tmp){
+    x$tile_id <- factor(x$tile_id, levels=unique(mixedsort(x$tile_id)))#fix level ordering for plotting
+    #num_cores_tmp <- 1
+    x$tile_nb <- unlist(mclapply(as.character(x$tile_id),FUN=function(y){strsplit(y,"_")[[1]][2]},mc.preschedule=FALSE,mc.cores = num_cores_tmp))
+    return(x)
+  }
+  #tb$tile_id <- factor(tb$tile_id, levels=unique(mixedsort(tb$tile_id)))#fix level ordering for plotting
+  #fix level ordering for plotting
+  #tb$tile_nb <- unlist(mclapply(as.character(tb$tile_id),FUN=function(x){strsplit(x,"_")[[1]][2]},mc.preschedule=FALSE,mc.cores = num_cores))
+  #unlist(mclapply(as.character(tb$tile_id[1:10]),FUN=function(x){strsplit(x,"_")[[1]][2]},mc.preschedule=FALSE,mc.cores = num_cores))
 
   tb <- do.call(rbind,list_tb)
   list_tb_s <- lapply(list_tb_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
