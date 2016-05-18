@@ -13,7 +13,7 @@
 #STAGE 8: Comparison of predictions across regions and years with figures generation.
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 04/29/2016  
+#MODIFIED ON: 05/18/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -167,7 +167,7 @@ region_name <- c("reg4") #param 6, arg 3
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE #param 9, arg 6
 out_prefix <- args[4] #param 7, arg 4
-out_suffix <- "global_analyses_overall_assessment_reg4_04292016"
+out_suffix <- "global_analyses_overall_assessment_reg4_05182016"
 
 out_dir <- args[5] #param 8, arg 5
 out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
@@ -204,7 +204,7 @@ threshold_missing_day <- c(367,365,300,200) # param 20
 max_mem <- args[9] #param 21
 max_mem <- 1e+07
 #in_dir_list_filename <- args[10] #param 22
-in_dir_list_filename <- NULL #if NULL, use teh in_dir directory to search for info
+in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
 #in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg23_assessment/stage6_reg23_in_dir_list_03212016.txt"
 #in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
 run_figure_by_year <- args[11] # param 10, arg 7, if true will create figures for individual years...
@@ -212,7 +212,17 @@ run_figure_by_year <- FALSE # param 10, arg 7, if true will create figures for i
 
 #### Prepare parameters for the production of figures...
 proj_str <- CRS_interp
-list_in_dir <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
+#list_in_dir <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
+
+if(!is.null(in_dir_list_filename)){
+  in_dir_list <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
+}else{
+  pattern_str <- paste0("^output_",region_name,".*.")
+  in_dir_list_all <- list.dirs(path=in_dir,recursive = T)
+  in_dir_list <- in_dir_list_all[grep(pattern_str,basename(in_dir_list_all),invert=FALSE)] #select directory with shapefiles...
+  list_in_dir <- in_dir_list #fix the naming later...
+  #in_dir_shp <- file.path(in_dir_list_all,"shapefiles")
+}
 
 #removed df_assessment_file_names from parameters, note the difference compared to part2
 list_param_run_assessment_combined_region_plotting_prediction <-list(  
