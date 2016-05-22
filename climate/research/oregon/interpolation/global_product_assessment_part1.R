@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 05/16/2016            
+#MODIFIED ON: 05/22/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -158,7 +158,12 @@ raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg
 l_dates <- c("19920101","19920102","19920103","19920701","19920702","19920703") #dates to plot and analze
 
 df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/data_points_extracted.txt"
-NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
+df_points_extracted_fname <- NULL #if null compute on the fly
+#r_mosaic_fname <- "r_mosaic.RData"
+r_mosaic_fname <- NULL #if null create a stack from input dir
+
+#NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
+NA_flag_val_mosaic <- -32768
 in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
 
 ##################### START SCRIPT #################
@@ -176,6 +181,7 @@ setwd(out_dir)
 
 ###########  ####################
 
+##Get the assessment information for every year for the matching region
 if(!is.null(in_dir_list_filename)){
   in_dir_list <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
 }else{
@@ -185,6 +191,7 @@ if(!is.null(in_dir_list_filename)){
   #in_dir_shp <- file.path(in_dir_list_all,"shapefiles")
 }
 
+## Now get the list of files for assessment of global product
 list_tb_fname <- list.files(path=in_dir_list,"tb_diagnostic_v_NA_.*.txt",full.names=T)
 list_df_fname <- list.files(path=in_dir_list,"df_tile_processed_.*..txt",full.names=T)
 list_summary_metrics_v_fname <- list.files(path=in_dir_list,"summary_metrics_v2_NA_.*.txt",full.names=T)
@@ -196,7 +203,7 @@ list_data_v_fname <- list.files(path=in_dir_list,"data_day_v.*.txt",full.names=T
 list_pred_data_month_info_fname <- list.files(path=in_dir_list,"pred_data_month_info.*.txt",full.names=T)
 list_pred_data_day_info_fname <- list.files(path=in_dir_list,"pred_data_day_info.*.txt",full.names=T)
 
-### Get data information
+### Get station data information: create a data.frame with stations info
 data_date <- unlist(lapply(list_data_s_fname, function(x){unlist(strsplit(basename(x),"_"))[5]}))
 df_data_s_fname <- data.frame(data_date,region_name,dataset="data_s",file=list_data_s_fname)
 
@@ -207,18 +214,23 @@ df_data_v_fname$year <- df_data_v_fname$year_str
 df_data_v_fname$year <- as.character(df_data_v_fname$year_str)
 
 
+############### PART1: Select stations for specific list of dates #############
+#### Extract corresponding stationsfor given dates and plot stations used
 ## Use station from specific year and date?
 
 list_dates_val <- as.Date(strptime(l_dates,"%Y%m%d"))
-month_str <- format(list_dates_val, "%b") ## Month, char, abbreviated
-year_str <- format(list_dates_val, "%Y") ## Year with century
-day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
+l_dates_month_str <- format(list_dates_val, "%b") ## Month, char, abbreviated
+l_dates_year_str <- format(list_dates_val, "%Y") ## Year with century
+l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 
-for(i in 1:length(unique(year_str))){
-  df_data_v_fname$data_date==year_str[i]
+list_year_str <- unique(l_dates_year_str)
+list_df_stations <- vector("list",length=length(list_year_str))
+
+for(i in 1:length(list_year_str)){
+  subset(df_data_v_fname,year=list_year_str)
+  df_data_v_fname$data_date==l_dates_year_str[i]
   filename_tmp <- as.character(df_data_v_fname$file[9])
   df_stations_tmp <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
-  
 }
 
 df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
@@ -226,6 +238,12 @@ table(df_points$tile_id)
 plot(df_points,add=T)
 coordinates(df_points) <- cbind(df_points$x,df_points$y)
 proj4string(df_points) <- CRS_locs_WGS84
+## No spatial duplicates
+df_points_day <- remove.duplicates(df_points)
+
+############### PART2: Select stations by ID to build a time series #############
+#### Extract corresponding stationsfor given dates and plot stations used
+## Use station from specific year and date?
 
 #####################
 #select one station based on id or coordinates and find that in the list of data.frame??
@@ -268,15 +286,21 @@ dim(data_v_subset)
 #rbind.fill(mtcars[c("mpg", "wt")], mtcars[c("wt", "cyl")])
 data_stations <- rbind.fill(data_v_subset, data_s_subset)
 
+#aggregate(breaks ~ wool + tension, data = warpbreaks, mean)
+#aggregate(df_points ~ wool + tension, data = warpbreaks, mean)
+
 coordinates(data_stations) <- cbind(data_stations$x,data_stations$y)
 proj4string(data_stations) <- CRS_locs_WGS84
 
 dim(data_stations)
 
 
+############### PART1: Make raster stack and display maps #############
+#### Extract corresponding raster for given dates and plot stations used
 
 ##Now grab year year 1992 or matching year...maybe put this in a data.frame??
 
+if(is.null(r_mosaic=)
 pattern_str <-"*.tif"
 lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
 r_mosaic <- stack(lf_mosaic_list)
@@ -326,28 +350,51 @@ names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_v
 lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
 
 ############### PART2: temporal profile #############
-#### Extract time series
+#### Extract time series from raster stack
 ###
 #-65,-22
 
 #Use the global output??
 
-dim(data_stations)
+dim(data_stations) #
+#> dim(data_stations)
+#[1] 100458     90
+#This is a lot of replication!!! okay cut it down
+
+##23.09 (on 05/22)
+#df_points_day_extracted <- extract(r_mosaic,data_stations,df=T)
+#df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname",".txt") 
+#write.table(df_points_day_extracted,file=df_points_day_extracted_fname) #5.1 Giga
+#4.51 (on 05/23)
+
+if(is.null(df_points_extracted_fname)){
+  
+  ##10.41 (on 05/22)
+  df_points_day_extracted <- extract(r_mosaic,df_points_day,df=T)
+  #17.19 (on 05/23)
+  df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname2",".txt")
+  #17.27 (on 05/23)
+  write.table(df_points_day_extracted,file=df_points_day_extracted_fname,sep=",",row.names = F) 
+  #17.19 (on 05/23)
+
+}else{
+  df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
+}
 
 
-df_points_extracted <- extract(r_mosaic,data_stations,df=T)
-df_points_extracted_fname <- paste0("df_points_extracted_fname",".txt")
-write.table(df_points_extracted,file=df_points_extracted_fname) 
+#df_points_extracted <- extract(r_mosaic,data_stations,df=T)
+#df_points_extracted_fname <- paste0("df_points_extracted_fname",".txt")
+#write.table(df_points_extracted,file=df_points_extracted_fname) 
 
-df_points <- read.table(df_points_extracted_fname,sep=",") 
-df_points_tmp <- df_points
-df_points <- as.data.frame(t(df_points))
-names(df_points) <- paste0("ID_",1:ncol(df_points))
+#df_points <- read.table(df_points_extracted_fname,sep=",") 
+#df_points_tmp <- df_points
+#df_points <- as.data.frame(t(df_points))
+#names(df_points) <- paste0("ID_",1:ncol(df_points))
 
 #df_centroids <- read.table(df_centroids_fname,sep=",")
 
-coordinates(df_centroids)<- c("long","lat")
-proj4string(df_centroids) <- CRS_locs_WGS84
+#coordinates(df_centroids)<- c("long","lat")
+#proj4string(df_centroids) <- CRS_locs_WGS84
 ## Checking new files:
 in_dir_mosaic <- "/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic"
 #/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic/output_reg4_*/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_*_reg4_*.tif
