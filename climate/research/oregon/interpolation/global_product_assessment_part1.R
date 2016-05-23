@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 05/22/2016            
+#MODIFIED ON: 05/23/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -212,7 +212,8 @@ df_data_v_fname <- data.frame(year_str,region_name,dataset="data_v",file=list_da
 
 df_data_v_fname$year <- df_data_v_fname$year_str
 df_data_v_fname$year <- as.character(df_data_v_fname$year_str)
-
+df_data_v_fname$file <- as.character(df_data_v_fname$file)
+df_data_s_fname$file <- as.character(df_data_s_fname$file)
 
 ############### PART1: Select stations for specific list of dates #############
 #### Extract corresponding stationsfor given dates and plot stations used
@@ -223,23 +224,31 @@ l_dates_month_str <- format(list_dates_val, "%b") ## Month, char, abbreviated
 l_dates_year_str <- format(list_dates_val, "%Y") ## Year with century
 l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 
+
+### Needs to make this a function!!!
+#Step 1 for a list of dates, load relevant files with year matching,
+#Step 2 for giving dates subset the data.frame
+#Step 3: find duplicates, create return object and return given station data for the date
+
 list_year_str <- unique(l_dates_year_str)
-list_df_stations <- vector("list",length=length(list_year_str))
+list_df_v_stations <- vector("list",length=length(list_year_str))
+list_df_s_stations <- vector("list",length=length(list_year_str))
 
 for(i in 1:length(list_year_str)){
-  subset(df_data_v_fname,year=list_year_str)
-  df_data_v_fname$data_date==l_dates_year_str[i]
-  filename_tmp <- as.character(df_data_v_fname$file[9])
-  df_stations_tmp <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
+  filename_tmp<- df_data_v_fname$file[df_data_v_fname$year==list_year_str[i]]
+  list_df_v_stations[[i]] <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
+  filename_tmp<- df_data_s_fname$file[df_data_s_fname$year==list_year_str[i]]
+  list_df_s_stations[[i]] <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
 }
 
+#function(x){x$date==}
 df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
 table(df_points$tile_id)
 plot(df_points,add=T)
 coordinates(df_points) <- cbind(df_points$x,df_points$y)
 proj4string(df_points) <- CRS_locs_WGS84
 ## No spatial duplicates
-df_points_day <- remove.duplicates(df_points)
+df_points_day <- remove.duplicates(df_points) #remove duplicates...
 
 ############### PART2: Select stations by ID to build a time series #############
 #### Extract corresponding stationsfor given dates and plot stations used
@@ -250,7 +259,6 @@ df_points_day <- remove.duplicates(df_points)
 
 id_selected <- "82111099999"
 dim(df_points)
-
 
 ### loop through all files and get the time series
 extract_from_df <- function(x,col_selected,val_selected){
@@ -286,25 +294,35 @@ dim(data_v_subset)
 #rbind.fill(mtcars[c("mpg", "wt")], mtcars[c("wt", "cyl")])
 data_stations <- rbind.fill(data_v_subset, data_s_subset)
 
-#aggregate(breaks ~ wool + tension, data = warpbreaks, mean)
-#aggregate(df_points ~ wool + tension, data = warpbreaks, mean)
-
 coordinates(data_stations) <- cbind(data_stations$x,data_stations$y)
 proj4string(data_stations) <- CRS_locs_WGS84
 
-dim(data_stations)
+dim(data_stations) #one station only but repitition of records because of tiles and dates!!!
+#> dim(data_stations)
+#[1] 100458     90
+#This is a lot of replication!!! okay cut it down
 
+#data_stations_temp <- aggregate(id ~ date, data = data_stations, min)
+#data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
+data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax,data = data_stations, min ) #+ mod1 + res_mod1 , data = data_stations, min)
+dim(data_stations_temp)
+#> dim(data_stations_temp)
+#[1] 11171     5
 
-############### PART1: Make raster stack and display maps #############
+############### PART3: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
 
 ##Now grab year year 1992 or matching year...maybe put this in a data.frame??
 
-if(is.null(r_mosaic=)
-pattern_str <-"*.tif"
-lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
-r_mosaic <- stack(lf_mosaic_list)
-save(r_mosaic,file="r_mosaic.RData")
+if(is.null(r_mosaic_fname)){
+  pattern_str <-"*.tif"
+  lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
+  r_mosaic <- stack(lf_mosaic_list)
+  save(r_mosaic,file="r_mosaic.RData")
+}else{
+  r_mosaic <- load_obj(r_mosaic_fname) #load raster stack of images
+}
+
 #start_date <- day_to_mosaic_range[1]
 #end_date <- day_to_mosaic_range[2]
 #start_date <- day_start #PARAM 12 arg 12
@@ -313,6 +331,7 @@ save(r_mosaic,file="r_mosaic.RData")
 #date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
 #l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
 mask_pred <- FALSE
+matching <- FALSE #to be added after mask_pred option
 list_param_pre_process <- list(raster_name_lf,python_bin,infile_mask,scaling,mask_pred,NA_flag_val,out_suffix,out_dir) 
 names(list_param_pre_process) <- c("lf","python_bin","infile_mask","scaling","mask_pred","NA_flag_val","out_suffix","out_dir") 
   
@@ -349,54 +368,13 @@ names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_v
 
 lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
 
-############### PART2: temporal profile #############
-#### Extract time series from raster stack
-###
-#-65,-22
+###############  PART4: Checking for mosaic produced for given region ##############
+## From list of mosaic files predicted extract dates
+## Check dates predicted against date range for a given date range
+## Join file information to centroids of tiles data.frame
 
-#Use the global output??
-
-dim(data_stations) #
-#> dim(data_stations)
-#[1] 100458     90
-#This is a lot of replication!!! okay cut it down
-
-##23.09 (on 05/22)
-#df_points_day_extracted <- extract(r_mosaic,data_stations,df=T)
-#df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname",".txt") 
-#write.table(df_points_day_extracted,file=df_points_day_extracted_fname) #5.1 Giga
-#4.51 (on 05/23)
-
-if(is.null(df_points_extracted_fname)){
-  
-  ##10.41 (on 05/22)
-  df_points_day_extracted <- extract(r_mosaic,df_points_day,df=T)
-  #17.19 (on 05/23)
-  df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname2",".txt")
-  #17.27 (on 05/23)
-  write.table(df_points_day_extracted,file=df_points_day_extracted_fname,sep=",",row.names = F) 
-  #17.19 (on 05/23)
-
-}else{
-  df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
-}
-
-
-#df_points_extracted <- extract(r_mosaic,data_stations,df=T)
-#df_points_extracted_fname <- paste0("df_points_extracted_fname",".txt")
-#write.table(df_points_extracted,file=df_points_extracted_fname) 
-
-#df_points <- read.table(df_points_extracted_fname,sep=",") 
-#df_points_tmp <- df_points
-#df_points <- as.data.frame(t(df_points))
-#names(df_points) <- paste0("ID_",1:ncol(df_points))
-
-#df_centroids <- read.table(df_centroids_fname,sep=",")
-
-#coordinates(df_centroids)<- c("long","lat")
-#proj4string(df_centroids) <- CRS_locs_WGS84
 ## Checking new files:
-in_dir_mosaic <- "/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic"
+#in_dir_mosaic <- "/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic"
 #/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic/output_reg4_*/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_*_reg4_*.tif
 pattern_str <- "r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_.*._reg4_.*.tif"
 searchStr = paste(in_dir_mosaic,"/output_reg4_2014",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
@@ -441,6 +419,64 @@ df_points$date <- list_dates_produced_date_val
 df_points$month <- month_str
 df_points$year <- year_str
 df_points$day <- day_str
+
+
+############### PART5: Extraction of temporal profile #############
+#### Extract time series from raster stack
+### Add dates to mkae it a date object?
+#-65,-22
+
+#Use the global output??
+
+##23.09 (on 05/22)
+#df_points_day_extracted <- extract(r_mosaic,data_stations,df=T)
+#df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname",".txt") 
+#write.table(df_points_day_extracted,file=df_points_day_extracted_fname) #5.1 Giga
+#4.51 (on 05/23)
+
+if(is.null(df_points_extracted_fname)){
+  
+  ##10.41 (on 05/22)
+  df_points_day_extracted <- extract(r_mosaic,df_points_day,df=T)
+  #17.19 (on 05/23)
+  df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname2",".txt")
+  #17.27 (on 05/23)
+  write.table(df_points_day_extracted,file=df_points_day_extracted_fname,sep=",",row.names = F) 
+  #17.19 (on 05/23)
+
+}else{
+  df_points_day_extracted <- read.table(df_points_extracted_fname,sep=",")
+}
+
+pix_ts <- as.data.frame(t(df_points_day_extracted))
+rownames(df_points_day_extracted)
+
+lf_var <- names(r_mosaic)
+### Not get the data from the time series
+data_pixel <- df_ts_pix[id_selected,]
+data_pixel <- as.data.frame(data_pixel)
+  
+pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
+#pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
+pix_ts <- (as.data.frame(pix_ts))
+## Process the coliform data
+  
+  #there are several measurements per day for some stations !!!
+  #id_name <- data_pixel[[var_ID]]
+  
+  #df_tmp  <-data_var[data_var$LOCATION_ID==id_name,]
+  df_tmp <- subset(data_var,data_var$ID_stat==id_name)
+
+#df_points_extracted <- extract(r_mosaic,data_stations,df=T)
+#df_points_extracted_fname <- paste0("df_points_extracted_fname",".txt")
+#write.table(df_points_extracted,file=df_points_extracted_fname) 
+
+#df_points <- read.table(df_points_extracted_fname,sep=",") 
+#df_points_tmp <- df_points
+#df_points <- as.data.frame(t(df_points))
+#names(df_points) <- paste0("ID_",1:ncol(df_points))
+
+#df_centroids <- read.table(df_centroids_fname,sep=",")
 
 unique_date_tb <-table(df_points$date)
 unique_date <- unique(df_points$date)
