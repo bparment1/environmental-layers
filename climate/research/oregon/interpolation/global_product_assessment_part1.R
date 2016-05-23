@@ -144,6 +144,7 @@ infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask
 #run_figure_by_year <- TRUE # param 10, arg 7
 list_year_predicted <- "1984,2014"
 scaling <- 0.01 #was scaled on 100 
+#if scaling is null then perform no scaling!!
 
 df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
 
@@ -420,7 +421,6 @@ df_points$month <- month_str
 df_points$year <- year_str
 df_points$day <- day_str
 
-
 ############### PART5: Extraction of temporal profile #############
 #### Extract time series from raster stack
 ### Add dates to mkae it a date object?
@@ -448,58 +448,91 @@ if(is.null(df_points_extracted_fname)){
   df_points_day_extracted <- read.table(df_points_extracted_fname,sep=",")
 }
 
+head(df_points_day) #contains ID, dates and coordinates
+df_points_day$id
+
 pix_ts <- as.data.frame(t(df_points_day_extracted))
-rownames(df_points_day_extracted)
-
-lf_var <- names(r_mosaic)
+pix_ts <- pix_ts[-1,]
+#var_names <- rownames(df_points_day_extracted) #same as lf_mosaic_list but without (*.tif)
+var_names <- rownames(pix_ts) #same as lf_mosaic_list but without (*.tif)
+var_id <- df_points_day$id
+df_points_day_extracted$id <- var_id
+ 
+#lf_var <- names(r_mosaic)
 ### Not get the data from the time series
-data_pixel <- df_ts_pix[id_selected,]
-data_pixel <- as.data.frame(data_pixel)
-  
-pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
+#data_pixel <- df_ts_pix[id_selected,]
+#data_pixel <- as.data.frame(data_pixel)
+#pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
 #pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
-pix_ts <- (as.data.frame(pix_ts))
-## Process the coliform data
+
+list_dates_produced <- unlist(mclapply(1:length(var_names),
+                                       FUN=extract_date,
+                                       x=var_names,
+                                       item_no=12,
+                                       mc.preschedule=FALSE,
+                                       mc.cores = num_cores))                         
+
+list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
+pix_ts$date <- list_dates_produced_date_val
+pix_ts[,1]*scaling #scale?
+
+names(pix_ts) <- var_id
+
+pix_ts <- read.table("pix_ts2.txt",sep=",")
+names(pix_ts) <- c(var_id,"files","date_str")
+pix_ts$date <- as.Date(strptime(pix_ts$date_str,"%Y%m%d"))
   
-  #there are several measurements per day for some stations !!!
-  #id_name <- data_pixel[[var_ID]]
-  
-  #df_tmp  <-data_var[data_var$LOCATION_ID==id_name,]
-  df_tmp <- subset(data_var,data_var$ID_stat==id_name)
+#head(pix_ts)
 
-#df_points_extracted <- extract(r_mosaic,data_stations,df=T)
-#df_points_extracted_fname <- paste0("df_points_extracted_fname",".txt")
-#write.table(df_points_extracted,file=df_points_extracted_fname) 
+###start of plotting
+### makes this a function:
+id_selected <- "82111099999"
+#station_id <- 8
+station_id <- id_selected
+df <- pix_ts
+#scaling
+#start_date: subset dates
+#end_date: subset dates
 
-#df_points <- read.table(df_points_extracted_fname,sep=",") 
-#df_points_tmp <- df_points
-#df_points <- as.data.frame(t(df_points))
-#names(df_points) <- paste0("ID_",1:ncol(df_points))
+df_selected <- subset(df,select=station_id)
+#df_selected <- subset(pix_ts,select=station_id)
+names(df_selected) <- station_id
+df_selected$date <- df$date
 
-#df_centroids <- read.table(df_centroids_fname,sep=",")
-
-unique_date_tb <-table(df_points$date)
-unique_date <- unique(df_points$date)
-
-station_id <- 8
-var_name <-paste0("ID_",station_id)
-
-##Screen for unique date values
-if(max(unique_date_tb)>1){
-#  formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
-   var_pix <- aggregate(ID_8 ~ date, data = df_points, mean) #aggregate by date
+if(!is.null(scaling)){
+  df_selected[[station_id]]<- df_selected[[station_id]]*scaling
 }
 
-var_pix$ID_8 <- var_pix$ID_8*scaling
+d_z_tmp <- zoo(df_selected[[station_id]],df_selected$date)
+#d_z_tmp <- zoo(df[[station_id]],df$date)
+names(d_z_tmp)<-station_id
+#min(d_z_tmp$ID_8)
+#max(d_z_tmp$ID_8)
+day_start <- "1984-01-01" #PARAM 12 arg 12
+day_end <- "2014-12-31" #PARAM 13 arg 13
+start_date <- as.Date(day_start)
+end_date <- as.Date(day_end)
+start_year <- year(start_date)
+end_year <- year(end_date)
 
-d_z_tmp <- zoo(var_pix$ID_8,var_pix$date)
-names(d_z_tmp)<-"ID_8"
-min(d_z_tmp$ID_8)
-max(d_z_tmp$ID_8)
+res_pix <- 1000
+#res_pix <- 480
+col_mfrow <- 2
+row_mfrow <- 1
+  
+png_filename <-  file.path(out_dir,paste("Figure5a_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
+title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
+  
+png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+#this is the whole time series
+plot(d_z_tmp,ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=3,font=2,
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
 
-plot(d_z_tmp) #this is the whole time series
+dev.off()
 
-day_start <- "1986-01-01" #PARAM 12 arg 12
+day_start <- "1984-01-01" #PARAM 12 arg 12
 day_end <- "1998-12-31" #PARAM 13 arg 13
 
 start_date <- as.Date(day_start)
@@ -515,8 +548,8 @@ res_pix <- 1000
 col_mfrow <- 2
 row_mfrow <- 1
   
-png_filename <-  file.path(out_dir,paste("Figure5a_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
-title_str <- paste("Predicted daily ",variable_name," for the ", start_year,"-",end_year," time period",sep="")
+png_filename <-  file.path(out_dir,paste("Figure5b_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
+title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
   
 png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
 
@@ -527,7 +560,7 @@ plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
 
 dev.off()
 
-#### Subset for 5b
+#### Subset for 5c: zoom in
 
 day_start <- "1991-01-01" #PARAM 12 arg 12
 day_end <- "1992-12-31" #PARAM 13 arg 13
@@ -544,8 +577,8 @@ res_pix <- 1000
 col_mfrow <- 2
 row_mfrow <- 1
   
-png_filename <-  file.path(out_dir,paste("Figure5b_subset_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
-title_str <- paste("Predicted daily ",variable_name," for the ", start_year,"-",end_year," time period",sep="")
+png_filename <-  file.path(out_dir,paste("Figure5c_subset_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
+title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
   
 png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
 
@@ -556,15 +589,6 @@ plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
 
 dev.off()
 
-#data_pixel <- data_df[id_selected,]
-#data_pixel$rainfall <- as.numeric(data_pixel$rainfall)
-#d_z_tmp <-zoo(data_pixel$rainfall,as.Date(data_pixel$date))
-#names(d_z_tmp)<- "rainfall"
-#data_pixel <- as.data.frame(data_pixel)
-#d_z_tmp2 <- zoo(data_pixel[[var_name]],as.Date(data_pixel$date))
-    
-#df_tmp <- subset(data_var,data_var$ID_stat==id_name)
-#if(da)
-
+###### Now add figures with additional met stations?
 
 ############################ END OF SCRIPT ##################################
