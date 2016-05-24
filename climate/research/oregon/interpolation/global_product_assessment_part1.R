@@ -79,6 +79,10 @@ source(file.path(script_path,function_assessment_part2)) #source all functions u
 source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
+#Product assessment
+function_product_assessment_part1_functions <- "global_product_assessment_part1_05242016.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+
 ###############################
 ####### Parameters, constants and arguments ###
 
@@ -301,7 +305,6 @@ proj4string(data_stations) <- CRS_locs_WGS84
 dim(data_stations) #one station only but repitition of records because of tiles and dates!!!
 #> dim(data_stations)
 #[1] 100458     90
-#This is a lot of replication!!! okay cut it down
 
 #data_stations_temp <- aggregate(id ~ date, data = data_stations, min)
 #data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
@@ -309,6 +312,13 @@ data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax,data = data_statio
 dim(data_stations_temp)
 #> dim(data_stations_temp)
 #[1] 11171     5
+
+data_stations_temp$date_str <- data_stations_temp$date
+data_stations_temp$date <- as.Date(strptime(data_stations_temp$date_str,"%Y%m%d"))
+
+##Find stations used for training and testing
+#data_stations_temp2 <- aggregate(id ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
+#data_stations_temp2 <- aggregate(date ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
 
 ############### PART3: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
@@ -493,7 +503,9 @@ df <- pix_ts
 #scaling
 #start_date: subset dates
 #end_date: subset dates
-
+df2 <- data_stations_temp
+  
+  
 df_selected <- subset(df,select=station_id)
 #df_selected <- subset(pix_ts,select=station_id)
 names(df_selected) <- station_id
@@ -501,6 +513,14 @@ df_selected$date <- df$date
 
 if(!is.null(scaling)){
   df_selected[[station_id]]<- df_selected[[station_id]]*scaling
+}
+if(!is.null(df2)){
+  df_selected2 <- df2
+  rm(df2)
+  d_z_tmp2 <- zoo(df_selected2$dailyTmax,df_selected2$date)
+  names(d_z_tmp2)<-station_id
+}else{
+  df_selected2 <- NULL
 }
 
 d_z_tmp <- zoo(df_selected[[station_id]],df_selected$date)
@@ -529,7 +549,13 @@ plot(d_z_tmp,ylab="tmax in deg C",xlab="Daily time steps",
      main=title_str,cex=3,font=2,
      cex.main=1.5,cex.lab=1.5,font.lab=2,
      lty=3)
-
+if(!is.null(df_selected2)){
+  lines(d_z_tmp2,ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=3,font=2,
+     col="red",
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+}
 dev.off()
 
 day_start <- "1984-01-01" #PARAM 12 arg 12
@@ -541,7 +567,9 @@ start_year <- year(start_date)
 end_year <- year(end_date)
 
 d_z <- window(d_z_tmp,start=start_date,end=end_date)
-#d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+if(!is.null(df_selected2)){
+  d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+}
 
 res_pix <- 1000
 #res_pix <- 480
@@ -557,6 +585,13 @@ plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
      main=title_str,cex=3,font=2,
      cex.main=1.5,cex.lab=1.5,font.lab=2,
      lty=3)
+if(!is.null(df_selected2)){
+  lines(d_z2,ylab="tmax in deg C",xlab="Daily time steps",
+        main=title_str,cex=3,font=2,
+        col="red",
+        cex.main=1.5,cex.lab=1.5,font.lab=2,
+        lty=3)
+}
 
 dev.off()
 
@@ -570,7 +605,9 @@ end_date <- as.Date(day_end)
 start_year <- year(start_date)
 end_year <- year(end_date)
 d_z <- window(d_z_tmp,start=start_date,end=end_date)
-#d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+if(!is.null(df_selected2)){
+  d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+}
 
 res_pix <- 1000
 #res_pix <- 480
@@ -586,9 +623,88 @@ plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
      main=title_str,cex=3,font=2,
      cex.main=1.5,cex.lab=1.5,font.lab=2,
      lty=3)
+if(!is.null(df_selected2)){
+  lines(d_z2,ylab="tmax in deg C",xlab="Daily time steps",
+        main=title_str,cex=3,font=2,
+        col="red",
+        cex.main=1.5,cex.lab=1.5,font.lab=2,
+        lty=3)
+}
 
 dev.off()
 
+####################
 ###### Now add figures with additional met stations?
 
+#df_selected2 <- data_stations_temp
+
+#d_z_tmp <- zoo(df_selected[[station_id]],df_selected$date)
+#d_z_tmp2 <- zoo(df_selected2$dailyTmax,df_selected2$date)
+
+#d_z_tmp <- zoo(df[[station_id]],df$date)
+#names(d_z_tmp)<-station_id
+#names(d_z_tmp2)<-station_id
+
+#min(d_z_tmp$ID_8)
+#max(d_z_tmp$ID_8)
+#day_start <- "1984-01-01" #PARAM 12 arg 12
+#day_end <- "2014-12-31" #PARAM 13 arg 13
+#day_start <- "1991-01-01" #PARAM 12 arg 12
+#day_end <- "1992-12-31" #PARAM 13 arg 13
+
+#start_date <- as.Date(day_start)
+#end_date <- as.Date(day_end)
+#start_year <- year(start_date)
+#end_year <- year(end_date)
+
+#res_pix <- 1000
+#res_pix <- 480
+#col_mfrow <- 2
+#row_mfrow <- 1
+  
+#png_filename <-  file.path(out_dir,paste("Figure5a_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
+#title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
+  
+#png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+#this is the whole time series
+
+#plot(d_z_tmp,ylab="tmax in deg C",xlab="Daily time steps",
+#     main=title_str,cex=3,font=2,
+#     cex.main=1.5,cex.lab=1.5,font.lab=2,
+#     lty=3)
+#lines(d_z_tmp2,ylab="tmax in deg C",xlab="Daily time steps",
+#     main=title_str,cex=3,font=2,
+#     col="red",
+#     cex.main=1.5,cex.lab=1.5,font.lab=2,
+#     lty=3)
+#
+#dev.off()
+
+#This is a lot of replication!!! okay cut it down
+data_stations$date <- as.Date(strptime(data_stations_temp$date_str,"%Y%m%d"))
+data_stations_tmp <- data_stations
+data_stations_tmp <- data_stations
+
+data_stations_tmp$date <- as.Date(strptime(data_stations_tmp$date,"%Y%m%d"))
+#data_stations_tmp$date <- as.Date(strptime(data_stations_tmp$date_str,"%Y%m%d"))
+d_z4 <- 
+d_z_tmp4 <- zoo(data_stations_tmp$dailyTmax,data_stations_tmp$date)
+plot(d_z_tmp4,cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+lines(d_z_tmp,ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=3,font=2,
+     col="red",
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+
+day_start <- "1991-01-01" #PARAM 12 arg 12
+day_end <- "1992-12-31" #PARAM 13 arg 13
+
+start_date <- as.Date(day_start)
+end_date <- as.Date(day_end)
+start_year <- year(start_date)
+end_year <- year(end_date)
+d_z4 <- window(d_z_tmp4,start=start_date,end=end_date)
+
+###
 ############################ END OF SCRIPT ##################################
