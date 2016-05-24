@@ -70,6 +70,7 @@ pre_process_raster_mosaic_fun <- function(i,list_param){
   infile_mask <- list_param$infile_mask
   scaling <- list_param$scaling
   mask_pred <- list_param$mask_pred
+  matching <- list_param$matching
   NA_flag_val <- list_param$NA_flag_val
   out_suffix <- list_param$out_suffix
   out_dir <- list_param$out_dir
@@ -77,15 +78,16 @@ pre_process_raster_mosaic_fun <- function(i,list_param){
   raster_name_in <- lf[i]
   
   #Step 1: match extent and resolution
-  
-  lf_files <- c(raster_name_in) #match to mask
-  rast_ref <- infile_mask
-  ##Maching resolution is probably only necessary for the r mosaic function
-  #Modify later to take into account option R or python...
-  list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
-  names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
-  r_pred_matched <- raster_match(1,list_param_raster_match)
-  raster_name_in <- c(r_pred_matched)
+  if(matching==TRUE){
+    lf_files <- c(raster_name_in) #match to mask
+    rast_ref <- infile_mask
+    ##Maching resolution is probably only necessary for the r mosaic function
+    #Modify later to take into account option R or python...
+    list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+    r_pred_matched <- raster_match(1,list_param_raster_match)
+    raster_name_in <- c(r_pred_matched)
+  }
 
   #Step 2: mask
   if(mask_pred==TRUE){
