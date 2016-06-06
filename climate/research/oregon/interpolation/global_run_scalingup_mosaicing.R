@@ -382,7 +382,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     #note that three tiles did not produce a residuals surface!!! find out more later, join the output
     #to df_raste_tile to keep track of which one did not work...
     #lf_accuracy_residuals_raster <- as.character(unlist(lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name"))},x=list_create_accuracy_residuals_raster_obj))) 
-    lf_accuracy_residuals_raster <- lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){as.character(unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name")))},x=list_create_accuracy_residuals_raster_obj)
+    lf_accuracy_residuals_testing_raster <- lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){as.character(unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name")))},x=list_create_accuracy_residuals_raster_obj)
     
     #Plot as quick check
     #r1 <- raster(lf_mosaic[[1]][1]) 
@@ -448,7 +448,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     #note that three tiles did not produce a residuals surface!!! find out more later, join the output
     #to df_raste_tile to keep track of which one did not work...
     #lf_accuracy_residuals_raster <- as.character(unlist(lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name"))},x=list_create_accuracy_residuals_raster_obj))) 
-    lf_accuracy_residuals_data_s_raster <- lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){as.character(unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name")))},x=list_create_accuracy_residuals_raster_obj)
+    lf_accuracy_residuals_training_raster <- lapply(1:length(list_create_accuracy_residuals_raster_obj),FUN=function(i,x){as.character(unlist(extract_from_list_obj(x[[i]]$list_pred_res_obj,"raster_name")))},x=list_create_accuracy_residuals_raster_obj)
     
   }
   
@@ -578,7 +578,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       mosaic_method <- "use_edge_weights" #this is distance from edge
       out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_v",day_to_mosaic[i],out_suffix,sep="_")
       #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
-      lf_tmp <- lf_accuracy_residuals_raster[[i]]
+      lf_tmp <- lf_accuracy_residuals_testing_raster[[i]]
       #lf_accuracy_residuals_raster[[i]]
       #debug(mosaicFiles)
       mosaic_obj <- mosaicFiles(lf_tmp,
@@ -597,7 +597,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 tmp_files=tmp_files,
                                 data_type=data_type,
                                 scaling=scaling,
-                                vales_range=values_range)
+                                values_range=values_range)
       #Took 11 to 12 minues for one day and 28 tiles in region 4
       list_mosaic_obj[[i]] <- mosaic_obj
     }      
@@ -608,7 +608,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       mosaic_method <- "use_edge_weights" #this is distance from edge
       out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_s",day_to_mosaic[i],out_suffix,sep="_")
       #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
-      lf_tmp <- lf_accuracy_residuals_raster[[i]]
+      lf_tmp <- lf_accuracy_residuals_training_raster[[i]]
       #lf_accuracy_residuals_raster[[i]]
       #debug(mosaicFiles)
       mosaic_obj <- mosaicFiles(lf_tmp,
