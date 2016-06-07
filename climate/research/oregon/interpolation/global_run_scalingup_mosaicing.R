@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 05/31/2016            
+#MODIFIED ON: 06/08/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -224,6 +224,10 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   data_day_v <- read.table(data_day_v_name,sep=",") #daily training stations by dates and tiles
   df_tile_processed <- read.table(df_tile_processed_name,sep=",")
   
+  ##Read additional data from table assessment, add later
+  #pred_data_day_info_1999_reg4_1999.txt
+  #pred_data_day_info_name <- df_assessment_files$files[11]
+  
   #this part needs to be improve make this a function and use multicore to loop through files...
   #give a range of dates to run...
   #browser()
@@ -323,7 +327,46 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     
   #### Add option for ac training here
   
-  
+  if(layers_option=="ac_training"){
+    #this takes about 1 minute and 35 seconds for 3 days and 28 tiles...
+    #add options to clean up file after use!!
+    #tb <- list_param$tb #fitting or validation table with all days
+    #metric_name <- "rmse" #RMSE, MAE etc.
+    #pred_mod_name <- "mod1"
+    #y_var_name 
+    #interpolation_method #c("gam_CAI") #PARAM3
+    days_to_process <- day_to_mosaic
+    #NA_flag_val <- list_param$NA_flag_val
+    #file_format <- list_param$file_format
+    out_dir_str <- out_dir
+    out_suffix_str <- out_suffix
+    lf <- lf_mosaic
+    
+    #Improved by adding multicores option
+    num_cores_tmp <- num_cores
+    #use tb_s (training) instead of tb 
+    list_param_accuracy_metric_raster <- list(lf,tb_s,metric_name,pred_mod_name,y_var_name,interpolation_method,
+                                              days_to_process,num_cores_tmp,NA_flag_val,file_format,out_dir_str,out_suffix_str) 
+    names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
+                                                  "days_to_process","num_cores","NA_flag_val","file_format","out_dir_str","out_suffix_str") 
+    list_raster_created_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_metric_raster,
+                                      list_param=list_param_accuracy_metric_raster)
+    
+    #debug(create_accuracy_metric_raster)
+    #list_raster_created_obj <- lapply(1:1,FUN=create_accuracy_metric_raster,
+    #                                  list_param=list_param_accuracy_metric_raster)
+    #raster_created_obj <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
+    
+    #Extract list of files for rmse and date 1 (19920101), there should be 28 raster images
+    lf_accuracy_training_raster <- lapply(1:length(list_raster_created_obj),FUN=function(i){unlist(list_raster_created_obj[[i]]$list_raster_name)}) 
+    
+    #Plot as quick check
+    #r1 <- raster(lf_mosaic[[1]][1]) 
+    #plot(r1)
+    #browser()
+    
+  }
+
   ####################################
   ###Depending on value of layers_option, create accuracy surfaces based on testing residuals...
   #browser()
@@ -506,7 +549,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       ## Now accuracy based on center of centroids
       mosaic_method <- "use_edge_weights" #this is distance from edge
       #Adding metric name in the name...
-      out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
+      #out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
+      out_suffix_tmp <- paste(interpolation_method,metric_name,layers_option,day_to_mosaic[i],out_suffix,sep="_")
       
       #Can modify here....add creation of data for the specific date here rather than beforehand!!!!
       
@@ -532,7 +576,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 data_type=data_type,
                                 scaling=scaling,
                                 values_range=values_range)
-      ##Took 29 minutes for 28 tiles and one date...!!! 
+      ##Took 12-13 minutes for 28 tiles and one date...!!! 
       list_mosaic_obj[[i]] <- mosaic_obj
     }
     
@@ -540,8 +584,9 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       ## Now accuracy based on center of centroids
       mosaic_method <- "use_edge_weights" #this is distance from edge
       #Adding metric name in the name...
-      out_suffix_tmp <- paste(interpolation_method,metric_name,day_to_mosaic[i],out_suffix,sep="_")
-      
+      out_suffix_tmp <- paste(interpolation_method,metric_name,layers_option,day_to_mosaic[i],out_suffix,sep="_")
+      #out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_v",day_to_mosaic[i],out_suffix,sep="_")
+
       #Can modify here....add creation of data for the specific date here rather than beforehand!!!!
       
       ## To be inserted...
