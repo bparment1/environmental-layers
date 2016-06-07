@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 05/31/2016  
+#MODIFIED ON: 06/07/2016  
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -107,7 +107,8 @@ year_predicted <- 1999 #PARAM 7, arg 7
 num_cores <- 6 #PARAM 8, arg 8         
 max_mem = 1e+07 #param 9, arg 9
 mosaicing_method <- "use_edge_weights" #PARAM10, arg 10
-metric_name <- "rmse" #RMSE, MAE etc. #PARAM 11, arg 11
+metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+#metric_name <- "n"
 #day_start <- "19990701" #PARAM 12 arg 12
 #day_end <- "19990703" #PARAM 13 arg 13
 day_start <- "19990108" #PARAM 12 arg 12
@@ -117,6 +118,8 @@ df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg4/assessm
 algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("res_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+layers_option <- c("res_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 
 tmp_files <- TRUE #arg 18, param 18, keep temp files if TRUE
 data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
@@ -287,7 +290,7 @@ names(list_param_run_mosaicing_prediction) <- param_names
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
 #function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_05312016.R" #PARAM12
-#function_mosaicing <-"global_run_scalingup_mosaicing_05312016.R"
+#function_mosaicing <-"global_run_scalingup_mosaicing_06072016.R"
 #source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 #source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
