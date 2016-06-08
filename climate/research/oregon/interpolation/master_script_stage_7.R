@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 06/07/2016  
+#MODIFIED ON: 06/08/2016  
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -66,7 +66,7 @@ args<-commandArgs(TRUE)
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_05312016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_05312016.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_06082016.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -117,9 +117,10 @@ infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg
 df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1999/df_assessment_files_reg4_1999_reg4_1999.txt"  # data.frame with all files used in assessmnet, PARAM 15
 algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
 #layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 #layers_option <- c("res_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-layers_option <- c("res_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("res_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+layers_option <- c("ac_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 
 tmp_files <- TRUE #arg 18, param 18, keep temp files if TRUE
 data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
