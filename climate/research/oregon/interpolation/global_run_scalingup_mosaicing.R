@@ -331,6 +331,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     
     if(layers_option=="ac_training" | layers_option=="ac_testing"){
       
+      out_suffix_str <- paste(layers_option,"_",out_suffix,sep="")
+      
       list_param_accuracy_metric_raster <- list(lf,df,metric_name,pred_mod_name,y_var_name,interpolation_method,
                                               days_to_process,num_cores_tmp,NA_flag_val,file_format,out_dir_str,out_suffix_str) 
       names(list_param_accuracy_metric_raster) <- c("lf","tb","metric_name","pred_mod_name","y_var_name","interpolation_method",
@@ -377,7 +379,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       #days_to_process <- day_to_mosaic
       
       #out_suffix_str <- paste("data_day_v_",out_suffix,sep="") 
-      out_suffix_str <- paste(layers_option,var_pred,out_suffix,sep="")
+      out_suffix_str <- paste(layers_option,"_",var_pred,"_",out_suffix,sep="")
       #browser()
       df_tile_processed$path_NEX <- as.character(df_tile_processed$path_NEX) 
       df_tile_processed$reg <- basename(dirname(df_tile_processed$path_NEX))
