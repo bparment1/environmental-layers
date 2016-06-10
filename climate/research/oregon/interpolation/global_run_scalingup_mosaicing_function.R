@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 05/01/2016            
+#MODIFIED ON: 05/30/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -174,7 +174,7 @@ create_accuracy_metric_raster <- function(i, list_param){
   #NAflag,file_format,out_suffix etc...
   file_format <- list_param$file_format
   out_dir_str <- list_param$out_dir
-  out_suffix_str <- list_param$out_suffix
+  out_suffix_str <- list_param$out_suffix_str
    
   ####### START SCRIPT #####
   
@@ -202,7 +202,7 @@ create_accuracy_metric_raster <- function(i, list_param){
 
   #use mclapply  
   #list_raster_name <- vector("list",length=length(lf))
-  list_param_raster_df_centroids <- list(df_centroids,metric_name,NA_flag_val,file_format,out_dir_str,out_suffix)
+  list_param_raster_df_centroids <- list(df_centroids,metric_name,NA_flag_val,file_format,out_dir_str,out_suffix_str)
   names(list_param_raster_df_centroids) <- c("df_centroids","metric_name","NA_flag_val","file_format","out_dir","out_suffix")
 
   #undebug(create_raster_df_centroids_fun)
@@ -359,7 +359,7 @@ create_weights_fun <- function(i, list_param){
     max_val <- cellStats(r_dist,max)
     r <- abs(r_dist - max_val)/ (max_val - min_val)
   }
-  
+  #browser()
   extension_str <- extension(lf[i])
   raster_name_tmp <- gsub(extension_str,"",basename(lf[i]))
   raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_",method,"_weights_",out_suffix_str,file_format,sep=""))
@@ -605,7 +605,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     #names(list_param_create_weights) <- c("lf","df_points","r_feature","method","out_dir_str") 
     #num_cores <- 11
     #undebug(create_weights_fun)
-    #weights_obj <- create_weights_fun(3,list_param=list_param_create_weights)
+    #weights_obj <- create_weights_fun(1,list_param=list_param_create_weights)
 
     #This is the function creating the weights by tile. Distance from the centroids needs to be change from distance to
     #the edges...can use rows and columsn to set edges to 1 and 0 for the others.
@@ -724,7 +724,7 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #input_file <- filename_list_mosaics_weights_m
       
       module_path <- mosaic_python #this should be a parameter for the function...
-
+      #browser()
       #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py 
       #--config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
       #r_weights_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
