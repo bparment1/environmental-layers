@@ -1689,7 +1689,7 @@ extract_from_list_obj<-function(obj_list,list_name){
 #### create a function to generate accuracy layers by tiles
 generate_ac_assessment_layers_by_tile <- function(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
-                                                    y_var_name,interpolation_method,
+                                                    y_var_name,interpolation_method,region_selected,
                                                     days_to_process,num_cores,NA_flag_val,file_format,
                                                     out_dir,out_suffix){ 
   
@@ -1796,8 +1796,9 @@ generate_ac_assessment_layers_by_tile <- function(lf,layers_option,df,df_tile_pr
                                                             "var_pred","list_models","use_autokrige","y_var_name","interpolation_method",
                                                             "days_to_process","num_cores_tmp","NA_flag_val","file_format","out_dir_str",
                                                             "out_suffix_str") 
-    #browser()  
-    list_create_accuracy_residuals_raster_obj <- lapply(1:length(day_to_mosaic),FUN=create_accuracy_residuals_raster,
+    #browser() 
+    #
+    list_create_accuracy_residuals_raster_obj <- lapply(1:length(days_to_process),FUN=create_accuracy_residuals_raster,
                                                         list_param=list_param_create_accuracy_residuals_raster)
     
     #undebug(create_accuracy_residuals_raster)
