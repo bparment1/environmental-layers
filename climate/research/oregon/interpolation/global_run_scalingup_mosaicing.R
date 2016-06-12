@@ -339,7 +339,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       #debug(generate_ac_assessment_layers_by_tile)
       lf_accuracy_testing_raster <- generate_ac_assessment_layers_by_tile(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
-                                                    y_var_name,interpolation_method,
+                                                    y_var_name,interpolation_method,region_selected,
                                                     days_to_process,num_cores,NA_flag_val,file_format,
                                                     out_dir,out_suffix)   #### create a function to generate accuracy layers by tiles
 
@@ -355,7 +355,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       
       #undebug(mosaicFiles)
       #can also loop through methods!!!
-      browser()
+      #browser()
       mosaic_obj <- mosaicFiles(unlist(lf_accuracy_testing_raster),
                                 mosaic_method="use_edge_weights",
                                 num_cores=num_cores,
@@ -481,7 +481,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 values_range=values_range)
       #Took 11 to 19 minues for one day and 28 tiles in region 4
       if(tmp_files==F){ #if false...delete all files with "_tmp"
-        lf_tmp <- unlist(lf_accuracy_residuals_testing_raster)
+        #lf_tmp <- unlist(lf_accuracy_residuals_testing_raster)
         ##now delete temporary files...
         file.remove(lf_tmp)
       }
@@ -507,7 +507,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       mosaic_method <- "use_edge_weights" #this is distance from edge
       out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_s",day_to_mosaic[i],out_suffix,sep="_")
       #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
-      lf_tmp <- lf_accuracy_residuals_training_raster[[i]]
+      lf_tmp <- unlist(lf_accuracy_residuals_training_raster)
       #lf_accuracy_residuals_raster[[i]]
       #debug(mosaicFiles)
       mosaic_obj <- mosaicFiles(lf_tmp,
