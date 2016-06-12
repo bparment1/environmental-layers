@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/09/2016            
+#MODIFIED ON: 06/10/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -336,7 +336,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
       #browser()
       
-      debug(generate_ac_assessment_layers_by_tile)
+      #debug(generate_ac_assessment_layers_by_tile)
       lf_accuracy_testing_raster <- generate_ac_assessment_layers_by_tile(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
                                                     y_var_name,interpolation_method,
@@ -355,8 +355,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       
       #undebug(mosaicFiles)
       #can also loop through methods!!!
-      #browser()
-      mosaic_obj <- mosaicFiles(lf_accuracy_testing_raster[[i]],
+      browser()
+      mosaic_obj <- mosaicFiles(unlist(lf_accuracy_testing_raster),
                                 mosaic_method="use_edge_weights",
                                 num_cores=num_cores,
                                 r_mask_raster_name=infile_mask,
@@ -374,12 +374,12 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 scaling=scaling,
                                 values_range=values_range)
       ##Took 12-13 minutes for 28 tiles and one date...!!! 
-      lf_accuracy_testing_raster
+      #browser()
       
       if(tmp_files==F){ #if false...delete all files with "_tmp"
-        lf_tmp <- lf_accuracy_testing_raster
+        lf_tmp <- unlist(lf_accuracy_testing_raster)
         ##now delete temporary files...
-        file.remove(lf_accuracy_testing_raster)
+        file.remove(lf_tmp)
       }
       list_mosaic_obj[[i]] <- mosaic_obj
     }
@@ -393,7 +393,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       days_to_process <- day_to_mosaic[i]
   
       #browser()
-      debug(generate_ac_assessment_layers_by_tile)
+      #debug(generate_ac_assessment_layers_by_tile)
       lf_accuracy_training_raster<- generate_ac_assessment_layers_by_tile(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
                                                     y_var_name,interpolation_method,
@@ -412,7 +412,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       #undebug(mosaicFiles)
       #can also loop through methods!!!
       #browser()
-      mosaic_obj <- mosaicFiles(lf_accuracy_training_raster[[i]],
+      mosaic_obj <- mosaicFiles(unlist(lf_accuracy_training_raster),
                                 mosaic_method="use_edge_weights",
                                 num_cores=num_cores,
                                 r_mask_raster_name=infile_mask,
@@ -429,7 +429,12 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 data_type=data_type,
                                 scaling=scaling,
                                 values_range=values_range)
-      ##Took 29 minutes for 28 tiles and one date...!!! 
+      ##Took 13-14 minutes for 28 tiles and one date...!!! 
+      if(tmp_files==F){ #if false...delete all files with "_tmp"
+        lf_tmp <- unlist(lf_accuracy_training_raster)
+        ##now delete temporary files...
+        file.remove(lf_tmp)
+      }
       list_mosaic_obj[[i]] <- mosaic_obj
     }
 
@@ -443,7 +448,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       days_to_process <- day_to_mosaic[i]
   
       #browser()
-      debug(generate_ac_assessment_layers_by_tile)
+      #debug(generate_ac_assessment_layers_by_tile)
       lf_accuracy_residuals_testing_raster <- generate_ac_assessment_layers_by_tile(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
                                                     y_var_name,interpolation_method,
@@ -454,7 +459,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       mosaic_method <- "use_edge_weights" #this is distance from edge
       out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_v",day_to_mosaic[i],out_suffix,sep="_")
       #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
-      lf_tmp <- lf_accuracy_residuals_testing_raster[[i]]
+      lf_tmp <- unlist(lf_accuracy_residuals_testing_raster)
       #lf_accuracy_residuals_raster[[i]]
       #debug(mosaicFiles)
       mosaic_obj <- mosaicFiles(lf_tmp,
@@ -474,7 +479,12 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 data_type=data_type,
                                 scaling=scaling,
                                 values_range=values_range)
-      #Took 11 to 12 minues for one day and 28 tiles in region 4
+      #Took 11 to 19 minues for one day and 28 tiles in region 4
+      if(tmp_files==F){ #if false...delete all files with "_tmp"
+        lf_tmp <- unlist(lf_accuracy_residuals_testing_raster)
+        ##now delete temporary files...
+        file.remove(lf_tmp)
+      }
       list_mosaic_obj[[i]] <- mosaic_obj
     }      
     
@@ -486,7 +496,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       days_to_process <- day_to_mosaic[i]
   
       #browser()
-      debug(generate_ac_assessment_layers_by_tile)
+      #debug(generate_ac_assessment_layers_by_tile)
       lf_accuracy_residuals_training_raster <- generate_ac_assessment_layers_by_tile(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
                                                     y_var_name,interpolation_method,
@@ -517,9 +527,15 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                                 data_type=data_type,
                                 scaling=scaling,
                                 values_range=values_range)
-      
       list_mosaic_obj[[i]] <- mosaic_obj
+      
       #Took 11 to 12 minues for one day and 28 tiles in region 4
+      if(tmp_files==F){ #if false...delete all files with "_tmp"
+        lf_tmp <- unlist(lf_accuracy_residuals_training_raster)
+        ##now delete temporary files...
+        file.remove(lf_tmp)
+      }
+
     }
     
     ##End of mosaicing function for region predictions
