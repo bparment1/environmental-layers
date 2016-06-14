@@ -137,11 +137,12 @@ plot_raster_mosaic <- function(i,list_param){
   out_suffix <- list_param$out_suffix
   region_name <- list_param$region_name
   variable_name <- list_param$variable_name
+  zlim_val <- list_param$zlim_val
 
-#for (i in 1:length(nlayers(r_mosaic_scaled))){
+  #for (i in 1:length(nlayers(r_mosaic_scaled))){
   
   date_proc <- l_dates[i]
-  r_pred <- subset(r_mosaic_scaled,i)
+  r_pred <- subset(r_mosaiced_scaled,i)
   NAvalue(r_pred)<- NA_flag_val 
  
   date_proc <- l_dates[i]
@@ -157,17 +158,32 @@ plot_raster_mosaic <- function(i,list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_",out_suffix,".png",sep =""))
-  title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
   
-  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=c(-50,50),
+  if(is.null(zlim_val)){
+    zlim_val_str <- paste(c(minValue(r_pred),maxValue(r_pred)),sep="_",collapse="_")
+    png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
+    title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
+  
+    png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+
+    plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),
        legend.shrink=0.8,legend.width=0.8)
        #axis.args = list(cex.axis = 1.6), #control size of legend z
        #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
        #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
-  dev.off()
+    dev.off()
+  }else{
+    zlim_val_str <- paste(zlim_val,sep="_",collapse="_")
+    png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_",zlim_val_str,"_",out_suffix,".png",sep =""))
+    title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
 
+    plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=zlim_val,
+       legend.shrink=0.8,legend.width=0.8)
+       #axis.args = list(cex.axis = 1.6), #control size of legend z
+       #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
+       #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
+    dev.off()
+  }
   return(png_filename)
 }
 
