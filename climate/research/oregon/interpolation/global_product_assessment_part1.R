@@ -80,7 +80,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_05242016b.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_06142016.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 ###############################
@@ -713,5 +713,46 @@ data_stations_tmp$date[7190]
 #2) Compute temporal autocorrelation by station and profile
 #3) 
 
+#### PLOT ACCURACY METRICS: First test ####
+##this will be cleaned up later:
+
+dir_ac_mosaics <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999"
+lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif")
+
+#lf_tmp1 <- lf_tmp[21:24]
+#list_param_plot_raster_mosaic
+lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif",full.names=T)
+#Product assessment
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_06142016b.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+
+r_mosaiced_ac <- stack(lf_tmp)
+l_dates <- unlist(lapply(1:length(lf_tmp),FUN=extract_date,x=basename(lf_tmp),item_no=14))
+variable_name
+zlim_val <- NULL
+list_param_plot_raster_mosaic <- list(l_dates,r_mosaiced_ac,NA_flag_val_mosaic,out_dir,out_suffix,
+                                      region_name,variable_name, zlim_val)
+names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
+                                          "region_name","variable_name","zlim_val")
+debug(plot_raster_mosaic)
+plot_raster_mosaic(1,list_param_plot_raster_mosaic)
+lf_mosaic_plot_fig <- mclapply(1:length(lf_tmp),
+                               FUN=plot_raster_mosaic,
+                               list_param=list_param_plot_raster_mosaic,
+                               mc.preschedule=FALSE,
+                               mc.cores = num_cores)                         
+
+
+plot_raster_mosaic <- function(i,list_param){
+  #Function to plot mosaic for poster
+  #
+  l_dates <- list_param$l_dates
+  r_mosaiced_scaled <- list_param$r_mosaiced_scaled
+  NA_flag_val <- list_param$NA_flag_val
+  out_dir <- list_param$out_dir
+  out_suffix <- list_param$out_suffix
+  region_name <- list_param$region_name
+  variable_name <- list_param$variable_name
+  zlim_val <- list_param$zlim_val
 
 ############################ END OF SCRIPT ##################################
