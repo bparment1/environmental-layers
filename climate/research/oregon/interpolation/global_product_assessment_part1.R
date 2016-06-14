@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 05/23/2016            
+#MODIFIED ON: 05/24/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -80,7 +80,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_05242016.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_05242016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 ###############################
@@ -687,11 +687,11 @@ data_stations_tmp <- data_stations
 
 data_stations_tmp$date <- as.Date(strptime(data_stations_tmp$date,"%Y%m%d"))
 #data_stations_tmp$date <- as.Date(strptime(data_stations_tmp$date_str,"%Y%m%d"))
-d_z4 <- 
+#d_z4 <- 
 d_z_tmp4 <- zoo(data_stations_tmp$dailyTmax,data_stations_tmp$date)
-plot(d_z_tmp4,cex.main=1.5,cex.lab=1.5,font.lab=2,
+plot(d_z_tmp,cex.main=1.5,cex.lab=1.5,font.lab=2,
      lty=3)
-lines(d_z_tmp,ylab="tmax in deg C",xlab="Daily time steps",
+lines(d_z_tmp4,ylab="tmax in deg C",xlab="Daily time steps",
      main=title_str,cex=3,font=2,
      col="red",
      cex.main=1.5,cex.lab=1.5,font.lab=2,
@@ -706,5 +706,12 @@ start_year <- year(start_date)
 end_year <- year(end_date)
 d_z4 <- window(d_z_tmp4,start=start_date,end=end_date)
 
-###
+data_stations_tmp$date[7190]
+
+###TO DO:
+#1) compute correlation r, RMSE, MAE etc by station and profile
+#2) Compute temporal autocorrelation by station and profile
+#3) 
+
+
 ############################ END OF SCRIPT ##################################
