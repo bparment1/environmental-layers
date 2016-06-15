@@ -145,6 +145,10 @@ plot_raster_mosaic <- function(i,list_param){
   r_pred <- subset(r_mosaiced_scaled,i)
   NAvalue(r_pred)<- NA_flag_val 
  
+  raster_name <- filename(r_pred)
+  extension_str <- extension(raster_name)
+  raster_name_tmp <- gsub(extension_str,"",basename(raster_name))
+  
   date_proc <- l_dates[i]
   date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
   #month_name <- month.name(date_val)
@@ -161,7 +165,10 @@ plot_raster_mosaic <- function(i,list_param){
   
   if(is.null(zlim_val)){
     zlim_val_str <- paste(c(minValue(r_pred),maxValue(r_pred)),sep="_",collapse="_")
-    png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
+    #png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
+    raster_name_tmp
+    png_filename <-  file.path(out_dir,paste("Figure_",raster_name_tmp,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
+    
     title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
   
     png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
@@ -174,9 +181,12 @@ plot_raster_mosaic <- function(i,list_param){
     dev.off()
   }else{
     zlim_val_str <- paste(zlim_val,sep="_",collapse="_")
-    png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_",zlim_val_str,"_",out_suffix,".png",sep =""))
-    title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
+    #png_filename <-  file.path(out_dir,paste("Figure_mosaics_day_","_",date_proc,"_",region_name,"_",zlim_val_str,"_",out_suffix,".png",sep =""))
+    png_filename <-  file.path(out_dir,paste("Figure_",raster_name_tmp,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
 
+    title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
+    png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    
     plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=zlim_val,
        legend.shrink=0.8,legend.width=0.8)
        #axis.args = list(cex.axis = 1.6), #control size of legend z
