@@ -723,8 +723,8 @@ lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_m
 #list_param_plot_raster_mosaic
 lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif",full.names=T)
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_06142016b.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_06142016b.R"
+#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 r_mosaiced_ac <- stack(lf_tmp)
 l_dates <- unlist(lapply(1:length(lf_tmp),FUN=extract_date,x=basename(lf_tmp),item_no=14))
@@ -734,7 +734,7 @@ list_param_plot_raster_mosaic <- list(l_dates,r_mosaiced_ac,NA_flag_val_mosaic,o
                                       region_name,variable_name, zlim_val)
 names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
                                           "region_name","variable_name","zlim_val")
-debug(plot_raster_mosaic)
+#debug(plot_raster_mosaic)
 plot_raster_mosaic(1,list_param_plot_raster_mosaic)
 lf_mosaic_plot_fig <- mclapply(1:length(lf_tmp),
                                FUN=plot_raster_mosaic,
@@ -742,17 +742,40 @@ lf_mosaic_plot_fig <- mclapply(1:length(lf_tmp),
                                mc.preschedule=FALSE,
                                mc.cores = num_cores)                         
 
+#### Now plot kriged residuals from mosaiced surfaces
 
-plot_raster_mosaic <- function(i,list_param){
-  #Function to plot mosaic for poster
-  #
-  l_dates <- list_param$l_dates
-  r_mosaiced_scaled <- list_param$r_mosaiced_scaled
-  NA_flag_val <- list_param$NA_flag_val
-  out_dir <- list_param$out_dir
-  out_suffix <- list_param$out_suffix
-  region_name <- list_param$region_name
-  variable_name <- list_param$variable_name
-  zlim_val <- list_param$zlim_val
+lf_tmp_res <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.residuals.*._reg4_1999.tif",full.names=T)
+
+l_dates <- unlist(lapply(1:length(lf_tmp_res),FUN=extract_date,x=basename(lf_tmp),item_no=14))
+variable_name
+zlim_val <- NULL
+r_mosaiced_res <- stack(lf_tmp_res)
+list_param_plot_raster_mosaic <- list(l_dates,r_mosaiced_res,NA_flag_val_mosaic,out_dir,out_suffix,
+                                      region_name,variable_name, zlim_val)
+names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
+                                          "region_name","variable_name","zlim_val")
+#debug(plot_raster_mosaic)
+plot_raster_mosaic(1,list_param_plot_raster_mosaic)
+lf_mosaic_plot_fig_res <- mclapply(1:length(lf_tmp_res),
+                               FUN=plot_raster_mosaic,
+                               list_param=list_param_plot_raster_mosaic,
+                               mc.preschedule=FALSE,
+                               mc.cores = num_cores)                         
+
+### New plot of residuals surface with zlim
+zlim_val <- c(-60,60)
+#r_mosaiced_res <- stack(lf_tmp_res)
+list_param_plot_raster_mosaic <- list(l_dates,r_mosaiced_res,NA_flag_val_mosaic,out_dir,out_suffix,
+                                      region_name,variable_name, zlim_val)
+names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
+                                          "region_name","variable_name","zlim_val")
+#debug(plot_raster_mosaic)
+#plot_raster_mosaic(1,list_param_plot_raster_mosaic)
+lf_mosaic_plot_fig_res <- mclapply(1:length(lf_tmp_res),
+                               FUN=plot_raster_mosaic,
+                               list_param=list_param_plot_raster_mosaic,
+                               mc.preschedule=FALSE,
+                               mc.cores = num_cores)                         
+
 
 ############################ END OF SCRIPT ##################################
