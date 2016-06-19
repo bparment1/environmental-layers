@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 05/30/2016            
+#MODIFIED ON: 06/19/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -1543,7 +1543,7 @@ create_accuracy_residuals_raster <- function(i,list_param){
     #create output name for predicted raster
     extension_str <- extension(inFilename)
     raster_name_tmp <- gsub(extension_str,"",basename(inFilename))
-    out_filename <- file.path(out_dir_str,paste(raster_name_tmp,"_","kriged_residuals_",var_pred,"_",out_suffix_str,file_format,sep="")) #for use in function later...
+    out_filename <- file.path(out_dir_str,paste(raster_name_tmp,"_","kriged_res_",var_pred,"_",out_suffix_str,file_format,sep="")) #for use in function later...
 
     #tile_selected <- as.character(df_raster_pred_tiles$tile_id[j])
     data_df$tile_id <- as.character(data_df$tile_id)
