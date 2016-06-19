@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/10/2016            
+#MODIFIED ON: 06/19/2016            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -457,7 +457,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
 
       #for now add data_day_s in the name!!
       mosaic_method <- "use_edge_weights" #this is distance from edge
-      out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_v",day_to_mosaic[i],out_suffix,sep="_")
+      out_suffix_tmp <- paste(interpolation_method,"kriged_",layers_option,day_to_mosaic[i],out_suffix,sep="_")
       #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
       lf_tmp <- unlist(lf_accuracy_residuals_testing_raster)
       #lf_accuracy_residuals_raster[[i]]
@@ -505,7 +505,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
 
       #for now add data_day_s in the name!!
       mosaic_method <- "use_edge_weights" #this is distance from edge
-      out_suffix_tmp <- paste(interpolation_method,"kriged_residuals","data_day_s",day_to_mosaic[i],out_suffix,sep="_")
+      out_suffix_tmp <- paste(interpolation_method,"kriged_",layers_option,day_to_mosaic[i],out_suffix,sep="_")
       #lf_tmp<-list.files(pattern="*kriged_residuals.*.tif",full.names=T)
       lf_tmp <- unlist(lf_accuracy_residuals_training_raster)
       #lf_accuracy_residuals_raster[[i]]
