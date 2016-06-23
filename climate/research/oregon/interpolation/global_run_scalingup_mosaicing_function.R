@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/19/2016            
+#MODIFIED ON: 06/23/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
@@ -1816,6 +1816,27 @@ generate_ac_assessment_layers_by_tile <- function(lf,layers_option,df,df_tile_pr
     
   return(lf_ac_assessment_layers)
 
+}
+
+remove_errors_list<-function(list_items){
+  
+  #This function removes "error" items in a list
+  list_tmp<-list_items
+    if(is.null(names(list_tmp))){
+    names(list_tmp) <- paste("l",1:length(list_tmp),sep="_")
+    names(list_items) <- paste("l",1:length(list_tmp),sep="_")
+  }
+
+  for(i in 1:length(list_items)){
+    if(inherits(list_items[[i]],"try-error")){
+      list_tmp[[i]]<-0
+    }else{
+    list_tmp[[i]]<-1
+   }
+  }
+  cnames<-names(list_tmp[list_tmp>0])
+  x <- list_items[match(cnames,names(list_items))]
+  return(x)
 }
 
 ##################### END OF SCRIPT ######################
