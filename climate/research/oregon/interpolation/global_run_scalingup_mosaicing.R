@@ -335,14 +335,15 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       days_to_process <- day_to_mosaic[i]
   
       #browser()
-      
+      browser()
+      print("debug")
       #debug(generate_ac_assessment_layers_by_tile)
       lf_accuracy_testing_raster <- generate_ac_assessment_layers_by_tile(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
                                                     y_var_name,interpolation_method,region_selected,
                                                     days_to_process,num_cores,NA_flag_val,file_format,
                                                     out_dir,out_suffix)   #### create a function to generate accuracy layers by tiles
-
+      
       ## Now accuracy based on center of centroids
       mosaic_method <- "use_edge_weights" #this is distance from edge
       #Adding metric name in the name...
@@ -448,6 +449,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
       days_to_process <- day_to_mosaic[i]
   
       #browser()
+      #print("browser")
       #debug(generate_ac_assessment_layers_by_tile)
       lf_accuracy_residuals_testing_raster <- generate_ac_assessment_layers_by_tile(lf,layers_option,df,df_tile_processed,metric_name,
                                                     var_pred,list_models,use_autokrige,pred_mod_name,
