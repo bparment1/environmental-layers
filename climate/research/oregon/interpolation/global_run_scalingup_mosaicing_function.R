@@ -199,7 +199,8 @@ create_accuracy_metric_raster <- function(i, list_param){
   tb_date <- subset(tb,date==date_processed & pred_mod==pred_mod_name)
   tb_date$tile_coord <- as.character(tb_date$tile_coord)
   df_centroids <- merge(df_centroids,tb_date,by="tile_coord")
-
+  #df_centroids passed from 32 to 31!
+  
   #use mclapply  
   #list_raster_name <- vector("list",length=length(lf))
   list_param_raster_df_centroids <- list(df_centroids,metric_name,NA_flag_val,file_format,out_dir_str,out_suffix_str)
@@ -208,7 +209,10 @@ create_accuracy_metric_raster <- function(i, list_param){
   #undebug(create_raster_df_centroids_fun)
   #test_lf <- lapply(1,FUN=create_raster_df_centroids_fun,list_param=list_param_raster_df_centroids)                           
   
-  list_raster_name <- mclapply(1:length(lf),FUN=create_raster_df_centroids_fun,list_param=list_param_raster_df_centroids,mc.preschedule=FALSE,mc.cores = num_cores)                           
+  lf_raster <- df_centroids$files
+  #list_raster_name <- mclapply(1:length(lf),FUN=create_raster_df_centroids_fun,list_param=list_param_raster_df_centroids,mc.preschedule=FALSE,mc.cores = num_cores)                           
+
+  list_raster_name <- mclapply(1:length(lf_raster),FUN=create_raster_df_centroids_fun,list_param=list_param_raster_df_centroids,mc.preschedule=FALSE,mc.cores = num_cores)                           
 
   raster_created_obj <- list(list_raster_name,df_centroids)
   names(raster_created_obj) <- c("list_raster_name","df_centroids")
@@ -1743,7 +1747,7 @@ generate_ac_assessment_layers_by_tile <- function(lf,layers_option,df,df_tile_pr
     #debug(create_accuracy_metric_raster)
     #list_raster_created_obj <- lapply(1:1,FUN=create_accuracy_metric_raster,
     #                                  list_param=list_param_accuracy_metric_raster)
-    #raster_created_obj <- create_accuracy_metric_raster(1, list_param_accuracy_metric_raster)
+    #raster_created_obj <- create_accuracy_metric_raster(32, list_param_accuracy_metric_raster)
     
     #Extract list of files for rmse and date 1 (19920101), there should be 28 raster images
     lf_accuracy_raster <- lapply(1:length(list_raster_created_obj),FUN=function(i){unlist(list_raster_created_obj[[i]]$list_raster_name)}) 
