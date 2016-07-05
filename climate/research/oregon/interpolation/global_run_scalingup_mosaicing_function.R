@@ -4,10 +4,10 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 06/23/2016            
+#MODIFIED ON: 07/05/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
-#COMMENTS: first commit of function script to test mosaicing using 1500x4500km and other tiles
+#COMMENTS: Bug solved for reg5, problem in matching rmse val and number of files in predictions by tiles
 #TODO:
 #1) Make this is a script/function callable from the shell/bash
 #2) Improve performance: there will be a need to improve efficiency for the workflow.
@@ -711,16 +711,6 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       out_mosaic_name_weights_m  <- file.path(out_dir_str,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
       out_mosaic_name_prod_weights_m <- file.path(out_dir_str,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
 
-      #in_file_to_mosaics <- filename_list_mosaics        
-      #in_dir_mosaics <- file.path(in_dir1,region_names[i])
-      #out_dir_mosaics <- "/nobackupp6/aguzman4/climateLayers/output1000x3000_km/reg5/mosaicsMean"
-      #Can be changed to have mosaics in different dir..
-      #out_dir_mosaics <- out_dir
-      #prefix_str <- "reg4_1500x4500"
-      #tile_size <- basename(dirname(in_dir[[i]]))
-      #tile_size <- basename(in_dir1)
-
-      #prefix_str <- paste(region_names[i],"_",tile_size,sep="")
       #mod_str <- "mod1" #use mod2 which corresponds to model with LST and elev
       #out_mosaic_name <- paste(region,"_mosaics_",mod_str,"_",tile_size,"_",day_to_mosaic[i],"_",out_prefix,".tif",sep="")
       
@@ -731,11 +721,6 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #browser()
       #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py 
       #--config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
-      #r_weights_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
-      #                                                 module_name="gdal_merge_sum.py",
-      #                                                 input_file=filename_list_mosaics_weights_m,
-      #                                                 out_mosaic_name=out_mosaic_name_weights_m)
-      #mosaic_python_merge <- function(NA_flag_val,module_path,module_name,input_file,out_mosaic_name){
       mosaic_weights_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
                                                 module_path=mosaic_python,
                                                 module_name="gdal_merge_sum.py",
@@ -774,7 +759,6 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
       #undebug(raster_match)
-      #r_test <- raster_match(1,list_param_raster_match)
       #r_test <- raster(raster_match(1,list_param_raster_match))
 
       list_weights_m <- mclapply(1:length(lf_files),FUN=raster_match,list_param=list_param_raster_match,mc.preschedule=FALSE,mc.cores = num_cores)                           
@@ -1638,8 +1622,8 @@ create_accuracy_residuals_raster <- function(i,list_param){
   
   ###This can be a new function here with mclapply!!!
   ## Addtional loop...
-  #j <- 1 #loops across tiles from set of files/tiles
 
+  #Makes sure both list have the same number of element, this is done beforehand
   lf <- df_raster_pred_tiles$files
   
   ##Make this loop a function later on, testing right now
