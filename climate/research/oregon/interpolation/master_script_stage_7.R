@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 06/24/2016  
+#MODIFIED ON: 07/05/2016  
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -40,8 +40,8 @@
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_06192016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 reg4_1999 /nobackupp8/bparmen1/climateLayers/out/reg4 TRUE 1999 6 1e+07 use_edge_weights rmse 19990107 19990108 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif /nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1999/df_assessment_files_reg4_1999_reg4_1999.txt python ac_testing FALSE Int16 100 -100,100
 #run mosaic for ac testing, n
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_06192016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 reg4_1999 /nobackupp8/bparmen1/climateLayers/out/reg4 TRUE 1999 6 1e+07 use_edge_weights n 19990107 19990108 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif /nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1999/df_assessment_files_reg4_1999_reg4_1999.txt python ac_testing FALSE Int16 100 -100,100
-
-#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_06192016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg5 reg5_1985 /nobackupp6/aguzman4/climateLayers/out/reg5/mosaicsAc/ TRUE 1981 6 1e+07 use_edge_weights n 19910101 19910101 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif /nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1985/df_assessment_files_reg5_1985_reg5_1985.txt python ac_testing FALSE Int16 100 -100,100
+#Region 5: test
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_07052016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg5 reg5_1991 /nobackupp6/aguzman4/climateLayers/out/reg5/mosaicsAc/ TRUE 1991 6 1e+07 use_edge_weights rmse 19910101 19910103 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif /nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1991/df_assessment_files_reg5_1991_reg5_1991.txt python ac_testing FALSE Int16 100 -100,100
 
 
 #script /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_06192016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg5 reg5_1985 /nobackupp6/aguzman4/climateLayers/out/reg5/mosaicsAc/ TRUE 1985 6 1e+07 use_edge_weights n 19850101 19850101 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif /nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1985/df_assessment_files_reg5_1985_reg5_1985.txt python ac_testing FALSE Int16 100 -100,100
@@ -82,8 +82,8 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07012016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_07012016.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07052016.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_07052016.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -131,7 +131,7 @@ metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM
 #day_start <- "19990701" #PARAM 12 arg 12
 #day_end <- "19990703" #PARAM 13 arg 13
 day_start <- "19910101" #PARAM 12 arg 12
-day_end <- "19910101" #PARAM 13 arg 13
+day_end <- "19910103" #PARAM 13 arg 13
 infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif" #PARAM 14, arg 14
 df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1991/df_assessment_files_reg5_1991_reg5_1991.txt"  # data.frame with all files used in assessmnet, PARAM 15
 #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1985/df_assessment_files_reg5_1985_reg5_1985.txt"
@@ -282,10 +282,10 @@ names(list_param_run_mosaicing_prediction) <- param_names
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_06232016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_06232016.R"
-source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
-source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
+#function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07012016.R" #PARAM12
+#function_mosaicing <-"global_run_scalingup_mosaicing_07012016.R"
+#source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
+#source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
 if (stages_to_run[7]==7){
   assessment_prediction_obj <- run_mosaicing_prediction_fun(i,list_param_run_mosaicing_prediction)
