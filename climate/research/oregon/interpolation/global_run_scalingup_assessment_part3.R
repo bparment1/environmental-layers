@@ -3,12 +3,11 @@
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
 #Combining tables and figures for individual runs for years and tiles.
 #This script complements part1 and part2 of the accuracy assessment and group tables and outputs 
-#from run of accuracy assessement generated earlier. 
-#This is used in Stage 8 of master script.
+#from run of accuracy assessement generated earlier.
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 03/23/2014  
-#MODIFIED ON: 07/27/2016            
+#MODIFIED ON: 04/29/2016            
 #Version: 5
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part 2 of assessment, will be modified further for overall assessment 
@@ -279,6 +278,7 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #if(multiple_region==TRUE){
   df_tile_processed$reg <- as.character(df_tile_processed$reg)
   #1.05pm... very slow
+  #17.00pm on July 27, took 20 minutes to merge tb for reg5
   tb <- merge(tb,df_tile_processed,by="tile_id")
   tb_s <- merge(tb_s,df_tile_processed,by="tile_id")
   tb_month_s<- merge(tb_month_s,df_tile_processed,by="tile_id")
@@ -292,6 +292,10 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   try(summary_metrics_v$lat <- summary_metrics_v$lat.x)
   try(summary_metrics_v$lon <- summary_metrics_v$lon.x)
   #browser()
+  ###Now save tables.
+  write.table(tb,paste0("tb_combined_",region_name,"_",out_suffix,".txt"),sep=",")
+  write.table(tb_s,paste0("tb_s_combined_",region_name,"_",out_suffix,".txt"),sep=",")
+  write.table(summary_metrics_v,paste0("sumary_metrics_v_",region_name,"_",out_suffix,".txt"),sep=",")
   
   ############ PART 2: PRODUCE FIGURES ################
   
@@ -330,9 +334,9 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #This is slow...make a function and use mclapply??
   #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
   
-  centroids_shp_fun <- function(i,list_shp_reg_files,in_dir_shp){
-    
-  }
+  #centroids_shp_fun <- function(i,list_shp_reg_files,in_dir_shp){
+  #  
+  #}
   in_dir_shp <- file.path(in_dir_list[[1]],"shapefiles") #this should be set as a input parameter!!!
   for(i in 1:length(list_shp_reg_files)){
     #path_to_shp <- dirname(list_shp_reg_files[[i]])
