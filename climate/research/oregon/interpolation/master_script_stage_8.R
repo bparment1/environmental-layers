@@ -13,7 +13,7 @@
 #STAGE 8: Comparison of predictions across regions and years with figures generation.
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 05/18/2016  
+#MODIFIED ON: 07/27/2016  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -151,7 +151,8 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 #in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
 in_dir <- args[2] #param 5, arg 2
 #in_dir <- "/data/project/layers/commons/NEX_data/reg23_assessment"
-in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+#in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 #in_dir <- "" #PARAM 0
 #y_var_name <- "dailyTmax" #PARAM1
 #interpolation_method <- c("gam_CAI") #PARAM2
@@ -160,17 +161,19 @@ in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessme
 #region_names <- c("reg23","reg4") #selected region names,
 #run assessment by region, this is a unique region only 
 region_name <- args[3] #param 6, arg 3
-region_name <- c("reg4") #param 6, arg 3
+#region_name <- c("reg4") #param 6, arg 3
+region_name <- c("reg5") #param 6, arg 3
 
 #out_prefix <- "run_global_analyses_pred_12282015" #param 7, arg 4
 #out_dir <- "/nobackupp8/bparmen1/" #param 8, arg 5
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- TRUE #param 9, arg 6
 out_prefix <- args[4] #param 7, arg 4
-out_suffix <- "global_analyses_overall_assessment_reg4_05182016"
+out_suffix <- "global_analyses_overall_assessment_reg5_07272016"
 
 out_dir <- args[5] #param 8, arg 5
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+#out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+out_dir <- in_dir
 
 #out_dir <-paste(out_dir,"_",out_prefix,sep="")
 create_out_dir_param <- args[6] #param 9, arg 6
@@ -193,7 +196,7 @@ num_cores <-11 #number of cores used # param 13, arg 8
   
 ##Additional parameters used in part 2, some these may be removed as code is simplified
 mosaic_plot <- FALSE #param 15
-day_to_mosaic <- c("19920102","19920103","19920103") #param 16, not in use...
+day_to_mosaic <- c("19910110","19910111","19911012","1991013","1991014") #param 16, not in use...
 multiple_region <- TRUE #param 17
 #countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp" #param 18
 countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
