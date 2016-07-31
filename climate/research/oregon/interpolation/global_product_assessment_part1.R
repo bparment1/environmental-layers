@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 05/24/2016            
+#MODIFIED ON: 07/30/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -118,15 +118,16 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
-in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic"
+in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
 
-region_name <- c("reg4") #param 6, arg 3
+region_name <- c("reg5") #param 6, arg 3
+out_suffix <- "_global_assessment_reg5_07292016"
 
 create_out_dir_param <- TRUE #param 9, arg 6
-out_suffix <- "_global_assessment_reg4_05152016"
 
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+
+out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 
@@ -143,26 +144,26 @@ day_start <- "1984101" #PARAM 12 arg 12
 day_end <- "19981231" #PARAM 13 arg 13
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
-infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
+infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 list_year_predicted <- "1984,2014"
 scaling <- 0.01 #was scaled on 100 
 #if scaling is null then perform no scaling!!
 
-df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
+df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg5_1999/df_centroids_19990701_reg5_1999.txt"
 
-raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920103_reg4_1992_m_gam_CAI_dailyTmax_19920103_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920701_reg4_1992_m_gam_CAI_dailyTmax_19920701_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920702_reg4_1992_m_gam_CAI_dailyTmax_19920702_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
+raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920103_reg4_1992_m_gam_CAI_dailyTmax_19920103_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920701_reg4_1992_m_gam_CAI_dailyTmax_19920701_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920702_reg4_1992_m_gam_CAI_dailyTmax_19920702_reg4_1992.tif",
+                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
-l_dates <- c("19920101","19920102","19920103","19920701","19920702","19920703") #dates to plot and analze
+l_dates <- c("19910110","19910111","19910112","19910113","19910114") #dates to plot and analze
 
-df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/int_mosaics/data_points_extracted.txt"
+df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/data_points_extracted.txt"
 df_points_extracted_fname <- NULL #if null compute on the fly
 #r_mosaic_fname <- "r_mosaic.RData"
 r_mosaic_fname <- NULL #if null create a stack from input dir
@@ -170,6 +171,8 @@ r_mosaic_fname <- NULL #if null create a stack from input dir
 #NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
 NA_flag_val_mosaic <- -32768
 in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
+countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
+
 
 ##################### START SCRIPT #################
 
@@ -210,7 +213,9 @@ list_pred_data_day_info_fname <- list.files(path=in_dir_list,"pred_data_day_info
 
 ### Get station data information: create a data.frame with stations info
 data_date <- unlist(lapply(list_data_s_fname, function(x){unlist(strsplit(basename(x),"_"))[5]}))
-df_data_s_fname <- data.frame(data_date,region_name,dataset="data_s",file=list_data_s_fname)
+#df_data_s_fname <- data.frame(data_date,region_name,dataset="data_s",file=list_data_s_fname)
+year_str <- as.character(unlist(lapply(list_data_s_fname, function(x){unlist(strsplit(basename(x),"_"))[5]})))
+df_data_s_fname <- data.frame(year_str,region_name,dataset="data_s",file=list_data_s_fname)
 
 year_str <- as.character(unlist(lapply(list_data_v_fname, function(x){unlist(strsplit(basename(x),"_"))[5]})))
 df_data_v_fname <- data.frame(year_str,region_name,dataset="data_v",file=list_data_s_fname)
@@ -219,9 +224,10 @@ df_data_v_fname$year <- df_data_v_fname$year_str
 df_data_v_fname$year <- as.character(df_data_v_fname$year_str)
 df_data_v_fname$file <- as.character(df_data_v_fname$file)
 df_data_s_fname$file <- as.character(df_data_s_fname$file)
+df_data_s_fname$year <- as.character(df_data_s_fname$year_str)
 
 ############### PART1: Select stations for specific list of dates #############
-#### Extract corresponding stationsfor given dates and plot stations used
+#### Extract corresponding stationsfor given dates and/or plot stations used
 ## Use station from specific year and date?
 
 list_dates_val <- as.Date(strptime(l_dates,"%Y%m%d"))
@@ -246,14 +252,105 @@ for(i in 1:length(list_year_str)){
   list_df_s_stations[[i]] <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
 }
 
+df_combined <- do.call(rbind,list_df_v_stations)
+
+#### Get df points for specific dates
+#lapply(1:length(l_dates)list_df_v_stations,function(x){x$date==l_dates})
+#dim(list_df_v_stations[[1]])
+list_df_points_dates <- vector("list",length=length(l_dates))
+for(i in 1:length(l_dates)){
+  #year_str <- list_year_str[[i]]
+  list_df_points_dates[[i]] <- subset(df_combined,df_combined$date==l_dates[i])
+}
+
+df_combined <- do.call(rbind,list_df_points_dates)
+
 #function(x){x$date==}
-df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
-table(df_points$tile_id)
-plot(df_points,add=T)
-coordinates(df_points) <- cbind(df_points$x,df_points$y)
-proj4string(df_points) <- CRS_locs_WGS84
-## No spatial duplicates
-df_points_day <- remove.duplicates(df_points) #remove duplicates...
+#df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
+reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
+
+## Now plot by dates:
+
+model_name <- "res_mod1"
+var_selected <- "res_mod1"
+
+for(i in 1:length(l_dates)){
+  #d
+  date_processed <- l_dates[i]
+  
+  df_points <- list_df_points_dates[[i]]
+  #plot(df_points)
+  table(df_points$tile_id)
+  #plot(df_points,add=T)
+  coordinates(df_points) <- cbind(df_points$x,df_points$y)
+  proj4string(df_points) <- CRS_locs_WGS84
+  # # No spatial duplicates
+  df_points_day <- remove.duplicates(df_points) #remove duplicates...
+  plot(df_points_day)
+  dim(df_points_day)
+  dim(df_points)
+  #plot(df_points)
+  
+  #data_stations_temp <- aggregate(id ~ date, data = data_stations, min)
+  #data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
+  data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + res_mod1,data = df_points, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+  dim(data_stations_temp)
+  #> dim(data_stations_temp)
+  #[1] 11171     5
+
+  data_stations_temp$date_str <- data_stations_temp$date
+  data_stations_temp$date <- as.Date(strptime(data_stations_temp$date_str,"%Y%m%d"))
+  coordinates(data_stations_temp) <- cbind(data_stations_temp$x,data_stations_temp$y)
+  data_stations_temp$constant <- c(1000,2000)
+  #plot(data_stations_temp)
+  #plot(reg_layer)
+  #res_pix <- 1200
+  res_pix <- 400
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png_filename <- paste("Figure_ac_metrics_map_stations_locations_validation_",model_name,"_",date_processed,
+                       "_",out_suffix,".png",sep="")
+  png(filename=png_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  #plot(data_stations_temp
+  p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  #title("(a) Mean for 1 January")
+  #p <- bubble(data_stations_temp,"constant",main=paste0("Average Residuals by validation stations ",
+  #                                                      date_processed,
+  #                                                      "for ",var_selected))
+  p <- spplot(data_stations_temp,"constant",col.regions=NA, col="black",
+              main=paste0("Average Residuals by validation stations ",pch=3,cex=10,
+              date_processed, "for ",var_selected))
+
+  p1 <- p+p_shp
+  try(print(p1)) #error raised if number of missing values below a threshold does not exist
+
+  dev.off()
+  
+  res_pix <- 800
+  col_mfrow <- 1
+  row_mfrow <- 1
+  png_filename <- paste("Figure_ac_metrics_map_stations_validation_averaged_",model_name,"_",date_processed,
+                       "_",out_suffix,".png",sep="")
+  png(filename=png_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+  #model_name[j]
+    
+  #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+  p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  #title("(a) Mean for 1 January")
+  p <- bubble(data_stations_temp,"res_mod1",main=paste0("Average Residuals by validation stations ",date_processed,
+                                                        "for ",var_selected))
+  p1 <- p+p_shp
+  try(print(p1)) #error raised if number of missing values below a threshold does not exist
+  
+  dev.off()
+
+}
+
+
 
 ############### PART2: Select stations by ID to build a time series #############
 #### Extract corresponding stationsfor given dates and plot stations used
