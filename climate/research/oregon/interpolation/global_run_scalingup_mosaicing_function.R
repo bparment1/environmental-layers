@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 07/05/2016            
+#MODIFIED ON: 08/16/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: Bug solved for reg5, problem in matching rmse val and number of files in predictions by tiles
@@ -221,15 +221,53 @@ create_accuracy_metric_raster <- function(i, list_param){
 
 #### end of function
 
-mosaic_python_merge <- function(NA_flag_val,module_path,module_name,input_file,out_mosaic_name){
-  #out_mosaic_name <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
-  cmd_str <- paste("python", file.path(module_path,module_name),
+mosaic_python_merge <- function(NA_flag_val,module_path,module_name,input_file,out_mosaic_name,raster_ref_name=NULL){
+  #Inputs:
+  #NA_falg_val: NA value to use in the output
+  #module_path: python module to be used with path
+  #module_name: name of the module
+  #input_file: input file as text file containing a list of files to mosaic
+  #out_mosaic_name: output file for the mosaic
+  #rast_ref_name: reference file with extent and resolution to be used in the mosaicing
+  #
+  
+  #### Start script ###
+  
+        
+  if(is.null(raster_ref_name)){
+
+    #out_mosaic_name <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+    cmd_str <- paste("python", file.path(module_path,module_name),
                    "--config GDAL_CACHEMAX=1500",
                    "--overwrite=TRUE",
                    paste("-o",out_mosaic_name,sep=" "),
                    paste("--optfile", input_file,sep=" "),
                    paste("-n",NA_flag_val,sep=" "))
-  system(cmd_str)
+    system(cmd_str)
+  }
+  if(!is.null(raster_ref_name)){
+    
+    #lf_files <- c(r_m_weighted_mean_raster_name) #match to mask
+    #rast_ref_name <- r_mask_raster_name
+    r_ref <- raster(raster_ref_name)
+    extent_r_ref <- as.numeric(as.matrix(extent(r_ref)))
+    res_pix <- res(r_mask)
+    #c(xmin,ymax,xmax,ymin)
+    #c(ulx,uly,lrx,lry)
+    extent_str <- c(extent_r_ref[1],extent_r_ref[4],extent_r_ref[3],extent_r_ref[2])
+    #-ps 0.00833349 0.008333229 -ul_lr -187.143383752 81.744912045 -5.073165638 14.554089652
+    #out_mosaic_name <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",method_str,"_weighted_mean_",out_suffix,".tif",sep=""))
+    cmd_str <- paste("python", file.path(module_path,module_name),
+                   "--config GDAL_CACHEMAX=1500",
+                   "--overwrite=TRUE",
+                   paste("-o",out_mosaic_name,sep=" "),
+                   paste("-ps", res_pix[1],res_pix[2],sep=" "), #pixel size
+                   paste("-ul_lr", extent_str[1],extent_str[2],extent_str[3],extent_str[4],sep=" "), #extent
+                   paste("--optfile", input_file,sep=" "),
+                   paste("-n",NA_flag_val,sep=" "))
+    system(cmd_str)
+    
+  }
   #list(out_mosaic_name,cmd_str)
   mosaic_python_merge_obj <- list(out_mosaic_name,cmd_str)
   names(mosaic_python_merge_obj) <- c("out_mosaic_name","cmd_str")
@@ -721,11 +759,31 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #browser()
       #python /nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py 
       #--config GDAL_CACHEMAX=1500 --overwrite=TRUE -o  outputname.tif --optfile input.txt
+      if(!is.null(r_mask_raster_name)){
+        #d
+        #different extent between mask and output if match extent is false!!
+        #match resolution and extent first
+      
+        #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
+        #lf_files <- c(r_m_weighted_mean_raster_name) #match to mask
+        rast_ref_name <- r_mask_raster_name
+        #r_mask <- raster(rast_ref)
+        #extent_r_mask <- as.numeric(as.matrix(extent(r_mask)))
+        #res_pix <- res(r_mask)
+        #c(xmin,ymax,xmax,ymin)
+        #c(ulx,uly,lrx,lry)
+        #extent_str <- c(extent_r_mask[1],extent_r_mask[4],extent_r_mask[3],extent_r_mask[2])
+      }else{
+        rast_ref_name <- NULL
+      }
+      #cmd_mosaic_gam_CAI_dailyTmax_19840101_reg1_1984.txt
+      #python /nobackupp6/aguzman4/climateLayers/sharedCode//gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o /nobackupp8/bparmen1/climateLayers/out
       mosaic_weights_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
                                                 module_path=mosaic_python,
                                                 module_name="gdal_merge_sum.py",
                                                 input_file=filename_list_mosaics_weights_m,
-                                                out_mosaic_name=out_mosaic_name_weights_m)
+                                                out_mosaic_name=out_mosaic_name_weights_m,
+                                                raster_ref_name = rast_ref_name) ##if NA, not take into account
       r_weights_sum_raster_name <- mosaic_weights_obj$out_mosaic_name
       cmd_str1 <- mosaic_weights_obj$cmd_str
       #r_prod_sum_raster_name <- mosaic_python_merge(module_path=mosaic_python,
@@ -737,7 +795,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                                                      module_path=mosaic_python,
                                                      module_name="gdal_merge_sum.py",
                                                      input_file=filename_list_mosaics_prod_weights_m,
-                                                     out_mosaic_name=out_mosaic_name_prod_weights_m)
+                                                     out_mosaic_name=out_mosaic_name_prod_weights_m,
+                                                     raster_ref_name = rast_ref_name)
       r_prod_sum_raster_name <- mosaic_prod_weights_obj$out_mosaic_name
       cmd_str2 <- mosaic_prod_weights_obj$cmd_str
       #write out python command used for mosaicing
@@ -842,6 +901,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
       #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
       lf_files <- c(r_m_weighted_mean_raster_name) #match to mask
       rast_ref <- r_mask_raster_name
+      raster(rast_ref)
+      extent_r_mask <- extent(r_mask)
       ##Maching resolution is probably only necessary for the r mosaic function
       #Modify later to take into account option R or python...
       list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
