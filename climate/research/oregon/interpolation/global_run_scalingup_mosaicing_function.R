@@ -251,7 +251,7 @@ mosaic_python_merge <- function(NA_flag_val,module_path,module_name,input_file,o
     #rast_ref_name <- r_mask_raster_name
     r_ref <- raster(raster_ref_name)
     extent_r_ref <- as.numeric(as.matrix(extent(r_ref)))
-    res_pix <- res(r_mask)
+    res_pix <- res(r_ref)
     #c(xmin,ymax,xmax,ymin)
     #c(ulx,uly,lrx,lry)
     extent_str <- c(extent_r_ref[1],extent_r_ref[4],extent_r_ref[3],extent_r_ref[2])
@@ -894,23 +894,24 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
                      "--overwrite",sep=" ") #division by zero is problematic...
     system(cmd_str3)
     
-    if(!is.null(r_mask_raster_name)){
-      #different extent between mask and output if match extent is false!!
+    ## Skipping this step now...
+    #if(!is.null(r_mask_raster_name)){
+       #different extent between mask and output if match extent is false!!
       #match resolution and extent first
       
-      #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
-      lf_files <- c(r_m_weighted_mean_raster_name) #match to mask
-      rast_ref <- r_mask_raster_name
-      raster(rast_ref)
-      extent_r_mask <- extent(r_mask)
+   #   #lf_files <- c(r_m_weighted_mean_raster_name) #file(s) to be matched
+   #  lf_files <- c(r_m_weighted_mean_raster_name) #match to mask
+   #    rast_ref <- r_mask_raster_name
+   #    raster(rast_ref)
+   #    extent_r_mask <- extent(r_mask)
       ##Maching resolution is probably only necessary for the r mosaic function
       #Modify later to take into account option R or python...
-      list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
-      names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+   #   list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix,out_dir)
+   #    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
 
-      #undebug(raster_match)
-      r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
-    }
+   #undebug(raster_match)
+   #   r_m_weighted_mean_raster_name_matched <- raster_match(1,list_param_raster_match)
+   #}
     
     #writeRaster(r_m_weighted_mean, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
 
@@ -918,8 +919,8 @@ mosaicFiles <- function(lf_mosaic,mosaic_method="unweighted",num_cores=1,r_mask_
     ##Can merge one and 2 with parentheses operations!!, make this a function?
     ##Reclassify with valid range: -100,100
     
-    #raster_name <- r_m_weighted_mean_raster_name
-    raster_name <- r_m_weighted_mean_raster_name_matched
+    raster_name <- r_m_weighted_mean_raster_name
+    #raster_name <- r_m_weighted_mean_raster_name_matched
     max_val <- valid_range[2]*scaling #set min_valid
     raster_name_rec1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec1_",out_suffix,"_tmp",".tif",sep=""))
     #rec_tmp1 <- file.path(out_dir_str,paste("r_m_",mosaic_method,"_weighted_mean_rec_",out_suffix,".tif",sep=""))
