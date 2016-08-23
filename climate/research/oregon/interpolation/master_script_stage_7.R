@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 08/16/2016
+#MODIFIED ON: 08/22/2016
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -87,7 +87,7 @@ args<-commandArgs(TRUE)
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
 function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_08222016.R"
 #function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07052016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_08162016.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_08222016.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -129,8 +129,8 @@ year_predicted <- 1984 #PARAM 7, arg 7
 num_cores <- 6 #PARAM 8, arg 8
 max_mem = 1e+07 #param 9, arg 9
 mosaicing_method <- "use_edge_weights" #PARAM10, arg 10
-metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-#metric_name <- "n"
+#metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+metric_name <- "n"
 #metric_name <- "mae"
 
 #day_start <- "19990701" #PARAM 12 arg 12
@@ -143,16 +143,18 @@ df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg1/assessm
 #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1991/df_assessment_files_reg5_1991_reg5_1991.txt"  # data.frame with all files used in assessmnet, PARAM 15
 #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1985/df_assessment_files_reg5_1985_reg5_1985.txt"
 algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
-layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 #layers_option <- c("ac_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 #layers_option <- c("res_training") # #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 #layers_option <- c("res_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-#layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 
 tmp_files <- FALSE #arg 18, param 18, keep temp files if TRUE
 data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
 scaling <- 100 #, param 20, if null use 1
-values_range <- "-100,100"
+scaling <- 1 #use this if predicting n rather than other variables
+#values_range <- "-100,100"
+values_range <- "0,32767" #this is for n variable
 NA_flag_val <- -32768 #should be here
 
 
