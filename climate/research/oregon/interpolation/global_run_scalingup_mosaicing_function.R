@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 08/16/2016            
+#MODIFIED ON: 08/23/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: Bug solved for reg5, problem in matching rmse val and number of files in predictions by tiles
