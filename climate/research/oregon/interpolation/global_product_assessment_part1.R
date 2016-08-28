@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 07/30/2016            
+#MODIFIED ON: 08/28/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -118,16 +118,18 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
-in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
+#in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
+#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
+in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/assessment"
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaic/mosaic"
 
-region_name <- c("reg5") #param 6, arg 3
-out_suffix <- "_global_assessment_reg5_07292016"
+region_name <- c("reg1") #param 6, arg 3
+out_suffix <- "_global_assessment_reg1_08282016"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
 
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
+out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/assessment"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 
@@ -144,14 +146,17 @@ day_start <- "1984101" #PARAM 12 arg 12
 day_end <- "19981231" #PARAM 13 arg 13
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
-infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
+infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg1.tif"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 list_year_predicted <- "1984,2014"
 scaling <- 0.01 #was scaled on 100 
 #if scaling is null then perform no scaling!!
 
-df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg5_1999/df_centroids_19990701_reg5_1999.txt"
+#df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg5_1999/df_centroids_19990701_reg5_1999.txt"
+df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaic/output_reg1_1984/df_centroids_19840101_reg1_1984.txt"
+#/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt
 
 raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
                     "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
@@ -161,9 +166,9 @@ raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg
                     "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
-l_dates <- c("19910110","19910111","19910112","19910113","19910114") #dates to plot and analze
+l_dates <- c("19840110","19840111","19840112","19840113","19840114") #dates to plot and analze
 
-df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/data_points_extracted.txt"
+#df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/data_points_extracted.txt"
 df_points_extracted_fname <- NULL #if null compute on the fly
 #r_mosaic_fname <- "r_mosaic.RData"
 r_mosaic_fname <- NULL #if null create a stack from input dir
@@ -263,7 +268,7 @@ for(i in 1:length(l_dates)){
   list_df_points_dates[[i]] <- subset(df_combined,df_combined$date==l_dates[i])
 }
 
-df_combined <- do.call(rbind,list_df_points_dates)
+df_combined_dates <- do.call(rbind,list_df_points_dates)
 
 #function(x){x$date==}
 #df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
@@ -273,6 +278,8 @@ reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries
 
 model_name <- "res_mod1"
 var_selected <- "res_mod1"
+
+#8 minutes for 18 dates and reg1 ?
 
 for(i in 1:length(l_dates)){
   #d
@@ -348,6 +355,26 @@ for(i in 1:length(l_dates)){
   
   dev.off()
 
+  #### histogram of values
+  res_pix <- 800
+  col_mfrow <- 1
+  row_mfrow <- 1
+  png_filename <- paste("Figure_ac_metrics_histograms_stations_validation_averaged_",model_name,"_",date_processed,
+                       "_",out_suffix,".png",sep="")
+  png(filename=png_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  h<- histogram(data_stations_temp$res_mod1,breaks=seq(-50,50,5))
+  
+  print(h)
+  dev.off()
+  
+  #from libary mosaic
+  df_basic_stat <- fav_stats(data_stations_temp$res_mod1)
+  quantile(data_stations_temp$res_mod1,c(1,5,10,90,95,99))
+  quantile(data_stations_temp$res_mod1,c(0.01,0.05,0.10,0.90,0.95,0.99))
+  #quantile(c(1,5,10,90,95,99),data_stations_temp$res_mod1,)
+  
 }
 
 
