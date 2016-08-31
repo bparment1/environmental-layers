@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 05/24/2016            
+#MODIFIED ON: 08/31/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conference 
@@ -50,6 +50,7 @@ library(colorRamps)
 library(zoo)
 library(xts)
 library(lubridate)
+library(mosaic)
 
 ###### Function used in the script #######
   
@@ -205,6 +206,75 @@ extract_date <- function(i,x,item_no=NULL){
     date_str <- y[item_no]
   }
   return(date_str)
+}
+
+gClip <- function(shp, bb, keep.attribs=TRUE,outDir=NULL,outSuffix=NULL){
+  #Purpose: clipping SpatialPolygonsDataFrame using another SpatialPolygonsDataFrame 
+  #shp: input shapefile that we would like to clip
+  #bb: input shapefile used for clipping, can be and extent raster object, matrix of coordinates 
+  #keep.attribs: join attributes to spatial feature
+  #outDir: output directory
+  #outSuffix: output suffix attached to the name of new file
+  
+  #Authors: Benoit Parmentier, Modified code originating at: 
+  #http://robinlovelace.net/r/2014/07/29/clipping-with-r.html
+  
+  #Comments: 
+  #- Note that some attribute should be updated: e.g. areas, length etc. of original polygons
+  #- Add bbox option for spdf
+  #- Send error if different carthographic projection used
+  
+  ### BEGIN ####
+  
+  #First check inputs used from clipping, output dir and suffix
+  
+  if(class(bb) == "matrix"){
+    b_poly <- as(extent(as.vector(t(bb))), "SpatialPolygons") #if matrix of coordinates
+  }
+  if(class(bb)=="SpatialPolygonsDataFrame"){
+    b_poly <- bb #if polygon object, keep the same
+  } 
+  
+  if(class(bb)=="SpatialPointsDataFrame"){
+    b_poly <- as(extent(bb), "SpatialPolygons") #make a Spatial Polygon from raster extent
+  }
+  
+  if(class(bb)=="exent"){
+    b_poly <- as(extent(bb), "SpatialPolygons") #make a Spatial Polygon from raster extent
+  }
+  rm(bb) #remove from memory in case the polygon file is a giant dataset
+  
+  #If no output dir present, use the current dir
+  if(is.null(outDir)){
+    outDir=getwd()
+  }
+  #if no output suffix provided, use empty string for now
+  if(is.null(outSuffix)){
+    outSuffix=""
+  }
+  
+  #Second, clip using rgeos library
+  new.shape <- gIntersection(shp, b_poly, byid = T)
+  
+  #Third, join the atrribute back to the newly created object
+  if(keep.attribs){
+    #create a data.frame based on the spatial polygon object
+    new.attribs <- data.frame(do.call(rbind,strsplit(row.names(new.shape)," ")),stringsAsFactors = FALSE)
+    #test <-over(shp,bb)
+    
+    #new.attrib.data <- shp[new.attribs$X1,]@data #original data slot? #not a good way to extract...
+    new.attrib.data <- as.data.frame(shp[new.attribs$X1,])
+    row.names(new.shape) <- row.names(new.attrib.data)
+    new.shape <-SpatialPolygonsDataFrame(new.shape, new.attrib.data) #Associate Polygons and attributes
+
+  }
+  
+  #Writeout shapefile (default format for now)
+  infile_new.shape <- paste("clipped_spdf",outSuffix,".shp",sep="")
+  writeOGR(new.shape,dsn= outDir,layer= sub(".shp","",infile_new.shape), 
+           driver="ESRI Shapefile",overwrite_layer="TRUE")
+  
+  return(new.shape)
 }
 
 ############################ END OF SCRIPT ##################################
