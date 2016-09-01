@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 08/28/2016            
+#MODIFIED ON: 08/31/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -51,6 +51,7 @@ library(colorRamps)
 library(zoo)
 library(xts)
 library(lubridate)
+library(mosaic)
 
 ###### Function used in the script #######
   
@@ -80,7 +81,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_06142016.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_08312016.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 ###############################
@@ -273,16 +274,20 @@ df_combined_dates <- do.call(rbind,list_df_points_dates)
 #function(x){x$date==}
 #df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
 reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
+countries_shp_tmp <- reg_layer
 
 ## Now plot by dates:
 
 model_name <- "res_mod1"
 var_selected <- "res_mod1"
-
+variable_name
 #8 minutes for 18 dates and reg1 ?
+station_type_name <- "testing"
 
 for(i in 1:length(l_dates)){
   #d
+
+    
   date_processed <- l_dates[i]
   
   df_points <- list_df_points_dates[[i]]
@@ -293,10 +298,19 @@ for(i in 1:length(l_dates)){
   proj4string(df_points) <- CRS_locs_WGS84
   # # No spatial duplicates
   df_points_day <- remove.duplicates(df_points) #remove duplicates...
-  plot(df_points_day)
+  #plot(df_points_day)
   dim(df_points_day)
   dim(df_points)
   #plot(df_points)
+  
+  ##layer to be clipped
+  if(class(countries_shp)=!"SpatialPolygonsDataFrame"){
+    reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
+  }
+
+  #extent_df_points_day <- extent(df_points_day)
+  
+  reg_layer_clipped <- gClip(shp=reg_layer, bb=df_points_day , keep.attribs=TRUE,outDir=NULL,outSuffix=NULL)
   
   #data_stations_temp <- aggregate(id ~ date, data = data_stations, min)
   #data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
@@ -316,40 +330,44 @@ for(i in 1:length(l_dates)){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <- paste("Figure_ac_metrics_map_stations_locations_validation_",model_name,"_",date_processed,
+  png_filename <- paste("Figure_ac_metrics_map_stations_l_",station_type_name,"_",model_name,"_",y_var_name,"_",date_processed,
                        "_",out_suffix,".png",sep="")
   png(filename=png_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   #plot(data_stations_temp
-  p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  #p_shp <- spplot(reg_layer_clipped,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
   #title("(a) Mean for 1 January")
   #p <- bubble(data_stations_temp,"constant",main=paste0("Average Residuals by validation stations ",
   #                                                      date_processed,
   #                                                      "for ",var_selected))
-  p <- spplot(data_stations_temp,"constant",col.regions=NA, col="black",
-              main=paste0("Average Residuals by validation stations ",pch=3,cex=10,
-              date_processed, "for ",var_selected))
+  #p <- spplot(data_stations_temp,"constant",col.regions=NA, col="black",
+  #            main=paste0("Average Residuals by validation stations ",pch=3,cex=10,
+  #            date_processed, "for ",var_selected))
 
-  p1 <- p+p_shp
-  try(print(p1)) #error raised if number of missing values below a threshold does not exist
-
+  #p1 <- p+p_shp
+  #try(print(p1)) #error raised if number of missing values below a threshold does not exist
+  
+  title_str <- paste0("Average Residuals by ",station_type_name," stations ",date_processed, " for ",y_var_name," ", var_selected)
+  plot(reg_layer_clipped,main=title_str)
+  plot(data_stations_temp,add=T,cex=0.5,col="blue")
+  legend("topleft",legend=paste("n= ", nrow(data_stations_temp)),bty = "n")
+  
   dev.off()
   
   res_pix <- 800
   col_mfrow <- 1
   row_mfrow <- 1
-  png_filename <- paste("Figure_ac_metrics_map_stations_validation_averaged_",model_name,"_",date_processed,
-                       "_",out_suffix,".png",sep="")
+  png_filename <- paste("Figure_ac_metrics_map_stations",station_type_name,"averaged",model_name,y_var_name,date_processed,
+                       out_suffix,".png",sep="_")
   png(filename=png_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
   #model_name[j]
-    
+  title_str <- paste0("Average Residuals by ",station_type_name," stations ",date_processed, " for ",y_var_name," ", var_selected)
   #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
   #title("(a) Mean for 1 January")
-  p <- bubble(data_stations_temp,"res_mod1",main=paste0("Average Residuals by validation stations ",date_processed,
-                                                        "for ",var_selected))
+  p <- bubble(data_stations_temp,"res_mod1",main=title_str)
   p1 <- p+p_shp
   try(print(p1)) #error raised if number of missing values below a threshold does not exist
   
@@ -359,8 +377,8 @@ for(i in 1:length(l_dates)){
   res_pix <- 800
   col_mfrow <- 1
   row_mfrow <- 1
-  png_filename <- paste("Figure_ac_metrics_histograms_stations_validation_averaged_",model_name,"_",date_processed,
-                       "_",out_suffix,".png",sep="")
+  png_filename <- paste("Figure_ac_metrics_histograms_stations",station_type_name,"averaged",model_name,y_var_name,date_processed,
+                       out_suffix,".png",sep="_")
   png(filename=png_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
@@ -369,12 +387,13 @@ for(i in 1:length(l_dates)){
   print(h)
   dev.off()
   
+  ##Make data.frame with dates for later use!!
   #from libary mosaic
   df_basic_stat <- fav_stats(data_stations_temp$res_mod1)
-  quantile(data_stations_temp$res_mod1,c(1,5,10,90,95,99))
-  quantile(data_stations_temp$res_mod1,c(0.01,0.05,0.10,0.90,0.95,0.99))
+  #quantile(data_stations_temp$res_mod1,c(1,5,10,90,95,99))
+  df_quantile_val <- (quantile(data_stations_temp$res_mod1,c(0.01,0.05,0.10,0.45,0.50,0.55,0.90,0.95,0.99)))
   #quantile(c(1,5,10,90,95,99),data_stations_temp$res_mod1,)
-  
+  #rmse(data_stations_temp$res_mod1)
 }
 
 
