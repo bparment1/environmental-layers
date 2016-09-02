@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 08/31/2016            
+#MODIFIED ON: 09/02/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -18,6 +18,8 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
+
+#COMMIT: testing plot for both training and testing and introducing a new function
 
 #################################################################################################
 
@@ -59,21 +61,23 @@ library(mosaic)
 script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts" #path to script
 
 ## NASA poster and paper related
-source(file.path(script_path,"NASA2016_conference_temperature_predictions_function_05032016b.R"))
+#source(file.path(script_path,"NASA2016_conference_temperature_predictions_function_05032016b.R"))
 
 #Mosaic related on NEX
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04232016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_05012016.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_08232016.R" #Functions used to mosaic predicted tiles
+function_mosaicing <-"global_run_scalingup_mosaicing_08222016.R" #main scripts for mosaicing predicted tiles
+
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
 #Assessment on NEX
-function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
+function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_12282015.R" #PARAM12
 function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
 function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
-function_assessment_part3 <- "global_run_scalingup_assessment_part3_05162016.R"
+function_assessment_part3 <- "global_run_scalingup_assessment_part3_07292016.R"
+
 source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
@@ -167,7 +171,7 @@ raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg
                     "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
-l_dates <- c("19840110","19840111","19840112","19840113","19840114") #dates to plot and analze
+l_dates <- c("19990101","19990102","19990103","19990104","19990105") #dates to plot and analze
 
 #df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/data_points_extracted.txt"
 df_points_extracted_fname <- NULL #if null compute on the fly
@@ -224,7 +228,7 @@ year_str <- as.character(unlist(lapply(list_data_s_fname, function(x){unlist(str
 df_data_s_fname <- data.frame(year_str,region_name,dataset="data_s",file=list_data_s_fname)
 
 year_str <- as.character(unlist(lapply(list_data_v_fname, function(x){unlist(strsplit(basename(x),"_"))[5]})))
-df_data_v_fname <- data.frame(year_str,region_name,dataset="data_v",file=list_data_s_fname)
+df_data_v_fname <- data.frame(year_str,region_name,dataset="data_v",file=list_data_v_fname)
 
 df_data_v_fname$year <- df_data_v_fname$year_str
 df_data_v_fname$year <- as.character(df_data_v_fname$year_str)
@@ -242,6 +246,7 @@ l_dates_year_str <- format(list_dates_val, "%Y") ## Year with century
 l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 
 
+##start new function
 ### Needs to make this a function!!!
 #Step 1 for a list of dates, load relevant files with year matching,
 #Step 2 for giving dates subset the data.frame
@@ -258,18 +263,26 @@ for(i in 1:length(list_year_str)){
   list_df_s_stations[[i]] <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
 }
 
-df_combined <- do.call(rbind,list_df_v_stations)
+df_combined_data_v <- do.call(rbind,list_df_v_stations) #reading only the years related to the the dates e.g. 1999
+df_combined_data_s <- do.call(rbind,list_df_s_stations)
 
 #### Get df points for specific dates
 #lapply(1:length(l_dates)list_df_v_stations,function(x){x$date==l_dates})
 #dim(list_df_v_stations[[1]])
-list_df_points_dates <- vector("list",length=length(l_dates))
+list_df_points_data_v_dates <- vector("list",length=length(l_dates))
+list_df_points_data_s_dates <- vector("list",length=length(l_dates))
 for(i in 1:length(l_dates)){
   #year_str <- list_year_str[[i]]
-  list_df_points_dates[[i]] <- subset(df_combined,df_combined$date==l_dates[i])
+  list_df_points_data_v_dates[[i]] <- subset(df_combined_data_v,df_combined_data_v$date==l_dates[i])
+  list_df_points_data_s_dates[[i]] <- subset(df_combined_data_s,df_combined_data_s$date==l_dates[i])
+
 }
 
-df_combined_dates <- do.call(rbind,list_df_points_dates)
+df_combined_data_v_dates <- do.call(rbind,list_df_points_data_v_dates)
+df_combined_data_s_dates <- do.call(rbind,list_df_points_data_s_dates)
+
+####
+
 
 #function(x){x$date==}
 #df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
@@ -283,50 +296,86 @@ var_selected <- "res_mod1"
 variable_name
 #8 minutes for 18 dates and reg1 ?
 station_type_name <- "testing"
+proj_str <- CRS_locs_WGS84
+list_param_plot_stations_val_by_date <- list(l_dates,df_combined_data_v_dates,countries_shp_tmp,CRS_locs_WGS84,
+                                             station_type_name,model_name,
+                                             var_selected,y_var_name,out_suffix,out_dir)
+names(list_param_plot_stations_val_by_date) <- c("l_dates","df_combined_data_points","countries_shp","proj_str","
+                                                 station_type_name","model_name",
+                                                 "var_selected","y_var_name","out_suffix","out_dir")
+  
+debug(plot_stations_val_by_date)
+test<- plot_stations_val_by_date(1,list_param = list_param_plot_stations_val_by_date)
 
-for(i in 1:length(l_dates)){
-  #d
-
+plot_stations_val_by_date <- function(i,list_param){
+  #
+  #
+  #function to plot residuals by date
+  #
+  
+  #####
+  
+  l_dates <- list_param$l_dates
+  model_name <- list_param$model_name
+  station_type_name <- list_param$station_type_name
+  var_selected <- list_param$var_selected
+  #list_df_points_dates <- 
+  df_combined_data_points <- list_param$df_combined_data_points
+  countries_shp <- list_param$countries_shp
+  proj_str <- list_param$proj_str
+  out_suffix <- list_param$out_suffix
+  out_dir <- list_param$out_dir
+  
+  ### STARTFUNCTION ####
     
   date_processed <- l_dates[i]
   
-  df_points <- list_df_points_dates[[i]]
+  df_points <- subset(df_combined_data_points,date==date_processed)
+  #df_points <- list_df_points_dates[[i]]
   #plot(df_points)
-  table(df_points$tile_id)
+  freq_tile_id <- as.data.frame(table(df_points$tile_id))
+  freq_tile_id$date <- date_processed
+  names(freq_tile_id) <- c("tile_id","freq","date")
+    
   #plot(df_points,add=T)
   coordinates(df_points) <- cbind(df_points$x,df_points$y)
-  proj4string(df_points) <- CRS_locs_WGS84
+  #proj4string(df_points) <- CRS_locs_WGS84
+  proj4string(df_points) <- proj_str
   # # No spatial duplicates
   df_points_day <- remove.duplicates(df_points) #remove duplicates...
   #plot(df_points_day)
-  dim(df_points_day)
-  dim(df_points)
+  #dim(df_points_day)
+  #dim(df_points)
   #plot(df_points)
   
   ##layer to be clipped
-  if(class(countries_shp)=!"SpatialPolygonsDataFrame"){
+  if(class(countries_shp)!="SpatialPolygonsDataFrame"){
     reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
+  }else{
+    reg_layer <- countries_shp
   }
 
   #extent_df_points_day <- extent(df_points_day)
   
   reg_layer_clipped <- gClip(shp=reg_layer, bb=df_points_day , keep.attribs=TRUE,outDir=NULL,outSuffix=NULL)
   
-  #data_stations_temp <- aggregate(id ~ date, data = data_stations, min)
-  #data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
-  data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + res_mod1,data = df_points, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
-  dim(data_stations_temp)
-  #> dim(data_stations_temp)
+  #data_stations_var_pred <- aggregate(id ~ date, data = data_stations, min)
+  #data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
+  
+  #change the formula later on to use different y_var_name (tmin and precip)
+  data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + res_mod1 + tile_id + reg ,data = df_points, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+  dim(data_stations_var_pred)
+  #> dim(data_stations_var_pred)
   #[1] 11171     5
 
-  data_stations_temp$date_str <- data_stations_temp$date
-  data_stations_temp$date <- as.Date(strptime(data_stations_temp$date_str,"%Y%m%d"))
-  coordinates(data_stations_temp) <- cbind(data_stations_temp$x,data_stations_temp$y)
-  data_stations_temp$constant <- c(1000,2000)
-  #plot(data_stations_temp)
+  data_stations_var_pred$date_str <- data_stations_var_pred$date
+  data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+  coordinates(data_stations_var_pred) <- cbind(data_stations_var_pred$x,data_stations_var_pred$y)
+  #data_stations_var_pred$constant <- c(1000,2000)
+  #plot(data_stations_var_pred)
   #plot(reg_layer)
   #res_pix <- 1200
-  res_pix <- 400
+  res_pix <- 800
   col_mfrow <- 1
   row_mfrow <- 1
   
@@ -334,30 +383,30 @@ for(i in 1:length(l_dates)){
                        "_",out_suffix,".png",sep="")
   png(filename=png_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-  #plot(data_stations_temp
+  #plot(data_stations_var_pred
   #p_shp <- spplot(reg_layer_clipped,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
   #title("(a) Mean for 1 January")
-  #p <- bubble(data_stations_temp,"constant",main=paste0("Average Residuals by validation stations ",
+  #p <- bubble(data_stations_var_pred,"constant",main=paste0("Average Residuals by validation stations ",
   #                                                      date_processed,
   #                                                      "for ",var_selected))
-  #p <- spplot(data_stations_temp,"constant",col.regions=NA, col="black",
+  #p <- spplot(data_stations_var_pred,"constant",col.regions=NA, col="black",
   #            main=paste0("Average Residuals by validation stations ",pch=3,cex=10,
   #            date_processed, "for ",var_selected))
 
   #p1 <- p+p_shp
   #try(print(p1)) #error raised if number of missing values below a threshold does not exist
   
-  title_str <- paste0("Average Residuals by ",station_type_name," stations ",date_processed, " for ",y_var_name," ", var_selected)
+  title_str <- paste0("Stations ",station_type_name," on ",date_processed, " for ",y_var_name," ", var_selected)
   plot(reg_layer_clipped,main=title_str)
-  plot(data_stations_temp,add=T,cex=0.5,col="blue")
-  legend("topleft",legend=paste("n= ", nrow(data_stations_temp)),bty = "n")
+  plot(data_stations_var_pred,add=T,cex=0.5,col="blue")
+  legend("topleft",legend=paste("n= ", nrow(data_stations_var_pred)),bty = "n")
   
   dev.off()
   
   res_pix <- 800
   col_mfrow <- 1
   row_mfrow <- 1
-  png_filename <- paste("Figure_ac_metrics_map_stations",station_type_name,"averaged",model_name,y_var_name,date_processed,
+  png_filename <- paste("Figure_ac_metrics_map_stations",station_type_name,"averaged","_fixed_intervals_",model_name,y_var_name,date_processed,
                        out_suffix,".png",sep="_")
   png(filename=png_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
@@ -367,11 +416,23 @@ for(i in 1:length(l_dates)){
   #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
   p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
   #title("(a) Mean for 1 January")
-  p <- bubble(data_stations_temp,"res_mod1",main=title_str)
-  p1 <- p+p_shp
+  class_intervals <- c(-20,-10,-5,-4,-3,-2,-1,0,1,2,3,4,5,10,20)
+  p <- bubble(data_stations_var_pred,zcol="res_mod1",key.entries = class_intervals , 
+              fill=F, #plot circle with filling
+              #col= matlab.like(length(class_intervals)),
+              main=title_str)
+  p1 <- p + p_shp
   try(print(p1)) #error raised if number of missing values below a threshold does not exist
   
   dev.off()
+
+  #### Add additional plot with quantiles and min max?...
+  
+  
+  #library(classInt)
+  #breaks.qt <- classIntervals(palo_alto$PrCpInc, n = 6, style = "quantile", intervalClosure = "right")
+  #spplot(palo_alto, "PrCpInc", col = "transparent", col.regions = my.palette, 
+  #  at = breaks.qt$brks)
 
   #### histogram of values
   res_pix <- 800
@@ -382,18 +443,33 @@ for(i in 1:length(l_dates)){
   png(filename=png_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
 
-  h<- histogram(data_stations_temp$res_mod1,breaks=seq(-50,50,5))
+  title_str <- paste0("Stations ",station_type_name," on ",date_processed, " for ",y_var_name," ", var_selected)
+
+  h<- histogram(data_stations_var_pred$res_mod1,breaks=seq(-50,50,5),
+                main=title_str)
   
   print(h)
   dev.off()
   
   ##Make data.frame with dates for later use!!
   #from libary mosaic
-  df_basic_stat <- fav_stats(data_stations_temp$res_mod1)
-  #quantile(data_stations_temp$res_mod1,c(1,5,10,90,95,99))
-  df_quantile_val <- (quantile(data_stations_temp$res_mod1,c(0.01,0.05,0.10,0.45,0.50,0.55,0.90,0.95,0.99)))
-  #quantile(c(1,5,10,90,95,99),data_stations_temp$res_mod1,)
-  #rmse(data_stations_temp$res_mod1)
+  df_basic_stat <- fav_stats(data_stations_var_pred$res_mod1)
+  df_basic_stat$date <- date_processed
+  #df_basic_stat$reg <- reg
+  #quantile(data_stations_var_pred$res_mod1,c(1,5,10,90,95,99))
+  df_quantile_val <- quantile(data_stations_var_pred$res_mod1,c(0.01,0.05,0.10,0.45,0.50,0.55,0.90,0.95,0.99))
+  #names(df_quantile_val)
+  #as.list(df_quantile_val)
+  #df_test <- data.frame(names(df_quantile_val))[numeric(0), ]
+
+
+  #quantile(c(1,5,10,90,95,99),data_stations_var_pred$res_mod1,)
+  #rmse(data_stations_var_pred$res_mod1)
+  
+  plot_obj <- list(data_stations_var_pred,df_basic_stat,df_quantile_val,freq_tile_id)
+  names(plot_obj) <- c("data_stations_var_pred","df_basic_stat","df_quantile_val","freq_tile_id")
+   
+  return(plot_obj)
 }
 
 
@@ -449,19 +525,23 @@ dim(data_stations) #one station only but repitition of records because of tiles 
 #> dim(data_stations)
 #[1] 100458     90
 
-#data_stations_temp <- aggregate(id ~ date, data = data_stations, min)
-#data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
-data_stations_temp <- aggregate(id ~ x + y + date + dailyTmax,data = data_stations, min ) #+ mod1 + res_mod1 , data = data_stations, min)
-dim(data_stations_temp)
-#> dim(data_stations_temp)
+#data_stations_var_pred <- aggregate(id ~ date, data = data_stations, min)
+#data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
+
+##Add tile id here...and check if data stations was training or testing.
+
+
+data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax,data = data_stations, min ) #+ mod1 + res_mod1 , data = data_stations, min)
+dim(data_stations_var_pred)
+#> dim(data_stations_var_pred)
 #[1] 11171     5
 
-data_stations_temp$date_str <- data_stations_temp$date
-data_stations_temp$date <- as.Date(strptime(data_stations_temp$date_str,"%Y%m%d"))
+data_stations_var_pred$date_str <- data_stations_var_pred$date
+data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
 
 ##Find stations used for training and testing
-#data_stations_temp2 <- aggregate(id ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
-#data_stations_temp2 <- aggregate(date ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
+#data_stations_var_pred2 <- aggregate(id ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
+#data_stations_var_pred2 <- aggregate(date ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
 
 ############### PART3: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
@@ -646,7 +726,7 @@ df <- pix_ts
 #scaling
 #start_date: subset dates
 #end_date: subset dates
-df2 <- data_stations_temp
+df2 <- data_stations_var_pred
   
   
 df_selected <- subset(df,select=station_id)
@@ -779,7 +859,7 @@ dev.off()
 ####################
 ###### Now add figures with additional met stations?
 
-#df_selected2 <- data_stations_temp
+#df_selected2 <- data_stations_var_pred
 
 #d_z_tmp <- zoo(df_selected[[station_id]],df_selected$date)
 #d_z_tmp2 <- zoo(df_selected2$dailyTmax,df_selected2$date)
@@ -824,7 +904,7 @@ dev.off()
 #dev.off()
 
 #This is a lot of replication!!! okay cut it down
-data_stations$date <- as.Date(strptime(data_stations_temp$date_str,"%Y%m%d"))
+data_stations$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
 data_stations_tmp <- data_stations
 data_stations_tmp <- data_stations
 
