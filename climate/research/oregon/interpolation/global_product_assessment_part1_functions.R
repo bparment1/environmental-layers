@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 08/31/2016            
+#MODIFIED ON: 09/04/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conference 
@@ -275,6 +275,171 @@ gClip <- function(shp, bb, keep.attribs=TRUE,outDir=NULL,outSuffix=NULL){
            driver="ESRI Shapefile",overwrite_layer="TRUE")
   
   return(new.shape)
+}
+
+plot_stations_val_by_date <- function(i,list_param){
+  #
+  #
+  #function to plot residuals by date
+  #
+  
+  #####
+  
+  l_dates <- list_param$l_dates
+  model_name <- list_param$model_name
+  station_type_name <- list_param$station_type_name
+  var_selected <- list_param$var_selected
+  #list_df_points_dates <- 
+  df_combined_data_points <- list_param$df_combined_data_points
+  countries_shp <- list_param$countries_shp
+  proj_str <- list_param$proj_str
+  out_suffix <- list_param$out_suffix
+  out_dir <- list_param$out_dir
+  
+  ### STARTFUNCTION ####
+    
+  date_processed <- l_dates[i]
+  
+  df_points <- subset(df_combined_data_points,date==date_processed)
+  #df_points <- list_df_points_dates[[i]]
+  #plot(df_points)
+  freq_tile_id <- as.data.frame(table(df_points$tile_id))
+  freq_tile_id$date <- date_processed
+  names(freq_tile_id) <- c("tile_id","freq","date")
+    
+  #plot(df_points,add=T)
+  coordinates(df_points) <- cbind(df_points$x,df_points$y)
+  #proj4string(df_points) <- CRS_locs_WGS84
+  proj4string(df_points) <- proj_str
+  # # No spatial duplicates
+  df_points_day <- remove.duplicates(df_points) #remove duplicates...
+  #plot(df_points_day)
+  #dim(df_points_day)
+  #dim(df_points)
+  #plot(df_points)
+  
+  ##layer to be clipped
+  if(class(countries_shp)!="SpatialPolygonsDataFrame"){
+    reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
+  }else{
+    reg_layer <- countries_shp
+  }
+
+  #extent_df_points_day <- extent(df_points_day)
+  
+  reg_layer_clipped <- gClip(shp=reg_layer, bb=df_points_day , keep.attribs=TRUE,outDir=NULL,outSuffix=NULL)
+  
+  #data_stations_var_pred <- aggregate(id ~ date, data = data_stations, min)
+  #data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
+  
+  #change the formula later on to use different y_var_name (tmin and precip)
+  data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + res_mod1 + tile_id + reg ,data = df_points, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+  dim(data_stations_var_pred)
+  #> dim(data_stations_var_pred)
+  #[1] 11171     5
+
+  data_stations_var_pred$date_str <- data_stations_var_pred$date
+  data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+  coordinates(data_stations_var_pred) <- cbind(data_stations_var_pred$x,data_stations_var_pred$y)
+  #data_stations_var_pred$constant <- c(1000,2000)
+  #plot(data_stations_var_pred)
+  #plot(reg_layer)
+  #res_pix <- 1200
+  res_pix <- 800
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png_filename <- paste("Figure_ac_metrics_map_stations_l_",station_type_name,"_",model_name,"_",y_var_name,"_",date_processed,
+                       "_",out_suffix,".png",sep="")
+  png(filename=png_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  #plot(data_stations_var_pred
+  #p_shp <- spplot(reg_layer_clipped,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  #title("(a) Mean for 1 January")
+  #p <- bubble(data_stations_var_pred,"constant",main=paste0("Average Residuals by validation stations ",
+  #                                                      date_processed,
+  #                                                      "for ",var_selected))
+  #p <- spplot(data_stations_var_pred,"constant",col.regions=NA, col="black",
+  #            main=paste0("Average Residuals by validation stations ",pch=3,cex=10,
+  #            date_processed, "for ",var_selected))
+
+  #p1 <- p+p_shp
+  #try(print(p1)) #error raised if number of missing values below a threshold does not exist
+  
+  title_str <- paste0("Stations ",station_type_name," on ",date_processed, " for ",y_var_name," ", var_selected)
+  plot(reg_layer_clipped,main=title_str)
+  plot(data_stations_var_pred,add=T,cex=0.5,col="blue")
+  legend("topleft",legend=paste("n= ", nrow(data_stations_var_pred)),bty = "n")
+  
+  dev.off()
+  
+  res_pix <- 800
+  col_mfrow <- 1
+  row_mfrow <- 1
+  png_filename <- paste("Figure_ac_metrics_map_stations",station_type_name,"averaged","_fixed_intervals_",model_name,y_var_name,date_processed,
+                       out_suffix,".png",sep="_")
+  png(filename=png_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+  #model_name[j]
+  title_str <- paste0("Average Residuals by ",station_type_name," stations ",date_processed, " for ",y_var_name," ", var_selected)
+  #p_shp <- layer(sp.polygons(reg_layer, lwd=1, col='black'))
+  p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  #title("(a) Mean for 1 January")
+  class_intervals <- c(-20,-10,-5,-4,-3,-2,-1,0,1,2,3,4,5,10,20)
+  p <- bubble(data_stations_var_pred,zcol="res_mod1",key.entries = class_intervals , 
+              fill=F, #plot circle with filling
+              #col= matlab.like(length(class_intervals)),
+              main=title_str)
+  p1 <- p + p_shp
+  try(print(p1)) #error raised if number of missing values below a threshold does not exist
+  
+  dev.off()
+
+  #### Add additional plot with quantiles and min max?...
+  
+  
+  #library(classInt)
+  #breaks.qt <- classIntervals(palo_alto$PrCpInc, n = 6, style = "quantile", intervalClosure = "right")
+  #spplot(palo_alto, "PrCpInc", col = "transparent", col.regions = my.palette, 
+  #  at = breaks.qt$brks)
+
+  #### histogram of values
+  res_pix <- 800
+  col_mfrow <- 1
+  row_mfrow <- 1
+  png_filename <- paste("Figure_ac_metrics_histograms_stations",station_type_name,"averaged",model_name,y_var_name,date_processed,
+                       out_suffix,".png",sep="_")
+  png(filename=png_filename,
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+
+  title_str <- paste0("Stations ",station_type_name," on ",date_processed, " for ",y_var_name," ", var_selected)
+
+  h<- histogram(data_stations_var_pred$res_mod1,breaks=seq(-50,50,5),
+                main=title_str)
+  
+  print(h)
+  dev.off()
+  
+  ##Make data.frame with dates for later use!!
+  #from libary mosaic
+  df_basic_stat <- fav_stats(data_stations_var_pred$res_mod1)
+  df_basic_stat$date <- date_processed
+  #df_basic_stat$reg <- reg
+  #quantile(data_stations_var_pred$res_mod1,c(1,5,10,90,95,99))
+  df_quantile_val <- quantile(data_stations_var_pred$res_mod1,c(0.01,0.05,0.10,0.45,0.50,0.55,0.90,0.95,0.99))
+  #names(df_quantile_val)
+  #as.list(df_quantile_val)
+  #df_test <- data.frame(names(df_quantile_val))[numeric(0), ]
+
+
+  #quantile(c(1,5,10,90,95,99),data_stations_var_pred$res_mod1,)
+  #rmse(data_stations_var_pred$res_mod1)
+  
+  plot_obj <- list(data_stations_var_pred,df_basic_stat,df_quantile_val,freq_tile_id)
+  names(plot_obj) <- c("data_stations_var_pred","df_basic_stat","df_quantile_val","freq_tile_id")
+   
+  return(plot_obj)
 }
 
 ############################ END OF SCRIPT ##################################
