@@ -208,7 +208,7 @@ extract_date <- function(i,x,item_no=NULL){
   return(date_str)
 }
 
-gClip <- function(shp, bb, keep.attribs=TRUE,outDir=NULL,outSuffix=NULL){
+gClip <- function(shp, bb, keep.attribs=TRUE,outDir=NULL,outSuffix=NULL,write=FALSE){
   #Purpose: clipping SpatialPolygonsDataFrame using another SpatialPolygonsDataFrame 
   #shp: input shapefile that we would like to clip
   #bb: input shapefile used for clipping, can be and extent raster object, matrix of coordinates 
@@ -269,10 +269,14 @@ gClip <- function(shp, bb, keep.attribs=TRUE,outDir=NULL,outSuffix=NULL){
 
   }
   
-  #Writeout shapefile (default format for now)
-  infile_new.shape <- paste("clipped_spdf",outSuffix,".shp",sep="")
-  writeOGR(new.shape,dsn= outDir,layer= sub(".shp","",infile_new.shape), 
+  if(write==TRUE){
+
+    #Writeout shapefile (default format for now)
+    infile_new.shape <- paste("clipped_spdf",outSuffix,".shp",sep="")
+    writeOGR(new.shape,dsn= outDir,layer= sub(".shp","",infile_new.shape), 
            driver="ESRI Shapefile",overwrite_layer="TRUE")
+  }
+
   
   return(new.shape)
 }
@@ -349,7 +353,7 @@ plot_stations_val_by_date <- function(i,list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <- paste("Figure_ac_metrics_map_stations_l_",station_type_name,"_",model_name,"_",y_var_name,"_",date_processed,
+  png_filename <- paste("Figure_ac_metrics_map_stations_location_",station_type_name,"_",model_name,"_",y_var_name,"_",date_processed,
                        "_",out_suffix,".png",sep="")
   png(filename=png_filename,
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
