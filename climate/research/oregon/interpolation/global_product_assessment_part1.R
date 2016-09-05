@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 09/04/2016            
+#MODIFIED ON: 09/05/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: testing plot for both training and testing and introducing a new function
+#COMMIT: testing plot function for training residuals at at stations and fixing bugs, region 1
 
 #################################################################################################
 
@@ -85,7 +85,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09042016.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09052016.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 ###############################
@@ -300,12 +300,12 @@ proj_str <- CRS_locs_WGS84
 list_param_plot_stations_val_by_date <- list(l_dates,df_combined_data_v_dates,countries_shp_tmp,CRS_locs_WGS84,
                                              station_type_name,model_name,
                                              var_selected,y_var_name,out_suffix,out_dir)
-names(list_param_plot_stations_val_by_date) <- c("l_dates","df_combined_data_points","countries_shp","proj_str","
-                                                 station_type_name","model_name",
+names(list_param_plot_stations_val_by_date) <- c("l_dates","df_combined_data_points","countries_shp","proj_str",
+                                                 "station_type_name","model_name",
                                                  "var_selected","y_var_name","out_suffix","out_dir")
   
 
-list_plot_obj <- mclapply(1:length(l_dates),FUN=plot_stations_val_by_date,list_param=list_param_plot_stations_val_by_date,
+list_plot_obj_data_v <- mclapply(1:length(l_dates),FUN=plot_stations_val_by_date,list_param=list_param_plot_stations_val_by_date,
                            mc.preschedule=FALSE,
                            mc.cores = num_cores)       
 
@@ -314,11 +314,11 @@ station_type_name <- "training"
 list_param_plot_stations_val_by_date <- list(l_dates,df_combined_data_s_dates,countries_shp_tmp,CRS_locs_WGS84,
                                              station_type_name,model_name,
                                              var_selected,y_var_name,out_suffix,out_dir)
-names(list_param_plot_stations_val_by_date) <- c("l_dates","df_combined_data_points","countries_shp","proj_str","
-                                                 station_type_name","model_name",
+names(list_param_plot_stations_val_by_date) <- c("l_dates","df_combined_data_points","countries_shp","proj_str",
+                                                 "station_type_name","model_name",
                                                  "var_selected","y_var_name","out_suffix","out_dir")
 #debug(plot_stations_val_by_date)
-#test <- plot_stations_val_by_date(1,list_param = list_param_plot_stations_val_by_date)
+#test <- plot_stations_val_by_date(2,list_param = list_param_plot_stations_val_by_date)
 
 list_plot_obj_data_s <- mclapply(1:length(l_dates),FUN=plot_stations_val_by_date,list_param=list_param_plot_stations_val_by_date,
                            mc.preschedule=FALSE,
