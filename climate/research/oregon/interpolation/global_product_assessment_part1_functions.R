@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 09/04/2016            
+#MODIFIED ON: 09/06/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conference 
@@ -444,6 +444,13 @@ plot_stations_val_by_date <- function(i,list_param){
   names(plot_obj) <- c("data_stations_var_pred","df_basic_stat","df_quantile_val","freq_tile_id")
    
   return(plot_obj)
+}
+
+extract_from_df <- function(x,col_selected,val_selected){
+  df_tmp <- read.table(x,stringsAsFactors=F,sep=",")
+  #data_subset <- subset(data_stations,col_selected==val_selected)
+  data_subset <- subset(df_tmp,df_tmp$id%in%val_selected)
+  return(data_subset)
 }
 
 ############################ END OF SCRIPT ##################################
