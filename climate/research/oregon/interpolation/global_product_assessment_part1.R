@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 09/05/2016            
+#MODIFIED ON: 09/06/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -85,7 +85,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09052016.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09062016.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 ###############################
@@ -163,12 +163,12 @@ scaling <- 0.01 #was scaled on 100
 df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaic/output_reg1_1984/df_centroids_19840101_reg1_1984.txt"
 #/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt
 
-raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920103_reg4_1992_m_gam_CAI_dailyTmax_19920103_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920701_reg4_1992_m_gam_CAI_dailyTmax_19920701_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920702_reg4_1992_m_gam_CAI_dailyTmax_19920702_reg4_1992.tif",
-                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
+#raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920103_reg4_1992_m_gam_CAI_dailyTmax_19920103_reg4_1992.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920701_reg4_1992_m_gam_CAI_dailyTmax_19920701_reg4_1992.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920702_reg4_1992_m_gam_CAI_dailyTmax_19920702_reg4_1992.tif",
+#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
 l_dates <- c("19990101","19990102","19990103","19990104","19990105") #dates to plot and analze
@@ -326,35 +326,49 @@ list_plot_obj_data_s <- mclapply(1:length(l_dates),FUN=plot_stations_val_by_date
 ## do training
 
 ##plot summary of staistics
+list_plot_obj_data_v[[1]]$df_basic_stat
+names(list_plot_obj_data_v[[1]])
+list_data_stations_var_pred_data_v <- lapply(list_plot_obj_data_v,FUN=function(x){x$data_stations_var_pred})
+list_data_stations_var_pred_data_s <- lapply(list_plot_obj_data_s,FUN=function(x){x$data_stations_var_pred})
+
+data_stations_var_pred_data_v <- do.call(rbind,list_data_stations_var_pred_data_v)
+data_stations_var_pred_data_s <- do.call(rbind,list_data_stations_var_pred_data_s)
+dim(data_stations_var_pred_data_v)
+dim(data_stations_var_pred_data_s)
+
+write.table(data_stations_var_pred_data_v,"data_stations_var_pred_data_v")
+write.table(data_stations_var_pred_data_s,"data_stations_var_pred_data_s")
+
 
 ############### PART2: Select stations by ID to build a time series #############
 #### Extract corresponding stationsfor given dates and plot stations used
 ## Use station from specific year and date?
 
-#####################
+###################### make this part a function!!!
 #select one station based on id or coordinates and find that in the list of data.frame??
 
-id_selected <- "82111099999"
-dim(df_points)
+#Make a function to find the closest stations to a givine coordinates?
+#42.262003, -71.965866 #this is near Spencer MA
+
+#id_selected <- "82111099999"
+#dim(df_points)
+list_id_data_v <- unique(data_stations_var_pred_data_v$id)
+list_id_data_s <- unique(data_stations_var_pred_data_s$id)
 
 ### loop through all files and get the time series
-extract_from_df <- function(x,col_selected,val_selected){
-  df_tmp <- read.table(x,stringsAsFactors=F,sep=",")
-  #data_subset <- subset(data_stations,col_selected==val_selected)
-  data_subset <- subset(df_tmp,df_tmp$id%in%val_selected)
-  return(data_subset)
-}
 
 lf_data_s_subset <- mclapply(list_data_s_fname,
                            FUN=extract_from_df,
                            col_selected="id",
-                           val_selected=id_selected,
+                           val_selected=list_id_data_s,
                            mc.preschedule=FALSE,
-                           mc.cores = num_cores)                         
+                           mc.cores = num_cores)   
+#took less than 8 minutes for 1839 stations
+
 lf_data_v_subset <- mclapply(list_data_v_fname,
                            FUN=extract_from_df,
                            col_selected="id",
-                           val_selected=id_selected,
+                           val_selected=list_id_data_v,
                            mc.preschedule=FALSE,
                            mc.cores = num_cores)   
 
@@ -364,19 +378,27 @@ data_s_subset <- do.call(rbind,lf_data_s_subset)
 data_s_subset$training <- 1
 data_v_subset$training <- 0
 
-data_stations <- rbind(data_s_subset,data_v_subset)
-dim(data_s_subset)
-dim(data_v_subset)
+## Need a testing variable to  count  later the use of  a station
+data_s_subset$testing <- 0
+data_v_subset$testing <- 1
+# a station can be used multipel times as trainin gor testing within a day because of the overlap of tiles.
 
+#data_stations <- rbind(data_s_subset,data_v_subset)
+dim(data_s_subset)
+#[1] 21991826       9
+dim(data_v_subset)
+#[1] 9319967      85
+
+##36 minutes to get here
 #rbind.fill(mtcars[c("mpg", "wt")], mtcars[c("wt", "cyl")])
 data_stations <- rbind.fill(data_v_subset, data_s_subset)
+#dim(data_stations)#one station only but repetition of records because of tiles and dates!!!
+#[1] 31311793       90
+dim(data_stations)#one station only but repetition of records because of tiles and dates!!!
+#[1] 30202891       91
 
-coordinates(data_stations) <- cbind(data_stations$x,data_stations$y)
-proj4string(data_stations) <- CRS_locs_WGS84
-
-dim(data_stations) #one station only but repitition of records because of tiles and dates!!!
-#> dim(data_stations)
-#[1] 100458     90
+#coordinates(data_stations) <- cbind(data_stations$x,data_stations$y)
+#proj4string(data_stations) <- CRS_locs_WGS84
 
 #data_stations_var_pred <- aggregate(id ~ date, data = data_stations, min)
 #data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
@@ -384,10 +406,13 @@ dim(data_stations) #one station only but repitition of records because of tiles 
 ##Add tile id here...and check if data stations was training or testing.
 
 
-data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax,data = data_stations, min ) #+ mod1 + res_mod1 , data = data_stations, min)
+data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 ,data = data_stations, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
 dim(data_stations_var_pred)
 #> dim(data_stations_var_pred)
 #[1] 11171     5
+write.table(data_stations_var_pred,"data_stations_var_pred_tmp.txt")
+data_stations_var_pred_training_testing <- aggregate(id ~ training + testing ,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
+write.table(data_stations_var_pred_training_testing,"data_stations_var_pred_training_testing.txt")
 
 data_stations_var_pred$date_str <- data_stations_var_pred$date
 data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
@@ -395,6 +420,10 @@ data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,
 ##Find stations used for training and testing
 #data_stations_var_pred2 <- aggregate(id ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
 #data_stations_var_pred2 <- aggregate(date ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
+
+data_stations_var_pred <- cbind(data_stations_var_pred,data_stations_var_pred_training_testing)
+write.table(data_stations_var_pred,"data_stations_var_pred.txt")
+#started at 16.51, 09/07
 
 ############### PART3: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
@@ -404,8 +433,9 @@ data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,
 if(is.null(r_mosaic_fname)){
   pattern_str <-"*.tif"
   lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
-  r_mosaic <- stack(lf_mosaic_list)
+  r_mosaic <- stack(lf_mosaic_list,quick=T)
   save(r_mosaic,file="r_mosaic.RData")
+  
 }else{
   r_mosaic <- load_obj(r_mosaic_fname) #load raster stack of images
 }
@@ -465,9 +495,13 @@ lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic
 #/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic/output_reg4_*/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_*_reg4_*.tif
 pattern_str <- "r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_.*._reg4_.*.tif"
 searchStr = paste(in_dir_mosaic,"/output_reg4_2014",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-
+pattern_str <- ".*.tif"
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
 #lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern="*.tif",recursive=T)
 lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=T)
+
+writeRaster()
+
 lf_mosaic_list <- lapply(1:length(day_to_mosaic),
                          FUN=function(i){
                            searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
@@ -792,7 +826,7 @@ data_stations_tmp$date[7190]
 #### PLOT ACCURACY METRICS: First test ####
 ##this will be cleaned up later:
 
-dir_ac_mosaics <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999"
+#dir_ac_mosaics <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999"
 lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif")
 
 #lf_tmp1 <- lf_tmp[21:24]
