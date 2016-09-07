@@ -352,8 +352,75 @@ write.table(data_stations_var_pred_data_s,"data_stations_var_pred_data_s")
 
 #id_selected <- "82111099999"
 #dim(df_points)
-list_id_data_v <- unique(data_stations_var_pred_data_v$id)
-list_id_data_s <- unique(data_stations_var_pred_data_s$id)
+############### PART5: Extraction of temporal profile #############
+#### Extract time series from raster stack
+### Add dates to mkae it a date object?
+#-72,42.24 #near Spencer MA
+#48.281724, -71.401815 near Saguenay Quebec
+#39.805293, -89.872626 near Springfield Illinois
+#32.009676, -106.990266 near El Paso Us Texas
+#39.955529, -105.263851: near Boulder Colorado
+#45.384051, -121.859146 : near lost Creek near Mount Hood Oregon
+#53.283685, -113.341702: leduc Canada near Edmonton
+#39.009052, -77.026875: Silver Spring Sligo Creek, MD
+#36.627806, -119.928901 : Raisin City, Fresno CA
+#36.677139, -115.330122: Las Vegas
+#35.696143, -78.396011: near Raleigh NC
+
+list_lat_long <- list(
+c( -72, 42.24),
+c( -71.401815, 48.281724),
+c( -89.872626, 39.805293),
+c( -106.990266, 32.009676),
+c( -105.263851, 39.955529), 
+c( -121.859146,45.384051),
+c( -113.341702,53.283685),
+c( -77.026875,39.009052),
+c( -119.928901,36.627806),
+c(  -115.330122,36.677139),
+c( -78.396011,35.696143)) 
+
+
+query_for_station_lat_long <- function(point_val,df_points_spdf,step_x=0.25,step_y=0.25){
+  #make this function better using gbuffer later!!!, works for now 
+  #Improve: circular query + random within it
+  y_val <- point_val[2]
+  x_val <- point_val[1]
+  
+  y_val_tmp <- y_val + step_y
+  if(x_val>0){
+    x_val_tmp <- x_val - step_x
+  }else{
+    x_val_tmp <- x_val + step_x
+  }
+
+
+  test_df <- subset(df_points_spdf,(y_val < df_points_spdf$y & df_points_spdf$y < y_val_tmp))
+  test_df2 <- subset(test_df,(x_val < test_df$x & test_df$x < x_val_tmp))
+  #plot(test_df2)
+ if(nrow(test_df2)>0){
+   df_selected <- test_df2[1,]
+ }else{
+   df_selected <- NULL
+ }
+ 
+ return(df_selected)
+}
+
+test_day_query2 <- lapply(list_lat_long,FUN=query_for_station_lat_long,df_points_spdf=df_point_day,step_x=1,step_y=1)
+#test_day_query <-query_for_station_lat_long(c(-72,42),df_points_spdf=df_point_day,step_x=1,step_y=0.25)
+df_stations_selected <- do.call(rbind,test_day_query2)
+proj4string(df_stations_selected) <- proj_str
+#debug(query_for_station_lat_long)
+
+##Next use the day results and select a mean station, quartile and min and max?
+
+#list_id_data_v <- unique(data_stations_var_pred_data_v$id)
+#list_id_data_s <- unique(data_stations_var_pred_data_s$id)
+
+#Started at 4pm: on sept 9
+list_id_data_v <- df_stations_selected$id
+list_id_data_s <- df_stations_selected$id
 
 ### loop through all files and get the time series
 
@@ -382,6 +449,10 @@ data_v_subset$training <- 0
 data_s_subset$testing <- 0
 data_v_subset$testing <- 1
 # a station can be used multipel times as trainin gor testing within a day because of the overlap of tiles.
+write.table(data_v_subset,"data_v_subset_test.txt")
+write.table(data_s_subset,"data_s_subset_test.txt")
+##finish at 16.10pm on 09/09
+
 
 #data_stations <- rbind(data_s_subset,data_v_subset)
 dim(data_s_subset)
@@ -405,14 +476,38 @@ dim(data_stations)#one station only but repetition of records because of tiles a
 
 ##Add tile id here...and check if data stations was training or testing.
 
+#16.30 pm on 09/09
+#data_stations_var_pred <- aggregate(id2 + date ~ x + y + dailyTmax + mod1 + res_mod1 ,data = data_stations, FUN=mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+dim(data_stations_var_pred)
+#md <- melt(mydata, id=(c("id", "time")),)
+md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("x","y","dailyTmax","mod1","res_mod1"))
+#formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+data_stations_var_pred <- cast(md, id + date ~ variable, fun.aggregate = mean, 
+  na.rm = TRUE)
 
-data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 ,data = data_stations, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+write.table(data_stations_var_pred,
+            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt",
+                                                                 sep=",")))
+write.table(data_stations_var_pred_training_testing,"data_stations_var_pred_training_testing.txt")
+
+md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("training","testing"))
+data_stations_training_testing <- cast(md, id + date ~ variable, fun.aggregate = sum, 
+  na.rm = TRUE)
+
+write.table(data_stations_training_testing,
+            file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt",
+                                                                 sep=",")))
+
+#data_stations_var_pred <- aggregate(id2 ~ x + y + date + dailyTmax + mod1 + res_mod1 ,data = data_stations, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+#data_stations$id2 <- as.numeric(data_stations$id)
+#data_stations$date <- as.character(data_stations$date)
+
 dim(data_stations_var_pred)
 #> dim(data_stations_var_pred)
-#[1] 11171     5
-write.table(data_stations_var_pred,"data_stations_var_pred_tmp.txt")
-data_stations_var_pred_training_testing <- aggregate(id ~ training + testing ,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
-write.table(data_stations_var_pred_training_testing,"data_stations_var_pred_training_testing.txt")
+#[1] 57154     7
+unique(data_stations_var_pred$id)
+dim(data_stations_training_testing)
+#[1] 57154     4
 
 data_stations_var_pred$date_str <- data_stations_var_pred$date
 data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
@@ -422,23 +517,13 @@ data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,
 #data_stations_var_pred2 <- aggregate(date ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
 
 data_stations_var_pred <- cbind(data_stations_var_pred,data_stations_var_pred_training_testing)
+
 write.table(data_stations_var_pred,"data_stations_var_pred.txt")
 #started at 16.51, 09/07
 
 ############### PART3: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
 
-##Now grab year year 1992 or matching year...maybe put this in a data.frame??
-
-if(is.null(r_mosaic_fname)){
-  pattern_str <-"*.tif"
-  lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
-  r_mosaic <- stack(lf_mosaic_list,quick=T)
-  save(r_mosaic,file="r_mosaic.RData")
-  
-}else{
-  r_mosaic <- load_obj(r_mosaic_fname) #load raster stack of images
-}
 
 #start_date <- day_to_mosaic_range[1]
 #end_date <- day_to_mosaic_range[2]
@@ -447,14 +532,14 @@ if(is.null(r_mosaic_fname)){
 
 #date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
 #l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
-mask_pred <- FALSE
-matching <- FALSE #to be added after mask_pred option
-list_param_pre_process <- list(raster_name_lf,python_bin,infile_mask,scaling,mask_pred,NA_flag_val,out_suffix,out_dir) 
-names(list_param_pre_process) <- c("lf","python_bin","infile_mask","scaling","mask_pred","NA_flag_val","out_suffix","out_dir") 
+#mask_pred <- FALSE
+#matching <- FALSE #to be added after mask_pred option
+#list_param_pre_process <- list(raster_name_lf,python_bin,infile_mask,scaling,mask_pred,NA_flag_val,out_suffix,out_dir) 
+#names(list_param_pre_process) <- c("lf","python_bin","infile_mask","scaling","mask_pred","NA_flag_val","out_suffix","out_dir") 
   
 #debug(pre_process_raster_mosaic_fun)
 
-lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
+#lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
 #lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
 
 #test <- pre_process_raster_mosaic_fun(2,list_param_pre_process)
@@ -490,22 +575,24 @@ lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic
 ## Check dates predicted against date range for a given date range
 ## Join file information to centroids of tiles data.frame
 
-## Checking new files:
-#in_dir_mosaic <- "/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic"
-#/nobackupp6/aguzman4/climateLayers/out/reg4/mosaics2/mosaic/output_reg4_*/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_*_reg4_*.tif
+##Now grab year year 1992 or matching year...maybe put this in a data.frame??
+
 pattern_str <- "r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_.*._reg4_.*.tif"
 searchStr = paste(in_dir_mosaic,"/output_reg4_2014",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
 pattern_str <- ".*.tif"
 in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
 #lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern="*.tif",recursive=T)
-lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=T)
 
-writeRaster()
+if(is.null(r_mosaic_fname)){
+  pattern_str <-"*.tif"
+  lf_mosaic_list <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
+  r_mosaic <- stack(lf_mosaic_list,quick=T)
+  save(r_mosaic,file="r_mosaic.RData")
+  
+}else{
+  r_mosaic <- load_obj(r_mosaic_fname) #load raster stack of images
+}
 
-lf_mosaic_list <- lapply(1:length(day_to_mosaic),
-                         FUN=function(i){
-                           searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-                           Sys.glob(searchStr)})
 
 #r_mosaic_ts <- stack(lf_mosaic_list)
 #df_centroids <- extract(df_centroids,r_mosaic_ts)
@@ -525,7 +612,7 @@ day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric mon
 df_produced <- data.frame(lf_mosaic_list,list_dates_produced_date_val,month_str,year_str,day_str)
 
 date_start <- "19840101"
-date_end <- "20141231"
+date_end <- "19991231"
 date1 <- as.Date(strptime(date_start,"%Y%m%d"))
 date2 <- as.Date(strptime(date_end,"%Y%m%d"))
 dates_range <- seq.Date(date1, date2, by="1 day") #sequence of dates
@@ -541,10 +628,7 @@ df_points$month <- month_str
 df_points$year <- year_str
 df_points$day <- day_str
 
-############### PART5: Extraction of temporal profile #############
-#### Extract time series from raster stack
-### Add dates to mkae it a date object?
-#-65,-22
+
 
 #Use the global output??
 
@@ -553,12 +637,13 @@ df_points$day <- day_str
 #df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname",".txt") 
 #write.table(df_points_day_extracted,file=df_points_day_extracted_fname) #5.1 Giga
 #4.51 (on 05/23)
-
+df_points_day <- data_stations_var_pred_data_s
 if(is.null(df_points_extracted_fname)){
-  
+  #15.17 (on 09/08)
   ##10.41 (on 05/22)
   df_points_day_extracted <- extract(r_mosaic,df_points_day,df=T)
   #17.19 (on 05/23)
+  #22.27 (on 09/08)
   df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname2",".txt")
   #17.27 (on 05/23)
   write.table(df_points_day_extracted,file=df_points_day_extracted_fname,sep=",",row.names = F) 
@@ -570,6 +655,24 @@ if(is.null(df_points_extracted_fname)){
 
 head(df_points_day) #contains ID, dates and coordinates
 df_points_day$id
+
+max_idst <- 0.009*5 #5km in degree
+min_dist <- 0    #minimum distance to start with
+
+###this needs be modified
+## target number
+target_max_nb <- 1 #this is not actually used yet in the current implementation
+target_min_nb <- 5 #this is the target number of stations we would like
+max_dist <- 1000 # the maximum distance used for pruning ie removes stations that are closer than 1000m 
+min_dist <- 0    #minimum distance to start with
+step_dist <- 1000 #iteration step to remove the stations
+target_range_nb <- c(target_min_nb,target_max_nb) #target range of number of stations
+#First increase distance till 5km
+#then use random sampling...to get the extact target?
+#First test with maximum distance of 100m
+test1 <- sub_sampling_by_dist(target_range_nb,dist=min_dist,max_dist=max_dist,step=step_dist,data_in=df_points_day)
+
+
 
 pix_ts <- as.data.frame(t(df_points_day_extracted))
 pix_ts <- pix_ts[-1,]
