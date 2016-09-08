@@ -453,4 +453,70 @@ extract_from_df <- function(x,col_selected,val_selected){
   return(data_subset)
 }
 
+sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max_dist=NULL,step_val,data_in){
+  #Function to select stations data that are outside a specific spatial range from each other
+  #Parameters:
+  #max_dist: maximum spatial distance at which to stop the pruning
+  #min_dist: minimum distance to start pruning the data
+  #step_val: spatial distance increment
+  #Note that we are assuming that the first columns contains ID with name col of "id".
+  #Note that the selection is based on unique id of original SPDF so that replicates screened.
+  
+  data_in$id <- as.character(data_in$id)
+  data <- data_in
+  
+  #Now only take unique id in the shapefile!!!
+  #This step is necessary to avoid the large calculation of matrix distance with replicates
+  #unique(data$id)
+  data <- aggregate(id ~ x + y , data=data,min)
+  coordinates(data) <- cbind(data$x,data$y)
+  proj4string(data) <- proj4string(data_in)
+  
+  target_min_nb <- target_range_nb[1]
+  #target_min_nb <- target_range_day_nb[1]
+  
+  #station_nb <- nrow(data_in)
+  station_nb <- nrow(data)
+  if(is.null(max_dist)){
+    while(station_nb > target_min_nb){
+      data <- remove.duplicates(data, zero = dist_val) #spatially sub sample...
+      dist_val <- dist_val + step_val
+      station_nb <- nrow(data)
+    }
+    #setdiff(as.character(data$id),as.character(data_in$id))
+    #ind.selected <-match(as.character(data$id),as.character(data_in$id)) #index of stations row selected
+    #ind.removed  <- setdiff(1:nrow(data_in), ind.selected) #index of stations rows removed 
+    id_selected <- as.character(data$id)
+    id_removed <- setdiff(unique(as.character(data_in$id)),as.character(data$id))
+
+  }
+  if(!is.null(max_dist)){
+    
+    while(station_nb > target_min_nb & dist_val < max_dist){ 
+      data <- remove.duplicates(data, zero = dist_val) #spatially sub sample...
+      #id_rm <- zerodist(data, zero = dist_val, unique.ID = FALSE)
+      #data_rm <- data[id_rm,]
+      dist_val <- dist_val + step_val
+      station_nb <- nrow(data)
+    }
+    #ind.selected <- match(as.character(data$id),as.character(data_in$id))
+    id_selected <- as.character(data$id)
+    id_removed <- setdiff(unique(as.character(data_in$id)),as.character(data$id))
+  #  ind.removed  <- setdiff(1:nrow(data_in), ind.selected)
+  }
+    
+  #data_rm <- data_in[ind.removed,]
+  data_rm <- subset(data_in, id %in% id_removed)
+  data_tmp <- data #store the reduced dataset with only id, for debugging purpose
+  
+  #data <- subset(data_in, id %in% data$id) #select based on id
+  data <-subset(data_in, id %in% id_selected) #select based on id
+  
+  #data <- data_in[ind.selected,]
+  obj_sub_sampling <- list(data,dist_val,data_rm) #data.frame selected, minimum distance, data.frame stations removed
+  names(obj_sub_sampling) <- c("data","dist","data_rm")
+  return(obj_sub_sampling)
+}
+
+
 ############################ END OF SCRIPT ##################################
