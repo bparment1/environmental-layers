@@ -518,5 +518,30 @@ sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max
   return(obj_sub_sampling)
 }
 
+query_for_station_lat_long <- function(point_val,df_points_spdf,step_x=0.25,step_y=0.25){
+  #make this function better using gbuffer later!!!, works for now 
+  #Improve: circular query + random within it
+  y_val <- point_val[2]
+  x_val <- point_val[1]
+  
+  y_val_tmp <- y_val + step_y
+  if(x_val>0){
+    x_val_tmp <- x_val - step_x
+  }else{
+    x_val_tmp <- x_val + step_x
+  }
+
+
+  test_df <- subset(df_points_spdf,(y_val < df_points_spdf$y & df_points_spdf$y < y_val_tmp))
+  test_df2 <- subset(test_df,(x_val < test_df$x & test_df$x < x_val_tmp))
+  #plot(test_df2)
+ if(nrow(test_df2)>0){
+   df_selected <- test_df2[1,]
+ }else{
+   df_selected <- NULL
+ }
+ 
+ return(df_selected)
+}
 
 ############################ END OF SCRIPT ##################################
