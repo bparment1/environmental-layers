@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 09/11/2016            
+#MODIFIED ON: 09/16/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: testing plot function for training residuals at at stations and fixing bugs, region 1
+#COMMIT: fixing extraction function and and missing dates 
 
 #################################################################################################
 
@@ -148,7 +148,9 @@ num_cores <- 11 #number of cores used # param 13, arg 8
 python_bin <- "/usr/bin" #PARAM 30
 
 day_start <- "1984101" #PARAM 12 arg 12
-day_end <- "19981231" #PARAM 13 arg 13
+day_end <- "19991231" #PARAM 13 arg 13
+#date_start <-
+#date_end <- 
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 #infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
@@ -163,18 +165,12 @@ scaling <- 0.01 #was scaled on 100
 df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaic/output_reg1_1984/df_centroids_19840101_reg1_1984.txt"
 #/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt
 
-#raster_name_lf <- c("/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920101_reg4_1992_m_gam_CAI_dailyTmax_19920101_reg4_1992.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920102_reg4_1992_m_gam_CAI_dailyTmax_19920102_reg4_1992.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920103_reg4_1992_m_gam_CAI_dailyTmax_19920103_reg4_1992.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920701_reg4_1992_m_gam_CAI_dailyTmax_19920701_reg4_1992.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920702_reg4_1992_m_gam_CAI_dailyTmax_19920702_reg4_1992.tif",
-#                    "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/comp_r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmax_19920703_reg4_1992_m_gam_CAI_dailyTmax_19920703_reg4_1992.tif")
+#dates to plot and analyze
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
-l_dates <- c("19990101","19990102","19990103","19990104","19990105") #dates to plot and analze
-
+l_dates <- c("19990101","19990102","19990103","19990104","19990105") 
 #df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/data_points_extracted.txt"
-df_points_extracted_fname <- NULL #if null compute on the fly
+df_points_extracted_fname <- NULL #if null extract on the fly
 #r_mosaic_fname <- "r_mosaic.RData"
 r_mosaic_fname <- NULL #if null create a stack from input dir
 
@@ -532,20 +528,6 @@ day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric mon
 
 df_produced <- data.frame(basename(lf_mosaic_list),list_dates_produced_date_val,month_str,year_str,day_str,dirname(lf_mosaic_list))
 
-finding_missing_dates <- function(date_start,date_end,list_dates){
-
-  date_start <- "19840101"
-  date_end <- "19991231"
-  date1 <- as.Date(strptime(date_start,"%Y%m%d"))
-  date2 <- as.Date(strptime(date_end,"%Y%m%d"))
-  dates_range <- seq.Date(date1, date2, by="1 day") #sequence of dates
-
-  missing_dates <- setdiff(as.character(dates_range),as.character(list_dates_produced_date_val))
-
-  return(missing_dates)
-}
-
-
 
 
 ####
@@ -558,92 +540,8 @@ in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/m
 in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
 #pattern_str <- ".*.tif"
 
-extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,lf_raster,item_no=13,num_cores=4,pattern_str=NULL,in_dir=NULL,out_dir=".",out_suffix=""){
+extract_from_time_series_raster_stack(df_points,date_start,date_end,lf_raster,item_no=13,num_cores=4,pattern_str=NULL,in_dir=NULL,out_dir=".",out_suffix="")
   #
-  #This function extract value given from a raster stack time series given a spatial data.frame and a list of files
-  #
-  #INPUTS
-  #1) df_points
-  #2) date_start,num_cores=4,pattern_str=NULL,in_dir=NULL,out_dir=".",out_suffix=
-  #3) date_end
-  #3) lf_raster
-  #4) item_no=13
-  #5) num_cores=4,
-  #6) pattern_str=NULL
-  #7) in_dir=NULL,
-  #8) out_dir="."
-  #9) out_suffix=""
-  #OUTPUTS
-  #
-  #
-  
-  #### Start script ####
-  
-  if(is.null(lf_raster)){
-    #pattern_str <- ".*.tif"
-    pattern_str <-"*.tif"
-    lf_raster <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
-    r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
-    #save(r_mosaic,file="r_mosaic.RData")
-    
-  }else{
-    r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
-  }
-
-  #df_points$files <- lf_mosaic_list
-  #Use the global output??
-
-  ##23.09 (on 05/22)
-  #df_points_day_extracted <- extract(r_mosaic,data_stations,df=T)
-  #df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname",".txt") 
-  #write.table(df_points_day_extracted,file=df_points_day_extracted_fname) #5.1 Giga
-  #4.51 (on 05/23)
-  #df_points_day <- data_stations_var_pred_data_s
-
-  #15.17 (on 09/08)
-  ##10.41 (on 05/22)
-  #took about 7h for 5262 layers, maybe can be sped up later
-  df_points_extracted <- extract(r_stack,df_points,df=T,sp=T) #attach back to the original data...
-
-  #17.19 (on 05/23)
-  #22.27 (on 09/08)
-  #df_points_extracted_fname <- paste0("df_points_day_extracted_fname2",".txt")
-  #17.27 (on 05/23)
-  
-  df_points_extracted_fname <- file.path(out_dir,paste0("df_points_extracted_",out_suffix,".txt"))
-  write.table(df_points_extracted,file= df_points_extracted_fname,sep=",",row.names = F) 
-  #17.19 (on 05/23)
-  
-  #### Now check for missing dates
-  
-  #debug(extract_date)
-  #test <- extract_date(6431,lf_mosaic_list,12) #extract item number 12 from the name of files to get the data
-  #list_dates_produced <- unlist(mclapply(1:length(lf_raster),FUN=extract_date,x=lf_raster,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
-  #list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)                         
-  list_dates_produced <- unlist(mclapply(1:length(lf_raster),FUN=extract_date,x=lf_raster,item_no=item_no,
-                                         mc.preschedule=FALSE,mc.cores = num_cores))                         
-
-  list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
-  month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
-  year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
-  day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
-
-  df_raster <- data.frame(basename(lf_mosaic_list),list_dates_produced_date_val,month_str,year_str,day_str,dirname(lf_mosaic_list))
-
-  df_raster_fname <- file.path(out_dir,paste0("df_raster_",out_suffix,".txt"))
-  write.table(df_raster,file= df_raster_fname,sep=",",row.names = F) 
-
-  df_points_extracted_fname
-  df_raster_fname
-  
-  extract_obj <- list(df_points_extracted_fname,df_raster_fname)
-  names(extract_obj) <- c("df_points_extracted_fname","df_raster_fname")
-  
-  return(extract_obj)
-}
-
-
-
 
 
 }else{
