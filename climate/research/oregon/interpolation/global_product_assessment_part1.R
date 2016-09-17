@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 09/16/2016            
+#MODIFIED ON: 09/17/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: fixing extraction function and and missing dates 
+#COMMIT: clean up and first testing of extraction function
 
 #################################################################################################
 
@@ -518,46 +518,39 @@ write.table(data_stations_var_pred,
 
 #debug(extract_date)
 #test <- extract_date(6431,lf_mosaic_list,12) #extract item number 12 from the name of files to get the data
-list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
+#list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
 #list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)                         
 
-list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
-month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
-year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
-day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
+if(is.null(df_points_extracted_fname)){
+  
+  in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
+  #in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
+  pattern_str <- ".*.tif"
+  df_points <- #this contains the location of points to be used for extraction
+  
+  #extract from var pred mosaic, tmax in this case:
+  extract_obj_var_pred <- extract_from_time_series_raster_stack(df_points,date_start,date_end,lf_raster=NULL,item_no=13,
+                                      num_cores=11,pattern_str=NULL,in_dir=in_dir_mosaic,out_dir=out_dir,out_suffix=out_suffix)
+  df_points_extracted_fname <-extract_obj_var_pred$df_points_extracted_fname
+  df_raster_fname <- extract_obj_var_pred$df_raster_fname
+  df_time_series_fname <- extract_obj_var_pred$df_time_series_fname
 
-df_produced <- data.frame(basename(lf_mosaic_list),list_dates_produced_date_val,month_str,year_str,day_str,dirname(lf_mosaic_list))
-
-
-
-####
-df_points$date <- list_dates_produced_date_val
-df_points$month <- month_str
-df_points$year <- year_str
-df_points$day <- day_str
-
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
-in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
-#pattern_str <- ".*.tif"
-
-extract_from_time_series_raster_stack(df_points,date_start,date_end,lf_raster,item_no=13,num_cores=4,pattern_str=NULL,in_dir=NULL,out_dir=".",out_suffix="")
-  #
+  df_raster <- read.table(df_points_extracted_fname,sep=",")
+  df_time_series <- read.table( df_time_series,sep=",")
+  df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
 
 
 }else{
   df_points_day_extracted <- read.table(df_points_extracted_fname,sep=",")
+  df_time_series <- read.table( df_time_series,sep=",")
+  df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
 }
 
-df_points_day_extracted 
-names(df_points_day_extracted)[1:10]
-(df_points_day_extracted$ID)[1:10]
-
-df_points_day_extracted_tmp <- df_points_day_extracted
-df_points_extracted <- cbind(df_points_day,df_points_day_extracted_tmp)
-#df_points_extracted$id <- df_points_day$id
-
+#################################################################################################
+###################### PART 5: combine stations data and extracted values ############################
 #### Now combined with the station data extracted from the assessment stage
-combine
+
+#combine
 data_stations_var_pred
 
 ##write function to combine data!!!
