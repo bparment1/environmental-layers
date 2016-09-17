@@ -544,4 +544,234 @@ query_for_station_lat_long <- function(point_val,df_points_spdf,step_x=0.25,step
  return(df_selected)
 }
 
+
+
+finding_missing_dates <- function(date_start,date_end,list_dates){
+  #this assumes daily time steps!!
+  #can be improved later on
+  
+  #date_start <- "19840101"
+  #date_end <- "19991231"
+  date1 <- as.Date(strptime(date_start,"%Y%m%d"))
+  date2 <- as.Date(strptime(date_end,"%Y%m%d"))
+  dates_range <- seq.Date(date1, date2, by="1 day") #sequence of dates
+
+  missing_dates <- setdiff(as.character(dates_range),as.character(list_dates))
+  #df_dates_missing <- data.frame(date=missing_dates)
+  #which(df_dates$date%in%missing_dates)
+  #df_dates_missing$missing <- 1
+  
+  df_dates <- data.frame(date=as.character(dates_range),missing = 0) 
+
+  df_dates$missing[df_dates$date %in% missing_dates] <- 1
+  #a$flag[a$id %in% temp] <- 1
+
+  missing_dates_obj <- list(missing_dates,df_dates)
+  names(missing_dates_obj) <- c("missing_dates","df_dates")
+  return(missing_dates)
+}
+
+
+
+extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,lf_raster,item_no=13,num_cores=4,pattern_str=NULL,in_dir=NULL,out_dir=".",out_suffix=""){
+  #
+  #This function extract value given from a raster stack time series given a spatial data.frame and a list of files
+  #
+  #INPUTS
+  #1) df_points
+  #2) date_start,num_cores=4,pattern_str=NULL,in_dir=NULL,out_dir=".",out_suffix=
+  #3) date_end
+  #3) lf_raster
+  #4) item_no=13
+  #5) num_cores=4,
+  #6) pattern_str=NULL
+  #7) in_dir=NULL,
+  #8) out_dir="."
+  #9) out_suffix=""
+  #OUTPUTS
+  #
+  #
+  
+  #### Start script ####
+  
+  if(is.null(lf_raster)){
+    #pattern_str <- ".*.tif"
+    pattern_str <-"*.tif"
+    lf_raster <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
+    r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
+    #save(r_mosaic,file="r_mosaic.RData")
+    
+  }else{
+    r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
+  }
+
+  #df_points$files <- lf_mosaic_list
+  #Use the global output??
+
+  ##23.09 (on 05/22)
+  #df_points_day_extracted <- extract(r_mosaic,data_stations,df=T)
+  #df_points_day_extracted_fname <- paste0("df_points_day_extracted_fname",".txt") 
+  #write.table(df_points_day_extracted,file=df_points_day_extracted_fname) #5.1 Giga
+  #4.51 (on 05/23)
+  #df_points_day <- data_stations_var_pred_data_s
+
+  #15.17 (on 09/08)
+  ##10.41 (on 05/22)
+  #took about 7h for 5262 layers, maybe can be sped up later
+  df_points_extracted <- extract(r_stack,df_points,df=T,sp=T) #attach back to the original data...
+
+  #17.19 (on 05/23)
+  #22.27 (on 09/08)
+  #df_points_extracted_fname <- paste0("df_points_day_extracted_fname2",".txt")
+  #17.27 (on 05/23)
+  
+  df_points_extracted_fname <- file.path(out_dir,paste0("df_points_extracted_",out_suffix,".txt"))
+  write.table(df_points_extracted,file= df_points_extracted_fname,sep=",",row.names = F) 
+  #17.19 (on 05/23)
+  
+  #### Now check for missing dates
+  
+  #debug(extract_date)
+  #test <- extract_date(6431,lf_mosaic_list,12) #extract item number 12 from the name of files to get the data
+  #list_dates_produced <- unlist(mclapply(1:length(lf_raster),FUN=extract_date,x=lf_raster,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
+  #list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)                         
+  list_dates_produced <- unlist(mclapply(1:length(lf_raster),FUN=extract_date,x=lf_raster,item_no=item_no,
+                                         mc.preschedule=FALSE,mc.cores = num_cores))                         
+
+  list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
+  month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
+  year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
+  day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
+
+  df_raster <- data.frame(lf=basename(lf_raster),
+                          date=list_dates_produced_date_val,
+                          month_str=month_str,
+                          year=year_str,
+                          day=day_str,
+                          dir=dirname(lf_mosaic_list))
+
+  df_raster_fname <- file.path(out_dir,paste0("df_raster_",out_suffix,".txt"))
+  write.table(df_raster,file= df_raster_fname,sep=",",row.names = F) 
+
+  missing_dates_obj <- finding_missing_dates (date_start,date_end,list_dates_produced_date_val)
+  
+  df_time_series <- missing_dates_obj$df_dates
+  df_time_series$date <- as.character(df_time_series$date)  
+  df_raster$date <- as.character(df_raster$date)
+  
+  df_time_series <- merge(df_time_series,df_raster,by="date",all=T) #outer join to keep missing dates
+  
+  df_time_series_fname <- file.path(out_dir,paste0("df_time_series_",out_suffix,".txt")) #add the name of var later (tmax)
+  write.table(df_time_series,file= df_time_series_fname,sep=",",row.names = F) 
+  
+  extract_obj <- list(df_points_extracted_fname,df_raster_fname,df_time_series_fname)
+  names(extract_obj) <- c("df_points_extracted_fname","df_raster_fname","df_time_series_fname")
+  
+  return(extract_obj)
+}
+
+
+combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,plot_fig=T){
+  
+  # Input arguments:
+  # i : selected station
+  # df_ts_pix_data : data extracted from raster layer
+  # data_var : data with station measurements (tmin,tmax or precip)
+  # list_selected_ID : list of selected station
+  # plot_fig : if T, figures are plotted
+  # Output
+  #
+  
+  ##### START FUNCTION ############
+  
+  #get the relevant station
+  id_name <- list_selected_ID[i] # e.g. WS037.00,1238099999
+  #id_selected <- df_ts_pix[[var_ID]]==id_name
+  id_selected <- df_ts_pix[["id"]]== id_name
+  
+  ### Not get the data from the time series
+  data_pixel <- df_ts_pix[id_selected,] #this should be a unique row!!!
+  #data_pixel <- data_pixel[1,]
+  data_pixel <- as.data.frame(data_pixel)
+  
+  ##Transpose data to have rows as date and one unique column
+  pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
+  #pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
+  pix_ts <- (as.data.frame(pix_ts))
+  names(pix_ts) <- paste(var_pred,"_mosaic",sep="")
+  #add scaling option
+  #!is.null(scaling)
+  ## Process the measurements data (with tmax/tmin/precip)
+  
+  #there are several measurements per day for some stations !!!
+  #id_name <- data_pixel[[var_ID]]
+  
+  #df_tmp  <-data_var[data_var$LOCATION_ID==id_name,]
+  df_tmp <- subset(data_var,data_var$id==id_name)
+  #if(da)
+  #aggregate(df_tmp
+  #if(nrow(df_tmp)>1){
+  #  
+  #  formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
+  #  #var_pix <- aggregate(COL_SCORE ~ TRIP_START_DATE_f, data = df_tmp, mean) #aggregate by date
+  #  var_pix <- try(aggregate(as.formula(formula_str), data = df_tmp, FUN=mean)) #aggregate by date
+  #  #length(unique(test$TRIP_START_DATE_f))
+  #  #var_pix_ts <- t(as.data.frame(subset(data_pixel,select=var_name)))
+  #  #pix <- t(data_pixel[1,24:388])#can subset to range later
+  #}else{
+  #  var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
+  #}
+  #var_pix <- subset(as.data.frame(data_id_selected,c(var_name,"TRIP_START_DATE_f")])) #,select=var_name)
+  var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
+  var_pix$date_str <- as.character(var_pix$date)
+  #match from 20011231 to 2001-12-31 to date format
+  var_pix$date <- as.character(as.Date(var_pix$date_str,"%Y%m%d")) #format back to the relevant date format for files
+  
+  #dates_val <- df_time_series$date
+  dates_val <- df_raster$date
+  pix_ts$date <- dates_val 
+  #pix_ts <- merge(df_raster,pix_ts,by="date")
+  
+  pix_ts$lf <- df_raster$lf
+  #pix_ts$
+  pix_ts <- merge(df_time_series,pix_ts,by="date",all=T)
+  
+  #check for duplicates in extracted values (this can happen if there is a test layer or repetition
+  if(nrow(pix_ts)!=length(unique(pix_ts$date))){
+    var_pred_tmp <- paste0(var_pred,"_mosaic")
+    md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+    #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+    pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
+    na.rm = TRUE)
+
+  }
+  
+  #if(nrow(var_pix)!=length(unique(var_pix$date))){
+  #
+  #  md <- melt(var_pix, id=(c("date")),measure.vars=c(var_pred, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+  #  #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+  #  test <- cast(md, date ~ variable, fun.aggregate = mean, 
+  #  na.rm = TRUE)
+  #
+  #  
+  #}
+  df_pix_ts <- merge(pix_ts,var_pix,by="date",all=T)
+  #Create time series object from extract pixel time series
+
+  nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0) #relevant for precip
+  #nb_NA <- sum(is.na(df2$COL_SCORE))
+  nb_NA <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
+  ##Add quantile, and range info later on...
+  
+  ## Cumulated precip and lag?
+  #Keep number of  0 for every year for rainfall
+  #summarize by month
+  #Kepp number of NA for scores... 
+  #Summarize by season...
+  ## Threshold?
+  station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
+  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var"," df_pix_ts")
+  return(station_summary_obj)
+}
+
 ############################ END OF SCRIPT ##################################
