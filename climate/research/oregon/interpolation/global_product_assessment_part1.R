@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 09/17/2016            
+#MODIFIED ON: 09/18/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: clean up and first testing of extraction function
+#COMMIT: combine extracted and stations information from assessment 
 
 #################################################################################################
 
@@ -149,8 +149,8 @@ python_bin <- "/usr/bin" #PARAM 30
 
 day_start <- "1984101" #PARAM 12 arg 12
 day_end <- "19991231" #PARAM 13 arg 13
-#date_start <-
-#date_end <- 
+#date_start <- day_start
+#date_end <- day_end
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 #infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
@@ -506,6 +506,7 @@ write.table(data_stations_var_pred,
 #started at 16.51, 09/07
 
 
+#####  This could be moved in a separate file!!
 ###############  PART4: Checking for mosaic produced for given region ##############
 ## From list of mosaic files predicted extract dates
 ## Check dates predicted against date range for a given date range
@@ -526,8 +527,9 @@ if(is.null(df_points_extracted_fname)){
   in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
   #in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
   pattern_str <- ".*.tif"
-  df_points <- #this contains the location of points to be used for extraction
-  
+  #df_points <- #this contains the location of points to be used for extraction
+  #df_points <- data_stations_var_pred_data_s #collected previously
+    
   #extract from var pred mosaic, tmax in this case:
   extract_obj_var_pred <- extract_from_time_series_raster_stack(df_points,date_start,date_end,lf_raster=NULL,item_no=13,
                                       num_cores=11,pattern_str=NULL,in_dir=in_dir_mosaic,out_dir=out_dir,out_suffix=out_suffix)
@@ -551,25 +553,45 @@ if(is.null(df_points_extracted_fname)){
 #### Now combined with the station data extracted from the assessment stage
 
 #combine
-data_stations_var_pred
+head(data_stations_var_pred)
 
-##write function to combine data!!!
 
-pix_ts <- as.data.frame(t(df_points_day_extracted))
-pix_ts <- pix_ts[-1,]
-#var_names <- rownames(df_points_day_extracted) #same as lf_mosaic_list but without (*.tif)
-var_names <- rownames(pix_ts) #same as lf_mosaic_list but without (*.tif)
-var_id <- df_points_day$id
-df_points_day_extracted$id <- var_id
- 
-#lf_var <- names(r_mosaic)
-### Not get the data from the time series
-#data_pixel <- df_ts_pix[id_selected,]
-#data_pixel <- as.data.frame(data_pixel)
-#pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
-#pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
+#           id     date        x      y dailyTmax     mod1  res_mod1          id     date training testing
+#1 71238099999 19930703 -112.867 53.683      20.2 18.19909 -2.000915 71238099999 19930703        4       0
+#2 71238099999 19930704 -112.867 53.683      23.4 17.74476 -5.655237 71238099999 19930704        3       1
+#3 71238099999 19930705 -112.867 53.683      21.7 19.22313 -2.476870 71238099999 19930705        3       1
+#4 71238099999 19930706 -112.867 53.683      22.0 19.53294 -2.467061 71238099999 19930706        3       1
+#5 71238099999 19930707 -112.867 53.683      20.9 17.84168 -3.058324 71238099999 19930707        2       2
+#6 71238099999 19930708 -112.867 53.683      21.2 16.50887 -4.691128 71238099999 19930708        1       3
 
-combine_measurements_and_predictions_df <- function(i,dates_val,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,dates_str,plot_fig=T){
+#need to combine:
+#data_stations_var_pred: constains id, x, y, dailyTmax, mod1, res_mod1, date, training, testing
+#df_time_series
+#df_points_extracted #contains id,x,y of stations and extracted values from raster stack
+dim(df_time_series)
+#dim(data_stations_var_pred)
+df_points_extracted_tmp <- df_points_extracted
+#df_points_extracted <- cbind(df_points,df_points_extracted)
+
+df_points_extracted$id <- df_points$id #this should have been done earlier in the extraction function
+df_points_extracted$x <- df_points$x #this should have been done earlier in the extraction function
+df_points_extracted$y <- df_points$y #this should have been done earlier in the extraction function
+
+dim(df_time_series)
+
+list_selected_ID <- unique(data_stations_var_pred$id) #11 stations selected
+data_var <- data_stations_var_pred
+df_ts_pix <- df_points_extracted
+r_ts_name <- sub(extension(lf_raster),"",basename(lf_raster))
+var_name <- "dailyTmax" #observed measurements
+var_pred <- "mod1" #predictions
+#dates_str <-
+#dates_val <-
+df_raster
+df_time_series
+plot_fig <- false
+
+combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,plot_fig=T){
   
   # Input arguments:
   # i : selected station
@@ -583,172 +605,90 @@ combine_measurements_and_predictions_df <- function(i,dates_val,df_ts_pix,data_v
   ##### START FUNCTION ############
   
   #get the relevant station
-  id_name <- list_selected_ID[i] # e.g. WS037.00
+  id_name <- list_selected_ID[i] # e.g. WS037.00,1238099999
   #id_selected <- df_ts_pix[[var_ID]]==id_name
-  id_selected <- df_ts_pix[["ID_stat"]]==id_name
+  id_selected <- df_ts_pix[["id"]]== id_name
   
   ### Not get the data from the time series
-  data_pixel <- df_ts_pix[id_selected,]
+  data_pixel <- df_ts_pix[id_selected,] #this should be a unique row!!!
+  #data_pixel <- data_pixel[1,]
   data_pixel <- as.data.frame(data_pixel)
   
+  ##Transpose data to have rows as date and one unique column
   pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
   #pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
   pix_ts <- (as.data.frame(pix_ts))
-  ## Process the coliform data
+  names(pix_ts) <- paste(var_pred,"_mosaic",sep="")
+  #add scaling option
+  #!is.null(scaling)
+  ## Process the measurements data (with tmax/tmin/precip)
   
   #there are several measurements per day for some stations !!!
   #id_name <- data_pixel[[var_ID]]
   
   #df_tmp  <-data_var[data_var$LOCATION_ID==id_name,]
-  df_tmp <- subset(data_var,data_var$ID_stat==id_name)
+  df_tmp <- subset(data_var,data_var$id==id_name)
   #if(da)
   #aggregate(df_tmp
-  if(nrow(df_tmp)>1){
-    
-    formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
-    #var_pix <- aggregate(COL_SCORE ~ TRIP_START_DATE_f, data = df_tmp, mean) #aggregate by date
-    var_pix <- try(aggregate(as.formula(formula_str), data = df_tmp, FUN=mean)) #aggregate by date
-    #length(unique(test$TRIP_START_DATE_f))
-    #var_pix_ts <- t(as.data.frame(subset(data_pixel,select=var_name)))
-    #pix <- t(data_pixel[1,24:388])#can subset to range later
-  }else{
-    var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
-  }
+  #if(nrow(df_tmp)>1){
+  #  
+  #  formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
+  #  #var_pix <- aggregate(COL_SCORE ~ TRIP_START_DATE_f, data = df_tmp, mean) #aggregate by date
+  #  var_pix <- try(aggregate(as.formula(formula_str), data = df_tmp, FUN=mean)) #aggregate by date
+  #  #length(unique(test$TRIP_START_DATE_f))
+  #  #var_pix_ts <- t(as.data.frame(subset(data_pixel,select=var_name)))
+  #  #pix <- t(data_pixel[1,24:388])#can subset to range later
+  #}else{
+  #  var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
+  #}
   #var_pix <- subset(as.data.frame(data_id_selected,c(var_name,"TRIP_START_DATE_f")])) #,select=var_name)
+  var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
+  var_pix$date_str <- as.character(var_pix$date)
+  #match from 20011231 to 2001-12-31 to date format
+  var_pix$date <- as.character(as.Date(var_pix$date_str,"%Y%m%d")) #format back to the relevant date format for files
   
-  #Create time series object from extract pixel time series
-  d_z <- zoo(pix_ts,dates_val) #make a time series ...
-  names(d_z)<- "rainfall"
-  #Create date object for data from stations
+  #dates_val <- df_time_series$date
+  dates_val <- df_raster$date
+  pix_ts$date <- dates_val 
+  #pix_ts <- merge(df_raster,pix_ts,by="date")
   
-  d_var <- zoo(var_pix,var_pix$TRIP_START_DATE_f)
-  #plot(d_var,pch=10)
+  pix_ts$lf <- df_raster$lf
+  #pix_ts$
+  pix_ts <- merge(df_time_series,pix_ts,by="date",all=T)
   
-  d_z2 <- merge(d_z,d_var)
-  ##Now subset?
-  d_z2 <- window(d_z2,start=dates_val[1],end=dates_val[length(dates_val)])
-  
-  d_z2$TRIP_START_DATE_f <- NULL
-  
-  df2 <- as.data.frame(d_z2)
-  df2$date <- rownames(df2)
-  rownames(df2) <- NULL
-  df2[[var_name]] <- as.numeric(as.character(df2[[var_name]]))
-  
-  #df2$COL_SCORE <- as.numeric(as.character(df2$COL_SCORE))
-  df2$rainfall <- as.numeric(as.character(df2$rainfall))
-  df2$ID_stat <- id_name
-    
-  #plot(df2$rainfall)
-  #list_pix[[i]] <- pix_ts
-  
-  if(plot_fig==T){
-    
-    res_pix <- 480
-    col_mfrow <- 2
-    row_mfrow <- 1
-    
-    ###
-    #Figure 3b
-    png(filename=paste("Figure3b_","pixel_profile_var_combined_",id_name,"_",out_suffix,".png",sep=""),
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    #plot(d_z,lty=2,ylab="rainfall",xlab="Time",main="")
-    #points(d_z2$COL_SCORE,col="red",pch=10,cex=2)
-    plot(d_z,lty=2,ylab="rainfall",xlab="Time",main="")
-    abline(h=threshold_val,col="green")
-    
-    par(new=TRUE)              # key: ask for new plot without erasing old
-    #plot(x,y,type="l",col=t_col[k],xlab="",ylab="",lty="dotted",axes=F) #plotting fusion profile
-    plot(df2[[var_name]],pch=10,cex=2.5,col="red", axes=F,ylab="",xlab="")
-    #points(d_z2$COL_SCORE,col="red",pch=10,cex=2)
-    legend("topleft",legend=c("stations"), 
-           cex=1.2,col="red",pch =10,bty="n")
-    
-    axis(4,cex=1.2)
-    mtext(4, text = "coliform scores", line = 3)
-    
-    title(paste("Station time series",id_name,sep=" "))
-    
-    dev.off()
-    
-    #Figure 3c
-    png(filename=paste("Figure3c_","pixel_profile_var_combined_log_scale_",id_name,"_",out_suffix,".png",sep=""),
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    #plot(d_z,lty=2,ylab="rainfall",xlab="Time",main="")
-    #points(d_z2$COL_SCORE,col="red",pch=10,cex=2)
-    plot(d_z,lty=2,ylab="rainfall",xlab="Time",main="")
-    abline(h=threshold_val,col="green")
-    par(new=TRUE)              # key: ask for new plot without erasing old
-    #plot(x,y,type="l",col=t_col[k],xlab="",ylab="",lty="dotted",axes=F) #plotting fusion profile
-    #plot(log(df2$COL_SCORE),pch=10,cex=2.5,col="red", axes=F,ylab="",xlab="")
-    plot(log(df2[[var_name]]),pch=10,cex=2.5,col="red", axes=F,ylab="",xlab="")
-    
-    #points(d_z2$COL_SCORE,col="red",pch=10,cex=2)
-    legend("topleft",legend=c("stations"), 
-           cex=1.2,col="red",pch =10,bty="n")
-    
-    axis(4,cex=1.2)
-    mtext(4, text = "coliform scores", line = 3)
-    
-    title(paste("Station time series",id_name,sep=" "))
-    
-    dev.off()
-    
-    ####Histogram of values
-    
-    res_pix <- 480
-    col_mfrow <- 2
-    row_mfrow <- 1
-    
-    png(filename=paste("Figure4_","histogram_measurements_",year_processed,"_",id_name,"_",out_suffix,".png",sep=""),
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    hist_val <- hist(df2[[var_name]],main="",xlab="COLIFORM SCORES")
-    #hist_val <- hist(df2$COL_SCORE,main="",xlab="COLIFORM SCORES")
-    title(paste("Histrogram of coliform scores for station",id_name,"in",year_processed,sep=" "))
-    #abline(v=threshold_val,col="green" )
-    legend("topright",legend=c("treshold val"), 
-           cex=1.2, col="green",lty =1,bty="n")  
-    
-    y_loc <- max(hist_val$counts)/2
-    
-    #text(threshold_val,y_loc,paste(as.character(threshold_val)),pos=1,offset=0.1)
-    
-    dev.off()
-    
-    #res_pix <- 480
-    #col_mfrow <- 2
-    #row_mfrow <- 1
-    
-    #png(filename=paste("Figure4_","histogram_coliform_measurements_",year_processed,"_",id_name,"_",out_suffix,".png",sep=""),
-    #    width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    plot(df2$rainfall)
-    #plot(df2$rainfall,df2$COL_SCORE)
-    #plot(log(df2$rainfall),log(df2$COL_SCORE))
-    plot(df2$rainfall,df2[[var_name]])
-    plot(df2$rainfall,log(df2[[var_name]]))
+  #check for duplicates in extracted values (this can happen if there is a test layer or repetition
+  if(nrow(pix_ts)!=length(unique(pix_ts$date))){
+    var_pred_tmp <- paste0(var_pred,"_mosaic")
+    md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+    #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+    pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
+    na.rm = TRUE)
 
-    
-    
   }
   
-  ## Now correlation.
-  #sum(is.na(df2$rainfall))
-  #[1] 0
-  nb_zero <- sum((df2$rainfall==0)) #203
+  #if(nrow(var_pix)!=length(unique(var_pix$date))){
+  #
+  #  md <- melt(var_pix, id=(c("date")),measure.vars=c(var_pred, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+  #  #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+  #  test <- cast(md, date ~ variable, fun.aggregate = mean, 
+  #  na.rm = TRUE)
+  #
+  #  
+  #}
+  df_pix_ts <- merge(pix_ts,var_pix,by="date",all=T)
+  #Create time series object from extract pixel time series
+
+  nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0) #relevant for precip
   #nb_NA <- sum(is.na(df2$COL_SCORE))
-  nb_NA <- sum(is.na(df2[[var_name]])) #for ID 394 DMR it is 361 missing values for 2012!!
+  nb_NA <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
   ## Cumulated precip and lag?
   #Keep number of  0 for every year for rainfall
   #summarize by month
   #Kepp number of NA for scores... 
   #Summarize by season...
   ## Threshold?
-  station_summary_obj <- list(nb_zero,nb_NA,df2)
-  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var","df_combined")
+  station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
+  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var"," df_pix_ts")
   return(station_summary_obj)
 }
 
@@ -771,6 +711,8 @@ pix_ts$date <- as.Date(strptime(pix_ts$date_str,"%Y%m%d"))
   
 #head(pix_ts)
 
+
+##################### plot time series: make this a function!!! ####
 ###start of plotting
 ### makes this a function:
 id_selected <- "82111099999"
