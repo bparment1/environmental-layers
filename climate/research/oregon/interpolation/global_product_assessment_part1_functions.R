@@ -672,7 +672,7 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
 }
 
 
-combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,var_pred,plot_fig=T){
+combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,var_pred,out_dir=".",out_suffix="",plot_fig=T){
   
   # Input arguments:
   # i : selected station
@@ -759,6 +759,18 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   df_pix_ts <- merge(pix_ts,var_pix,by="date",all=T)
   #Create time series object from extract pixel time series
 
+  df_pix_ts$month_str <- format(as.Date(df_pix_ts$date), "%b") ## Month, char, abbreviated
+  df_pix_ts$year <- format(as.Date(df_pix_ts$date), "%Y") ## Year with century
+  df_pix_ts$day <- as.numeric(format(as.Date(df_pix_ts$date), "%d")) ## numeric month
+  
+  #compute residuals from mosaics
+  df_pix_ts[[paste0("res_",var_pred_tmp)]] <- df_pix_ts[[var_pred_tmp]] - df_pix_ts[[y_var_name]]
+  
+  id_name <- list_selected_ID[i]
+  df_pix_ts_filename <- file.path(out_dir,paste0("df_pix_ts_",id_name,y_var_name,out_suffix,".txt"))
+  write.table(df_pix_ts,df_pix_ts_filename,sep=",")
+
+
   nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0) #relevant for precip
   #nb_NA <- sum(is.na(df2$COL_SCORE))
   nb_NA <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
@@ -770,8 +782,8 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   #Kepp number of NA for scores... 
   #Summarize by season...
   ## Threshold?
-  station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
-  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var","df_pix_ts")
+  station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts,df_pix_ts_filename )
+  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var","df_pix_ts","df_pix_ts_filename")
   return(station_summary_obj)
 }
 
