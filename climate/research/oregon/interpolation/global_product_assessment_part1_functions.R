@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 09/06/2016            
+#MODIFIED ON: 09/19/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conference 
@@ -19,6 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
+##COMMIT: function for combining extracted values and 
 #################################################################################################
 
 ### Loading R library and packages        
@@ -671,7 +672,7 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
 }
 
 
-combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,plot_fig=T){
+combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,var_pred,plot_fig=T){
   
   # Input arguments:
   # i : selected station
@@ -770,7 +771,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   #Summarize by season...
   ## Threshold?
   station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
-  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var"," df_pix_ts")
+  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var","df_pix_ts")
   return(station_summary_obj)
 }
 
