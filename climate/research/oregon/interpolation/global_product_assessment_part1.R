@@ -593,6 +593,9 @@ plot_fig <- FALSE
 i<-1
 
 #Product assessment
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+#undebug(combine_measurements_and_predictions_df)
 out_suffix_str <- paste0(region_name,"_",out_suffix)
 #this can be run with mclapply, very fast right now:
 station_summary_obj <- combine_measurements_and_predictions_df(i=i,
@@ -625,22 +628,152 @@ var_pred_mosaic <- paste0(var_pred,"_mosaic")
 id_name <- list_selected_ID[i]
 station_id <- id_name
 #> myDF[ is.na(myDF) ] <- NA 
-#var_name1 <- "mod1_mosaic"
-var_name1 <- y_var_name
-var_name2 <- "mod1_mosaic"
-out_suffix_str <- paste(region_name,out_suffix,sep="_")
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016d.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
-debug(plot_observation_predictions_time_series)
-test_plot <- plot_observation_predictions_time_series(df_pix_time_series=df_pix_ts,
-                                                      var_name1=var_name1,
-                                                      var_name2=var_name2,
-                                                      station_id=id_name,
-                                                      scaling=scaling,
-                                                      out_dir=".",
-                                                      out_suffix="")
+df_pix_ts[is.na(df_pix_ts)] <- NA
+if(!is.null(scaling)){
+  df_pix_ts[[var_pred_mosaic]] <-  df_pix_ts[[var_pred_mosaic]]*scaling 
+}
 
+d_z_var <- zoo(as.numeric(df_pix_ts[[var_pred_mosaic]]),as.Date(df_pix_ts$date)) #make sure date is a date object !!!
+names(d_z_var) <- var_pred_mosaic
+plot(d_z_var)  
+d_z_obs <- zoo(as.numeric(df_pix_ts[[y_var_name]]),as.Date(df_pix_ts$date))
+plot(d_z_obs)  
+
+d_z_res <- zoo(as.numeric(df_pix_ts[[paste0("res_",var_pred_mosaic)]]),as.Date(df_pix_ts$date))
+plot(d_z_res)  
+
+d_z <- merge(d_z_var,d_z_obs)
+range(d_z_res,na.rm=T)
+mean(d_z_res,na.rm=T)
+quantile(d_z_res,na.rm=T)
+plot(d_z,plot.type="single",col=c("blue","red"))
+names(d_z) <- c("pred","obs")
+
+#day_start <- "1984-01-01" #PARAM 12 arg 12
+#day_end <- "2014-12-31" #PARAM 13 arg 13
+#start_date <- as.Date(day_start)
+#end_date <- as.Date(day_end)
+#start_year <- year(start_date)
+#end_year <- year(end_date)
+range_year <- range(df_pix_ts$year)
+start_year <- range_year[1]
+end_year <- range_year[2]
+var="tmax"
+
+res_pix <- 1000
+#res_pix <- 480
+col_mfrow <- 2
+row_mfrow <- 1
+  
+png_filename <-  file.path(out_dir,paste("Figure5a_time_series_profile_",region_name,"_",id_name,y_var_name,out_suffix,".png",sep =""))
+title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
+  
+png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+#this is the whole time series
+#plot(d_z_var,ylab="tmax in deg C",xlab="Daily time steps",
+#     main=title_str,cex=3,font=2,
+#     cex.main=1.5,cex.lab=1.5,font.lab=2,
+#     lty=3)
+#range(df_pix_ts[[var_pred_mosaic]],na.rm=T)
+
+plot(df_pix_ts[[var_pred_mosaic]] ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=1,font=2,type="l",
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+lines(as.numeric(df_pix_ts[[y_var_name]]) ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=1,font=2,col="red",type="l",
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+
+
+dev.off()
+
+### get smaller window
+day_start <- "1994-01-01" #PARAM 12 arg 12
+day_end <- "1999-12-31" #PARAM 13 arg 13
+
+start_date <- as.Date(day_start)
+end_date <- as.Date(day_end)
+start_year <- year(start_date)
+end_year <- year(end_date)
+d_z_tmp <- d_z_var
+d_z <- window(d_z_tmp,start=start_date,end=end_date)
+names(d_z) <- var_pred_mosaic
+df_var <- as.data.frame(d_z)
+ 
+d_z_tmp <- d_z_obs
+d_z_tmp <- d_z
+d_z_tmp <- window(d_z_tmp,start=start_date,end=end_date)
+plot(d_z_tmp,col=c("blue","red"),plot.type="single")
+df_z <- as.data.frame(d_z)
+
+names(d_z) <- y_var_name
+df_obs <- as.data.frame(d_z)
+names(d_z) <- y_var_name
+
+if(!is.null(df_selected2)){
+  d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+}
+
+res_pix <- 1000
+#res_pix <- 480
+col_mfrow <- 2
+row_mfrow <- 1
+  
+png_filename <-  file.path(out_dir,paste("Figure5b_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
+title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
+  
+png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+
+plot(df_pix_ts[[var_pred_mosaic]] ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=1,font=2,type="l",
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+lines(as.numeric(df_pix_ts[[y_var_name]]) ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=1,font=2,col="red",type="l",
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+
+dev.off()
+
+#### Subset for 5c: zoom in
+
+day_start <- "1991-01-01" #PARAM 12 arg 12
+day_end <- "1992-12-31" #PARAM 13 arg 13
+
+start_date <- as.Date(day_start)
+end_date <- as.Date(day_end)
+start_year <- year(start_date)
+end_year <- year(end_date)
+d_z <- window(d_z_tmp,start=start_date,end=end_date)
+if(!is.null(df_selected2)){
+  d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
+}
+
+res_pix <- 1000
+#res_pix <- 480
+col_mfrow <- 2
+row_mfrow <- 1
+  
+png_filename <-  file.path(out_dir,paste("Figure5c_subset_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
+title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
+  
+png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+
+plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
+     main=title_str,cex=3,font=2,
+     cex.main=1.5,cex.lab=1.5,font.lab=2,
+     lty=3)
+if(!is.null(df_selected2)){
+  lines(d_z2,ylab="tmax in deg C",xlab="Daily time steps",
+        main=title_str,cex=3,font=2,
+        col="red",
+        cex.main=1.5,cex.lab=1.5,font.lab=2,
+        lty=3)
+}
+
+dev.off()
 
 ############### PART5: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
