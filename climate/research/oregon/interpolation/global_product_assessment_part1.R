@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 09/18/2016            
+#MODIFIED ON: 09/19/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: combine extracted and stations information from assessment 
+#COMMIT: testing function combine extraction and assessment data, also moved to function script 
 
 #################################################################################################
 
@@ -85,7 +85,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09112016.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 ###############################
@@ -589,117 +589,37 @@ var_pred <- "mod1" #predictions
 #dates_val <-
 df_raster
 df_time_series
-plot_fig <- false
+plot_fig <- FALSE
+i<-1
 
-combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,plot_fig=T){
-  
-  # Input arguments:
-  # i : selected station
-  # df_ts_pix_data : data extracted from raster layer
-  # data_var : data with station measurements (tmin,tmax or precip)
-  # list_selected_ID : list of selected station
-  # plot_fig : if T, figures are plotted
-  # Output
-  #
-  
-  ##### START FUNCTION ############
-  
-  #get the relevant station
-  id_name <- list_selected_ID[i] # e.g. WS037.00,1238099999
-  #id_selected <- df_ts_pix[[var_ID]]==id_name
-  id_selected <- df_ts_pix[["id"]]== id_name
-  
-  ### Not get the data from the time series
-  data_pixel <- df_ts_pix[id_selected,] #this should be a unique row!!!
-  #data_pixel <- data_pixel[1,]
-  data_pixel <- as.data.frame(data_pixel)
-  
-  ##Transpose data to have rows as date and one unique column
-  pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
-  #pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
-  pix_ts <- (as.data.frame(pix_ts))
-  names(pix_ts) <- paste(var_pred,"_mosaic",sep="")
-  #add scaling option
-  #!is.null(scaling)
-  ## Process the measurements data (with tmax/tmin/precip)
-  
-  #there are several measurements per day for some stations !!!
-  #id_name <- data_pixel[[var_ID]]
-  
-  #df_tmp  <-data_var[data_var$LOCATION_ID==id_name,]
-  df_tmp <- subset(data_var,data_var$id==id_name)
-  #if(da)
-  #aggregate(df_tmp
-  #if(nrow(df_tmp)>1){
-  #  
-  #  formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
-  #  #var_pix <- aggregate(COL_SCORE ~ TRIP_START_DATE_f, data = df_tmp, mean) #aggregate by date
-  #  var_pix <- try(aggregate(as.formula(formula_str), data = df_tmp, FUN=mean)) #aggregate by date
-  #  #length(unique(test$TRIP_START_DATE_f))
-  #  #var_pix_ts <- t(as.data.frame(subset(data_pixel,select=var_name)))
-  #  #pix <- t(data_pixel[1,24:388])#can subset to range later
-  #}else{
-  #  var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
-  #}
-  #var_pix <- subset(as.data.frame(data_id_selected,c(var_name,"TRIP_START_DATE_f")])) #,select=var_name)
-  var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
-  var_pix$date_str <- as.character(var_pix$date)
-  #match from 20011231 to 2001-12-31 to date format
-  var_pix$date <- as.character(as.Date(var_pix$date_str,"%Y%m%d")) #format back to the relevant date format for files
-  
-  #dates_val <- df_time_series$date
-  dates_val <- df_raster$date
-  pix_ts$date <- dates_val 
-  #pix_ts <- merge(df_raster,pix_ts,by="date")
-  
-  pix_ts$lf <- df_raster$lf
-  #pix_ts$
-  pix_ts <- merge(df_time_series,pix_ts,by="date",all=T)
-  
-  #check for duplicates in extracted values (this can happen if there is a test layer or repetition
-  if(nrow(pix_ts)!=length(unique(pix_ts$date))){
-    var_pred_tmp <- paste0(var_pred,"_mosaic")
-    md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
-    #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
-    pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
-    na.rm = TRUE)
+#Product assessment
+#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016.R"
+#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+#undebug(combine_measurements_and_predictions_df)
 
-  }
-  
-  #if(nrow(var_pix)!=length(unique(var_pix$date))){
-  #
-  #  md <- melt(var_pix, id=(c("date")),measure.vars=c(var_pred, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
-  #  #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
-  #  test <- cast(md, date ~ variable, fun.aggregate = mean, 
-  #  na.rm = TRUE)
-  #
-  #  
-  #}
-  df_pix_ts <- merge(pix_ts,var_pix,by="date",all=T)
-  #Create time series object from extract pixel time series
+#this can be run with mclapply, very fast right now:
+station_summary_obj <- combine_measurements_and_predictions_df(i=i,
+                                        df_raster=df_raster,
+                                        df_time_series=df_time_series,
+                                        df_ts_pix=df_ts_pix,
+                                        data_var=data_var,
+                                        list_selected_ID=list_selected_ID,
+                                        r_ts_name=r_ts_name,
+                                        var_name=var_name,
+                                        var_pred = var_pred,
+                                        plot_fig=T)
+df_pix_ts <- station_summary_obj$df_pix_ts
+#station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
 
-  nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0) #relevant for precip
-  #nb_NA <- sum(is.na(df2$COL_SCORE))
-  nb_NA <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
-  ## Cumulated precip and lag?
-  #Keep number of  0 for every year for rainfall
-  #summarize by month
-  #Kepp number of NA for scores... 
-  #Summarize by season...
-  ## Threshold?
-  station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
-  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var"," df_pix_ts")
-  return(station_summary_obj)
-}
+id_name <- list_selected_ID[i]
+df_pix_ts_filename <- file.path(out_dir,paste0("df_pix_ts_",id_name,out_suffix,y_var_name,".txt"))
+write.table(df_pix_ts,df_pix_ts_filename,sep=",")
 
-list_dates_produced <- unlist(mclapply(1:length(var_names),
-                                       FUN=extract_date,
-                                       x=var_names,
-                                       item_no=12,
-                                       mc.preschedule=FALSE,
-                                       mc.cores = num_cores))                         
 
-list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
+##################### plot time series: make this a function!!! ####
+###start of plotting
+### makes this a function:
+
 pix_ts$date <- list_dates_produced_date_val
 pix_ts[,1]*scaling #scale?
 
@@ -711,10 +631,6 @@ pix_ts$date <- as.Date(strptime(pix_ts$date_str,"%Y%m%d"))
   
 #head(pix_ts)
 
-
-##################### plot time series: make this a function!!! ####
-###start of plotting
-### makes this a function:
 id_selected <- "82111099999"
 #station_id <- 8
 station_id <- id_selected
