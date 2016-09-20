@@ -376,12 +376,27 @@ c( -119.928901,36.627806),
 c(  -115.330122,36.677139),
 c( -78.396011,35.696143)) 
 
-
 test_day_query2 <- lapply(list_lat_long,FUN=query_for_station_lat_long,df_points_spdf=df_point_day,step_x=1,step_y=1)
 #test_day_query <-query_for_station_lat_long(c(-72,42),df_points_spdf=df_point_day,step_x=1,step_y=0.25)
 df_stations_selected <- do.call(rbind,test_day_query2)
 proj4string(df_stations_selected) <- proj_str
 #debug(query_for_station_lat_long)
+
+df_stations_locations <- do.call(rbind,list_lat_long) #these are the stations to match 
+##layer to be clipped
+if(class(countries_shp)!="SpatialPolygonsDataFrame"){
+    reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
+}else{
+    reg_layer <- countries_shp
+}
+df_stations_selected$lab_id <- 1:nrow(df_stations_selected)
+#now clip  
+#use points that were used to extract
+reg_layer_clipped <- gClip(shp=reg_layer, bb=df_points , keep.attribs=TRUE,outDir=NULL,outSuffix=NULL)
+
+plot(reg_layer_clipped)
+plot(df_stations_selected,add=T,col="blue",cex=2)
+text(df_stations_selected$x,df_stations_selected$y, df_stations_selected$id, col="red", cex=0.8)
 
 ##Next use the day results and select a mean station, quartile and min and max?
 
@@ -595,7 +610,25 @@ i<-1
 #Product assessment
 out_suffix_str <- paste0(region_name,"_",out_suffix)
 #this can be run with mclapply, very fast right now:
-station_summary_obj <- combine_measurements_and_predictions_df(i=i,
+#station_summary_obj <- combine_measurements_and_predictions_df(i=i,
+#                                        df_raster=df_raster,
+#                                        df_time_series=df_time_series,
+#                                        df_ts_pix=df_ts_pix,
+#                                        data_var=data_var,
+#                                        list_selected_ID=list_selected_ID,
+#                                        r_ts_name=r_ts_name,
+#                                        var_name=var_name,
+#                                        var_pred = var_pred,
+#                                        out_dir =out_dir,
+#                                        out_suffix=out_suffix_str,
+#                                        plot_fig=F)
+df_pix_ts <- station_summary_obj$df_pix_ts
+
+#####
+##combine information for the 11 selected stations
+
+list_station_summary_obj <- mclapply(1:length(list_selected_ID),
+                                        FUN=combine_measurements_and_predictions_df,
                                         df_raster=df_raster,
                                         df_time_series=df_time_series,
                                         df_ts_pix=df_ts_pix,
@@ -606,8 +639,10 @@ station_summary_obj <- combine_measurements_and_predictions_df(i=i,
                                         var_pred = var_pred,
                                         out_dir =out_dir,
                                         out_suffix=out_suffix_str,
-                                        plot_fig=F)
-df_pix_ts <- station_summary_obj$df_pix_ts
+                                        plot_fig=F,
+                                        mc.preschedule=FALSE,
+                                        mc.cores = num_cores)
+
 #station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
 
 #id_name <- list_selected_ID[i]
@@ -627,10 +662,10 @@ station_id <- id_name
 var_name1 <- y_var_name
 var_name2 <- "mod1_mosaic"
 out_suffix_str <- paste(region_name,out_suffix,sep="_")
-scaling_factors <- c("NA",scaling) #no scaling for y_var_name but scaling for var_name2
+scaling_factors <- c(NA,scaling) #no scaling for y_var_name but scaling for var_name2
 list_windows <- list(c("1999-01-01","1999-12-31"))
 
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09202016.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09202016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 ###TO DO:
@@ -638,7 +673,7 @@ source(file.path(script_path,function_product_assessment_part1_functions)) #sour
 #2) Compute temporal autocorrelation by station and profile
 #3) compute range, min, max etc by stations
 
-undebug(plot_observation_predictions_time_series)
+#undebug(plot_observation_predictions_time_series)
 #test_plot <- plot_observation_predictions_time_series(df_pix_time_series=df_pix_ts,
 #                                                      var_name1=var_name1,
 #                                                      var_name2=var_name2,
@@ -649,14 +684,21 @@ undebug(plot_observation_predictions_time_series)
 #                                                      out_suffix=out_suffix_str)
 out_suffix_str2 <- paste(region_name,out_suffix,"test",sep="_")
 
-test_plot <- plot_observation_predictions_time_series(df_pix_time_series=df_pix_ts,
-                                                      var_name1=var_name1,
-                                                      var_name2=var_name2,
-                                                      list_windows=list_windows,
-                                                      time_series_id=id_name,
-                                                      scaling_factors=NULL,
-                                                      out_dir=out_dir,
-                                                      out_suffix=out_suffix_str2)
+#list_df_pix_ts <-extract_from_list_obj(list_station_summary_obj,"df_pix_ts")
+list_df_pix_ts <- lapply(1:length(list_station_summary_obj),FUN=function(i){list_station_summary_obj[[i]]$df_pix_ts})
+
+debug(plot_observation_predictions_time_series)
+test_plot <- mclapply(list_df_pix_ts,
+                      FUN=plot_observation_predictions_time_series,
+                      var_name1=var_name1,
+                      var_name2=var_name2,
+                      list_windows=list_windows,
+                      time_series_id=NULL,#read in from data
+                      scaling_factors=scaling_factors,
+                      out_dir=out_dir,
+                      out_suffix=out_suffix_str2,
+                      mc.preschedule=FALSE,
+                      mc.cores = num_cores)
 
 ############### PART5: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
