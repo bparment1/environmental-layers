@@ -593,9 +593,6 @@ plot_fig <- FALSE
 i<-1
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-#undebug(combine_measurements_and_predictions_df)
 out_suffix_str <- paste0(region_name,"_",out_suffix)
 #this can be run with mclapply, very fast right now:
 station_summary_obj <- combine_measurements_and_predictions_df(i=i,
@@ -617,7 +614,6 @@ df_pix_ts <- station_summary_obj$df_pix_ts
 #df_pix_ts_filename <- file.path(out_dir,paste0("df_pix_ts_",id_name,out_suffix,y_var_name,".txt"))
 #write.table(df_pix_ts,df_pix_ts_filename,sep=",")
 
-
 ##################### plot time series: make this a function!!! ####
 ###start of plotting
 ### makes this a function:
@@ -627,157 +623,45 @@ df_pix_ts <- station_summary_obj$df_pix_ts
 var_pred_mosaic <- paste0(var_pred,"_mosaic")
 id_name <- list_selected_ID[i]
 station_id <- id_name
-#> myDF[ is.na(myDF) ] <- NA 
 
-df_pix_ts[is.na(df_pix_ts)] <- NA
-if(!is.null(scaling)){
-  df_pix_ts[[var_pred_mosaic]] <-  df_pix_ts[[var_pred_mosaic]]*scaling 
-}
+var_name1 <- y_var_name
+var_name2 <- "mod1_mosaic"
+out_suffix_str <- paste(region_name,out_suffix,sep="_")
+scaling_factors <- c("NA",scaling) #no scaling for y_var_name but scaling for var_name2
+list_windows <- list(c("1999-01-01","1999-12-31"))
 
-d_z_var <- zoo(as.numeric(df_pix_ts[[var_pred_mosaic]]),as.Date(df_pix_ts$date)) #make sure date is a date object !!!
-names(d_z_var) <- var_pred_mosaic
-plot(d_z_var)  
-d_z_obs <- zoo(as.numeric(df_pix_ts[[y_var_name]]),as.Date(df_pix_ts$date))
-plot(d_z_obs)  
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09202016.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
-d_z_res <- zoo(as.numeric(df_pix_ts[[paste0("res_",var_pred_mosaic)]]),as.Date(df_pix_ts$date))
-plot(d_z_res)  
+###TO DO:
+#1) compute correlation r, RMSE, MAE etc by station and profile
+#2) Compute temporal autocorrelation by station and profile
+#3) compute range, min, max etc by stations
 
-d_z <- merge(d_z_var,d_z_obs)
-range(d_z_res,na.rm=T)
-mean(d_z_res,na.rm=T)
-quantile(d_z_res,na.rm=T)
-plot(d_z,plot.type="single",col=c("blue","red"))
-names(d_z) <- c("pred","obs")
+undebug(plot_observation_predictions_time_series)
+#test_plot <- plot_observation_predictions_time_series(df_pix_time_series=df_pix_ts,
+#                                                      var_name1=var_name1,
+#                                                      var_name2=var_name2,
+#                                                      list_windows=list_windows,
+#                                                      time_series_id=id_name,
+#                                                      scaling_factors=scaling_factors,
+#                                                      out_dir=out_dir,
+#                                                      out_suffix=out_suffix_str)
+out_suffix_str2 <- paste(region_name,out_suffix,"test",sep="_")
 
-#day_start <- "1984-01-01" #PARAM 12 arg 12
-#day_end <- "2014-12-31" #PARAM 13 arg 13
-#start_date <- as.Date(day_start)
-#end_date <- as.Date(day_end)
-#start_year <- year(start_date)
-#end_year <- year(end_date)
-range_year <- range(df_pix_ts$year)
-start_year <- range_year[1]
-end_year <- range_year[2]
-var="tmax"
-
-res_pix <- 1000
-#res_pix <- 480
-col_mfrow <- 2
-row_mfrow <- 1
-  
-png_filename <-  file.path(out_dir,paste("Figure5a_time_series_profile_",region_name,"_",id_name,y_var_name,out_suffix,".png",sep =""))
-title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
-  
-png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-#this is the whole time series
-#plot(d_z_var,ylab="tmax in deg C",xlab="Daily time steps",
-#     main=title_str,cex=3,font=2,
-#     cex.main=1.5,cex.lab=1.5,font.lab=2,
-#     lty=3)
-#range(df_pix_ts[[var_pred_mosaic]],na.rm=T)
-
-plot(df_pix_ts[[var_pred_mosaic]] ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
-     main=title_str,cex=1,font=2,type="l",
-     cex.main=1.5,cex.lab=1.5,font.lab=2,
-     lty=3)
-lines(as.numeric(df_pix_ts[[y_var_name]]) ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
-     main=title_str,cex=1,font=2,col="red",type="l",
-     cex.main=1.5,cex.lab=1.5,font.lab=2,
-     lty=3)
-
-
-dev.off()
-
-### get smaller window
-day_start <- "1994-01-01" #PARAM 12 arg 12
-day_end <- "1999-12-31" #PARAM 13 arg 13
-
-start_date <- as.Date(day_start)
-end_date <- as.Date(day_end)
-start_year <- year(start_date)
-end_year <- year(end_date)
-d_z_tmp <- d_z_var
-d_z <- window(d_z_tmp,start=start_date,end=end_date)
-names(d_z) <- var_pred_mosaic
-df_var <- as.data.frame(d_z)
- 
-d_z_tmp <- d_z_obs
-d_z_tmp <- d_z
-d_z_tmp <- window(d_z_tmp,start=start_date,end=end_date)
-plot(d_z_tmp,col=c("blue","red"),plot.type="single")
-df_z <- as.data.frame(d_z)
-
-names(d_z) <- y_var_name
-df_obs <- as.data.frame(d_z)
-names(d_z) <- y_var_name
-
-if(!is.null(df_selected2)){
-  d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
-}
-
-res_pix <- 1000
-#res_pix <- 480
-col_mfrow <- 2
-row_mfrow <- 1
-  
-png_filename <-  file.path(out_dir,paste("Figure5b_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
-title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
-  
-png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-
-plot(df_pix_ts[[var_pred_mosaic]] ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
-     main=title_str,cex=1,font=2,type="l",
-     cex.main=1.5,cex.lab=1.5,font.lab=2,
-     lty=3)
-lines(as.numeric(df_pix_ts[[y_var_name]]) ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
-     main=title_str,cex=1,font=2,col="red",type="l",
-     cex.main=1.5,cex.lab=1.5,font.lab=2,
-     lty=3)
-
-dev.off()
-
-#### Subset for 5c: zoom in
-
-day_start <- "1991-01-01" #PARAM 12 arg 12
-day_end <- "1992-12-31" #PARAM 13 arg 13
-
-start_date <- as.Date(day_start)
-end_date <- as.Date(day_end)
-start_year <- year(start_date)
-end_year <- year(end_date)
-d_z <- window(d_z_tmp,start=start_date,end=end_date)
-if(!is.null(df_selected2)){
-  d_z2 <- window(d_z_tmp2,start=start_date,end=end_date)
-}
-
-res_pix <- 1000
-#res_pix <- 480
-col_mfrow <- 2
-row_mfrow <- 1
-  
-png_filename <-  file.path(out_dir,paste("Figure5c_subset_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
-title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
-  
-png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-
-plot(d_z,ylab="tmax in deg C",xlab="Daily time steps",
-     main=title_str,cex=3,font=2,
-     cex.main=1.5,cex.lab=1.5,font.lab=2,
-     lty=3)
-if(!is.null(df_selected2)){
-  lines(d_z2,ylab="tmax in deg C",xlab="Daily time steps",
-        main=title_str,cex=3,font=2,
-        col="red",
-        cex.main=1.5,cex.lab=1.5,font.lab=2,
-        lty=3)
-}
-
-dev.off()
+test_plot <- plot_observation_predictions_time_series(df_pix_time_series=df_pix_ts,
+                                                      var_name1=var_name1,
+                                                      var_name2=var_name2,
+                                                      list_windows=list_windows,
+                                                      time_series_id=id_name,
+                                                      scaling_factors=NULL,
+                                                      out_dir=out_dir,
+                                                      out_suffix=out_suffix_str2)
 
 ############### PART5: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
 
+## TODO: make movies from time series in png
 
 #start_date <- day_to_mosaic_range[1]
 #end_date <- day_to_mosaic_range[2]
@@ -826,86 +710,6 @@ names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_v
                                           "region_name","variable_name")
 
 lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
-
-####################
-###### Now add figures with additional met stations?
-
-#df_selected2 <- data_stations_var_pred
-
-#d_z_tmp <- zoo(df_selected[[station_id]],df_selected$date)
-#d_z_tmp2 <- zoo(df_selected2$dailyTmax,df_selected2$date)
-
-#d_z_tmp <- zoo(df[[station_id]],df$date)
-#names(d_z_tmp)<-station_id
-#names(d_z_tmp2)<-station_id
-
-#min(d_z_tmp$ID_8)
-#max(d_z_tmp$ID_8)
-#day_start <- "1984-01-01" #PARAM 12 arg 12
-#day_end <- "2014-12-31" #PARAM 13 arg 13
-#day_start <- "1991-01-01" #PARAM 12 arg 12
-#day_end <- "1992-12-31" #PARAM 13 arg 13
-
-#start_date <- as.Date(day_start)
-#end_date <- as.Date(day_end)
-#start_year <- year(start_date)
-#end_year <- year(end_date)
-
-#res_pix <- 1000
-#res_pix <- 480
-#col_mfrow <- 2
-#row_mfrow <- 1
-  
-#png_filename <-  file.path(out_dir,paste("Figure5a_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
-#title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
-  
-#png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-#this is the whole time series
-
-#plot(d_z_tmp,ylab="tmax in deg C",xlab="Daily time steps",
-#     main=title_str,cex=3,font=2,
-#     cex.main=1.5,cex.lab=1.5,font.lab=2,
-#     lty=3)
-#lines(d_z_tmp2,ylab="tmax in deg C",xlab="Daily time steps",
-#     main=title_str,cex=3,font=2,
-#     col="red",
-#     cex.main=1.5,cex.lab=1.5,font.lab=2,
-#     lty=3)
-#
-#dev.off()
-
-#This is a lot of replication!!! okay cut it down
-data_stations$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
-data_stations_tmp <- data_stations
-data_stations_tmp <- data_stations
-
-data_stations_tmp$date <- as.Date(strptime(data_stations_tmp$date,"%Y%m%d"))
-#data_stations_tmp$date <- as.Date(strptime(data_stations_tmp$date_str,"%Y%m%d"))
-#d_z4 <- 
-d_z_tmp4 <- zoo(data_stations_tmp$dailyTmax,data_stations_tmp$date)
-plot(d_z_tmp,cex.main=1.5,cex.lab=1.5,font.lab=2,
-     lty=3)
-lines(d_z_tmp4,ylab="tmax in deg C",xlab="Daily time steps",
-     main=title_str,cex=3,font=2,
-     col="red",
-     cex.main=1.5,cex.lab=1.5,font.lab=2,
-     lty=3)
-
-day_start <- "1991-01-01" #PARAM 12 arg 12
-day_end <- "1992-12-31" #PARAM 13 arg 13
-
-start_date <- as.Date(day_start)
-end_date <- as.Date(day_end)
-start_year <- year(start_date)
-end_year <- year(end_date)
-d_z4 <- window(d_z_tmp4,start=start_date,end=end_date)
-
-data_stations_tmp$date[7190]
-
-###TO DO:
-#1) compute correlation r, RMSE, MAE etc by station and profile
-#2) Compute temporal autocorrelation by station and profile
-#3) 
 
 #### PLOT ACCURACY METRICS: First test ####
 ##this will be cleaned up later:
