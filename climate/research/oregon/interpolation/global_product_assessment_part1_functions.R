@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: adding windowing and more options to plotting function time series
+##COMMIT: time profiles run on multiple selected stations and fixing bugs 
 
 #################################################################################################
 
@@ -807,31 +807,31 @@ plot_observation_predictions_time_series <- function(df_pix_time_series,var_name
   ########## Start script #########
   
   ## Screen of NaN and make sure we have NA
-  df_pix_ts[is.na(df_pix_ts)] <- NA
+  df_pix_time_series[is.na(df_pix_time_series)] <- NA
   
   #Scale if necessary, this should be a list
   if(!is.null(scaling_factors)){
     
-    df_pix_ts[[var_name2]] <-  df_pix_ts[[var_name2]]*scaling_factors[2] 
+    df_pix_time_series[[var_name2]] <-  df_pix_time_series[[var_name2]]*scaling_factors[2] 
   }
 
   if(is.null(time_series_id)){
-    time_series_id <- unique(na.omit(df_pix_ts$id))
+    time_series_id <- unique(na.omit(df_pix_time_series$id))
   }
   
   #### var_name 1
-  d_z_obs <- zoo(as.numeric(df_pix_ts[[var_name1]]),as.Date(df_pix_ts$date))
+  d_z_obs <- zoo(as.numeric(df_pix_time_series[[var_name1]]),as.Date(df_pix_time_series$date))
   #plot(d_z_obs)  
   
   #### var_name 2
-  d_z_var <- zoo(as.numeric(df_pix_ts[[var_name2]]),as.Date(df_pix_ts$date)) #make sure date is a date object !!!
+  d_z_var <- zoo(as.numeric(df_pix_time_series[[var_name2]]),as.Date(df_pix_time_series$date)) #make sure date is a date object !!!
   #names(d_z_var) <- var_pred_mosaic
   #plot(d_z_var)  
 
   d_z_diff <- d_z_var - d_z_obs #this is residuals if var is predicted
   #d_z_res <- d_z_var - d_z_obs 
   
-  #d_z_res <- zoo(as.numeric(df_pix_ts[[paste0("res_",var_pred_mosaic)]]),as.Date(df_pix_ts$date))
+  #d_z_res <- zoo(as.numeric(df_pix_time_series[[paste0("res_",var_pred_mosaic)]]),as.Date(df_pix_time_series$date))
   #plot(d_z_diff)  
 
   d_z_all <- merge(d_z_obs,d_z_var,d_z_diff)
@@ -866,7 +866,7 @@ plot_observation_predictions_time_series <- function(df_pix_time_series,var_name
   #day_end <- "2014-12-31" #PARAM 13 arg 13
   start_date <- as.Date(day_start)
   end_date <- as.Date(day_end)
-  #range_year <- range(df_pix_ts$year)
+  #range_year <- range(df_pix_time_series$year)
   #start_year <- range_year[1]
   #end_year <- range_year[2]
   #var="tmax"
