@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 09/19/2016            
+#MODIFIED ON: 09/20/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conference 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: plotting function time series, fixing bugs
+##COMMIT: adding windowing and more options to plotting function time series
 
 #################################################################################################
 
@@ -789,7 +789,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
 }
 
 
-plot_observation_predictions_time_series <- function(df_pix_time_series,var_name1,var_name2,station_id,scaling=NULL,out_dir=".",out_suffix=""){
+plot_observation_predictions_time_series <- function(df_pix_time_series,var_name1,var_name2,list_windows=NULL,time_series_id=NULL,scaling_factors=NULL,out_dir=".",out_suffix=""){
   #This function plots time series for observed and predicted points.
   #This assumes that time series with residuals were extracted from raster stacks.
   #
@@ -797,10 +797,11 @@ plot_observation_predictions_time_series <- function(df_pix_time_series,var_name
   #1) df_pix_time_series
   #2) var_name1: name of variables use
   #3) var_name2:
-  #4) station_id
-  #5) scaling: if null no scaling
-  #6) out_dir
-  #7) out_suffix
+  #4) list_windows:
+  #5) time_series_id
+  #6) scaling_factors: if null no scaling
+  #7) out_dir
+  #8) out_suffix
   #
   
   ########## Start script #########
@@ -808,18 +809,22 @@ plot_observation_predictions_time_series <- function(df_pix_time_series,var_name
   ## Screen of NaN and make sure we have NA
   df_pix_ts[is.na(df_pix_ts)] <- NA
   
-  #Scale if necessary
-  if(!is.null(scaling)){
+  #Scale if necessary, this should be a list
+  if(!is.null(scaling_factors)){
     
-    df_pix_ts[[var_name2]] <-  df_pix_ts[[var_name2]]*scaling 
+    df_pix_ts[[var_name2]] <-  df_pix_ts[[var_name2]]*scaling_factors[2] 
   }
 
+  if(is.null(time_series_id)){
+    time_series_id <- unique(na.omit(df_pix_ts$id))
+  }
+  
   #### var_name 1
-  d_z_obs <- zoo(as.numeric(df_pix_ts[[y_var_name]]),as.Date(df_pix_ts$date))
+  d_z_obs <- zoo(as.numeric(df_pix_ts[[var_name1]]),as.Date(df_pix_ts$date))
   #plot(d_z_obs)  
   
   #### var_name 2
-  d_z_var <- zoo(as.numeric(df_pix_ts[[var_pred_mosaic]]),as.Date(df_pix_ts$date)) #make sure date is a date object !!!
+  d_z_var <- zoo(as.numeric(df_pix_ts[[var_name2]]),as.Date(df_pix_ts$date)) #make sure date is a date object !!!
   #names(d_z_var) <- var_pred_mosaic
   #plot(d_z_var)  
 
@@ -829,14 +834,30 @@ plot_observation_predictions_time_series <- function(df_pix_time_series,var_name
   #d_z_res <- zoo(as.numeric(df_pix_ts[[paste0("res_",var_pred_mosaic)]]),as.Date(df_pix_ts$date))
   #plot(d_z_diff)  
 
-  d_z_all <- merge(d_z_var,d_z_obs,d_z_diff)
-  names(d_z_all) <- c("pred","obs","diff")
-  d_z <-  merge(d_z_var,d_z_obs)
-  names(d_z) <- c("pred","obs")
+  d_z_all <- merge(d_z_obs,d_z_var,d_z_diff)
+  names(d_z_all) <- c("obs","pred","diff")
+  d_z <-  merge(d_z_obs,d_z_var)
+  names(d_z) <- c("obs","pred")
   
   range(d_z_diff,na.rm=T)
   mean(d_z_diff,na.rm=T)
   quantile(d_z_diff,na.rm=T)
+  
+  ##Make data.frame with dates for later use!!
+  #from libary mosaic
+
+  rmse_val <- rmse_fun(d_z_diff)
+  df_basic_stat <- c(fav_stats(d_z_diff),rmse_val=rmse_val)
+  
+  #df_basic_stat <- fav_stats(d_z_all) #does not work on multiple ts
+  #df_basic_stat$date <- date_processed
+  #df_basic_stat$reg <- reg
+  #quantile(data_stations_var_pred$res_mod1,c(1,5,10,90,95,99))
+  df_quantile_val <- quantile(na.omit(d_z_diff),c(0,0.01,0.05,0.10,0.45,0.50,0.55,0.90,0.95,0.99,1))
+  #names(df_quantile_val)
+  #as.list(df_quantile_val)
+  #df_test <- data.frame(names(df_quantile_val))[numeric(0), ]
+
 
   range_dates <- range(as.Date(df_pix_time_series$date))
   day_start <- range_dates[1]
@@ -848,43 +869,63 @@ plot_observation_predictions_time_series <- function(df_pix_time_series,var_name
   #range_year <- range(df_pix_ts$year)
   #start_year <- range_year[1]
   #end_year <- range_year[2]
-  var="tmax"
+  #var="tmax"
 
   res_pix <- 1000
   #res_pix <- 480
   col_mfrow <- 2
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir,paste("Figure_5a_time_series_profile_",region_name,"_",id_name,"_",
-                                           y_var_name,"_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-  title_str <- paste("Daily", var_name1,"and", var_name2,"for", station_id," for the ", start_date,"-",end_date," time period",sep=" ")
-  
-  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  #this is the whole time series
-  #plot(d_z_var,ylab="tmax in deg C",xlab="Daily time steps",
-  #     main=title_str,cex=3,font=2,
-  #     cex.main=1.5,cex.lab=1.5,font.lab=2,
-  #     lty=3)
-  #range(df_pix_ts[[var_pred_mosaic]],na.rm=T)
-   
-  #plot(d_z,plot.type="single",col=c("blue","red"))
+  png_filename1 <-  file.path(out_dir,paste("Figure_5a_time_series_profile_combined_",region_name,"_",time_series_id,"_",
+                                           var_name1,"_",var_name2,
+                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
+  png_filename2 <-  file.path(out_dir,paste("Figure_5a_time_series_profile_separate_",region_name,"_",time_series_id,"_",
+                                           var_name1,"_",var_name2,
+                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
+  png_filename3 <-  file.path(out_dir,paste("Figure_5a_time_series_profile_separate_with_difference_",region_name,"_",
+                                            time_series_id,"_", var_name1,"_",var_name2,
+                                            "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
+
+  title_str <- paste("Daily", var_name1,"and", var_name2,"for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
   col_str <- c("blue","red")
+  title_str2 <- paste("Daily", var_name1,"-", var_name2,"and difference","for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
+  col_str2 <- c("blue","red","darkgreen")
+    
+  png(filename=png_filename1,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  #this is the whole time series
   plot(d_z,plot.type="single",col=col_str,
        ylab="tmax in deg C",xlab="Daily time steps",
        main=title_str,cex=1,font=2,type="l",
        cex.main=1.5,cex.lab=1.5,font.lab=2)
-  
-  #plot(df_pix_ts[[var_pred_mosaic]] ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
-  #   main=title_str,cex=1,font=2,type="l",
-  #   cex.main=1.5,cex.lab=1.5,font.lab=2,
-  #   lty=3)
-  #lines(as.numeric(df_pix_ts[[y_var_name]]) ~ as.Date(df_pix_ts$date),ylab="tmax in deg C",xlab="Daily time steps",
-  #   main=title_str,cex=1,font=2,col="red",type="l",
-  #   cex.main=1.5,cex.lab=1.5,font.lab=2,
-  #   lty=3)
-
+  legend("topleft",legend=c(var_name1,var_name2),
+       col=col_str,lty=c(1,1),
+       cex=1.2,bty="n")
   dev.off()
 
+  png(filename=png_filename2,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  #this is the whole time series
+  plot(d_z,plot.type="multiple",col=col_str,
+       ylab="tmax in deg C",xlab="Daily time steps",
+       main=title_str,cex=1,font=2,type="l",
+       cex.main=1.5,cex.lab=1.5,font.lab=2)
+
+  legend("topleft",legend=c(var_name1,var_name2),
+       col=col_str,lty=c(1,1),
+       cex=1.2,bty="n")
+  dev.off()
+  
+  png(filename=png_filename3,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  #this is the whole time series
+  plot(d_z_all,plot.type="multiple",col=col_str2,
+       ylab="tmax in deg C",xlab="Daily time steps",
+       main=title_str2,cex=1,font=2,type="l",
+       cex.main=1.5,cex.lab=1.5,font.lab=2)
+
+  legend("topleft",legend=c(var_name1,var_name2,"diff"),
+       col=col_str2,lty=c(1,1),
+       cex=1.2,bty="n")
+  dev.off()
+  
   #for list_windows go in a loop
   if(!is.null(list_windows)){
     
@@ -892,50 +933,93 @@ plot_observation_predictions_time_series <- function(df_pix_time_series,var_name
       
       ### get smaller window
 
-      window_range <- list_windows[i]
+      window_range <- list_windows[[i]]
       #day_start <- "1999-01-01" #PARAM 12 arg 12
       #day_end <- "1999-12-31" #PARAM 13 arg 13
       day_start <- window_range[1]
-      day_end <- windwow_range[2]
+      day_end <- window_range[2]
       
       start_date <- as.Date(day_start)
       end_date <- as.Date(day_end)
-      start_year <- year(start_date)
-      end_year <- year(end_date)
+      #start_year <- year(start_date)
+      #end_year <- year(end_date)
       
       ### now select from the original time series
       #
       d_z_all_w <- window(d_z_all,start=start_date,end=end_date)
       d_z_w <- window(d_z,start=start_date,end=end_date)
 
+      
+      #### prepare inputs for plots
+      png_filename4 <-  file.path(out_dir,paste("Figure_5b_time_series_profile_window_combined_",region_name,"_",time_series_id,"_",
+                                           var_name1,"_",var_name2,
+                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
+      png_filename5 <-  file.path(out_dir,paste("Figure_5b_time_series_profile_window_separate_",region_name,"_",time_series_id,"_",
+                                           var_name1,"_",var_name2,
+                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
+      png_filename6 <-  file.path(out_dir,paste("Figure_5b_time_series_profile_window_separate_with_difference_",region_name,"_",
+                                            time_series_id,"_", var_name1,"_",var_name2,
+                                            "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
+
+      title_str <- paste("Daily", var_name1,"and", var_name2,"for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
+      col_str <- c("blue","red")
+      title_str2 <- paste("Daily", var_name1,"-", var_name2,"and difference","for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
+      col_str2 <- c("blue","red","darkgreen")
+
       res_pix <- 1000
       #res_pix <- 480
       col_mfrow <- 2
       row_mfrow <- 1
-  
-      #png_filename <-  file.path(out_dir,paste("Figure5_b_time_series_profile_",region_name,"_",out_suffix,".png",sep =""))
-      #title_str <- paste("Predicted daily ", station_id," ",var," for the ", start_year,"-",end_year," time period",sep="")
-      png_filename <-  file.path(out_dir,paste("Figure_5_b_time_series_profile_",region_name,"_",id_name,"_",y_var_name,
-                                               "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-      title_str <- paste("Daily", var_name1,"and", var_name2,"for", station_id," for the ", start_date,"-",end_date," time period",sep=" ")
 
-      png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-
-      #add legend later!!
-      col_str <- c("blue","red")
+      png(filename=png_filename4,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+      #this is the windowed time series
       plot(d_z_w,plot.type="single",col=col_str,
            ylab="tmax in deg C",xlab="Daily time steps",
            main=title_str,cex=1,font=2,type="l",
            cex.main=1.5,cex.lab=1.5,font.lab=2)
-      
+      legend("topleft",legend=c(var_name1,var_name2),
+            col=col_str,lty=c(1,1),
+            cex=1.2,bty="n")
       dev.off()
 
+      png(filename=png_filename5,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+      #this is the windowed time series
+      plot(d_z_w,plot.type="multiple",col=col_str,
+           ylab="tmax in deg C",xlab="Daily time steps",
+           main=title_str,cex=1,font=2,type="l",
+           cex.main=1.5,cex.lab=1.5,font.lab=2)
+
+      legend("topleft",legend=c(var_name1,var_name2),
+            col=col_str,lty=c(1,1),
+            cex=1.2,bty="n")
+      dev.off()
+  
+      png(filename=png_filename6,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+      #this is the windowed time series
+      plot(d_z_all_w,plot.type="multiple",col=col_str2,
+          ylab="tmax in deg C",xlab="Daily time steps",
+          main=title_str2,cex=1,font=2,type="l",
+          cex.main=1.5,cex.lab=1.5,font.lab=2)
+
+      legend("topleft",legend=c(var_name1,var_name2,"diff"),
+          col=col_str2,lty=c(1,1),
+          cex=1.2,bty="n")
+      dev.off()
+
+      list_png_files <- list(png_filename4,png_filename5,png_filename5)
     }
     
   }
   
-  #return()
+  plot_time_seris_obj <- list(df_basic_stat,df_quantile_val)
+  names(plot_time_seris_obj) <- c("df_basic_stat","df_quantile_val")
+  return(plot_time_seris_obj)
 }
 
+rmse_fun <- function(x){
+  #x: residuals vector
+  rmse_val <-sqrt(mean(x^2,na.rm=T))
+  return(rmse_val)
+}
 
 ############################ END OF SCRIPT ##################################
