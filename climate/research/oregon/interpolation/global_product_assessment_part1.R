@@ -376,13 +376,29 @@ c( -119.928901,36.627806),
 c(  -115.330122,36.677139),
 c( -78.396011,35.696143)) 
 
+### Add dates to mkae it a date object?
+location_description <- c("near Spencer MA",
+   "near Saguenay Quebec",
+   "near Springfield Illinois",
+   "near El Paso Us Texas",
+   "near Boulder Colorado",
+   "near lost Creek near Mount Hood Oregon",
+   "leduc Canada near Edmonton",
+   "Silver Spring Sligo Creek, MD",
+   "Raisin City, Fresno CA",
+   "Las Vegas",
+   "near Raleigh NC")
+
 test_day_query2 <- lapply(list_lat_long,FUN=query_for_station_lat_long,df_points_spdf=df_point_day,step_x=1,step_y=1)
 #test_day_query <-query_for_station_lat_long(c(-72,42),df_points_spdf=df_point_day,step_x=1,step_y=0.25)
 df_stations_selected <- do.call(rbind,test_day_query2)
 proj4string(df_stations_selected) <- proj_str
 #debug(query_for_station_lat_long)
 
-df_stations_locations <- do.call(rbind,list_lat_long) #these are the stations to match 
+df_stations_locations <- as.data.frame(do.call(rbind,list_lat_long)) #these are the stations to match 
+names(df_stations_locations) <- c("lat","long")
+df_stations_locations$loc <- paste(df_stations_locations$long,df_stations_locations$lat,sep="_")
+
 ##layer to be clipped
 if(class(countries_shp)!="SpatialPolygonsDataFrame"){
     reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
@@ -390,6 +406,9 @@ if(class(countries_shp)!="SpatialPolygonsDataFrame"){
     reg_layer <- countries_shp
 }
 df_stations_selected$lab_id <- 1:nrow(df_stations_selected)
+df_stations_selected$loc_description <- location_description
+df_stations_selected$loc <- df_stations_locations$loc
+
 #now clip  
 #use points that were used to extract
 reg_layer_clipped <- gClip(shp=reg_layer, bb=df_points , keep.attribs=TRUE,outDir=NULL,outSuffix=NULL)
