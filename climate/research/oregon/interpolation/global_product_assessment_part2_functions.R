@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: time profiles run on multiple selected stations and fixing bugs 
+##COMMIT: Changes to plotting function for raster mosaic and other 
 
 #################################################################################################
 
@@ -153,8 +153,13 @@ plot_raster_mosaic <- function(i,list_param){
   raster_name_tmp <- gsub(extension_str,"",basename(raster_name))
   
   date_proc <- l_dates[i]
-  date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
-  #month_name <- month.name(date_val)
+  if(class(date_proc)!="Date"){
+    date_val <- as.Date(strptime(date_proc,"%Y%m%d"))
+    #month_name <- month.name(date_val)
+  }else{
+    date_val <- date_proc
+  }
+  
   month_str <- format(date_val, "%b") ## Month, char, abbreviated
   year_str <- format(date_val, "%Y") ## Year with century
   day_str <- as.numeric(format(date_val, "%d")) ## numeric month
@@ -167,13 +172,19 @@ plot_raster_mosaic <- function(i,list_param){
   
   
   if(is.null(zlim_val)){
+    
+    if(is.na(minValue(r_pred))){
+      r_pred <- setMinMax(r_pred)
+    }
+    
     zlim_val_str <- paste(c(minValue(r_pred),maxValue(r_pred)),sep="_",collapse="_")
     #png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
-    raster_name_tmp
+    #raster_name_tmp
     png_filename <-  file.path(out_dir,paste("Figure_",raster_name_tmp,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
     
     title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
-  
+    #browser()
+    
     png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
 
     plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),
@@ -183,11 +194,14 @@ plot_raster_mosaic <- function(i,list_param){
        #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
     dev.off()
   }else{
+    
     zlim_val_str <- paste(zlim_val,sep="_",collapse="_")
     #png_filename <-  file.path(out_dir,paste("Figure_mosaics_day_","_",date_proc,"_",region_name,"_",zlim_val_str,"_",out_suffix,".png",sep =""))
+    
     png_filename <-  file.path(out_dir,paste("Figure_",raster_name_tmp,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
 
     title_str <-  paste("Predicted ",variable_name, " on ",date_str , " ", sep = "")
+    
     png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     
     plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=zlim_val,
@@ -197,6 +211,7 @@ plot_raster_mosaic <- function(i,list_param){
        #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
     dev.off()
   }
+  
   return(png_filename)
 }
 
