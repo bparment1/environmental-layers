@@ -65,8 +65,8 @@ script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts" #path t
 
 #Mosaic related on NEX
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_08232016.R" #Functions used to mosaic predicted tiles
-function_mosaicing <-"global_run_scalingup_mosaicing_08222016.R" #main scripts for mosaicing predicted tiles
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_09282016.R" #Functions used to mosaic predicted tiles
+function_mosaicing <-"global_run_scalingup_mosaicing_09282016.R" #main scripts for mosaicing predicted tiles
 
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
@@ -87,6 +87,8 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10032016b.R"
+source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
 ####### Parameters, constants and arguments ###
@@ -191,7 +193,7 @@ if (create_out_dir_param == TRUE) {
   setwd(out_dir) #use previoulsy defined directory
 }
 
-setwd(out_dir)
+#setwd(out_dir)
 
 ###########  ####################
 
@@ -211,6 +213,45 @@ if(is.null(lf_raster)){
   r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
 }
 
+NAvalue(r_stack)
+plot(r_stack,y=6,zlim=c(-10000,10000)) #this is not rescaled
+plot(r_stack,zlim=c(-50,50),col=matlab.like(255))
+
+#plot(r_mosaic_scaled,y=6,zlim=c(-50,50))
+#plot(r_mosaic_scaled,zlim=c(-50,50),col=matlab.like(255))
+
+#debug(extract_date)
+#test <- extract_date(6431,lf_mosaic_list,12) #extract item number 12 from the name of files to get the data
+#list_dates_produced <- unlist(mclapply(1:length(lf_raster),FUN=extract_date,x=lf_raster,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
+lf_mosaic_list <- lf_raster
+list_dates_produced <-  mclapply(1:2,
+                                 FUN=extract_date,
+                                 x=lf_mosaic_list,
+                                 item_no=13,
+                                 mc.preschedule=FALSE,
+                                 mc.cores = 2)  
+item_no <-13
+list_dates_produced <- unlist(mclapply(1:length(lf_raster),
+                                       FUN=extract_date,
+                                       x=lf_raster,
+                                       item_no=item_no,
+                                       mc.preschedule=FALSE,
+                                       mc.cores = num_cores))                         
+
+list_dates_produced_date_val <- as.Date(strptime(list_dates_produced,"%Y%m%d"))
+month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
+year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
+day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
+
+df_raster <- data.frame(lf=basename(lf_raster),
+                          date=list_dates_produced_date_val,
+                          month_str=month_str,
+                          year=year_str,
+                          day=day_str,
+                          dir=dirname(lf_mosaic_list))
+
+df_raster_fname <- file.path(out_dir,paste0("df_raster_",out_suffix,".txt"))
+write.table(df_raster,file= df_raster_fname,sep=",",row.names = F) 
 
 ############### PART5: Make raster stack and display maps #############
 #### Extract corresponding raster for given dates and plot stations used
@@ -240,30 +281,31 @@ if(is.null(lf_raster)){
 ##################################### PART 5  ######
 ##### Plotting specific days for the mosaics
 
-r_mosaic_scaled <- stack(lf_mosaic_scaled)
-NAvalue(r_mosaic_scaled)<- -3399999901438340239948148078125514752.000
-plot(r_mosaic_scaled,y=6,zlim=c(-50,50))
-plot(r_mosaic_scaled,zlim=c(-50,50),col=matlab.like(255))
-
-#layout_m<-c(1,3) #one row two columns
-#levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
-#levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
-
-#png(paste("Figure7a__spatial_pattern_tmax_prediction_levelplot_",date_selected,out_prefix,".png", sep=""),
-#    height=480*layout_m[1],width=480*layout_m[2])
-#plot(r_pred,col=temp.colors(255),zlim=c(-3500,4500))
-#plot(r_pred,col=matlab.like(255),zlim=c(-40,50))
-#paste(raster_name[1:7],collapse="_")
-#add filename option later
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10032016b.R"
+source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 #NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
+r_stack_subset <- subset(r_stack,1:11)
+l_dates <- list_dates_produced_date_val[1:11]
 
-list_param_plot_raster_mosaic <- list(l_dates,r_mosaic_scaled,NA_flag_val_mosaic,out_dir,out_suffix,
-                                      region_name,variable_name)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name")
+#undebug(plot_raster_mosaic)
+zlim_val <- NULL
+list_param_plot_raster_mosaic <- list(l_dates,r_stack_subset,NA_flag_val,out_dir,out_suffix,
+                                      region_name,variable_name, zlim_val)
+names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
+                                          "region_name","variable_name","zlim_val")
 
-lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
+lf_mosaic_plot_fig <- lapply(1:2,
+                               FUN=plot_raster_mosaic,
+                               list_param=list_param_plot_raster_mosaic)         
+
+lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
+                               FUN=plot_raster_mosaic,
+                               list_param=list_param_plot_raster_mosaic,
+                               mc.preschedule=FALSE,
+                               mc.cores = num_cores)         
+
+
 
 #### PLOT ACCURACY METRICS: First test ####
 ##this will be cleaned up later:
