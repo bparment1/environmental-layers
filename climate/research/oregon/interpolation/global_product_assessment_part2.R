@@ -303,9 +303,27 @@ lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
                                FUN=plot_raster_mosaic,
                                list_param=list_param_plot_raster_mosaic,
                                mc.preschedule=FALSE,
-                               mc.cores = num_cores)         
+                               mc.cores = num_cores)    
+if(is.null(zlim_val)){
+  out_suffix_movie <- paste("min_max_",out_suffix,sep="")
+}else{
+  zlim_val_str <- paste(zlim_val,sep="_",collapse="_")
+  out_suffix_movie <- paste(zlim_val_str,"_",out_suffix,sep="")
+}
 
+#filename_figures_mosaic <- file.path(out_dir,"mosaic_plot_fig.txt")
+filename_figures_mosaic <- file.path(out_dir,paste("list_mosaic_plot_fig",out_suffix_movie,".txt",sep=""))
+out_figure_movies <- file.path(out_dir,paste("mosaic_movie_",out_suffix_movie,".gif",sep=""))
 
+write.table(unlist(lf_mosaic_plot_fig),filename_figures_mosaic,row.names = F,col.names = F,quote = F)
+#now generate movie with imageMagick
+
+#-delay 20
+delay_option <- 60
+cmd_str <- paste("convert",paste("-delay",delay_option),paste0("@",filename_figures_mosaic),out_figure_movies)
+#convert @myimages.txt mymovie.gif
+
+system(cmd_str)
 
 #### PLOT ACCURACY METRICS: First test ####
 ##this will be cleaned up later:
