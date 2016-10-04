@@ -298,6 +298,13 @@ names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag
 lf_mosaic_plot_fig <- lapply(1:2,
                                FUN=plot_raster_mosaic,
                                list_param=list_param_plot_raster_mosaic)         
+l_dates <- list_dates_produced_date_val
+r_stack_subset <- r_stack
+zlim_val <- NULL
+list_param_plot_raster_mosaic <- list(l_dates,r_stack_subset,NA_flag_val,out_dir,out_suffix,
+                                      region_name,variable_name, zlim_val)
+names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
+                                          "region_name","variable_name","zlim_val")
 
 lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
                                FUN=plot_raster_mosaic,
