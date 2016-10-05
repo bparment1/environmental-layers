@@ -300,37 +300,64 @@ lf_mosaic_plot_fig <- lapply(1:2,
                                list_param=list_param_plot_raster_mosaic)         
 l_dates <- list_dates_produced_date_val
 r_stack_subset <- r_stack
-zlim_val <- NULL
-list_param_plot_raster_mosaic <- list(l_dates,r_stack_subset,NA_flag_val,out_dir,out_suffix,
-                                      region_name,variable_name, zlim_val)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name","zlim_val")
 
 lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
                                FUN=plot_raster_mosaic,
                                list_param=list_param_plot_raster_mosaic,
                                mc.preschedule=FALSE,
-                               mc.cores = num_cores)    
+                               mc.cores = num_cores)  
+
 if(is.null(zlim_val)){
   out_suffix_movie <- paste("min_max_",out_suffix,sep="")
 }else{
   zlim_val_str <- paste(zlim_val,sep="_",collapse="_")
   out_suffix_movie <- paste(zlim_val_str,"_",out_suffix,sep="")
 }
+r_stack_subset <- subset(r_stack,1:11)
+l_dates <- list_dates_produced_date_val[1:11]
 
-#filename_figures_mosaic <- file.path(out_dir,"mosaic_plot_fig.txt")
-filename_figures_mosaic <- file.path(out_dir,paste("list_mosaic_plot_fig",out_suffix_movie,".txt",sep=""))
-out_figure_movies <- file.path(out_dir,paste("mosaic_movie_",out_suffix_movie,".gif",sep=""))
-
-write.table(unlist(lf_mosaic_plot_fig),filename_figures_mosaic,row.names = F,col.names = F,quote = F)
+write.table(unlist(lf_mosaic_plot_fig[1:11]),filenames_figures,row.names = F,col.names = F,quote = F)
 #now generate movie with imageMagick
+debug(generate_animation_from_figures_fun)
+generate_animation_from_figures_fun(filenames_figures="list_mosaic_plot_figmin_max__global_assessment_reg1_10032016.txt",
+                                    frame_speed=60,
+                                    format_file=".gif",
+                                    out_suffix="",
+                                    out_dir="./",
+                                    out_filename_figure_animation=NULL)
+  
+generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60,format_file=".gif",out_suffix="",out_dir=".",out_filename_figure_animation=NULL){
 
-#-delay 20
-delay_option <- 60
-cmd_str <- paste("convert",paste("-delay",delay_option),paste0("@",filename_figures_mosaic),out_figure_movies)
-#convert @myimages.txt mymovie.gif
+  if(is.null(out_filename_figure_animation)){
+    #out_filename_figure_movies <- file.path(out_dir,paste("mosaic_movie_",out_suffix_movie,".gif",sep=""))
+    out_filename_figure_animation <- file.path(out_dir,paste("animation_frame_",frame_speed,"_",out_suffix,format_file,sep=""))
+  }
+  
+  if(class(filenames_figures)=="list"){
+    #filename_figures_mosaic <- file.path(out_dir,"mosaic_plot_fig.txt")
+    out_filenames_figures <- file.path(out_dir,paste("list_figures_animation_",out_suffix,".txt",sep=""))
+    write.table(unlist(filenames_figures),out_filenames_figures,row.names = F,col.names = F,quote = F)
+    filenames_figures <- out_filenames_figures
+  }
+  
+  #now generate movie with imageMagick
 
-system(cmd_str)
+  #-delay 20
+  #delay_option <- 60
+  delay_option <- frame_speed
+  
+  cmd_str <- paste("convert",
+                   paste("-delay",delay_option),
+                   paste0("@",filenames_figures),
+                   out_filename_figure_animation)
+  #convert @myimages.txt mymovie.gif
+  #save cmd_str in text file!!!
+  
+  system(cmd_str)
+  
+  return(out_filename_figure_animation)
+
+}
 
 #### PLOT ACCURACY METRICS: First test ####
 ##this will be cleaned up later:
