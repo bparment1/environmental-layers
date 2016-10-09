@@ -4,8 +4,8 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 10/03/2016            
-#Version: 1
+#MODIFIED ON: 10/09/2016            
+#Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conference 
 #TODO:
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: Changes to plotting function for raster mosaic and other 
+##COMMIT: adding function to generate animation
 
 #################################################################################################
 
@@ -250,5 +250,38 @@ finding_missing_dates <- function(date_start,date_end,list_dates){
   return(missing_dates)
 }
 
+#create animation from figures:
+generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60,format_file=".gif",out_suffix="",out_dir=".",out_filename_figure_animation=NULL){
+
+  if(is.null(out_filename_figure_animation)){
+    #out_filename_figure_movies <- file.path(out_dir,paste("mosaic_movie_",out_suffix_movie,".gif",sep=""))
+    out_filename_figure_animation <- file.path(out_dir,paste("animation_frame_",frame_speed,"_",out_suffix,format_file,sep=""))
+  }
+  
+  if(class(filenames_figures)=="list"){
+    #filename_figures_mosaic <- file.path(out_dir,"mosaic_plot_fig.txt")
+    out_filenames_figures <- file.path(out_dir,paste("list_figures_animation_",out_suffix,".txt",sep=""))
+    write.table(unlist(filenames_figures),out_filenames_figures,row.names = F,col.names = F,quote = F)
+    filenames_figures <- out_filenames_figures
+  }
+  
+  #now generate movie with imageMagick
+
+  #-delay 20
+  #delay_option <- 60
+  delay_option <- frame_speed
+  
+  cmd_str <- paste("convert",
+                   paste("-delay",delay_option),
+                   paste0("@",filenames_figures),
+                   out_filename_figure_animation)
+  #convert @myimages.txt mymovie.gif
+  #save cmd_str in text file!!!
+  
+  system(cmd_str)
+  
+  return(out_filename_figure_animation)
+
+}
 
 ############################ END OF SCRIPT ##################################
