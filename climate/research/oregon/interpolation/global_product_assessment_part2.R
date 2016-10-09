@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/03/2016            
+#MODIFIED ON: 10/09/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: plotting extracted predicted values and measured tmax 
+#COMMIT: testing function to generate animation and moving to function script
 
 #################################################################################################
 
@@ -87,7 +87,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10032016b.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10092016.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -281,7 +281,7 @@ write.table(df_raster,file= df_raster_fname,sep=",",row.names = F)
 ##################################### PART 5  ######
 ##### Plotting specific days for the mosaics
 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10032016b.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10092016.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 #NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
@@ -316,48 +316,30 @@ if(is.null(zlim_val)){
 r_stack_subset <- subset(r_stack,1:11)
 l_dates <- list_dates_produced_date_val[1:11]
 
-write.table(unlist(lf_mosaic_plot_fig[1:11]),filenames_figures,row.names = F,col.names = F,quote = F)
+filenames_figures_mosaic <- "test_animation_reg1.txt"
+
+write.table(unlist(lf_mosaic_plot_fig[1:11]),filenames_figures_mosaic,row.names = F,col.names = F,quote = F)
 #now generate movie with imageMagick
-debug(generate_animation_from_figures_fun)
-generate_animation_from_figures_fun(filenames_figures="list_mosaic_plot_figmin_max__global_assessment_reg1_10032016.txt",
-                                    frame_speed=60,
-                                    format_file=".gif",
-                                    out_suffix="",
-                                    out_dir="./",
+frame_speed <- 60
+animation_format <- ".gif"
+out_suffix_str <- out_suffix
+
+#debug(generate_animation_from_figures_fun)
+generate_animation_from_figures_fun(filenames_figures= filenames_figures_mosaic,
+                                    frame_speed=frame_speed,
+                                    format_file=animation_format,
+                                    out_suffix=out_suffix_str,
+                                    out_dir=out_dir,
                                     out_filename_figure_animation=NULL)
   
-generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60,format_file=".gif",out_suffix="",out_dir=".",out_filename_figure_animation=NULL){
+generate_animation_from_figures_fun(filenames_figures= filenames_figures_mosaic,
+                                    frame_speed=frame_speed,
+                                    format_file=animation_format,
+                                    out_suffix=out_suffix_str,
+                                    out_dir=out_dir,
+                                    out_filename_figure_animation="test.gif")
 
-  if(is.null(out_filename_figure_animation)){
-    #out_filename_figure_movies <- file.path(out_dir,paste("mosaic_movie_",out_suffix_movie,".gif",sep=""))
-    out_filename_figure_animation <- file.path(out_dir,paste("animation_frame_",frame_speed,"_",out_suffix,format_file,sep=""))
-  }
-  
-  if(class(filenames_figures)=="list"){
-    #filename_figures_mosaic <- file.path(out_dir,"mosaic_plot_fig.txt")
-    out_filenames_figures <- file.path(out_dir,paste("list_figures_animation_",out_suffix,".txt",sep=""))
-    write.table(unlist(filenames_figures),out_filenames_figures,row.names = F,col.names = F,quote = F)
-    filenames_figures <- out_filenames_figures
-  }
-  
-  #now generate movie with imageMagick
 
-  #-delay 20
-  #delay_option <- 60
-  delay_option <- frame_speed
-  
-  cmd_str <- paste("convert",
-                   paste("-delay",delay_option),
-                   paste0("@",filenames_figures),
-                   out_filename_figure_animation)
-  #convert @myimages.txt mymovie.gif
-  #save cmd_str in text file!!!
-  
-  system(cmd_str)
-  
-  return(out_filename_figure_animation)
-
-}
 
 #### PLOT ACCURACY METRICS: First test ####
 ##this will be cleaned up later:
