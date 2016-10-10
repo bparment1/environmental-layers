@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/09/2016            
+#MODIFIED ON: 10/10/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -87,7 +87,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10092016.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10102016.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -281,7 +281,7 @@ write.table(df_raster,file= df_raster_fname,sep=",",row.names = F)
 ##################################### PART 5  ######
 ##### Plotting specific days for the mosaics
 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10092016.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10102016.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 #NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
@@ -340,19 +340,18 @@ generate_animation_from_figures_fun(filenames_figures= filenames_figures_mosaic,
                                     out_filename_figure_animation="test.gif")
 
 
+generate_animation_from_figures_fun(filenames_figures= unlist(lf_mosaic_plot_fig[1:11]),
+                                    frame_speed=frame_speed,
+                                    format_file=animation_format,
+                                    out_suffix=out_suffix_str,
+                                    out_dir=out_dir,
+                                    out_filename_figure_animation="test2.gif")
 
 #### PLOT ACCURACY METRICS: First test ####
 ##this will be cleaned up later:
 
 #dir_ac_mosaics <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999"
 lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif")
-
-#lf_tmp1 <- lf_tmp[21:24]
-#list_param_plot_raster_mosaic
-lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif",full.names=T)
-#Product assessment
-#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_06142016b.R"
-#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 
 r_mosaiced_ac <- stack(lf_tmp)
 l_dates <- unlist(lapply(1:length(lf_tmp),FUN=extract_date,x=basename(lf_tmp),item_no=14))
