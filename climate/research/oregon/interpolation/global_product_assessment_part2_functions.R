@@ -1,13 +1,14 @@
 ####################################  INTERPOLATION OF TEMPERATURES  #######################################
 #######################  Assessment of product part 2 functions: mosaic and accuracy ##############################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
-#This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie.
+#This part 2 of the product assessment focuses on graphics to explore the spatial patterns of raster times series as figures.
+#The file contains functions to genrate figures and animation (movie).
 #AUTHOR: Benoit Parmentier 
-#CREATED ON: 05/24/2016  
-#MODIFIED ON: 10/09/2016            
+#CREATED ON: 10/03/2016  
+#MODIFIED ON: 10/10/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
-#COMMENTS: Initial commit, script based on part NASA biodiversity conference 
+#COMMENTS:
 #TODO:
 #1) Add plot broken down by year and region 
 #2) Modify code for overall assessment accross all regions and year
@@ -19,7 +20,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: adding function to generate animation
+##COMMIT: modifying function to generate animation to accept list of files and additional documentation
 
 #################################################################################################
 
@@ -252,18 +253,30 @@ finding_missing_dates <- function(date_start,date_end,list_dates){
 
 #create animation from figures:
 generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60,format_file=".gif",out_suffix="",out_dir=".",out_filename_figure_animation=NULL){
+  #This function generates an animation given a list of files or textfile. The default format is .gif.
+  #The function requires ImageMagick to produce animation.
+  #INPUTS:
+  #1) filenames_figures: list of files as "list" or "character, or file name of a text file containing the list of figures.
+  #2) frame_speed: delay option in constructing the animation, default is 60
+  #3) format_file=".gif"
+  #4) out_suffix=""
+  #5) out_dir=".",
+  #6) out_filename_figure_animation=NUL
+  #OUTPUTS:
+  #
 
   if(is.null(out_filename_figure_animation)){
     #out_filename_figure_movies <- file.path(out_dir,paste("mosaic_movie_",out_suffix_movie,".gif",sep=""))
     out_filename_figure_animation <- file.path(out_dir,paste("animation_frame_",frame_speed,"_",out_suffix,format_file,sep=""))
   }
   
-  if(class(filenames_figures)=="list"){
+  if(class(filenames_figures)=="list" | (length(filenames_figures)>1)){ #if length of object greater than 1 then assume a list of files
     #filename_figures_mosaic <- file.path(out_dir,"mosaic_plot_fig.txt")
     out_filenames_figures <- file.path(out_dir,paste("list_figures_animation_",out_suffix,".txt",sep=""))
     write.table(unlist(filenames_figures),out_filenames_figures,row.names = F,col.names = F,quote = F)
     filenames_figures <- out_filenames_figures
   }
+  
   
   #now generate movie with imageMagick
 
