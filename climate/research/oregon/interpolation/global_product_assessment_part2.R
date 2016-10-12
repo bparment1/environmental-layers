@@ -17,8 +17,7 @@
 #Resolved call issues from R.
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
-#setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
-
+#setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
 #COMMIT: generating animation for reg6 (Australia and South East Asia)
 
 #################################################################################################
@@ -368,7 +367,7 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     #                                    out_filename_figure_animation = "test2_reg6_animation.gif")
 
     #started 17.36 Western time on Oct 10 and 18.18
-    #        15.58                 oct 11 for 
+    #        15.58                 oct 11 for 16.38 for reg6 pred (about 2991)
     out_filename_figure_animation <- generate_animation_from_figures_fun(filenames_figures = filenames_figures_mosaic,
                                         frame_speed = frame_speed,
                                         format_file = animation_format,
