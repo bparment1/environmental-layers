@@ -248,7 +248,7 @@ finding_missing_dates <- function(date_start,date_end,list_dates){
 
   missing_dates_obj <- list(missing_dates,df_dates)
   names(missing_dates_obj) <- c("missing_dates","df_dates")
-  return(missing_dates)
+  return(missing_dates_obj)
 }
 
 #create animation from figures:
