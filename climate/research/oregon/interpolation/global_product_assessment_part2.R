@@ -149,7 +149,7 @@ num_cores <- 11 #number of cores used # param 13, arg 8
 python_bin <- "/usr/bin" #PARAM 30
 
 day_start <- "1984101" #PARAM 12 arg 12
-day_end <- "19991231" #PARAM 13 arg 13
+day_end <- "20141231" #PARAM 13 arg 13
 #date_start <- day_start
 #date_end <- day_end
 
@@ -180,6 +180,7 @@ NA_flag_val_mosaic <- -32768
 in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
 countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
 lf_raster <- NULL #list of raster to consider
+item_no <- 13
 
 ##################### START SCRIPT #################
 
@@ -210,11 +211,99 @@ if(is.null(lf_raster)){
   r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
 }
 
+#### check for missing dates from list of tif
+
+###This should be a function!!
+
+#####  This could be moved in a separate file!!
+###############  PART4: Checking for mosaic produced for given region ##############
+## From list of mosaic files predicted extract dates
+## Check dates predicted against date range for a given date range
+## Join file information to centroids of tiles data.frame
+#list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
+#list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)                         
+item_no <- 13
+date_start <- day_start
+date_end <- day_end
+#day_start <- "1984101" #PARAM 12 arg 12
+#day_end <- "20141231" #PARAM 13 arg 13
+
+check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",date_end="20141231",item_no=13,out_suffix=""){
+  #Function to check for missing files such as mosaics or predictions for tiles etc.
+  #The function assumes the name of the files contain "_".
+  #INPUTS:
+  #lf
+  #pattern_str
+  #in_dir
+  #date_start
+  #date_end
+  #item_no
+  #out_suffix
+  #OUTPUTS
+  #
+  #
+  
+  ##### Start script #####
+  
+  out_dir <- in_dir
+  
+  list_dates_produced <- unlist(mclapply(1:length(lf),
+                                         FUN = extract_date,
+                                         x = lf,
+                                         item_no = item_no,
+                                         mc.preschedule = FALSE,
+                                         mc.cores = num_cores))
+  
+  list_dates_produced_date_val <- as.Date(strptime(list_dates_produced, "%Y%m%d"))
+  month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
+  year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
+  day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
+  df_files <- data.frame(lf = basename(lf),
+                          date = list_dates_produced_date_val,
+                          month_str = month_str,
+                          year = year_str,
+                          day = day_str,
+                          dir = dirname(lf))
+  
+  df_files_fname <- file.path(out_dir, paste0("df_files_", out_suffix, ".txt"))
+  write.table(df_files,file = df_files_fname,sep = ",",row.names = F)
+  
+  #undebug(finding_missing_dates )
+  missing_dates_obj <- finding_missing_dates (date_start,date_end,list_dates_produced_date_val)
+  
+  df_time_series <- missing_dates_obj$df_dates
+  df_time_series$date <- as.character(df_time_series$date)  
+  df_files$date <- as.character(df_files$date)
+  
+  df_time_series <- merge(df_time_series,df_files,by="date",all=T) #outer join to keep missing dates
+  
+  df_time_series$month_str <- format(as.Date(df_time_series$date), "%b") ## Month, char, abbreviated
+  df_time_series$year_str <- format(as.Date(df_time_series$date), "%Y") ## Year with century
+  df_time_series$day <- as.numeric(format(as.Date(df_time_series$date), "%d")) ## numeric month
+  
+  df_time_series_fname <- file.path(out_dir,paste0("df_time_series_",out_suffix,".txt")) #add the name of var later (tmax)
+  write.table(df_time_series,file= df_time_series_fname,sep=",",row.names = F) 
+  
+  df_time_series_obj <- list(df_raster_fname,df_time_series_fname,df_time_series)
+  names(df_time_series_obj) <- c("df_raster_fname","df_time_series_fname","df_time_series")
+  
+  ## report in text file missing by year and list of dates missing in separate textfile!!
+  return(df_time_series_obj)
+}
+
+
+#####
 NAvalue(r_stack)
 plot(r_stack,y=6,zlim=c(-10000,10000)) #this is not rescaled
 #plot(r_stack,zlim=c(-50,50),col=matlab.like(255))
 var_name <- "dailyTmax"
-debug(plot_and_animate_raster_time_series)
+
+
+
+
+
+
+#debug(plot_and_animate_raster_time_series)
 
 metric_name <- "var_pred" #use RMSE if accuracy
 #df_raster <- read.table("df_raster_global_assessment_reg6_10102016.txt",sep=",",header=T)
@@ -234,155 +323,6 @@ plot_and_animate_raster_time_series(lf_raster=lf_raster,
                                     out_suffix=out_suffix,
                                     out_dir=out_dir)
 
-## Create function here:
-
-plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,var_name,metric_name,NA_flag_val,filenames_figures=NULL,frame_speed=60,animation_format=".gif",zlim_val=NULL,plot_figure=T,generate_animation=T,num_cores=2,out_suffix="",out_dir="."){
-  #Function to generate figures and animation for a list of raster
-  #
-  #
-  #INPUTS
-  #1) lf_raster
-  #2) filenames_figures
-  #2) NAvalue
-  #3) item_no
-  #4) region_name,
-  #5) var_name
-  #6) metric_name
-  #7) frame_speed
-  #8) animation_format
-  #9) zlim_val
-  #10) plot_figure
-  #11) generate_animation
-  #12) num_cores
-  #13) out_suffix
-  #14) out_dir
-  #OUTPUTS
-  #
-  #
-  
-
-  
-  #lf_mosaic_list <- lf_raster
-  variable_name <- var_name
-  
-  if(!is.null(plot_figure)){
-    #item_no <- 13
-    list_dates_produced <- unlist(mclapply(1:length(lf_raster),
-                                           FUN = extract_date,
-                                           x = lf_raster,
-                                           item_no = item_no,
-                                           mc.preschedule = FALSE,
-                                           mc.cores = num_cores))
-
-    list_dates_produced_date_val <- as.Date(strptime(list_dates_produced, "%Y%m%d"))
-    month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
-    year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
-    day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
-    df_raster <- data.frame(lf = basename(lf_raster),
-                          date = list_dates_produced_date_val,
-                          month_str = month_str,
-                          year = year_str,
-                          day = day_str,
-                          dir = dirname(lf_raster))
-
-    df_raster_fname <- file.path(out_dir, paste0("df_raster_", out_suffix, ".txt"))
-    write.table(df_raster,file = df_raster_fname,sep = ",",row.names = F)
-    
-    ############### PART5: Make raster stack and display maps #############
-    #### Extract corresponding raster for given dates and plot
-
-    r_stack <- stack(lf_raster,quick=T)
-    l_dates <- list_dates_produced_date_val #[1:11]
-
-    #undebug(plot_raster_mosaic)
-    zlim_val <- zlim_val
-
-    ### Now run for the full time series
-    #13.26 Western time: start
-    #l_dates <- list_dates_produced_date_val
-    #r_stack_subset <- r_stack
-    #zlim_val <- NULL
-    out_suffix_str <- paste0(var_name,"_",metric_name,"_",out_suffix)
-    list_param_plot_raster_mosaic <- list(l_dates,r_stack,NA_flag_val,out_dir,
-                                          out_suffix_str,region_name,variable_name,zlim_val)
-    names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir",
-                                              "out_suffix", "region_name","variable_name","zlim_val")
-  
-    #lf_mosaic_plot_fig <- mclapply(1:length(l_dates[1:11]),
-    #                               FUN = plot_raster_mosaic,
-    #                               list_param = list_param_plot_raster_mosaic,
-    #                               mc.preschedule = FALSE,
-    #                               mc.cores = num_cores)
-    
-    ##start at 12.29
-    ##finished at 15.23 (for reg 6 with 2,991 figures)
-    lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
-                                   FUN = plot_raster_mosaic,
-                                   list_param = list_param_plot_raster_mosaic,
-                                   mc.preschedule = FALSE,
-                                   mc.cores = num_cores)
-    
-    if (is.null(zlim_val)) {
-      out_suffix_movie <- paste("min_max_", out_suffix_str, sep = "")
-    } else{
-      zlim_val_str <- paste(zlim_val, sep = "_", collapse = "_")
-      out_suffix_movie <- paste(zlim_val_str, "_", out_suffix, sep = "")
-    }
-    filenames_figures_mosaic <- paste0("list_figures_animation_", out_suffix_movie, ".txt")
-
-    write.table(unlist(lf_mosaic_plot_fig),filenames_figures_mosaic,row.names = F,col.names = F,quote = F)
-    
-  }
-  
-  ### Part 2 generate movie
-  
-  if(generate_animation==TRUE){
-    
-    out_suffix_str <- paste0(var_name,"_",metric_name,"_",out_suffix)
-
-    if (is.null(zlim_val)) {
-      out_suffix_movie <- paste("min_max_", out_suffix, sep = "")
-    } else{
-      zlim_val_str <- paste(zlim_val, sep = "_", collapse = "_")
-      out_suffix_movie <- paste(zlim_val_str, "_", out_suffix, sep = "")
-    }
-
-    #already provided as a parameter
-    #filenames_figures_mosaic <- paste0("list_figures_animation_", out_suffix_movie, ".txt")
-    #write.table(unlist(lf_mosaic_plot_fig),filenames_figures_mosaic,row.names = F,col.names = F,quote = F)
-
-    #now generate movie with imageMagick
-    #frame_speed <- 60
-    #animation_format <- ".gif"
-    #out_suffix_str <- out_suffix
-    #started
-    #debug(generate_animation_from_figures_fun)
-    #lf_mosaic_plot_fig <- read.table(filenames_figure,sep=",")
-    
-    #out_filename_figure_animation <- generate_animation_from_figures_fun(filenames_figures = unlist(lf_mosaic_plot_fig[1:11]),
-    #                                    frame_speed = frame_speed,
-    #                                    format_file = animation_format,
-    #                                    out_suffix = out_suffix_str,
-    #                                    out_dir = out_dir,
-    #                                    out_filename_figure_animation = "test2_reg6_animation.gif")
-
-    #started 17.36 Western time on Oct 10 and 18.18
-    #        15.58                 oct 11 for 16.38 for reg6 pred (about 2991)
-    out_filename_figure_animation <- generate_animation_from_figures_fun(filenames_figures = filenames_figures_mosaic,
-                                        frame_speed = frame_speed,
-                                        format_file = animation_format,
-                                        out_suffix = out_suffix_movie,
-                                        out_dir = out_dir,
-                                        out_filename_figure_animation = NULL)
-  }
-  
-  ## prepare object to return
-  
-  figure_animation_obj <- list(filenames_figures_mosaic,out_filename_figure_animation)
-  names(figure_animation_obj) <- c("filenames_figures_mosaic","out_filename_figure_animation")
-  return(figure_animation_obj)
-
-}
 
 ############ Now accuracy
 #### PLOT ACCURACY METRICS: First test ####
