@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/10/2016            
+#MODIFIED ON: 10/19/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -18,7 +18,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: generating animation for reg6 (Australia and South East Asia)
+#COMMIT: moving check missing function and testing it
 
 #################################################################################################
 
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10102016b.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10192016.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -128,6 +128,7 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
 in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
 in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
+#/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic
 
 region_name <- c("reg6") #param 6, arg 3
 out_suffix <- "global_assessment_reg6_10102016"
@@ -197,7 +198,8 @@ if (create_out_dir_param == TRUE) {
 
 ###########  ####################
 
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic"
+############ Using predicting first ##########
+
 ## using predictions
 if(is.null(lf_raster)){
   
@@ -228,80 +230,31 @@ date_end <- day_end
 #day_start <- "1984101" #PARAM 12 arg 12
 #day_end <- "20141231" #PARAM 13 arg 13
 
-check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",date_end="20141231",item_no=13,out_suffix=""){
-  #Function to check for missing files such as mosaics or predictions for tiles etc.
-  #The function assumes the name of the files contain "_".
-  #INPUTS:
-  #lf
-  #pattern_str
-  #in_dir
-  #date_start
-  #date_end
-  #item_no
-  #out_suffix
-  #OUTPUTS
-  #
-  #
+debug(check_missing)
+test_missing <- check_missing(lf=lf_raster, 
+                              pattern_str=NULL,
+                              in_dir=".",
+                              date_start="1984101",
+                              date_end="20141231",
+                              item_no=13,
+                              out_suffix="")
   
-  ##### Start script #####
-  
-  out_dir <- in_dir
-  
-  list_dates_produced <- unlist(mclapply(1:length(lf),
-                                         FUN = extract_date,
-                                         x = lf,
-                                         item_no = item_no,
-                                         mc.preschedule = FALSE,
-                                         mc.cores = num_cores))
-  
-  list_dates_produced_date_val <- as.Date(strptime(list_dates_produced, "%Y%m%d"))
-  month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
-  year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
-  day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
-  df_files <- data.frame(lf = basename(lf),
-                          date = list_dates_produced_date_val,
-                          month_str = month_str,
-                          year = year_str,
-                          day = day_str,
-                          dir = dirname(lf))
-  
-  df_files_fname <- file.path(out_dir, paste0("df_files_", out_suffix, ".txt"))
-  write.table(df_files,file = df_files_fname,sep = ",",row.names = F)
-  
-  #undebug(finding_missing_dates )
-  missing_dates_obj <- finding_missing_dates (date_start,date_end,list_dates_produced_date_val)
-  
-  df_time_series <- missing_dates_obj$df_dates
-  df_time_series$date <- as.character(df_time_series$date)  
-  df_files$date <- as.character(df_files$date)
-  
-  df_time_series <- merge(df_time_series,df_files,by="date",all=T) #outer join to keep missing dates
-  
-  df_time_series$month_str <- format(as.Date(df_time_series$date), "%b") ## Month, char, abbreviated
-  df_time_series$year_str <- format(as.Date(df_time_series$date), "%Y") ## Year with century
-  df_time_series$day <- as.numeric(format(as.Date(df_time_series$date), "%d")) ## numeric month
-  
-  df_time_series_fname <- file.path(out_dir,paste0("df_time_series_",out_suffix,".txt")) #add the name of var later (tmax)
-  write.table(df_time_series,file= df_time_series_fname,sep=",",row.names = F) 
-  
-  df_time_series_obj <- list(df_raster_fname,df_time_series_fname,df_time_series)
-  names(df_time_series_obj) <- c("df_raster_fname","df_time_series_fname","df_time_series")
-  
-  ## report in text file missing by year and list of dates missing in separate textfile!!
-  return(df_time_series_obj)
-}
+test_missing <- check_missing(lf=lf_raster, 
+                              pattern_str=NULL,
+                              in_dir=".",
+                              date_start="1984101",
+                              date_end="20141231",
+                              item_no=13,
+                              out_suffix="")
 
+#############################
+##### Creating animation based on prediction
 
 #####
 NAvalue(r_stack)
 plot(r_stack,y=6,zlim=c(-10000,10000)) #this is not rescaled
 #plot(r_stack,zlim=c(-50,50),col=matlab.like(255))
 var_name <- "dailyTmax"
-
-
-
-
-
 
 #debug(plot_and_animate_raster_time_series)
 
@@ -322,7 +275,6 @@ plot_and_animate_raster_time_series(lf_raster=lf_raster,
                                     num_cores=num_cores,
                                     out_suffix=out_suffix,
                                     out_dir=out_dir)
-
 
 ############ Now accuracy
 #### PLOT ACCURACY METRICS: First test ####
