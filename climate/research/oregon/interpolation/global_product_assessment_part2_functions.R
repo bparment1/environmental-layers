@@ -5,7 +5,7 @@
 #The file contains functions to genrate figures and animation (movie).
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/10/2016            
+#MODIFIED ON: 10/19/2016            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS:
@@ -250,6 +250,70 @@ finding_missing_dates <- function(date_start,date_end,list_dates){
   names(missing_dates_obj) <- c("missing_dates","df_dates")
   return(missing_dates_obj)
 }
+
+check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",date_end="20141231",item_no=13,out_suffix=""){
+  #Function to check for missing files such as mosaics or predictions for tiles etc.
+  #The function assumes the name of the files contain "_".
+  #INPUTS:
+  #lf
+  #pattern_str
+  #in_dir
+  #date_start
+  #date_end
+  #item_no
+  #out_suffix
+  #OUTPUTS
+  #
+  #
+  
+  ##### Start script #####
+  
+  out_dir <- in_dir
+  
+  list_dates_produced <- unlist(mclapply(1:length(lf),
+                                         FUN = extract_date,
+                                         x = lf,
+                                         item_no = item_no,
+                                         mc.preschedule = FALSE,
+                                         mc.cores = num_cores))
+  
+  list_dates_produced_date_val <- as.Date(strptime(list_dates_produced, "%Y%m%d"))
+  month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
+  year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
+  day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
+  df_files <- data.frame(lf = basename(lf),
+                         date = list_dates_produced_date_val,
+                         month_str = month_str,
+                         year = year_str,
+                         day = day_str,
+                         dir = dirname(lf))
+  
+  df_files_fname <- file.path(out_dir, paste0("df_files_", out_suffix, ".txt"))
+  write.table(df_files,file = df_files_fname,sep = ",",row.names = F)
+  
+  #undebug(finding_missing_dates )
+  missing_dates_obj <- finding_missing_dates (date_start,date_end,list_dates_produced_date_val)
+  
+  df_time_series <- missing_dates_obj$df_dates
+  df_time_series$date <- as.character(df_time_series$date)  
+  df_files$date <- as.character(df_files$date)
+  
+  df_time_series <- merge(df_time_series,df_files,by="date",all=T) #outer join to keep missing dates
+  
+  df_time_series$month_str <- format(as.Date(df_time_series$date), "%b") ## Month, char, abbreviated
+  df_time_series$year_str <- format(as.Date(df_time_series$date), "%Y") ## Year with century
+  df_time_series$day <- as.numeric(format(as.Date(df_time_series$date), "%d")) ## numeric month
+  
+  df_time_series_fname <- file.path(out_dir,paste0("df_time_series_",out_suffix,".txt")) #add the name of var later (tmax)
+  write.table(df_time_series,file= df_time_series_fname,sep=",",row.names = F) 
+  
+  df_time_series_obj <- list(df_raster_fname,df_time_series_fname,df_time_series)
+  names(df_time_series_obj) <- c("df_raster_fname","df_time_series_fname","df_time_series")
+  
+  ## report in text file missing by year and list of dates missing in separate textfile!!
+  return(df_time_series_obj)
+}
+
 
 #create animation from figures:
 generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60,format_file=".gif",out_suffix="",out_dir=".",out_filename_figure_animation=NULL){
