@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10192016.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10192016b.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -230,6 +230,10 @@ date_end <- day_end
 #day_start <- "1984101" #PARAM 12 arg 12
 #day_end <- "20141231" #PARAM 13 arg 13
 
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10192016b.R"
+source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
+
+#Using default values for parameters
 debug(check_missing)
 test_missing <- check_missing(lf=lf_raster, 
                               pattern_str=NULL,
@@ -237,8 +241,12 @@ test_missing <- check_missing(lf=lf_raster,
                               date_start="1984101",
                               date_end="20141231",
                               item_no=13,
-                              out_suffix="")
+                              out_suffix="",
+                              num_cores=1,
+                              out_dir=".")
   
+##Run this on reg4 and reg5 after
+#Using specified values for parameters
 test_missing <- check_missing(lf=lf_raster, 
                               pattern_str=NULL,
                               in_dir=".",
