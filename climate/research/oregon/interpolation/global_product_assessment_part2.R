@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/19/2016            
+#MODIFIED ON: 10/20/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -18,7 +18,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: moving check missing function and testing it
+#COMMIT: checking missing files for region 5 with check_missing function 
 
 #################################################################################################
 
@@ -127,16 +127,16 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 #in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
 in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
-#/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic
+#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic"
 
-region_name <- c("reg6") #param 6, arg 3
-out_suffix <- "global_assessment_reg6_10102016"
+region_name <- c("reg4") #param 6, arg 3
+out_suffix <- "global_assessment_reg4_10102016"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
 
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
+out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 
@@ -156,15 +156,15 @@ day_end <- "20141231" #PARAM 13 arg 13
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 #infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
-infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg6.tif"
+infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 list_year_predicted <- "1984,2014"
 scaling <- 0.01 #was scaled on 100 
 #if scaling is null then perform no scaling!!
 
-#df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg5_1999/df_centroids_19990701_reg5_1999.txt"
-df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaic/output_reg6_1984/df_centroids_19840101_reg6_1984.txt"
+df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
+#df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaic/output_reg6_1984/df_centroids_19840101_reg6_1984.txt"
 #/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt
 
 #dates to plot and analyze
@@ -233,27 +233,36 @@ date_end <- day_end
 function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10192016b.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
-#Using default values for parameters
-debug(check_missing)
+#Using default values for parameters exectpt for num_cores=11 instead of 1
+#debug(check_missing)
 test_missing <- check_missing(lf=lf_raster, 
                               pattern_str=NULL,
-                              in_dir=".",
+                              in_dir=".", #this is not used if lf is given
                               date_start="1984101",
                               date_end="20141231",
                               item_no=13,
                               out_suffix="",
-                              num_cores=1,
+                              num_cores=num_cores,
                               out_dir=".")
   
 ##Run this on reg4 and reg5 after
+#Add report by year in text file?
 #Using specified values for parameters
 test_missing <- check_missing(lf=lf_raster, 
                               pattern_str=NULL,
-                              in_dir=".",
+                              in_dir=in_dir_mosaic,
                               date_start="1984101",
                               date_end="20141231",
                               item_no=13,
-                              out_suffix="")
+                              out_suffix=out_suffix,
+                              num_cores=num_cores,
+                              out_dir=".")
+
+df_time_series <- test_missing$df_time_series
+head(df_time_series)
+
+table(df_time_series$missing)
+table(df_time_series$year)
 
 #############################
 ##### Creating animation based on prediction
