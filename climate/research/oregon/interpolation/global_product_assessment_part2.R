@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/21/2016            
+#MODIFIED ON: 10/22/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -18,7 +18,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: checking missing files for region 5 with check_missing function 
+#COMMIT: generating animation for region 5 with and without range limit 
 
 #################################################################################################
 
@@ -128,10 +128,10 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
 in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaics/mosaic"
+#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
 in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaics/mosaic"
 region_name <- c("reg5") #param 6, arg 3
-out_suffix <- "global_assessment_reg5_10102016"
+out_suffix <- "global_assessment_reg5_10222016"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
@@ -171,7 +171,7 @@ df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/r
 #dates to plot and analyze
 
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
-l_dates <- c("19990101","19990102","19990103","19990104","19990105") 
+#l_dates <- c("19990101","19990102","19990103","19990104","19990105") 
 #df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/data_points_extracted.txt"
 df_points_extracted_fname <- NULL #if null extract on the fly
 #r_mosaic_fname <- "r_mosaic.RData"
@@ -230,15 +230,15 @@ source(file.path(script_path,function_product_assessment_part2_functions)) #sour
 
 #Using default values for parameters exectpt for num_cores=11 instead of 1
 #debug(check_missing)
-test_missing <- check_missing(lf=lf_raster, 
-                              pattern_str=NULL,
-                              in_dir=".", #this is not used if lf is given
-                              date_start="1984101",
-                              date_end="20141231",
-                              item_no=13,
-                              out_suffix="",
-                              num_cores=num_cores,
-                              out_dir=".")
+#test_missing <- check_missing(lf=lf_raster, 
+#                              pattern_str=NULL,
+#                              in_dir=".", #this is not used if lf is given
+#                              date_start="1984101",
+#                              date_end="20141231",
+#                              item_no=13,
+#                              out_suffix="",
+#                              num_cores=num_cores,
+#                              out_dir=".")
   
 ##Run this on reg4 and reg5 after
 #Add report by year in text file?
@@ -273,136 +273,23 @@ var_name <- "dailyTmax"
 metric_name <- "var_pred" #use RMSE if accuracy
 #df_raster <- read.table("df_raster_global_assessment_reg6_10102016.txt",sep=",",header=T)
 #plot_figure <- 
-plot_and_animate_raster_time_series(lf_raster=lf_raster,
-                                    NAvalue=NA_flag_val, 
-                                    item_no=13,
-                                    region_name=region_name,
-                                    var_name=var_name,
-                                    metric_name=metric_name,
-                                    frame_speed=frame_speed,
-                                    animation_format=animation_format,
-                                    zlim_val=NULL,
-                                    plot_figure=F,
-                                    generate_animation=T,
-                                    num_cores=num_cores,
-                                    out_suffix=out_suffix,
-                                    out_dir=out_dir)
+debug(plot_and_animate_raster_time_series)
 
-############ Now accuracy
-#### PLOT ACCURACY METRICS: First test ####
-##this will be cleaned up later:
-
-in_dir_mosaic_RMSE <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaicsRMSE/mosaic"
-pattern_str <-"*.tif"
-in_dir_mosaic <- in_dir_mosaic_RMSE
-lf_raster_rmse <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
-lf_raster <- lf_raster_rmse
-r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
-#save(r_mosaic,file="r_mosaic.RData")
-
-NAvalue(r_stack)
-plot(r_stack,y=6,zlim=c(0,8000)) #this is not rescaled
-
-lf_mosaic_list <- lf_raster
-list_dates_produced_RMSE <-  mclapply(1:2,
-                                 FUN=extract_date,
-                                 x=lf_mosaic_list,
-                                 item_no=15,
-                                 mc.preschedule=FALSE,
-                                 mc.cores = 2)  
-item_no <-15
-list_dates_produced_RMSE <- unlist(mclapply(1:length(lf_raster),
-                                       FUN=extract_date,
-                                       x=lf_raster,
-                                       item_no=item_no,
-                                       mc.preschedule=FALSE,
-                                       mc.cores = num_cores))                         
-
-list_dates_produced_date_val <- as.Date(strptime(list_dates_produced_RMSE,"%Y%m%d"))
-month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
-year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
-day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
-
-df_raster_rmse <- data.frame(lf=basename(lf_raster),
-                          date=list_dates_produced_date_val,
-                          month_str=month_str,
-                          year=year_str,
-                          day=day_str,
-                          dir=dirname(lf_mosaic_list))
-
-df_raster_fname <- file.path(out_dir,paste0("df_raster_rmse",out_suffix,".txt"))
-write.table(df_raster,file= df_raster_fname,sep=",",row.names = F) 
-
-
-r_stack_subset <- subset(r_stack,1:11)
-l_dates <- list_dates_produced_date_val[1:11]
-
-#undebug(plot_raster_mosaic)
-out_suffix_str <- paste0("rmse_",out_suffix)
-
-zlim_val <- NULL
-##Need to add title option!!
-list_param_plot_raster_mosaic <- list(l_dates,r_stack_subset,NA_flag_val,out_dir,out_suffix_str,
-                                      region_name,variable_name, zlim_val)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name","zlim_val")
-lf_mosaic_plot_fig <- lapply(1:2,
-                               FUN=plot_raster_mosaic,
-                               list_param=list_param_plot_raster_mosaic)         
-
-### Now run for the full time series
-#13.26 Western time: start
-l_dates <- list_dates_produced_date_val
-r_stack_subset <- r_stack
-zlim_val <- NULL
-list_param_plot_raster_mosaic <- list(l_dates,r_stack_subset,NA_flag_val,out_dir,out_suffix,
-                                      region_name,variable_name, zlim_val)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name","zlim_val")
-#started at 20.16 on 10/10/2016, finished 22.39
-lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
-                               FUN=plot_raster_mosaic,
-                               list_param=list_param_plot_raster_mosaic,
-                               mc.preschedule=FALSE,
-                               mc.cores = num_cores)  
-
-
-if(is.null(zlim_val)){
-  out_suffix_movie <- paste("min_max_",out_suffix,sep="")
-}else{
-  zlim_val_str <- paste(zlim_val,sep="_",collapse="_")
-  out_suffix_movie <- paste(zlim_val_str,"_",out_suffix,sep="")
-}
-#r_stack_subset <- subset(r_stack,1:11)
-#l_dates <- list_dates_produced_date_val[1:11]
-
-filenames_figures_mosaic_test <- "list_figures_animation_test_reg6.txt"
-
-write.table(unlist(lf_mosaic_plot_fig[1:11]),filenames_figures_mosaic_test,row.names = F,col.names = F,quote = F)
-
-filenames_figures_mosaic <- paste0("list_figures_animation_",out_suffix_movie,".txt")
-
-write.table(unlist(lf_mosaic_plot_fig),filenames_figures_mosaic,row.names = F,col.names = F,quote = F)
-
-#now generate movie with imageMagick
-frame_speed <- 60
-animation_format <- ".gif"
-out_suffix_str <- out_suffix
-out_suffix_movie <- paste0("rmse_",out_suffix_movie)
-#started: 
-
-generate_animation_from_figures_fun(filenames_figures= unlist(lf_mosaic_plot_fig[1:11]),
-                                    frame_speed=frame_speed,
-                                    format_file=animation_format,
-                                    out_suffix=out_suffix_str,
-                                    out_dir=out_dir,
-                                    out_filename_figure_animation="test2_reg6_animation.gif")
-#started 6.43 Western time on Oct 11 and 7.19
-generate_animation_from_figures_fun(filenames_figures= filenames_figures_mosaic,
-                                    frame_speed=frame_speed,
-                                    format_file=animation_format,
-                                    out_suffix=out_suffix_movie,
-                                    out_dir=out_dir,
-                                    out_filename_figure_animation=NULL)
+animation_obj <- plot_and_animate_raster_time_series(lf_raster[1:11], 
+                                                     item_no,
+                                                     region_name,
+                                                     var_name,
+                                                     metric_name,
+                                                     NA_flag_val,
+                                                     filenames_figures=NULL,
+                                                     frame_speed=60,
+                                                     animation_format=".gif",
+                                                     zlim_val=NULL,
+                                                     plot_figure=T,
+                                                     generate_animation=T,
+                                                     num_cores=num_cores,
+                                                     out_suffix="",
+                                                     out_dir=".")
+  
 
 ############################ END OF SCRIPT ##################################
