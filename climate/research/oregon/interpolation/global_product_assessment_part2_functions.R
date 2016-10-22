@@ -20,7 +20,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: modifying function to generate animation to accept list of files and additional documentation
+##COMMIT: modifying function to check missing files and dates for predictions and others
 
 #################################################################################################
 
@@ -251,17 +251,19 @@ finding_missing_dates <- function(date_start,date_end,list_dates){
   return(missing_dates_obj)
 }
 
-check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",date_end="20141231",item_no=13,out_suffix=""){
+check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",date_end="20141231",item_no=13,out_suffix="",num_cores=1,out_dir="."){
   #Function to check for missing files such as mosaics or predictions for tiles etc.
   #The function assumes the name of the files contain "_".
   #INPUTS:
-  #lf
-  #pattern_str
-  #in_dir
-  #date_start
-  #date_end
-  #item_no
-  #out_suffix
+  #1) lf
+  #2) pattern_str
+  #3) in_dir
+  #4) date_start
+  #5) date_end
+  #6) item_no
+  #7) num_cores
+  #8) out_suffix
+  #9) out_dir
   #OUTPUTS
   #
   #
@@ -307,8 +309,8 @@ check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",d
   df_time_series_fname <- file.path(out_dir,paste0("df_time_series_",out_suffix,".txt")) #add the name of var later (tmax)
   write.table(df_time_series,file= df_time_series_fname,sep=",",row.names = F) 
   
-  df_time_series_obj <- list(df_raster_fname,df_time_series_fname,df_time_series)
-  names(df_time_series_obj) <- c("df_raster_fname","df_time_series_fname","df_time_series")
+  df_time_series_obj <- list(df_time_series_fname,df_time_series_fname,df_time_series)
+  names(df_time_series_obj) <- c("df_time_series_fname","df_time_series_fname","df_time_series")
   
   ## report in text file missing by year and list of dates missing in separate textfile!!
   return(df_time_series_obj)
