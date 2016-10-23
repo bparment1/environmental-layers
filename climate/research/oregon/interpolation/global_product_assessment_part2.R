@@ -18,7 +18,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: generating animation for region 5 with and without range limit 
+#COMMIT: generating animation for region 5 for multiple years sequences
 
 #################################################################################################
 
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10192016b.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -225,9 +225,6 @@ date_end <- day_end
 #day_start <- "1984101" #PARAM 12 arg 12
 #day_end <- "20141231" #PARAM 13 arg 13
 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10192016b.R"
-source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
-
 #Using default values for parameters exectpt for num_cores=11 instead of 1
 #debug(check_missing)
 #test_missing <- check_missing(lf=lf_raster, 
@@ -273,9 +270,21 @@ var_name <- "dailyTmax"
 metric_name <- "var_pred" #use RMSE if accuracy
 #df_raster <- read.table("df_raster_global_assessment_reg6_10102016.txt",sep=",",header=T)
 #plot_figure <- 
-debug(plot_and_animate_raster_time_series)
+#function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
+#source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
-animation_obj <- plot_and_animate_raster_time_series(lf_raster[1:11], 
+#undebug(plot_and_animate_raster_time_series)
+range_year <- c(1984,1985)
+subset_df_time_series <- subset(df_time_series,year%in% range_year)
+subset_df_time_series <- subset_df_time_series[!is.na(subset_df_time_series$lf),]
+
+lf_subset <- file.path(subset_df_time_series$dir,subset_df_time_series$lf)
+range_year_str <- paste(range_year, sep = "_", collapse = "_")
+
+out_suffix_str <- paste(range_year_str,out_suffix,sep="_")
+
+#started on 10/22/2016 at 9.57
+animation_obj <- plot_and_animate_raster_time_series(lf_subset, 
                                                      item_no,
                                                      region_name,
                                                      var_name,
@@ -288,8 +297,24 @@ animation_obj <- plot_and_animate_raster_time_series(lf_raster[1:11],
                                                      plot_figure=T,
                                                      generate_animation=T,
                                                      num_cores=num_cores,
-                                                     out_suffix="",
-                                                     out_dir=".")
+                                                     out_suffix=out_suffix_str,
+                                                     out_dir=out_dir)
   
+zlim_val <- c(-2000,5000)
+animation_obj <- plot_and_animate_raster_time_series(lf_subset, 
+                                                     item_no,
+                                                     region_name,
+                                                     var_name,
+                                                     metric_name,
+                                                     NA_flag_val,
+                                                     filenames_figures=NULL,
+                                                     frame_speed=60,
+                                                     animation_format=".gif",
+                                                     zlim_val=zlim_val,
+                                                     plot_figure=T,
+                                                     generate_animation=T,
+                                                     num_cores=num_cores,
+                                                     out_suffix=out_suffix_str,
+                                                     out_dir=out_dir)
 
 ############################ END OF SCRIPT ##################################
