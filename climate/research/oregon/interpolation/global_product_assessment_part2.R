@@ -119,26 +119,27 @@ interpolation_method<-c("gam_CAI") #param 2
 CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
 #CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
 
-out_region_name<-""
-list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
+#out_region_name<-""
+#list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
+metric_name <- "var_pred" #use RMSE if accuracy
 
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
 #in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
-in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
-#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
+in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaics/mosaic"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic" #note dropped the s in mosaics
+#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic" #note dropped the s in mosaics
 
-region_name <- c("reg4") #param 6, arg 3
-out_suffix <- "global_assessment_reg4_10232016"
+region_name <- c("reg6") #param 6, arg 3
+out_suffix <- "global_assessment_reg6_10232016"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
 
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
+out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 
@@ -158,15 +159,16 @@ day_end <- "20141231" #PARAM 13 arg 13
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 #infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
-infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg6.tif"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
-list_year_predicted <- "1984,2014"
+#list_year_predicted <- "1984,2014"
 scaling <- 0.01 #was scaled on 100 
 #if scaling is null then perform no scaling!!
 
 #df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/output_reg5_1999/df_centroids_19990701_reg5_1999.txt"
-df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
+#df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
 #df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaic/output_reg6_1984/df_centroids_19840101_reg6_1984.txt"
 #/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt
 
@@ -175,9 +177,9 @@ df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/r
 #l_dates <- c("19990101","19990102","19990103","19990701","19990702","19990703")
 #l_dates <- c("19990101","19990102","19990103","19990104","19990105") 
 #df_points_extracted_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/int_mosaics/data_points_extracted.txt"
-df_points_extracted_fname <- NULL #if null extract on the fly
+#df_points_extracted_fname <- NULL #if null extract on the fly
 #r_mosaic_fname <- "r_mosaic.RData"
-r_mosaic_fname <- NULL #if null create a stack from input dir
+#r_mosaic_fname <- NULL #if null create a stack from input dir
 
 #NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
 NA_flag_val_mosaic <- -32768
@@ -269,7 +271,7 @@ var_name <- "dailyTmax"
 
 #debug(plot_and_animate_raster_time_series)
 
-metric_name <- "var_pred" #use RMSE if accuracy
+#metric_name <- "var_pred" #use RMSE if accuracy
 #df_raster <- read.table("df_raster_global_assessment_reg6_10102016.txt",sep=",",header=T)
 #plot_figure <- 
 #function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
@@ -318,6 +320,24 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
                                                      num_cores=num_cores,
                                                      out_suffix=out_suffix_str,
                                                      out_dir=out_dir)
+
+#ffmpeg -i yeay.gif outyeay.mp4
+
+#/Applications/ffmpeg -r 25 -i input%3d.png -vcodec libx264 -x264opts keyint=25 -pix_fmt yuv420p -r 25 ../output.mp4
+
+#ffmpeg -f gif -i file.gif -c:v libx264 outfile.mp4
+
+#ffmpeg -i animation_frame_60_-2500_6000_.gif animation_frame_60_-2500_6000_.mp4
+
+#ffmpeg -i animation_frame_60_-2500_6000_.gif animation_frame_60_-2500_6000_.mp4
+
+#ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts keyint=25 -pix_fmt yuv420p -r 25 outfile.mp4
+#ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts keyint=11 -pix_fmt yuv420p -r 11 outfile.mp4
+
+#ffmpeg -r 10 -i animation_frame_60_-2500_6000_.gif animation.avi
+
+#ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts -pix_fmt yuv420p outfile.mp4
+
 
 
 ############################ END OF SCRIPT ##################################
