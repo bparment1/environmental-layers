@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/22/2016            
+#MODIFIED ON: 10/24/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -18,7 +18,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: generating animation for region 5 for multiple years sequences
+#COMMIT: generating animation for region 4 for multiple years sequences
 
 #################################################################################################
 
@@ -126,17 +126,19 @@ list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 #master directory containing the definition of tile size and tiles predicted
 #in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
-in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
+in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaics/mosaic"
-region_name <- c("reg5") #param 6, arg 3
-out_suffix <- "global_assessment_reg5_10222016"
+#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaics/mosaic"
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic" #note dropped the s in mosaics
+
+region_name <- c("reg4") #param 6, arg 3
+out_suffix <- "global_assessment_reg4_10232016"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
 
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
+out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/assessment"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 
@@ -155,16 +157,16 @@ day_end <- "20141231" #PARAM 13 arg 13
 #date_end <- day_end
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
-infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
-#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
+infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 
 #run_figure_by_year <- TRUE # param 10, arg 7
 list_year_predicted <- "1984,2014"
 scaling <- 0.01 #was scaled on 100 
 #if scaling is null then perform no scaling!!
 
-df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/output_reg5_1999/df_centroids_19990701_reg5_1999.txt"
-#df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
+#df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/output_reg5_1999/df_centroids_19990701_reg5_1999.txt"
+df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999/df_centroids_19990701_reg4_1999.txt"
 #df_centroids_fname <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaic/output_reg6_1984/df_centroids_19840101_reg6_1984.txt"
 #/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt
 
@@ -316,5 +318,6 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
                                                      num_cores=num_cores,
                                                      out_suffix=out_suffix_str,
                                                      out_dir=out_dir)
+
 
 ############################ END OF SCRIPT ##################################
