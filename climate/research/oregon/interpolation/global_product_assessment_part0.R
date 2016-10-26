@@ -338,6 +338,171 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
 
 #ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts -pix_fmt yuv420p outfile.mp4
 
+#combine polygon
+#http://gis.stackexchange.com/questions/155328/merging-multiple-spatialpolygondataframes-into-1-spdf-in-r
 
+#http://gis.stackexchange.com/questions/116388/count-overlapping-polygons-in-single-shape-file-with-r
+
+#### Use the predictions directory
+#By region
+#For each polygon/tile find polygon overlapping with count and ID (like list w)
+#for each polygon/tile and date find if there is a prediction using the tif (multiply number)
+#for each date of year report data in table.
+
+#go through table and hsow if there are missing data (no prediction) or report min predictions for tile set?
+
+############################################
+#### Parameters and constants  
+
+#on ATLAS
+#in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
+#parent output dir : contains subset of the data produced on NEX
+#in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
+# parent output dir for the curent script analyes
+#out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
+# input dir containing shapefiles defining tiles
+#in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
+
+#On NEX
+#contains all data from the run by Alberto
+#in_dir1 <- " /nobackupp6/aguzman4/climateLayers/out_15x45/" #On NEX
+#parent output dir for the current script analyes
+#out_dir <- "/nobackup/bparmen1/" #on NEX
+#in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
+
+#in_dir <- "/data/project/layers/commons/NEX_data/reg4_assessment"
+#list_in_dir_run <-
+#in_dir_list <-  c("output_run_global_analyses_pred_2009_reg4","output_run_global_analyses_pred_2010_reg4",
+#                  "output_run_global_analyses_pred_2011_reg4","output_run_global_analyses_pred_2012_reg4",
+#                  "output_run_global_analyses_pred_2013_reg4","output_run_global_analyses_pred_2014_reg4")
+#in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
+#in_dir <- "" #PARAM 0
+#y_var_name <- "dailyTmax" #PARAM1
+#interpolation_method <- c("gam_CAI") #PARAM2
+#out_suffix <- "global_analyses_overall_assessment_reg4_02072016"
+#out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
+#out_suffix <- "run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM3
+#out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
+#create_out_dir_param <- TRUE #PARAM 5
+#mosaic_plot <- FALSE #PARAM6
+#if daily mosaics NULL then mosaicas all days of the year
+#day_to_mosaic <- c("19920101","19920102","19920103") #PARAM7
+#CRS_WGS84 <-    CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
+#CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
+#proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
+#file_format <- ".rst" #PARAM 9
+#NA_value <- -9999 #PARAM10
+#NA_flag_val <- NA_value
+#multiple_region <- TRUE #PARAM 12
+#region_name <- "world" #PARAM 13
+#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
+#plot_region <- TRUE
+#num_cores <- 6 #PARAM 14
+#region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
+#use previous files produced in step 1a and stored in a data.frame
+#df_assessment_files <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt" #PARAM 17
+#threshold_missing_day <- c(367,365,300,200) #PARM18
+
+#list_param_run_assessment_plottingin_dir <- list(in_dir,y_var_name, interpolation_method, out_suffix, 
+#                      out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_value,
+#                      multiple_region, countries_shp, plot_region, num_cores, 
+#                      region_name, df_assessment_files, threshold_missing_day) 
+
+#names(list_param_run_assessment_plottingin_dir) <- c("in_dir","y_var_name","interpolation_method","out_suffix", 
+#                      "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_value",
+#                      "multiple_region","countries_shp","plot_region","num_cores", 
+#                      "region_name","df_assessment_files","threshold_missing_day") 
+
+#run_assessment_plotting_prediction_fun(list_param_run_assessment_plottingin_dir) 
+
+  ####### PARSE INPUT ARGUMENTS/PARAMETERS #####
+  in_dir_list_filename <- list_param_run_assessment_plotting$in_dir_list_filename #PARAM 0
+  in_dir <- list_param_run_assessment_plotting$in_dir #PARAM 1
+  y_var_name <- list_param_run_assessment_plotting$y_var_name #PARAM2
+  interpolation_method <- list_param_run_assessment_plotting$interpolation_method #c("gam_CAI") #PARAM3
+  out_suffix <- list_param_run_assessment_plotting$out_suffix #PARAM4
+  out_dir <- list_param_run_assessment_plotting$out_dir # PARAM5
+  create_out_dir_param <- list_param_run_assessment_plotting$create_out_dir_param # FALSE #PARAM 6
+  mosaic_plot <- list_param_run_assessment_plotting$mosaic_plot #FALSE #PARAM7
+  proj_str<- list_param_run_assessment_plotting$proj_str #CRS_WGS84 #PARAM 8 #check this parameter
+  file_format <- list_param_run_assessment_plotting$file_format #".rst" #PARAM 9
+  NA_flag_val <- list_param_run_assessment_plotting$NA_flag_val #-9999 #PARAM10
+  multiple_region <- list_param_run_assessment_plotting$multiple_region # <- TRUE #PARAM 11
+  countries_shp <- list_param_run_assessment_plotting$countries_shp #<- "world" #PARAM 12
+  plot_region <- list_param_run_assessment_plotting$plot_region # PARAM13 
+  num_cores <- list_param_run_assessment_plotting$num_cores # 6 #PARAM 14
+  region_name <- list_param_run_assessment_plotting$region_name #<- "world" #PARAM 15
+  #df_assessment_files_name <- list_param_run_assessment_plotting$df_assessment_files_name #PARAM 16
+  threshold_missing_day <- list_param_run_assessment_plotting$threshold_missing_day #PARM17
+  year_predicted <- list_param_run_assessment_plotting$year_predicted
+ 
+  NA_value <- NA_flag_val 
+  metric_name <- "rmse" #to be added to the code later...
+  
+  ##################### START SCRIPT #################
+  
+  ####### PART 1: Read in data ########
+  out_dir <- in_dir
+  if(create_out_dir_param==TRUE){
+    out_dir <- create_dir_fun(out_dir,out_suffix)
+    setwd(out_dir)
+  }else{
+    setwd(out_dir) #use previoulsy defined directory
+  }
+
+  setwd(out_dir)
+  
+  list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
+  list_outfiles_names <- vector("list", length=35) #collect names of output files
+  counter_fig <- 0 #index of figure to collect outputs
+  
+  #i <- year_predicted
+  ###Table 1: Average accuracy metrics
+  ###Table 2: daily accuracy metrics for all tiles
+
+  if(!is.null(in_dir_list_filename)){
+    in_dir_list <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
+  }else{
+    pattern_str <- paste0("^output_",region_name,".*.")
+    in_dir_list_all <- list.dirs(path=in_dir,recursive = T)
+    in_dir_list <- in_dir_list_all[grep(pattern_str,basename(in_dir_list_all),invert=FALSE)] #select directory with shapefiles...
+    #in_dir_shp <- file.path(in_dir_list_all,"shapefiles")
+  }
+  #pattern_str <- file.path(in_dir,paste0("output_",region_name,".*."))
+  #test <- Sys.glob(pattern_str,FALSE)
+  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+  #  #print(searchStr)
+  #  Sys.glob(searchStr)})
+
+  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+  #  #print(searchStr)
+  #  Sys.glob(searchStr)})
+
+  ##Read in data list from in_dir_list
+  #list_tb_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_v_NA_.*.txt",full.names=T)
+  #list_df_fname <- list.files(path=file.path(in_dir,in_dir_list),"df_tile_processed_.*..txt",full.names=T)
+  #list_summary_metrics_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"summary_metrics_v2_NA_.*.txt",full.names=T)
+  #list_tb_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_s_NA.*.txt",full.names=T)
+  #list_tb_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_month_diagnostic_s.*.txt",full.names=T)
+  #list_data_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_month_s.*.txt",full.names=T)
+  #list_data_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_s.*.txt",full.names=T)
+  #list_data_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_v.*.txt",full.names=T)
+  #list_pred_data_month_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_month_info.*.txt",full.names=T)
+  #list_pred_data_day_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_day_info.*.txt",full.names=T)
+  
+  list_tb_fname <- list.files(path=in_dir_list,"tb_diagnostic_v_NA_.*.txt",full.names=T)
+  list_df_fname <- list.files(path=in_dir_list,"df_tile_processed_.*..txt",full.names=T)
+  list_summary_metrics_v_fname <- list.files(path=in_dir_list,"summary_metrics_v2_NA_.*.txt",full.names=T)
+  list_tb_s_fname <- list.files(path=in_dir_list,"tb_diagnostic_s_NA.*.txt",full.names=T)
+  list_tb_month_s_fname <- list.files(path=in_dir_list,"tb_month_diagnostic_s.*.txt",full.names=T)
+  list_data_month_s_fname <- list.files(path=in_dir_list,"data_month_s.*.txt",full.names=T)
+  list_data_s_fname <- list.files(path=in_dir_list,"data_day_s.*.txt",full.names=T)
+  list_data_v_fname <- list.files(path=in_dir_list,"data_day_v.*.txt",full.names=T)
+  list_pred_data_month_info_fname <- list.files(path=in_dir_list,"pred_data_month_info.*.txt",full.names=T)
+  list_pred_data_day_info_fname <- list.files(path=in_dir_list,"pred_data_day_info.*.txt",full.names=T)
+  
+  #need to fix this !! has all of the files in one list (for a region)
+  #list_shp <- list.files(path=file.path(in_dir,file.path(in_dir_list,"shapefiles")),"*.shp",full.names=T)
 
 ############################ END OF SCRIPT ##################################
