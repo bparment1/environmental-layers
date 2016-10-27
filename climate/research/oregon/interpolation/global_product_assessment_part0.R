@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/24/2016            
+#MODIFIED ON: 10/27/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -260,83 +260,6 @@ head(df_time_series)
 table(df_time_series$missing)
 table(df_time_series$year)
 
-#############################
-##### Creating animation based on prediction
-
-#####
-NAvalue(r_stack)
-plot(r_stack,y=6,zlim=c(-10000,10000)) #this is not rescaled
-#plot(r_stack,zlim=c(-50,50),col=matlab.like(255))
-var_name <- "dailyTmax"
-
-#debug(plot_and_animate_raster_time_series)
-
-#metric_name <- "var_pred" #use RMSE if accuracy
-#df_raster <- read.table("df_raster_global_assessment_reg6_10102016.txt",sep=",",header=T)
-#plot_figure <- 
-#function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
-#source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
-
-#undebug(plot_and_animate_raster_time_series)
-range_year <- c(1984,1985)
-subset_df_time_series <- subset(df_time_series,year%in% range_year)
-subset_df_time_series <- subset_df_time_series[!is.na(subset_df_time_series$lf),]
-
-lf_subset <- file.path(subset_df_time_series$dir,subset_df_time_series$lf)
-range_year_str <- paste(range_year, sep = "_", collapse = "_")
-
-out_suffix_str <- paste(range_year_str,out_suffix,sep="_")
-
-#started on 10/22/2016 at 9.57
-animation_obj <- plot_and_animate_raster_time_series(lf_subset, 
-                                                     item_no,
-                                                     region_name,
-                                                     var_name,
-                                                     metric_name,
-                                                     NA_flag_val,
-                                                     filenames_figures=NULL,
-                                                     frame_speed=60,
-                                                     animation_format=".gif",
-                                                     zlim_val=NULL,
-                                                     plot_figure=T,
-                                                     generate_animation=T,
-                                                     num_cores=num_cores,
-                                                     out_suffix=out_suffix_str,
-                                                     out_dir=out_dir)
-  
-zlim_val <- c(-2000,5000)
-animation_obj <- plot_and_animate_raster_time_series(lf_subset, 
-                                                     item_no,
-                                                     region_name,
-                                                     var_name,
-                                                     metric_name,
-                                                     NA_flag_val,
-                                                     filenames_figures=NULL,
-                                                     frame_speed=60,
-                                                     animation_format=".gif",
-                                                     zlim_val=zlim_val,
-                                                     plot_figure=T,
-                                                     generate_animation=T,
-                                                     num_cores=num_cores,
-                                                     out_suffix=out_suffix_str,
-                                                     out_dir=out_dir)
-
-#ffmpeg -i yeay.gif outyeay.mp4
-
-#/Applications/ffmpeg -r 25 -i input%3d.png -vcodec libx264 -x264opts keyint=25 -pix_fmt yuv420p -r 25 ../output.mp4
-
-#ffmpeg -f gif -i file.gif -c:v libx264 outfile.mp4
-
-#ffmpeg -i animation_frame_60_-2500_6000_.gif animation_frame_60_-2500_6000_.mp4
-
-#ffmpeg -i animation_frame_60_-2500_6000_.gif animation_frame_60_-2500_6000_.mp4
-
-#ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts keyint=25 -pix_fmt yuv420p -r 25 outfile.mp4
-#ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts keyint=11 -pix_fmt yuv420p -r 11 outfile.mp4
-
-#ffmpeg -r 10 -i animation_frame_60_-2500_6000_.gif animation.avi
-
-#ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts -pix_fmt yuv420p outfile.mp4
 
 #combine polygon
 #http://gis.stackexchange.com/questions/155328/merging-multiple-spatialpolygondataframes-into-1-spdf-in-r
@@ -365,7 +288,7 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
 
 #On NEX
 #contains all data from the run by Alberto
-#in_dir1 <- " /nobackupp6/aguzman4/climateLayers/out_15x45/" #On NEX
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" #On NEX
 #parent output dir for the current script analyes
 #out_dir <- "/nobackup/bparmen1/" #on NEX
 #in_dir_shp <- "/nobackupp4/aguzman4/climateLayers/output4/subset/shapefiles/"
@@ -376,10 +299,10 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
 #                  "output_run_global_analyses_pred_2011_reg4","output_run_global_analyses_pred_2012_reg4",
 #                  "output_run_global_analyses_pred_2013_reg4","output_run_global_analyses_pred_2014_reg4")
 #in_dir_list_filename <- "/data/project/layers/commons/NEX_data/reg4_assessment/stage6_reg4_in_dir_list_02072016.txt"
-#in_dir <- "" #PARAM 0
-#y_var_name <- "dailyTmax" #PARAM1
-#interpolation_method <- c("gam_CAI") #PARAM2
-#out_suffix <- "global_analyses_overall_assessment_reg4_02072016"
+in_dir <- "" #PARAM 0
+y_var_name <- "dailyTmax" #PARAM1
+interpolation_method <- c("gam_CAI") #PARAM2
+out_suffix <- "predictions_assessment_reg6_10302016"
 #out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
 #out_suffix <- "run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM3
 #out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
@@ -391,118 +314,102 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
 #CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
 #proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
 #file_format <- ".rst" #PARAM 9
-#NA_value <- -9999 #PARAM10
-#NA_flag_val <- NA_value
+NA_value <- -9999 #PARAM10
+NA_flag_val <- NA_value
 #multiple_region <- TRUE #PARAM 12
-#region_name <- "world" #PARAM 13
-#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
+region_name <- "reg6" #PARAM 13
+countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
 #plot_region <- TRUE
-#num_cores <- 6 #PARAM 14
-#region_name <- c("reg4") #reference region to merge if necessary, if world all the regions are together #PARAM 16
-#use previous files produced in step 1a and stored in a data.frame
-#df_assessment_files <- "df_assessment_files_reg4_1984_run_global_analyses_pred_12282015.txt" #PARAM 17
-#threshold_missing_day <- c(367,365,300,200) #PARM18
-
-#list_param_run_assessment_plottingin_dir <- list(in_dir,y_var_name, interpolation_method, out_suffix, 
-#                      out_dir, create_out_dir_param, mosaic_plot, proj_str, file_format, NA_value,
-#                      multiple_region, countries_shp, plot_region, num_cores, 
-#                      region_name, df_assessment_files, threshold_missing_day) 
-
-#names(list_param_run_assessment_plottingin_dir) <- c("in_dir","y_var_name","interpolation_method","out_suffix", 
-#                      "out_dir","create_out_dir_param","mosaic_plot","proj_str","file_format","NA_value",
-#                      "multiple_region","countries_shp","plot_region","num_cores", 
-#                      "region_name","df_assessment_files","threshold_missing_day") 
-
-#run_assessment_plotting_prediction_fun(list_param_run_assessment_plottingin_dir) 
-
-  ####### PARSE INPUT ARGUMENTS/PARAMETERS #####
-  in_dir_list_filename <- list_param_run_assessment_plotting$in_dir_list_filename #PARAM 0
-  in_dir <- list_param_run_assessment_plotting$in_dir #PARAM 1
-  y_var_name <- list_param_run_assessment_plotting$y_var_name #PARAM2
-  interpolation_method <- list_param_run_assessment_plotting$interpolation_method #c("gam_CAI") #PARAM3
-  out_suffix <- list_param_run_assessment_plotting$out_suffix #PARAM4
-  out_dir <- list_param_run_assessment_plotting$out_dir # PARAM5
-  create_out_dir_param <- list_param_run_assessment_plotting$create_out_dir_param # FALSE #PARAM 6
-  mosaic_plot <- list_param_run_assessment_plotting$mosaic_plot #FALSE #PARAM7
-  proj_str<- list_param_run_assessment_plotting$proj_str #CRS_WGS84 #PARAM 8 #check this parameter
-  file_format <- list_param_run_assessment_plotting$file_format #".rst" #PARAM 9
-  NA_flag_val <- list_param_run_assessment_plotting$NA_flag_val #-9999 #PARAM10
-  multiple_region <- list_param_run_assessment_plotting$multiple_region # <- TRUE #PARAM 11
-  countries_shp <- list_param_run_assessment_plotting$countries_shp #<- "world" #PARAM 12
-  plot_region <- list_param_run_assessment_plotting$plot_region # PARAM13 
-  num_cores <- list_param_run_assessment_plotting$num_cores # 6 #PARAM 14
-  region_name <- list_param_run_assessment_plotting$region_name #<- "world" #PARAM 15
-  #df_assessment_files_name <- list_param_run_assessment_plotting$df_assessment_files_name #PARAM 16
-  threshold_missing_day <- list_param_run_assessment_plotting$threshold_missing_day #PARM17
-  year_predicted <- list_param_run_assessment_plotting$year_predicted
- 
-  NA_value <- NA_flag_val 
-  metric_name <- "rmse" #to be added to the code later...
+num_cores <- 6 #PARAM 14
+#/nobackupp6/aguzman4/climateLayers/out/reg6/subset/shapefiles
+list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
   
-  ##################### START SCRIPT #################
+  #from script:
+  #interpolation/global_run_scalingup_assessment_part1a.R
+
+  ##############################
+  #### Parameters and constants  
   
-  ####### PART 1: Read in data ########
+
+  in_dir1 <- list_param_run_assessment_prediction$in_dir1 
+  region_name <- list_param_run_assessment_prediction$region_name #e.g. c("reg23","reg4") #run only for one region
+  y_var_name <- list_param_run_assessment_prediction$y_var_name # e.g. dailyTmax" #PARAM3
+  interpolation_method <- list_param_run_assessment_prediction$interpolation_method #c("gam_CAI") #PARAM4
+  out_prefix <- list_param_run_assessment_prediction$out_prefix #output suffix e.g."run_global_analyses_pred_12282015" #PARAM5
+  out_dir <- list_param_run_assessment_prediction$out_dir #<- "/nobackupp8/bparmen1/" #PARAM6
+  create_out_dir_param <-list_param_run_assessment_prediction$create_out_dir_param #if TRUE output dir created #PARAM7
+  proj_str <- list_param_run_assessment_prediction$proj_str # CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
+  list_year_predicted <- list_param_run_assessment_prediction$list_year_predicted # 1984:2004
+  file_format <- list_param_run_assessment_prediction$file_format #<- ".tif" #format for mosaiced files #PARAM10
+  NA_flag_val <- list_param_run_assessment_prediction$NA_flag_val #<- -9999  #No data value, #PARAM11
+  num_cores <- list_param_run_assessment_prediction$num_cores #<- 6 #number of cores used #PARAM13
+  plotting_figures <- list_param_run_assessment_prediction$plotting_figures #if true run part2 of assessment
+  
+  ##for plotting assessment function
+  
+  mosaic_plot <- list_param_run_assessment_prediction$mosaic_plot  #PARAM14
+  day_to_mosaic <- list_param_run_assessment_prediction$day_to_mosaic #PARAM15
+  multiple_region <- list_param_run_assessment_prediction$multiple_region #PARAM16
+  countries_shp <- list_param_run_assessment_prediction$countries_shp #PARAM17
+  plot_region <- list_param_run_assessment_prediction$plot_region #PARAM18
+  threshold_missing_day <- list_param_run_assessment_prediction$threshold_missing_day #PARM20
+
+  ########################## START SCRIPT #########################################
+  
+  #Need to make this a function to run as a job...
+  
+  ######################## PART0: Read content of predictions first.... #####
+  #function looped over i, correspoding to year predicted
+  
+  list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
+  list_outfiles_names <- vector("list", length=35) #collect names of output files
+
+
+  #### STart here
+  ###### This is from assessment 1
+  
+  #for each polygon find you overlap!!
+  #plot number of overlap
+  #for specific each find prediction...
+  year_predicted <- list_param_run_assessment_prediction$list_year_predicted[i] 
+
+  in_dir1 <- file.path(in_dir1,region_name)
+  
+  list_outfiles <- vector("list", length=14) #collect names of output files
+  
+  in_dir_list <- list.dirs(path=in_dir1,recursive=FALSE) #get the list regions processed for this run
+  #basename(in_dir_list)
+  #                       y=in_dir_list) 
+  
+  #in_dir_list_all  <- unlist(lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)}))
+  in_dir_list_all <- in_dir_list
+  in_dir_subset <- in_dir_list_all[grep("subset",basename(in_dir_list_all),invert=FALSE)] #select directory with shapefiles...
+  in_dir_shp <- file.path(in_dir_subset,"shapefiles")
+  
+  
+  #select only directories used for predictions
+  #nested structure, we need to go to higher level to obtain the tiles...
+  in_dir_reg <- in_dir_list[grep(".*._.*.",basename(in_dir_list),invert=FALSE)] #select directory with shapefiles...
+  #in_dir_reg <- in_dir_list[grep("july_tiffs",basename(in_dir_reg),invert=TRUE)] #select directory with shapefiles...
+  in_dir_list <- in_dir_reg
+  
+  
+  in_dir_list <- in_dir_list[grep("bak",basename(basename(in_dir_list)),invert=TRUE)] #the first one is the in_dir1
+  #list of shapefiles used to define tiles
+  in_dir_shp_list <- list.files(in_dir_shp,".shp",full.names=T)
+  
+  ## load problematic tiles or additional runs
+  #modify later...
+  
+  #system("ls /nobackup/bparmen1")
   out_dir <- in_dir
   if(create_out_dir_param==TRUE){
-    out_dir <- create_dir_fun(out_dir,out_suffix)
+    out_dir <- create_dir_fun(out_dir,out_prefix)
     setwd(out_dir)
   }else{
     setwd(out_dir) #use previoulsy defined directory
   }
-
+  
   setwd(out_dir)
-  
-  list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
-  list_outfiles_names <- vector("list", length=35) #collect names of output files
-  counter_fig <- 0 #index of figure to collect outputs
-  
-  #i <- year_predicted
-  ###Table 1: Average accuracy metrics
-  ###Table 2: daily accuracy metrics for all tiles
-
-  if(!is.null(in_dir_list_filename)){
-    in_dir_list <- as.list(read.table(in_dir_list_filename,stringsAsFactors=F)[,1])
-  }else{
-    pattern_str <- paste0("^output_",region_name,".*.")
-    in_dir_list_all <- list.dirs(path=in_dir,recursive = T)
-    in_dir_list <- in_dir_list_all[grep(pattern_str,basename(in_dir_list_all),invert=FALSE)] #select directory with shapefiles...
-    #in_dir_shp <- file.path(in_dir_list_all,"shapefiles")
-  }
-  #pattern_str <- file.path(in_dir,paste0("output_",region_name,".*."))
-  #test <- Sys.glob(pattern_str,FALSE)
-  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-  #  #print(searchStr)
-  #  Sys.glob(searchStr)})
-
-  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
-  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-  #  #print(searchStr)
-  #  Sys.glob(searchStr)})
-
-  ##Read in data list from in_dir_list
-  #list_tb_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_v_NA_.*.txt",full.names=T)
-  #list_df_fname <- list.files(path=file.path(in_dir,in_dir_list),"df_tile_processed_.*..txt",full.names=T)
-  #list_summary_metrics_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"summary_metrics_v2_NA_.*.txt",full.names=T)
-  #list_tb_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_diagnostic_s_NA.*.txt",full.names=T)
-  #list_tb_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"tb_month_diagnostic_s.*.txt",full.names=T)
-  #list_data_month_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_month_s.*.txt",full.names=T)
-  #list_data_s_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_s.*.txt",full.names=T)
-  #list_data_v_fname <- list.files(path=file.path(in_dir,in_dir_list),"data_day_v.*.txt",full.names=T)
-  #list_pred_data_month_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_month_info.*.txt",full.names=T)
-  #list_pred_data_day_info_fname <- list.files(path=file.path(in_dir,in_dir_list),"pred_data_day_info.*.txt",full.names=T)
-  
-  list_tb_fname <- list.files(path=in_dir_list,"tb_diagnostic_v_NA_.*.txt",full.names=T)
-  list_df_fname <- list.files(path=in_dir_list,"df_tile_processed_.*..txt",full.names=T)
-  list_summary_metrics_v_fname <- list.files(path=in_dir_list,"summary_metrics_v2_NA_.*.txt",full.names=T)
-  list_tb_s_fname <- list.files(path=in_dir_list,"tb_diagnostic_s_NA.*.txt",full.names=T)
-  list_tb_month_s_fname <- list.files(path=in_dir_list,"tb_month_diagnostic_s.*.txt",full.names=T)
-  list_data_month_s_fname <- list.files(path=in_dir_list,"data_month_s.*.txt",full.names=T)
-  list_data_s_fname <- list.files(path=in_dir_list,"data_day_s.*.txt",full.names=T)
-  list_data_v_fname <- list.files(path=in_dir_list,"data_day_v.*.txt",full.names=T)
-  list_pred_data_month_info_fname <- list.files(path=in_dir_list,"pred_data_month_info.*.txt",full.names=T)
-  list_pred_data_day_info_fname <- list.files(path=in_dir_list,"pred_data_day_info.*.txt",full.names=T)
-  
-  #need to fix this !! has all of the files in one list (for a region)
-  #list_shp <- list.files(path=file.path(in_dir,file.path(in_dir_list,"shapefiles")),"*.shp",full.names=T)
 
 ############################ END OF SCRIPT ##################################
