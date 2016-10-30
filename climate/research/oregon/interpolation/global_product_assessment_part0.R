@@ -1,18 +1,20 @@
-####################################  INTERPOLATION OF TEMPERATURES  #######################################
-#######################  Assessment of product part 1: mosaic and accuracy ##############################
+##############################  INTERPOLATION OF TEMPERATURES  #######################################
+#######################  Script for assessment of scaling up on NEX : part 0 ##############################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
-#This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
+#This script checks the number of predictions by tiles and years.
+#with the goal of predicting potential gaps or missing predictions in fugure mosaics by region.
+#The general logic is to check the number of overlap by shapefile polyon tiles
+#along with the predicitons for every day of the year (*.tif)
+#Summary tables and data are also produced in the script.
+#
 #AUTHOR: Benoit Parmentier 
-#CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/27/2016            
+#CREATED ON: 10/27/2016  
+#MODIFIED ON: 10/30/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
+#COMMENTS: Major update of code with changes to the listing of tiles files 
 #TODO:
-#1) Add plot broken down by year and region 
-#2) Modify code for overall assessment accross all regions and year
-#3) Clean up
-
+#1) 
 #First source these files:
 #Resolved call issues from R.
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
@@ -107,53 +109,24 @@ CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
 metric_name <- "var_pred" #use RMSE if accuracy
 
 item_no <- 13
+day_start <- "2000101" #PARAM 12 arg 12
+day_end <- "20001231" #PARAM 13 arg 13
+#date_start <- day_start
+#date_end <- day_end
 date_start <- day_start
 date_end <- day_end
 #day_start <- "1984101" #PARAM 12 arg 12
 #day_end <- "20141231" #PARAM 13 arg 13
+day_to_mosaic_range <- NULL
 
-############################################
-#### Parameters and constants  
-
-##Add for precip later...
-if (var == "TMAX") {
-  y_var_name <- "dailyTmax"
-  y_var_month <- "TMax"
-}
-if (var == "TMIN") {
-  y_var_name <- "dailyTmin"
-  y_var_month <- "TMin"
-}
-
-##Add for precip later...
-if (var == "TMAX") {
-  variable_name <- "maximum temperature"
-}
-if (var == "TMIN") {
-  variable_name <- "minimum temperature"
-}
-
-#on ATLAS
-#in_dir1 <- "/data/project/layers/commons/NEX_data/test_run1_03232014/output" #On Atlas
-#parent output dir : contains subset of the data produced on NEX
-#in_dir1 <- "/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/output20Deg2"
-# parent output dir for the curent script analyes
-#out_dir <-"/data/project/layers/commons/NEX_data/output_run3_global_analyses_06192014/" #On NCEAS Atlas
-# input dir containing shapefiles defining tiles
-#in_dir_shp <- "/data/project/layers/commons/NEX_data/output_run5_global_analyses_08252014/output/subset/shapefiles"
 in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment"
-in_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg6/assessment"
-
+#in_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg6/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
-#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
-#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaics/mosaic"
-#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic" #note dropped the s in mosaics
 
 region_name <- c("reg6") #param 6, arg 3
 out_suffix <- "global_assessment_reg6_10232016"
 
 create_out_dir_param <- TRUE #param 9, arg 6
-
 
 out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
 
@@ -167,11 +140,6 @@ plotting_figures <- TRUE #running part2 of assessment to generate figures... # p
 num_cores <- 11 #number of cores used # param 13, arg 8
 #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
 python_bin <- "/usr/bin" #PARAM 30
-
-day_start <- "2000101" #PARAM 12 arg 12
-day_end <- "20001231" #PARAM 13 arg 13
-#date_start <- day_start
-#date_end <- day_end
 
 #NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
 NA_flag_val_mosaic <- -32768
@@ -208,6 +176,32 @@ countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13,
 num_cores <- 6 #PARAM 14
 #/nobackupp6/aguzman4/climateLayers/out/reg6/subset/shapefiles
 list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
+  
+
+############################################
+#### Parameters and constants  
+
+##Add for precip later...
+if (var == "TMAX") {
+  y_var_name <- "dailyTmax"
+  y_var_month <- "TMax"
+}
+if (var == "TMIN") {
+  y_var_name <- "dailyTmin"
+  y_var_month <- "TMin"
+}
+
+##Add for precip later...
+if (var == "TMAX") {
+  variable_name <- "maximum temperature"
+}
+if (var == "TMIN") {
+  variable_name <- "minimum temperature"
+}
+
+i<-1
+
+predictions_tiles_missing_fun <- function(list_param,i){
   
   #from script:
   #interpolation/global_run_scalingup_assessment_part1a.R
@@ -246,16 +240,9 @@ list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
   ######################## PART0: Read content of predictions first.... #####
   #function looped over i, correspoding to year predicted
   
-  list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
-  list_outfiles_names <- vector("list", length=35) #collect names of output files
+  #list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
+  #list_outfiles_names <- vector("list", length=35) #collect names of output files
 
-
-  #### STart here
-  ###### This is from assessment 1
-  
-  #for each polygon find you overlap!!
-  #plot number of overlap
-  #for specific each find prediction...
   year_predicted <- list_param_run_assessment_prediction$list_year_predicted[i] 
 
   in_dir1_reg <- file.path(in_dir1,region_name)
@@ -295,7 +282,6 @@ list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
   
   setwd(out_dir)
 
-  
   ##raster_prediction object : contains testing and training stations with RMSE and model object
   in_dir_list_tmp <- file.path(in_dir_list,year_predicted)
   list_raster_obj_files <- try(lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)}))
@@ -358,6 +344,8 @@ list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
   table(df_time_series$missing)
   table(df_time_series$year)
   
+  ########################
+  #### Step 2: examine overlap
   
   #combine polygon
   #http://gis.stackexchange.com/questions/155328/merging-multiple-spatialpolygondataframes-into-1-spdf-in-r
@@ -371,7 +359,18 @@ list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
   #for each date of year report data in table.
 
   #go through table and hsow if there are missing data (no prediction) or report min predictions for tile set?
+    
+  #for each polygon find you overlap!!
+  #plot number of overlap
+  #for specific each find prediction...
+  
+  ########################
+  #### Step 3: combine overlap information and number of predictions by day
+  
+  
+  
 
-  
-  
+  return()
+}
+
 ############################ END OF SCRIPT ##################################
