@@ -9,10 +9,10 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 10/30/2016            
+#MODIFIED ON: 10/31/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: Major update of code with changes to the listing of tiles files 
+#COMMENTS: testing of files by tiles and combining listing 
 #TODO:
 #1) 
 #First source these files:
@@ -86,10 +86,13 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
-source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_10312016.R"
+source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+##Don't load part 1 and part2, mosaic package does not work on NEX
+#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
+#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+#function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
+#source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
 ####### Parameters, constants and arguments ###
@@ -210,35 +213,29 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #### Parameters and constants  
   
 
-  in_dir1 <- list_param_run_assessment_prediction$in_dir1 
-  region_name <- list_param_run_assessment_prediction$region_name #e.g. c("reg23","reg4") #run only for one region
-  y_var_name <- list_param_run_assessment_prediction$y_var_name # e.g. dailyTmax" #PARAM3
+  in_dir1 <- list_param$in_dir1 
+  region_name <- list_param$region_name #e.g. c("reg23","reg4") #run only for one region
+  y_var_name <- list_param$y_var_name # e.g. dailyTmax" #PARAM3
   interpolation_method <- list_param_run_assessment_prediction$interpolation_method #c("gam_CAI") #PARAM4
-  out_prefix <- list_param_run_assessment_prediction$out_prefix #output suffix e.g."run_global_analyses_pred_12282015" #PARAM5
-  out_dir <- list_param_run_assessment_prediction$out_dir #<- "/nobackupp8/bparmen1/" #PARAM6
-  create_out_dir_param <-list_param_run_assessment_prediction$create_out_dir_param #if TRUE output dir created #PARAM7
-  proj_str <- list_param_run_assessment_prediction$proj_str # CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
-  list_year_predicted <- list_param_run_assessment_prediction$list_year_predicted # 1984:2004
-  file_format <- list_param_run_assessment_prediction$file_format #<- ".tif" #format for mosaiced files #PARAM10
-  NA_flag_val <- list_param_run_assessment_prediction$NA_flag_val #<- -9999  #No data value, #PARAM11
-  num_cores <- list_param_run_assessment_prediction$num_cores #<- 6 #number of cores used #PARAM13
-  plotting_figures <- list_param_run_assessment_prediction$plotting_figures #if true run part2 of assessment
+  out_suffix <- list_param_run$out_suffix #output suffix e.g."run_global_analyses_pred_12282015" #PARAM5
+  out_dir <- list_param$out_dir #<- "/nobackupp8/bparmen1/" #PARAM6
+  create_out_dir_param <-list_param$create_out_dir_param #if TRUE output dir created #PARAM7
+  proj_str <- list_param$proj_str # CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
+  list_year_predicted <- list_param$list_year_predicted # 1984:2004
+  file_format <- list_param$file_format #<- ".tif" #format for mosaiced files #PARAM10
+  NA_flag_val <- list_param$NA_flag_val #<- -9999  #No data value, #PARAM11
+  num_cores <- list_param$num_cores #<- 6 #number of cores used #PARAM13
+  plotting_figures <- list_param$plotting_figures #if true run part2 of assessment
   
   ##for plotting assessment function
   
-  mosaic_plot <- list_param_run_assessment_prediction$mosaic_plot  #PARAM14
-  day_to_mosaic <- list_param_run_assessment_prediction$day_to_mosaic #PARAM15
-  multiple_region <- list_param_run_assessment_prediction$multiple_region #PARAM16
-  countries_shp <- list_param_run_assessment_prediction$countries_shp #PARAM17
-  plot_region <- list_param_run_assessment_prediction$plot_region #PARAM18
-  threshold_missing_day <- list_param_run_assessment_prediction$threshold_missing_day #PARM20
+  item_no <- list_param_run_assessment_prediction$mosaic_plot  #PARAM14
+  day_to_mosaic <- list_param$day_to_mosaic #PARAM15
+  countries_shp <- list_param$countries_shp #PARAM17
+  plot_region <- list_param$plot_region #PARAM18
+  threshold_missing_day <- list_param$threshold_missing_day #PARM20
 
   ########################## START SCRIPT #########################################
-  
-  #Need to make this a function to run as a job...
-  
-  ######################## PART0: Read content of predictions first.... #####
-  #function looped over i, correspoding to year predicted
   
   #list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
   #list_outfiles_names <- vector("list", length=35) #collect names of output files
@@ -250,9 +247,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   list_outfiles <- vector("list", length=14) #collect names of output files
   
   in_dir_list <- list.dirs(path=in_dir1_reg,recursive=FALSE) #get the list regions processed for this run
-  #basename(in_dir_list)
-  #                       y=in_dir_list) 
-  
+
   #in_dir_list_all  <- unlist(lapply(in_dir_list,function(x){list.dirs(path=x,recursive=F)}))
   in_dir_list_all <- in_dir_list
   in_dir_subset <- in_dir_list_all[grep("subset",basename(in_dir_list_all),invert=FALSE)] #select directory with shapefiles...
@@ -284,20 +279,32 @@ predictions_tiles_missing_fun <- function(list_param,i){
 
   ##raster_prediction object : contains testing and training stations with RMSE and model object
   in_dir_list_tmp <- file.path(in_dir_list,year_predicted)
-  list_raster_obj_files <- try(lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)}))
+  list_raster_obj_files <- mclapply(in_dir_list_tmp,
+                                    FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)},
+                                    mc.preschedule=FALSE,mc.cores = num_cores)
+  
+  #list_raster_obj_files <- try(lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^raster_prediction_obj.*.RData",full.names=T)}))
   #Add stop message here...if no raster object in any tiles then break from the function
   
   list_names_tile_coord <- lapply(list_raster_obj_files,FUN=function(x){basename(dirname(x))})
   list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
   names(list_raster_obj_files)<- list_names_tile_id
   
-  #one level up
-  lf_covar_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar_obj.*.RData",full.names=T)})
-  lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
+  pred_mod_name <- "mod1"
+  list_lf_raster_tif_tiles <- mclapply(in_dir_list_tmp,
+                                    FUN=function(x){list.files(path=x,pattern=paste0("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.tif"),full.names=T)},
+                                    mc.preschedule=FALSE,mc.cores = num_cores)
+  list_names_tile_coord <- lapply(list_lf_raster_tif_tiles,FUN=function(x){basename(dirname(dirname(x)))})
+  list_names_tile_id <- paste("tile",1:length(list_lf_raster_tif_tiles),sep="_")
+  names(list_lf_raster_tif_tiles)<- list_names_tile_id
   
-  lf_sub_sampling_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=paste("^sub_sampling_obj_",interpolation_method,".*.RData",sep=""),full.names=T)})
-  lf_sub_sampling_obj_daily_files <- lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^sub_sampling_obj_daily.*.RData",full.names=T)})
-
+  #one level up
+  #lf_covar_obj <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar_obj.*.RData",full.names=T)})
+  #lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
+  
+  #lf_sub_sampling_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=paste("^sub_sampling_obj_",interpolation_method,".*.RData",sep=""),full.names=T)})
+  #lf_sub_sampling_obj_daily_files <- lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^sub_sampling_obj_daily.*.RData",full.names=T)})
+  year_processed <- year_predicted
   if(is.null(day_to_mosaic_range)){
   #  start_date <- #first date
      start_date <- paste0(year_processed,"0101") #change this later!!
@@ -317,32 +324,55 @@ predictions_tiles_missing_fun <- function(list_param,i){
   ### Do this by tile!!!
   
   # Making listing of files faster with multicores use
-  lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
-    searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
-  
-  lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
-    searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
 
-  ##Run this on reg4 and reg5 after
+  #lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
+  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+  #  Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
+
   #Add report by year in text file?
   #Using specified values for parameters
-  test_missing <- check_missing(lf=lf_mosaic[[1]], 
-                              pattern_str=NULL,
-                              in_dir=in_dir_mosaic,
-                              date_start="1984101",
-                              date_end="20141231",
-                              item_no=13,
-                              out_suffix=out_suffix,
-                              num_cores=num_cores,
-                              out_dir=".")
+  #gam_CAI_dailyTmax_predicted_mod1_0_1_20001231_30_1-39.7_165.1.tif
+  
+  #undebug(check_missing)
+  test_missing <- try(lapply(1:length(list_lf_raster_tif_tiles),function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
+                                                                      pattern_str=NULL,
+                                                                      in_dir=out_dir,
+                                                                      date_start=start_date,
+                                                                      date_end=end_date,
+                                                                      item_no=9,
+                                                                      out_suffix=out_suffix,
+                                                                      num_cores=num_cores,
+                                                                      out_dir=".")}))
 
-  df_time_series <- test_missing$df_time_series
+                                 
+  #test_missing <- check_missing(lf=list_lf_raster_tif_tiles[[1]], 
+  #                            pattern_str=NULL,
+  #                            in_dir=out_dir,
+  #                            date_start=start_date,
+  #                            date_end=end_date,
+  #                            item_no=9,
+  #                            out_suffix=out_suffix,
+  #                            num_cores=num_cores,
+  #                            out_dir=".")
+
+  df_time_series <- test_missing[[1]]$df_time_series
   head(df_time_series)
 
   table(df_time_series$missing)
   table(df_time_series$year)
+  
+  ###Now combined in one table?
+  
+  list_missing <- lapply(1:length(test_missing),FUN=function(i){df_time_series <- test_missing[[i]]$df_time_series$missing})
+  
+  df_missing <- as.data.frame(do.call(cbind,list_missing))
+  names(df_missing) <- unlist(basename(in_dir_reg))
+  df_missing$tot_missing <- rowSums (df_missing, na.rm = FALSE, dims = 1)
+  df_missing$reg <- region_name
+  df_missing$date <- day_to_mosaic
+
+  filename_df_missing <- paste0("df_missing_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix)
+  write.table(df_missing,file=filename_df_missing)
   
   ########################
   #### Step 2: examine overlap
