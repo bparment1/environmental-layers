@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 10/31/2016            
+#MODIFIED ON: 11/01/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: testing of files by tiles and combining listing 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: generating animation for region 4 for multiple years sequences
+#COMMIT: combining tif tiles and shapefiles to examine potential gaps
 
 #################################################################################################
 
@@ -98,20 +98,13 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 ####### Parameters, constants and arguments ###
 
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
-
 var<-"TMAX" # variable being interpolated #param 1, arg 1
-
-
-#interpolation_method<-c("gam_fusion") #other otpions to be added later
 interpolation_method<-c("gam_CAI") #param 2
 CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
-#CRS_interp <-"+proj=lcc +lat_1=43 +lat_2=45.5 +lat_0=41.75 +lon_0=-120.5 +x_0=400000 +y_0=0 +ellps=GRS80 +units=m +no_defs";
-
-#out_region_name<-""
 #list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 metric_name <- "var_pred" #use RMSE if accuracy
-
-item_no <- 13
+pred_mod_name <- "mod1"
+item_no <- 9
 day_start <- "2000101" #PARAM 12 arg 12
 day_end <- "20001231" #PARAM 13 arg 13
 #date_start <- day_start
@@ -121,69 +114,41 @@ date_end <- day_end
 #day_start <- "1984101" #PARAM 12 arg 12
 #day_end <- "20141231" #PARAM 13 arg 13
 day_to_mosaic_range <- NULL
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg6.tif"
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif"
 
 in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment"
-#in_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg6/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
-
 region_name <- c("reg6") #param 6, arg 3
 out_suffix <- "global_assessment_reg6_10232016"
-
 create_out_dir_param <- TRUE #param 9, arg 6
-
 out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
-
-#run_figure_by_year <- TRUE # param 10, arg 7
-
 file_format <- ".tif" #format for mosaiced files # param 11
 NA_flag_val <- -32768  #No data value, # param 12
-
-#num_cores <- 6 #number of cores used # param 13, arg 8
 plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
-num_cores <- 11 #number of cores used # param 13, arg 8
+num_cores <- 6 #number of cores used # param 13, arg 8
 #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
 python_bin <- "/usr/bin" #PARAM 30
-
-#NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
 NA_flag_val_mosaic <- -32768
 in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
-countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
+#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
+countries_hsp <- "/nobackupp8/bparmen1/NEX_data/countries.shp"
 lf_raster <- NULL #list of raster to consider
-item_no <- 13
-
 #On NEX
 #contains all data from the run by Alberto
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" #On NEX
 #parent output dir for the current script analyes
-
 y_var_name <- "dailyTmax" #PARAM1
-interpolation_method <- c("gam_CAI") #PARAM2
 out_suffix <- "predictions_assessment_reg6_10302016"
-#out_suffix <- "output_run10_1000x3000_global_analyses_02102015"
-#out_suffix <- "run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM3
-#out_dir <- "/data/project/layers/commons/NEX_data/output_run10_1500x4500_global_analyses_pred_1992_10052015" #PARAM4
-#create_out_dir_param <- TRUE #PARAM 5
-#mosaic_plot <- FALSE #PARAM6
-#if daily mosaics NULL then mosaicas all days of the year
-#day_to_mosaic <- c("19920101","19920102","19920103") #PARAM7
-#CRS_WGS84 <-    CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84 #CONSTANT1
-#CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84
-#proj_str<- CRS_WGS84 #PARAM 8 #check this parameter
-#file_format <- ".rst" #PARAM 9
+file_format <- ".rst" #PARAM 9
 NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
 #multiple_region <- TRUE #PARAM 12
 region_name <- "reg6" #PARAM 13
 countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
-#plot_region <- TRUE
-num_cores <- 6 #PARAM 14
 #/nobackupp6/aguzman4/climateLayers/out/reg6/subset/shapefiles
 list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
   
-
-############################################
-#### Parameters and constants  
-
 ##Add for precip later...
 if (var == "TMAX") {
   y_var_name <- "dailyTmax"
@@ -204,10 +169,9 @@ if (var == "TMIN") {
 
 i<-1
 
+#### Function to check missing tiles and estimate potential gaps
 predictions_tiles_missing_fun <- function(list_param,i){
   
-  #from script:
-  #interpolation/global_run_scalingup_assessment_part1a.R
 
   ##############################
   #### Parameters and constants  
@@ -234,8 +198,21 @@ predictions_tiles_missing_fun <- function(list_param,i){
   countries_shp <- list_param$countries_shp #PARAM17
   plot_region <- list_param$plot_region #PARAM18
   threshold_missing_day <- list_param$threshold_missing_day #PARM20
-
+  pred_mod_name <- list_param$pred_mod_name
+  metric_name <- list_param$metric_name
+  
   ########################## START SCRIPT #########################################
+  
+  #system("ls /nobackup/bparmen1")
+  out_dir <- in_dir
+  if(create_out_dir_param==TRUE){
+    out_dir <- create_dir_fun(out_dir,out_suffix)
+    setwd(out_dir)
+  }else{
+    setwd(out_dir) #use previoulsy defined directory
+  }
+  
+  setwd(out_dir)
   
   #list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
   #list_outfiles_names <- vector("list", length=35) #collect names of output files
@@ -265,17 +242,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   ## load problematic tiles or additional runs
   #modify later...
-  
-  #system("ls /nobackup/bparmen1")
-  out_dir <- in_dir
-  if(create_out_dir_param==TRUE){
-    out_dir <- create_dir_fun(out_dir,out_suffix)
-    setwd(out_dir)
-  }else{
-    setwd(out_dir) #use previoulsy defined directory
-  }
-  
-  setwd(out_dir)
 
   ##raster_prediction object : contains testing and training stations with RMSE and model object
   in_dir_list_tmp <- file.path(in_dir_list,year_predicted)
@@ -290,7 +256,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   list_names_tile_id <- paste("tile",1:length(list_raster_obj_files),sep="_")
   names(list_raster_obj_files)<- list_names_tile_id
   
-  pred_mod_name <- "mod1"
+  #pred_mod_name <- "mod1"
   list_lf_raster_tif_tiles <- mclapply(in_dir_list_tmp,
                                     FUN=function(x){list.files(path=x,pattern=paste0("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.tif"),full.names=T)},
                                     mc.preschedule=FALSE,mc.cores = num_cores)
@@ -323,14 +289,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   ### Do this by tile!!!
   
-  # Making listing of files faster with multicores use
-
-  #lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
-  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-  #  Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
-
-  #Add report by year in text file?
-  #Using specified values for parameters
   #gam_CAI_dailyTmax_predicted_mod1_0_1_20001231_30_1-39.7_165.1.tif
   
   #undebug(check_missing)
@@ -339,22 +297,12 @@ predictions_tiles_missing_fun <- function(list_param,i){
                                                                       in_dir=out_dir,
                                                                       date_start=start_date,
                                                                       date_end=end_date,
-                                                                      item_no=9,
+                                                                      item_no=item_no, #9 for predicted tiles
                                                                       out_suffix=out_suffix,
                                                                       num_cores=num_cores,
                                                                       out_dir=".")}))
 
-                                 
-  #test_missing <- check_missing(lf=list_lf_raster_tif_tiles[[1]], 
-  #                            pattern_str=NULL,
-  #                            in_dir=out_dir,
-  #                            date_start=start_date,
-  #                            date_end=end_date,
-  #                            item_no=9,
-  #                            out_suffix=out_suffix,
-  #                            num_cores=num_cores,
-  #                            out_dir=".")
-
+ 
   df_time_series <- test_missing[[1]]$df_time_series
   head(df_time_series)
 
@@ -376,6 +324,81 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   ########################
   #### Step 2: examine overlap
+  
+  path_to_shp <- dirname(countries_shp)
+  layer_name <- sub(".shp","",basename(countries_shp))
+  reg_layer <- readOGR(path_to_shp, layer_name)
+  
+  #collect info: read in all shapefiles
+  
+  centroids_shp_fun <- function(i,list_shp_reg_files){
+    #
+    shp_filename <- list_shp_reg_files[[i]]
+    layer_name <- sub(".shp","",basename(shp_filename))
+    path_to_shp <- dirname(shp_filename)
+    shp1 <- try(readOGR(path_to_shp, layer_name)) #use try to resolve error below
+    #shp_61.0_-160.0
+    #Geographical CRS given to non-conformant data: -186.331747678
+    
+    #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
+    if (!inherits(shp1,"try-error")) {
+      pt <- gCentroid(shp1)
+      #centroids_pts[[i]] <- pt
+    }else{
+      pt <- shp1
+      #centroids_pts[[i]] <- pt
+    }
+    #shps_tiles[[i]] <- shp1
+    #centroids_pts[[i]] <- centroids
+    
+    shp_obj <- list(shp1,pt)
+    names(shp_obj) <- c("spdf","centroid")
+    return(shp_obj)
+  }
+
+  obj_centroids_shp <- centroids_shp_fun(1,list_shp_reg_files=in_dir_shp_list)
+                                         
+
+  obj_centroids_shp <- mclapply(1:length(in_dir_shp_list),
+                                FUN=centroids_shp_fun,
+                                list_shp_reg_files=in_dir_shp_list,
+                                mc.preschedule=FALSE,
+                                mc.cores = num_cores)
+
+  centroids_pts <- lapply(obj_centroids_shp, FUN=function(x){x$centroid})
+  shps_tiles <-   lapply(obj_centroids_shp, FUN=function(x){x$spdf})
+
+  #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
+  tmp <- shps_tiles
+  shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
+  #shps_tiles <- tmp
+  length(tmp)-length(shps_tiles) #number of tiles with error message
+  
+  tmp_pts <- centroids_pts 
+  centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
+  #centroids_pts <- tmp_pts 
+  
+  r <- raster(infile_mask)
+  plot(r)
+  plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+
+  ## find overlap
+  #http://gis.stackexchange.com/questions/156660/loop-to-check-multiple-polygons-overlap-in-r
+  
+  matrix_overlap <- matrix(data=NA,nrow=length(shps_tiles),ncol=length(shps_tiles))
+  for(i in 1:length(shps_tiles)){
+     for(j in 2:length(shps_tiles)){
+      overlap_val <- as.numeric(over(shps_tiles[[i]],shps_tiles[[j]]))
+      matrix_overlap[i,j]<- overlap_val
+    }
+    #
+  }
+  
+  matrix_overlap%*%df_missing[1,1:26]
+  
+  ## For each day can do overalp matrix* prediction
+  ## if prediction and overlap then 1 else 0, if no-overlap is then NA
+  ## then for each tile compute the number of excepted predictions taken into account in a tile
   
   #combine polygon
   #http://gis.stackexchange.com/questions/155328/merging-multiple-spatialpolygondataframes-into-1-spdf-in-r
