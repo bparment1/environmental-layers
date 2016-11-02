@@ -380,21 +380,85 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   r <- raster(infile_mask)
   plot(r)
-  plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+  plot(shps_tiles[[26]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
   ## find overlap
   #http://gis.stackexchange.com/questions/156660/loop-to-check-multiple-polygons-overlap-in-r
   
   matrix_overlap <- matrix(data=NA,nrow=length(shps_tiles),ncol=length(shps_tiles))
   for(i in 1:length(shps_tiles)){
-     for(j in 2:length(shps_tiles)){
+     for(j in 1:length(shps_tiles)){
       overlap_val <- as.numeric(over(shps_tiles[[i]],shps_tiles[[j]]))
       matrix_overlap[i,j]<- overlap_val
     }
     #
   }
   
+  names(shps_tiles) <- list_names_tile_coord
+  r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
+  tile_spdf <- shps_tiles[[1]]
+  tile_coord <- basename(in_dir_reg[1])
+  date_val <- df_missing$date[1]
+  
+  mclapply(1:length(shps_tiles),
+           FUN=rasterize_tile_day,
+           list_spdf=shps_tiles,
+           df_missing=df_missing,
+           r_ref=list_r
+           )
+  rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,date_val){
+    #
+    tile_spdf <- list_spdf[[i]]
+    tile_coord <- names(tile_spdf)[i]
+    r_ref <- list_r_ref[[i]]
+    
+    df_tmp <- subset(df_missing,date==date_val,select=tile_coord)
+    #for each row (date)
+    val <- df_tmp[[tile_coord]]
+    if(val==1){
+      val<-0 #missing then not predicted
+    }else{
+      val<-1
+    }
+  
+    tile_spdf$predicted <- val
+    tile_spdf$tile_coord <- tile_coord
+    tile_spdf$overlap <- 1
+    
+    r <- rasterize(tile_spdf,r_ref,"predicted")
+
+    return(r)
+  }
+  
+  
+  ### use rasterize
+  spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
+  spdf_tiles <- do.call(intersect, shps_tiles)
+  
+  ### Now use intersect to retain actual overlap
+  
+  for(i in 1:length(shps_tiles)){
+    overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[i]]))
+  }
+  
+  overlap_intersect <- lapply(1:length(shps_tiles),FUN=function(i){intersect(shps_tiles[[1]],shps_tiles[[i]])})
+  #test <- overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[2]]))
+
+  names(overlap_intersect) <- basename(in_dir_reg)
+  shp_selected <- unlist(lapply(1:length(overlap_intersect),function(i){!is.null(overlap_intersect[[i]])}))
+  test_list <- overlap_intersect[shp_selected]
+  spdf_tiles_test <- do.call(bind, test_list) #combines all intersect!!
+  #ll <- ll[ ! sapply(ll, is.null) ]
+  test <- overlap_intersect[!lapply(overlap_intersect,is.null)]
+  spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
+  #ll <- ll[ ! sapply(ll, is.null) ]
+  spdf_tiles <- do.call(bind, overlap_intersect[1:4]) #combines all intersect!!
+  spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
+  
+  plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+
   matrix_overlap%*%df_missing[1,1:26]
+  
   
   ## For each day can do overalp matrix* prediction
   ## if prediction and overlap then 1 else 0, if no-overlap is then NA
