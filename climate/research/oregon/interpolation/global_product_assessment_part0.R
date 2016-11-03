@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/01/2016            
+#MODIFIED ON: 11/03/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: testing of files by tiles and combining listing 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: combining tif tiles and shapefiles to examine potential gaps
+#COMMIT: experimenting with detection of gaps, testing rasterize
 
 #################################################################################################
 
@@ -378,9 +378,9 @@ predictions_tiles_missing_fun <- function(list_param,i){
   centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
   #centroids_pts <- tmp_pts 
   
-  r <- raster(infile_mask)
+  r_mask <- raster(infile_mask)
   plot(r)
-  plot(shps_tiles[[26]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+  plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
   ## find overlap
   #http://gis.stackexchange.com/questions/156660/loop-to-check-multiple-polygons-overlap-in-r
@@ -394,22 +394,43 @@ predictions_tiles_missing_fun <- function(list_param,i){
     #
   }
   
-  names(shps_tiles) <- list_names_tile_coord
+  names(shps_tiles) <- basename(unlist(in_dir_reg))
   r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
+  list_r_ref <- lapply(1:length(in_dir_reg), function(x){raster(list_lf_raster_tif_tiles[[i]][1])})
   tile_spdf <- shps_tiles[[1]]
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
   
-  mclapply(1:length(shps_tiles),
+  debug(rasterize_tile_day)
+  list_predicted <- rasterize_tile_day(1,
+           list_spdf=shps_tiles,
+           df_missing=df_missing,
+           list_r_ref=list_r_ref,
+           col_name="overlap",
+           date_val=df_missing$date[1])
+  list_predicted <- mclapply(1:length(shps_tiles),
            FUN=rasterize_tile_day,
            list_spdf=shps_tiles,
            df_missing=df_missing,
-           r_ref=list_r
-           )
-  rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,date_val){
+           col_name = "overlap",
+           list_r_ref=list_r_ref,
+           date_val=df_missing$date[1],
+            mc.preschedule=FALSE,
+           mc.cores = num_cores)
+           
+  #http://stackoverflow.com/questions/19586945/how-to-legend-a-raster-using-directly-the-raster-attribute-table-and-displaying
+  #
+  #http://gis.stackexchange.com/questions/148398/how-does-spatial-polygon-over-polygon-work-to-when-aggregating-values-in-r
+  #ok other way of doing this:
+  #1. find overlap assuming all predictions!
+  #2. Us raster image with number of overlaps in the mosaic tile
+  #3. for every pixel generate and ID (tile ID) as integer, there should  be 26 layers at the mosaic extent
+  #4. generate a table? for each pixel it can say if is part of a specific tile
+  #5. workout a formula to generate the number of predictions for each pixel based on tile predicted for each date!!
+  rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_val){
     #
     tile_spdf <- list_spdf[[i]]
-    tile_coord <- names(tile_spdf)[i]
+    tile_coord <- names(list_spdf)[i]
     r_ref <- list_r_ref[[i]]
     
     df_tmp <- subset(df_missing,date==date_val,select=tile_coord)
@@ -425,8 +446,18 @@ predictions_tiles_missing_fun <- function(list_param,i){
     tile_spdf$tile_coord <- tile_coord
     tile_spdf$overlap <- 1
     
-    r <- rasterize(tile_spdf,r_ref,"predicted")
-
+    #r <- rasterize(tile_spdf,r_ref,"predicted")
+    #r <- rasterize(tile_spdf,r_ref,col_name)
+    r <- raster(r_ref,crs=projection(r_ref)) #new layer without values
+    if(col_name=="overlap"){
+      set1f <- function(x){rep(1, x)}
+   	  r <- init(r, fun=set1f, overwrite=TRUE)
+    }
+    if(col_name=="predicted"){
+      set1f <- function(x){rep(val, x)}
+   	  r <- init(r, fun=set1f, overwrite=TRUE)
+    }
+    
     return(r)
   }
   
