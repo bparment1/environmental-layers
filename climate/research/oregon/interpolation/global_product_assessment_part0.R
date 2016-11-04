@@ -9,10 +9,10 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/03/2016            
+#MODIFIED ON: 11/04/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: testing of files by tiles and combining listing 
+#COMMENTS: moving functions to function script global product assessment part0  
 #TODO:
 #1) 
 #First source these files:
@@ -331,30 +331,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   #collect info: read in all shapefiles
   
-  centroids_shp_fun <- function(i,list_shp_reg_files){
-    #
-    shp_filename <- list_shp_reg_files[[i]]
-    layer_name <- sub(".shp","",basename(shp_filename))
-    path_to_shp <- dirname(shp_filename)
-    shp1 <- try(readOGR(path_to_shp, layer_name)) #use try to resolve error below
-    #shp_61.0_-160.0
-    #Geographical CRS given to non-conformant data: -186.331747678
-    
-    #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
-    if (!inherits(shp1,"try-error")) {
-      pt <- gCentroid(shp1)
-      #centroids_pts[[i]] <- pt
-    }else{
-      pt <- shp1
-      #centroids_pts[[i]] <- pt
-    }
-    #shps_tiles[[i]] <- shp1
-    #centroids_pts[[i]] <- centroids
-    
-    shp_obj <- list(shp1,pt)
-    names(shp_obj) <- c("spdf","centroid")
-    return(shp_obj)
-  }
 
   obj_centroids_shp <- centroids_shp_fun(1,list_shp_reg_files=in_dir_shp_list)
                                          
@@ -427,39 +403,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #3. for every pixel generate and ID (tile ID) as integer, there should  be 26 layers at the mosaic extent
   #4. generate a table? for each pixel it can say if is part of a specific tile
   #5. workout a formula to generate the number of predictions for each pixel based on tile predicted for each date!!
-  rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_val){
-    #
-    tile_spdf <- list_spdf[[i]]
-    tile_coord <- names(list_spdf)[i]
-    r_ref <- list_r_ref[[i]]
-    
-    df_tmp <- subset(df_missing,date==date_val,select=tile_coord)
-    #for each row (date)
-    val <- df_tmp[[tile_coord]]
-    if(val==1){
-      val<-0 #missing then not predicted
-    }else{
-      val<-1
-    }
-  
-    tile_spdf$predicted <- val
-    tile_spdf$tile_coord <- tile_coord
-    tile_spdf$overlap <- 1
-    
-    #r <- rasterize(tile_spdf,r_ref,"predicted")
-    #r <- rasterize(tile_spdf,r_ref,col_name)
-    r <- raster(r_ref,crs=projection(r_ref)) #new layer without values
-    if(col_name=="overlap"){
-      set1f <- function(x){rep(1, x)}
-   	  r <- init(r, fun=set1f, overwrite=TRUE)
-    }
-    if(col_name=="predicted"){
-      set1f <- function(x){rep(val, x)}
-   	  r <- init(r, fun=set1f, overwrite=TRUE)
-    }
-    
-    return(r)
-  }
   
   
   ### use rasterize
@@ -469,7 +412,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   ### Now use intersect to retain actual overlap
   
   for(i in 1:length(shps_tiles)){
-    overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[i]]))
+    overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[i]])
   }
   
   overlap_intersect <- lapply(1:length(shps_tiles),FUN=function(i){intersect(shps_tiles[[1]],shps_tiles[[i]])})
