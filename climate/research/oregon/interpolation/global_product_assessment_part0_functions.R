@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 11/03/2016            
+#MODIFIED ON: 11/04/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: modifying function to check missing files and dates for predictions and others
+##COMMIT: adding necessary function for assessment from other script
 
 #################################################################################################
 
@@ -71,7 +71,40 @@ load_obj <- function(f){
 }
 
 
+extract_date <- function(i,x,item_no=NULL){
+  y <- unlist(strsplit(x[[i]],"_"))
+  if(is.null(item_no)){
+    date_str <- y[length(y)-2] #count from end
+  }else{
+    date_str <- y[item_no]
+  }
+  return(date_str)
+}
 
+finding_missing_dates <- function(date_start,date_end,list_dates){
+  #this assumes daily time steps!!
+  #can be improved later on
+  
+  #date_start <- "19840101"
+  #date_end <- "19991231"
+  date1 <- as.Date(strptime(date_start,"%Y%m%d"))
+  date2 <- as.Date(strptime(date_end,"%Y%m%d"))
+  dates_range <- seq.Date(date1, date2, by="1 day") #sequence of dates
+
+  missing_dates <- setdiff(as.character(dates_range),as.character(list_dates))
+  #df_dates_missing <- data.frame(date=missing_dates)
+  #which(df_dates$date%in%missing_dates)
+  #df_dates_missing$missing <- 1
+  
+  df_dates <- data.frame(date=as.character(dates_range),missing = 0) 
+
+  df_dates$missing[df_dates$date %in% missing_dates] <- 1
+  #a$flag[a$id %in% temp] <- 1
+
+  missing_dates_obj <- list(missing_dates,df_dates)
+  names(missing_dates_obj) <- c("missing_dates","df_dates")
+  return(missing_dates_obj)
+}
 check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",date_end="20141231",item_no=13,out_suffix="",num_cores=1,out_dir="."){
   #Function to check for missing files such as mosaics or predictions for tiles etc.
   #The function assumes the name of the files contain "_".
@@ -137,5 +170,68 @@ check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",d
   return(df_time_series_obj)
 }
 
+centroids_shp_fun <- function(i,list_shp_reg_files){
+  
+  #
+  shp_filename <- list_shp_reg_files[[i]]
+  layer_name <- sub(".shp","",basename(shp_filename))
+  path_to_shp <- dirname(shp_filename)
+  shp1 <- try(readOGR(path_to_shp, layer_name)) #use try to resolve error below
+  #shp_61.0_-160.0
+  #Geographical CRS given to non-conformant data: -186.331747678
+    
+  #shp1<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
+  if (!inherits(shp1,"try-error")) {
+    pt <- gCentroid(shp1)
+    #centroids_pts[[i]] <- pt
+  }else{
+    pt <- shp1
+    #centroids_pts[[i]] <- pt
+  }
+    
+  #shps_tiles[[i]] <- shp1
+  #centroids_pts[[i]] <- centroids
+    
+  shp_obj <- list(shp1,pt)
+  names(shp_obj) <- c("spdf","centroid")
+  return(shp_obj)
+}
+
+rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_val){
+  #
+  #
+  tile_spdf <- list_spdf[[i]]
+  tile_coord <- names(list_spdf)[i]
+  r_ref <- list_r_ref[[i]]
+    
+  df_tmp <- subset(df_missing,date==date_val,select=tile_coord)
+  #for each row (date)
+  val <- df_tmp[[tile_coord]]
+  if(val==1){
+    val<-0 #missing then not predicted
+  }else{
+    val<-1
+  }
+  
+  tile_spdf$predicted <- val
+  tile_spdf$tile_coord <- tile_coord
+  tile_spdf$overlap <- 1
+    
+  #r <- rasterize(tile_spdf,r_ref,"predicted")
+  #r <- rasterize(tile_spdf,r_ref,col_name)
+  #r <- raster(r_ref,crs=projection(r_ref)) #new layer without values
+  r <- raster(r_ref) #new layer without values
+  
+  if(col_name=="overlap"){
+    set1f <- function(x){rep(1, x)}
+   	r <- init(r, fun=set1f, overwrite=TRUE)
+  }
+  if(col_name=="predicted"){
+    set1f <- function(x){rep(val, x)}
+   	r <- init(r, fun=set1f, overwrite=TRUE)
+  }
+    
+  return(r)
+}
 
 ############################ END OF SCRIPT ##################################
