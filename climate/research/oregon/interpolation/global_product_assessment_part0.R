@@ -12,7 +12,7 @@
 #MODIFIED ON: 11/04/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: moving functions to function script global product assessment part0  
+#COMMENTS: 
 #TODO:
 #1) 
 #First source these files:
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: experimenting with detection of gaps, testing rasterize
+#COMMIT: computing maximum overlap for each pixel in a region  
 
 #################################################################################################
 
@@ -54,7 +54,7 @@ library(colorRamps)
 library(zoo)
 library(xts)
 library(lubridate)
-library(mosaic)
+#library(mosaic) #not installed on NEX
 
 ###### Function used in the script #######
   
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_10312016.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11042016.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -331,10 +331,8 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   #collect info: read in all shapefiles
   
-
   obj_centroids_shp <- centroids_shp_fun(1,list_shp_reg_files=in_dir_shp_list)
                                          
-
   obj_centroids_shp <- mclapply(1:length(in_dir_shp_list),
                                 FUN=centroids_shp_fun,
                                 list_shp_reg_files=in_dir_shp_list,
@@ -372,28 +370,71 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   names(shps_tiles) <- basename(unlist(in_dir_reg))
   r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
-  list_r_ref <- lapply(1:length(in_dir_reg), function(x){raster(list_lf_raster_tif_tiles[[i]][1])})
+  list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
   tile_spdf <- shps_tiles[[1]]
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
   
-  debug(rasterize_tile_day)
+  function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11042016.R"
+  source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+
+  undebug(rasterize_tile_day)
   list_predicted <- rasterize_tile_day(1,
            list_spdf=shps_tiles,
            df_missing=df_missing,
            list_r_ref=list_r_ref,
            col_name="overlap",
            date_val=df_missing$date[1])
+  ##check that everything is correct:
+  plot(r_mask)
+  plot(list_predicted,add=T)
+  plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+
+  list_predicted <- mclapply(1:6,
+           FUN=rasterize_tile_day,
+           list_spdf=shps_tiles,
+           df_missing=df_missing,
+           list_r_ref=list_r_ref,
+           col_name = "overlap",
+           date_val=df_missing$date[1],
+            mc.preschedule=FALSE,
+           mc.cores = num_cores)
+  
   list_predicted <- mclapply(1:length(shps_tiles),
            FUN=rasterize_tile_day,
            list_spdf=shps_tiles,
            df_missing=df_missing,
-           col_name = "overlap",
            list_r_ref=list_r_ref,
+           col_name = "overlap",
            date_val=df_missing$date[1],
             mc.preschedule=FALSE,
            mc.cores = num_cores)
            
+  ### Make a list of file
+  filename_list_mosaics_weights_m <- file.path(out_dir_str,paste("list_to_mosaics_","weights_",mosaic_method,"_",out_suffix_str_tmp,".txt",sep=""))
+
+  #writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
+  #writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
+      
+  writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
+
+  #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+  #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+  out_mosaic_name_weights_m  <- file.path(out_dir_str,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
+
+  rast_ref_name <- infile_mask
+  mostaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+  
+  #python /nobackupp6/aguzman4/climateLayers/sharedCode//gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o /nobackupp8/bparmen1/climateLayers/out
+  mosaic_overlap_tiles_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
+                                                module_path=mosaic_python,
+                                                module_name="gdal_merge_sum.py",
+                                                input_file=filename_list_mosaics_weights_m,
+                                                out_mosaic_name=out_mosaic_name_weights_m,
+                                                raster_ref_name = rast_ref_name) ##if NA, not take into account
+  r_weights_sum_raster_name <- mosaic_weights_obj$out_mosaic_name
+  cmd_str1 <- mosaic_weights_obj$cmd_str
+
   #http://stackoverflow.com/questions/19586945/how-to-legend-a-raster-using-directly-the-raster-attribute-table-and-displaying
   #
   #http://gis.stackexchange.com/questions/148398/how-does-spatial-polygon-over-polygon-work-to-when-aggregating-values-in-r
@@ -403,8 +444,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #3. for every pixel generate and ID (tile ID) as integer, there should  be 26 layers at the mosaic extent
   #4. generate a table? for each pixel it can say if is part of a specific tile
   #5. workout a formula to generate the number of predictions for each pixel based on tile predicted for each date!!
-  
-  
+
   ### use rasterize
   spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
   spdf_tiles <- do.call(intersect, shps_tiles)
