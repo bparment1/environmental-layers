@@ -204,6 +204,7 @@ rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_v
   tile_coord <- names(list_spdf)[i]
   r_ref <- list_r_ref[[i]]
     
+  tile_id <- paste0("tile_",i)
   df_tmp <- subset(df_missing,date==date_val,select=tile_coord)
   #for each row (date)
   val <- df_tmp[[tile_coord]]
@@ -216,6 +217,7 @@ rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_v
   tile_spdf$predicted <- val
   tile_spdf$tile_coord <- tile_coord
   tile_spdf$overlap <- 1
+  tile_spdf$tile_id <- tile_id
     
   #r <- rasterize(tile_spdf,r_ref,"predicted")
   #r <- rasterize(tile_spdf,r_ref,col_name)
@@ -231,7 +233,13 @@ rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_v
    	r <- init(r, fun=set1f, overwrite=TRUE)
   }
     
-  return(r)
+  out_dir <- "." #can set this up later
+  out_suffix_str <- paste0(col_name,"") # can set this parameter later
+  raster_name <- file.path(out_dir,paste("r_",tile_id,"_",tile_coord,"_",out_suffix_str,".tif",sep=""))
+  #raster_name <- 
+  writeRaster(r, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  #unweighted mean
+
+  return(raster_name)
 }
 
 ############################ END OF SCRIPT ##################################
