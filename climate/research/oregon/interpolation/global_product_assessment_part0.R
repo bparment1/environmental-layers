@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/04/2016            
+#MODIFIED ON: 11/06/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: computing maximum overlap for each pixel in a region  
+#COMMIT: fixing rasterize function and computing maximum overlap for each pixel in a region  
 
 #################################################################################################
 
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11042016.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11052016.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -375,7 +375,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
   
-  function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11042016.R"
+  function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11052016.R"
   source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
   undebug(rasterize_tile_day)
@@ -411,30 +411,39 @@ predictions_tiles_missing_fun <- function(list_param,i){
            mc.cores = num_cores)
            
   ### Make a list of file
-  filename_list_mosaics_weights_m <- file.path(out_dir_str,paste("list_to_mosaics_","weights_",mosaic_method,"_",out_suffix_str_tmp,".txt",sep=""))
+  out_suffix_str_tmp <- paste0(region_name,"_",out_suffix)
+  out_dir_str <- out_dir
+  filename_list_predicted <- file.path(out_dir_str,paste("list_to_mosaics_",out_suffix_str_tmp,".txt",sep=""))
 
   #writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
   #writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
       
-  writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
+  writeLines(unlist(list_predicted),con=filename_list_predicted) #weights files to mosaic 
 
   #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
   #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
-  out_mosaic_name_weights_m  <- file.path(out_dir_str,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix_str_tmp,".tif",sep=""))
+  out_mosaic_name_predicted_m  <- file.path(out_dir_str,paste("r_overlap_sum_m_",out_suffix_str_tmp,".tif",sep=""))
 
   rast_ref_name <- infile_mask
-  mostaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
-  
+  mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+  rast_ref_name <- infile_mask
   #python /nobackupp6/aguzman4/climateLayers/sharedCode//gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o /nobackupp8/bparmen1/climateLayers/out
   mosaic_overlap_tiles_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
                                                 module_path=mosaic_python,
                                                 module_name="gdal_merge_sum.py",
-                                                input_file=filename_list_mosaics_weights_m,
-                                                out_mosaic_name=out_mosaic_name_weights_m,
+                                                input_file=filename_list_predicted,
+                                                out_mosaic_name=out_mosaic_name_predicted_m,
                                                 raster_ref_name = rast_ref_name) ##if NA, not take into account
-  r_weights_sum_raster_name <- mosaic_weights_obj$out_mosaic_name
+  r_overlap_raster_name <- mosaic_overlap_tiles_obj$out_mosaic_name
   cmd_str1 <- mosaic_weights_obj$cmd_str
 
+  r_overlap <- raster(r_overlap_raster_name)
+  r_mask <- raster(infile_mask)
+  
+  out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",out_suffix_str_tmp,".tif",sep=""))
+
+  r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked)
+  
   #http://stackoverflow.com/questions/19586945/how-to-legend-a-raster-using-directly-the-raster-attribute-table-and-displaying
   #
   #http://gis.stackexchange.com/questions/148398/how-does-spatial-polygon-over-polygon-work-to-when-aggregating-values-in-r
