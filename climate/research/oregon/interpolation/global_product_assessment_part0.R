@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/06/2016            
+#MODIFIED ON: 11/07/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -385,20 +385,15 @@ predictions_tiles_missing_fun <- function(list_param,i){
            list_r_ref=list_r_ref,
            col_name="overlap",
            date_val=df_missing$date[1])
-  ##check that everything is correct:
-  plot(r_mask)
-  plot(list_predicted,add=T)
-  plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-
-  list_predicted <- mclapply(1:6,
-           FUN=rasterize_tile_day,
-           list_spdf=shps_tiles,
-           df_missing=df_missing,
-           list_r_ref=list_r_ref,
-           col_name = "overlap",
-           date_val=df_missing$date[1],
-            mc.preschedule=FALSE,
-           mc.cores = num_cores)
+  #list_predicted <- mclapply(1:6,
+  #         FUN=rasterize_tile_day,
+  #         list_spdf=shps_tiles,
+  #         df_missing=df_missing,
+  #         list_r_ref=list_r_ref,
+  #         col_name = "overlap",
+  #         date_val=df_missing$date[1],
+  #          mc.preschedule=FALSE,
+  #         mc.cores = num_cores)
   
   list_predicted <- mclapply(1:length(shps_tiles),
            FUN=rasterize_tile_day,
@@ -409,6 +404,12 @@ predictions_tiles_missing_fun <- function(list_param,i){
            date_val=df_missing$date[1],
             mc.preschedule=FALSE,
            mc.cores = num_cores)
+
+  ##check that everything is correct:
+  plot(r_mask)
+  plot(raster(list_predicted[[1]]),add=T)
+  plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+
            
   ### Make a list of file
   out_suffix_str_tmp <- paste0(region_name,"_",out_suffix)
@@ -435,7 +436,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
                                                 out_mosaic_name=out_mosaic_name_predicted_m,
                                                 raster_ref_name = rast_ref_name) ##if NA, not take into account
   r_overlap_raster_name <- mosaic_overlap_tiles_obj$out_mosaic_name
-  cmd_str1 <- mosaic_weights_obj$cmd_str
+  cmd_str1 <-   mosaic_overlap_tiles_obj$cmd_str
 
   r_overlap <- raster(r_overlap_raster_name)
   r_mask <- raster(infile_mask)
@@ -443,7 +444,30 @@ predictions_tiles_missing_fun <- function(list_param,i){
   out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",out_suffix_str_tmp,".tif",sep=""))
 
   r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked)
+  plot(r_overlap_m)
+  #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
   
+  
+  r_table <- ratify(r_overlap_m) # build the Raster Attibute table
+  rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
+  #rat$legend <- paste0("tile_",1:26)
+  tb_freq <- as.data.frame(freq(r_table))
+  rat$legend <- tb_freq$value
+
+  levels(r_table) <- rat
+  #my_col=c('blue','red','green')
+  my_col <- rainbow(length(tb_freq$value))
+
+  plot(r_table,col=my_col,legend=F,box=F,axes=F)
+  legend(x='topright', legend =rat$legend,fill = my_col,cex=0.8)
+  
+  r <- raster(matrix(runif(20),5,4))
+  r[r>.5] <- NA
+  g <- as(r, 'SpatialGridDataFrame')
+  p <- as(r, 'SpatialPixels')
+  p_spdf <- as(r_overlap_m,"SpatialPointsDataFrame")
+  plot(r)
+  points(p)
   #http://stackoverflow.com/questions/19586945/how-to-legend-a-raster-using-directly-the-raster-attribute-table-and-displaying
   #
   #http://gis.stackexchange.com/questions/148398/how-does-spatial-polygon-over-polygon-work-to-when-aggregating-values-in-r
