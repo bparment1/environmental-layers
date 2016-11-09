@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: macthing extent to region for tile predicted   
+#COMMIT: generate raster of number of predictions for day with missing tiles   
 
 #################################################################################################
 
@@ -310,7 +310,19 @@ predictions_tiles_missing_fun <- function(list_param,i){
   table(df_time_series$missing)
   table(df_time_series$year)
   
-  ###Now combined in one table?
+  #####
+  #Now combine df_time_series in one table
+  
+  dim(test_missing[[1]]$df_time_series)
+  list_lf <- lapply(1:length(test_missing),FUN=function(i){df_time_series <- as.character(test_missing[[i]]$df_time_series$lf)})
+  df_lf_tiles_time_series <- as.data.frame(do.call(cbind,list_lf))
+  #http://stackoverflow.com/questions/26220913/replace-na-with-na
+  #Use dfr[dfr=="<NA>"]=NA where dfr is your dataframe.
+  names(df_lf_tiles_time_series) <- unlist(basename(in_dir_reg))
+  filename_df_lf_tiles <- paste0("df_files_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix)
+  write.table(df_lf_tiles_time_series,file=filename_df_lf_tiles)
+
+  ###Now combined missing in one table?
   
   list_missing <- lapply(1:length(test_missing),FUN=function(i){df_time_series <- test_missing[[i]]$df_time_series$missing})
   
@@ -414,7 +426,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   plot(raster(list_predicted[[1]]),add=T)
   plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
-           
   ### Make a list of file
   out_suffix_str_tmp <- paste0(region_name,"_",out_suffix)
   out_dir_str <- out_dir
@@ -450,7 +461,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked)
   plot(r_overlap_m)
   #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-  
   
   r_table <- ratify(r_overlap_m) # build the Raster Attibute table
   rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
@@ -492,14 +502,54 @@ predictions_tiles_missing_fun <- function(list_param,i){
                                             FUN=raster_match,list_param=list_param_raster_match,
                                             mc.preschedule=FALSE,mc.cores = num_cores))                           
 
+  extension_str <- extension(lf_files)
+  raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
+  out_suffix_str <- paste0(region_name,"_",out_suffix)
+  raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_","masked_",out_suffix_str,file_format,sep=""))
+  
+  #writeRaster(r, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+
   #r_stack <- stack(list_tiles_predicted_m)
-  list_mask_out_file_name <- lf_files
-  mclapply(1:length(list_tiles_predicted_m),
-           FUN=function(i){mask(raster(list_tiles_predicted_m[i]),r_mask,filename=list_mask_out_file_name[i])},
-                                                       mc.preschedule=FALSE,mc.cores = num_cores)                         
+  list_mask_out_file_name <- raster_name
+  list_tiles_predicted_masked <- unlist(mclapply(1:length(list_tiles_predicted_m),
+                                                 FUN=function(i){mask(raster(list_tiles_predicted_m[i]),r_mask,filename=list_mask_out_file_name[i])},
+                                                       mc.preschedule=FALSE,mc.cores = num_cores))                         
   #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
   
+  ########################
+  #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
+  
+  r_tiles_stack <- stack(list_tiles_predicted_masked)
+  names(r_tiles_stack) <- basename(in_dir_reg)
+  
+  #list_tiles_predicted_masked <- mclapply(1:length(list_tiles_predicted_m),
+  #         FUN=function(i){raster(list_tiles_predicted_m[i])},
+  #                                                     mc.preschedule=FALSE,mc.cores = num_cores)                         
+
+  df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
+  
+  
+  generate_raster_number_of_prediction_by_day <- function(i,list_param){
+    
+    list_names_tile_coord
+    df_time_series
+    missing_tiles <- df_missing_tiles_day[i]
+    r_tiles_s <- list_param$r_tiles_s
+    
+    #stack() ## all tiles for the day
+    df_missing_tiles_day[,-c("tot_missing")]
+    #drops <- c("x","z")
+    #DF[ , !(names(DF) %in% drops)]
+    selected_missing <- df_missing_tiles_day[i,]==1
+    names(df_missing_tiles_day)[selected_missing]
+    r_day_predicted <- r_overlap_m - r_stack
+    
+    returm(r_day_predicted)
+  }
+  
+  ## Make a function,
+  #for specifi i (day) select tile with missing info, load it and subsetract to overlap raster, save it.
   
   #http://stackoverflow.com/questions/19586945/how-to-legend-a-raster-using-directly-the-raster-attribute-table-and-displaying
   #
@@ -512,8 +562,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #5. workout a formula to generate the number of predictions for each pixel based on tile predicted for each date!!
 
   
-  ########################
-  #### Step 3: combine overlap information and number of predictions by day
+
   
   
   
