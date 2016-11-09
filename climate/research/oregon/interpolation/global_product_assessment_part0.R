@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/07/2016            
+#MODIFIED ON: 11/09/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: fixing rasterize function and computing maximum overlap for each pixel in a region  
+#COMMIT: macthing extent to region for tile predicted   
 
 #################################################################################################
 
@@ -128,7 +128,8 @@ NA_flag_val <- -32768  #No data value, # param 12
 plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
 num_cores <- 6 #number of cores used # param 13, arg 8
 #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
-python_bin <- "/usr/bin" #PARAM 30
+#python_bin <- "/usr/bin" #PARAM 30, NCEAS
+python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30"
 NA_flag_val_mosaic <- -32768
 in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
 #countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
@@ -140,7 +141,7 @@ in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" #On NEX
 #parent output dir for the current script analyes
 y_var_name <- "dailyTmax" #PARAM1
 out_suffix <- "predictions_assessment_reg6_10302016"
-file_format <- ".rst" #PARAM 9
+#file_format <- ".rst" #PARAM 9
 NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
 #multiple_region <- TRUE #PARAM 12
@@ -375,10 +376,13 @@ predictions_tiles_missing_fun <- function(list_param,i){
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
   
-  function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11052016.R"
-  source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+  ### use rasterize
+  spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
 
-  undebug(rasterize_tile_day)
+  #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11052016.R"
+  #source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+
+  #undebug(rasterize_tile_day)
   list_predicted <- rasterize_tile_day(1,
            list_spdf=shps_tiles,
            df_missing=df_missing,
@@ -461,13 +465,42 @@ predictions_tiles_missing_fun <- function(list_param,i){
   plot(r_table,col=my_col,legend=F,box=F,axes=F)
   legend(x='topright', legend =rat$legend,fill = my_col,cex=0.8)
   
-  r <- raster(matrix(runif(20),5,4))
-  r[r>.5] <- NA
-  g <- as(r, 'SpatialGridDataFrame')
-  p <- as(r, 'SpatialPixels')
-  p_spdf <- as(r_overlap_m,"SpatialPointsDataFrame")
-  plot(r)
-  points(p)
+  #r <- raster(matrix(runif(20),5,4))
+  #r[r>.5] <- NA
+  #g <- as(r, 'SpatialGridDataFrame')
+  #p <- as(r, 'SpatialPixels')
+  #p_spdf <- as(r_overlap_m,"SpatialPointsDataFrame")
+  #plot(r)
+  #points(p)
+  
+  ### now assign id and match extent for tiles
+  
+  lf_files <- unlist(list_predicted)
+  rast_ref_name <- infile_mask
+  rast_ref <- rast_ref_name
+  
+  ##Maching resolution is probably only necessary for the r mosaic function
+  #Modify later to take into account option R or python...
+  list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix_str_tmp,out_dir_str)
+  names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+
+  #undebug(raster_match)
+  #r_test <- raster_match(1,list_param_raster_match)
+  #r_test <- raster(raster_match(1,list_param_raster_match))
+
+  list_tiles_predicted_m <- unlist(mclapply(1:length(lf_files),
+                                            FUN=raster_match,list_param=list_param_raster_match,
+                                            mc.preschedule=FALSE,mc.cores = num_cores))                           
+
+  #r_stack <- stack(list_tiles_predicted_m)
+  list_mask_out_file_name <- lf_files
+  mclapply(1:length(list_tiles_predicted_m),
+           FUN=function(i){mask(raster(list_tiles_predicted_m[i]),r_mask,filename=list_mask_out_file_name[i])},
+                                                       mc.preschedule=FALSE,mc.cores = num_cores)                         
+  #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
+  
+  ##Now loop through every day if missing then generate are raster showing map of number of prediction
+  
   #http://stackoverflow.com/questions/19586945/how-to-legend-a-raster-using-directly-the-raster-attribute-table-and-displaying
   #
   #http://gis.stackexchange.com/questions/148398/how-does-spatial-polygon-over-polygon-work-to-when-aggregating-values-in-r
@@ -478,55 +511,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #4. generate a table? for each pixel it can say if is part of a specific tile
   #5. workout a formula to generate the number of predictions for each pixel based on tile predicted for each date!!
 
-  ### use rasterize
-  spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
-  spdf_tiles <- do.call(intersect, shps_tiles)
-  
-  ### Now use intersect to retain actual overlap
-  
-  for(i in 1:length(shps_tiles)){
-    overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[i]])
-  }
-  
-  overlap_intersect <- lapply(1:length(shps_tiles),FUN=function(i){intersect(shps_tiles[[1]],shps_tiles[[i]])})
-  #test <- overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[2]]))
-
-  names(overlap_intersect) <- basename(in_dir_reg)
-  shp_selected <- unlist(lapply(1:length(overlap_intersect),function(i){!is.null(overlap_intersect[[i]])}))
-  test_list <- overlap_intersect[shp_selected]
-  spdf_tiles_test <- do.call(bind, test_list) #combines all intersect!!
-  #ll <- ll[ ! sapply(ll, is.null) ]
-  test <- overlap_intersect[!lapply(overlap_intersect,is.null)]
-  spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
-  #ll <- ll[ ! sapply(ll, is.null) ]
-  spdf_tiles <- do.call(bind, overlap_intersect[1:4]) #combines all intersect!!
-  spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
-  
-  plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-
-  matrix_overlap%*%df_missing[1,1:26]
-  
-  
-  ## For each day can do overalp matrix* prediction
-  ## if prediction and overlap then 1 else 0, if no-overlap is then NA
-  ## then for each tile compute the number of excepted predictions taken into account in a tile
-  
-  #combine polygon
-  #http://gis.stackexchange.com/questions/155328/merging-multiple-spatialpolygondataframes-into-1-spdf-in-r
-
-  #http://gis.stackexchange.com/questions/116388/count-overlapping-polygons-in-single-shape-file-with-r
-
-  #### Use the predictions directory
-  #By region
-  #For each polygon/tile find polygon overlapping with count and ID (like list w)
-  #for each polygon/tile and date find if there is a prediction using the tif (multiply number)
-  #for each date of year report data in table.
-
-  #go through table and hsow if there are missing data (no prediction) or report min predictions for tile set?
-    
-  #for each polygon find you overlap!!
-  #plot number of overlap
-  #for specific each find prediction...
   
   ########################
   #### Step 3: combine overlap information and number of predictions by day
@@ -538,3 +522,51 @@ predictions_tiles_missing_fun <- function(list_param,i){
 }
 
 ############################ END OF SCRIPT ##################################
+
+  # spdf_tiles <- do.call(intersect, shps_tiles)
+  # 
+  # ### Now use intersect to retain actual overlap
+  # 
+  # for(i in 1:length(shps_tiles)){
+  #   overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[i]])
+  # }
+  # 
+  # overlap_intersect <- lapply(1:length(shps_tiles),FUN=function(i){intersect(shps_tiles[[1]],shps_tiles[[i]])})
+  # #test <- overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[2]]))
+  # 
+  # names(overlap_intersect) <- basename(in_dir_reg)
+  # shp_selected <- unlist(lapply(1:length(overlap_intersect),function(i){!is.null(overlap_intersect[[i]])}))
+  # test_list <- overlap_intersect[shp_selected]
+  # spdf_tiles_test <- do.call(bind, test_list) #combines all intersect!!
+  # #ll <- ll[ ! sapply(ll, is.null) ]
+  # test <- overlap_intersect[!lapply(overlap_intersect,is.null)]
+  # spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
+  # #ll <- ll[ ! sapply(ll, is.null) ]
+  # spdf_tiles <- do.call(bind, overlap_intersect[1:4]) #combines all intersect!!
+  # spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
+  # 
+  # plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+  # 
+  # matrix_overlap%*%df_missing[1,1:26]
+  # 
+  # 
+  # ## For each day can do overalp matrix* prediction
+  # ## if prediction and overlap then 1 else 0, if no-overlap is then NA
+  # ## then for each tile compute the number of excepted predictions taken into account in a tile
+  # 
+  # #combine polygon
+  # #http://gis.stackexchange.com/questions/155328/merging-multiple-spatialpolygondataframes-into-1-spdf-in-r
+  # 
+  # #http://gis.stackexchange.com/questions/116388/count-overlapping-polygons-in-single-shape-file-with-r
+  # 
+  # #### Use the predictions directory
+  # #By region
+  # #For each polygon/tile find polygon overlapping with count and ID (like list w)
+  # #for each polygon/tile and date find if there is a prediction using the tif (multiply number)
+  # #for each date of year report data in table.
+  # 
+  # #go through table and hsow if there are missing data (no prediction) or report min predictions for tile set?
+  #   
+  # #for each polygon find you overlap!!
+  # #plot number of overlap
+  # #for specific each find prediction...
