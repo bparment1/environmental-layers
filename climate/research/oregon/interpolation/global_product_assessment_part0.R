@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/10/2016            
+#MODIFIED ON: 11/09/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: modifying function generate raster of number of predictions for day with missing tiles   
+#COMMIT: generate raster of number of predictions for day with missing tiles   
 
 #################################################################################################
 
@@ -520,44 +520,31 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
   
-  #r_tiles_stack <- stack(list_tiles_predicted_masked)
-  #names(r_tiles_stack) <- basename(in_dir_reg) #this does not work, X. is added to the name, use list instead
+  r_tiles_stack <- stack(list_tiles_predicted_masked)
+  names(r_tiles_stack) <- basename(in_dir_reg)
   
-  names(list_tiles_predicted_masked) <- basename(in_dir_reg)
+  #list_tiles_predicted_masked <- mclapply(1:length(list_tiles_predicted_m),
+  #         FUN=function(i){raster(list_tiles_predicted_m[i])},
+  #                                                     mc.preschedule=FALSE,mc.cores = num_cores)                         
+
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
-  #r_tiles_s <- r_tiles_stack
-  names_tiles <- basename(in_dir_reg)
+  
   
   generate_raster_number_of_prediction_by_day <- function(i,list_param){
     
     list_names_tile_coord
     df_time_series
     missing_tiles <- df_missing_tiles_day[i]
-    #r_tiles_s <- list_param$r_tiles_s
-    list_param$list_tiles_predicted_masked
+    r_tiles_s <- list_param$r_tiles_s
     
-    #df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
     #stack() ## all tiles for the day
-    #df_missing_tiles_day[,-c("tot_missing")]
-    df_missing_tiles_day[,!c("tot_missing")]
-    selected_col <- names(list_tiles_predicted_masked)
-    df_missing_tiles_day_subset <- subset(df_missing_tiles_day,select=selected_col)
+    df_missing_tiles_day[,-c("tot_missing")]
     #drops <- c("x","z")
     #DF[ , !(names(DF) %in% drops)]
-    selected_missing <- df_missing_tiles_day_subset[i,]==1
+    selected_missing <- df_missing_tiles_day[i,]==1
     names(df_missing_tiles_day)[selected_missing]
+    r_day_predicted <- r_overlap_m - r_stack
     
-    #names(list_tiles_predicted_masked)[selected_missing]
-    list_missing_tiles_raster <- list_tiles_predicted_masked[selected_missing]
-    r_tiles_s <- stack(list_missing_tiles_raster)
-    
-    ### first sum missing
-     datasum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum)
-     
-    ### then substract missing tiles...
-    r_day_predicted <- r_overlap_m -datasum
-    
-    ### generate retunr object
     returm(r_day_predicted)
   }
   
