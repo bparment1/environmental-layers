@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/10/2016            
+#MODIFIED ON: 11/14/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: modifying function generate raster of number of predictions for day with missing tiles   
+#COMMIT: adding and debugging function to generate raster of number of predictions for day with missing tiles   
 
 #################################################################################################
 
@@ -459,7 +459,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",out_suffix_str_tmp,".tif",sep=""))
 
   r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked)
-  plot(r_overlap_m)
+  #plot(r_overlap_m)
   #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
   
   r_table <- ratify(r_overlap_m) # build the Raster Attibute table
@@ -467,14 +467,27 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #rat$legend <- paste0("tile_",1:26)
   tb_freq <- as.data.frame(freq(r_table))
   rat$legend <- tb_freq$value
-
   levels(r_table) <- rat
-  #my_col=c('blue','red','green')
+  
+  
+  res_pix <- 800
+  #res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png_filename <-  file.path(out_dir,paste("Figure_maximum_overlap_",region_name,"_",out_suffix,".png",sep =""))
+    
+  title_str <-  paste("Maximum overlap: Number of predicted pixels for ",variable_name, sep = "")
+  
+  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    #my_col=c('blue','red','green')
   my_col <- rainbow(length(tb_freq$value))
 
-  plot(r_table,col=my_col,legend=F,box=F,axes=F)
+  plot(r_table,col=my_col,legend=F,box=F,axes=F,main=title_str)
   legend(x='topright', legend =rat$legend,fill = my_col,cex=0.8)
   
+  dev.off()
+
   #r <- raster(matrix(runif(20),5,4))
   #r[r>.5] <- NA
   #g <- as(r, 'SpatialGridDataFrame')
@@ -532,31 +545,73 @@ predictions_tiles_missing_fun <- function(list_param,i){
     
     list_names_tile_coord
     df_time_series
-    missing_tiles <- df_missing_tiles_day[i]
+    missing_tiles <- df_missing_tiles_day[i,]
+    date_str <- missing_tiles$date
+    
     #r_tiles_s <- list_param$r_tiles_s
     list_param$list_tiles_predicted_masked
     
-    #df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
-    #stack() ## all tiles for the day
-    #df_missing_tiles_day[,-c("tot_missing")]
-    df_missing_tiles_day[,!c("tot_missing")]
     selected_col <- names(list_tiles_predicted_masked)
-    df_missing_tiles_day_subset <- subset(df_missing_tiles_day,select=selected_col)
-    #drops <- c("x","z")
-    #DF[ , !(names(DF) %in% drops)]
-    selected_missing <- df_missing_tiles_day_subset[i,]==1
-    names(df_missing_tiles_day)[selected_missing]
+    missing_tiles_subset <- subset(missing_tiles,select=selected_col)
+    selected_missing <- missing_tiles_subset==1
+    #names(df_missing_tiles_day)[selected_missing]
     
     #names(list_tiles_predicted_masked)[selected_missing]
     list_missing_tiles_raster <- list_tiles_predicted_masked[selected_missing]
     r_tiles_s <- stack(list_missing_tiles_raster)
     
     ### first sum missing
-     datasum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum)
+    datasum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum)
      
     ### then substract missing tiles...
-    r_day_predicted <- r_overlap_m -datasum
+    r_day_predicted <- r_overlap_m - datasum
     
+    r_table <- ratify(r_day_predicted) # build the Raster Attibute table
+    rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
+    #rat$legend <- paste0("tile_",1:26)
+    tb_freq <- as.data.frame(freq(r_table))
+    rat$legend <- tb_freq$value
+    levels(r_table) <- rat
+
+    res_pix <- 800
+    #res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+  
+    png_filename <-  file.path(out_dir,paste("Figure_number_of_predictionds_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+    
+    title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
+  
+    png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    #my_col=c('blue','red','green')
+    my_col <- rainbow(length(tb_freq$value))
+    plot(r_table,col=my_col,legend=F,box=F,axes=F,main=title_str)
+    legend(x='topright', legend =rat$legend,fill = my_col,cex=0.8)
+  
+    dev.off()
+
+    ### Day missing reclass above
+    
+    ## do this in gdalcalc?
+    r_missing_day <- r_day_predicted == 0
+    
+    res_pix <- 800
+    #res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+  
+    png_filename <-  file.path(out_dir,paste("Figure_missing_predictionds_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+    
+    title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
+  
+    png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    #my_col=c('blue','red','green')
+    my_col <- c("black","red")
+    plot(r_missing_day,col=my_col,legend=F,box=F,axes=F,main=title_str)
+    legend(x='topright', legend =c("prediced","missing"),fill = my_col,cex=0.8)
+  
+    dev.off()
+
     ### generate retunr object
     returm(r_day_predicted)
   }
