@@ -469,7 +469,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   rat$legend <- tb_freq$value
   levels(r_table) <- rat
   
-  
   res_pix <- 800
   #res_pix <- 480
   col_mfrow <- 1
@@ -488,14 +487,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   dev.off()
 
-  #r <- raster(matrix(runif(20),5,4))
-  #r[r>.5] <- NA
-  #g <- as(r, 'SpatialGridDataFrame')
-  #p <- as(r, 'SpatialPixels')
-  #p_spdf <- as(r_overlap_m,"SpatialPointsDataFrame")
-  #plot(r)
-  #points(p)
-  
   ### now assign id and match extent for tiles
   
   lf_files <- unlist(list_predicted)
@@ -541,31 +532,74 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #r_tiles_s <- r_tiles_stack
   names_tiles <- basename(in_dir_reg)
   
+  
+  list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
+                                                 num_cores,region_name,
+                                                 NA_flag_val,out_suffix,out_dir)
+  
+  names(list_param_generate_raster_number_pred) <- c("list_tiles_predicted_masked","df_missing_tiles_day","r_overlap_m",
+                                                     "num_cores","region_name",
+                                                      "NA_flag_val","out_suffix","out_dir")
+  debug(generate_raster_number_of_prediction_by_day)
+  
+  obj_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param_generate_raster_number_pred)
+  
+  obj_number_pix_predictions <- mcapply(1:nrow(df_missing_tiles_day),
+                                        FUN=generate_raster_number_of_prediction_by_day,
+                                        list_param=list_param_generate_raster_number_pred,
+                                        mc.preschedule=FALSE,
+                                        mc.cores = num_cores)
+  
   generate_raster_number_of_prediction_by_day <- function(i,list_param){
+    ##This function generates raster of missing pixels and number of predictions for days with missing tiles for a given region.
+    #INPUTS
+    #1) list_tiles_predicted_masked 
+    #2) df_missing_tiles_day     
+    #3) r_overlap_m 
+    #4) num_cores
+    #5) region_name 
+    #6) NA_flag_val 
+    #7) out_suffix 
+    #8) out_dir 
     
-    list_names_tile_coord
-    df_time_series
+    
+    ###### Start script #####
+    
+    #### read in paramters    
+    list_tiles_predicted_masked <- list_param$list_tiles_predicted_masked
+    df_missing_tiles_day <- list_param$df_missing_tiles_day    
+    r_overlap_m <- list_param$r_overlap_m
+    num_cores <- list_param$num_cores # 6 #PARAM 14
+    region_name <- list_param$region_name #<- "world" #PARAM 15
+    NA_flag_val <-list_param$NA_flag_val
+    out_suffix  <- list_param$out_suffix
+    out_dir  <- list_param$out_dir
+    
+    ### To add or explore later...could have differences between predictions and rmse
+    layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+    NA_value <- NA_flag_val 
+    #metric_name <- "rmse" #to be added to the code later...
+
+    ##### Select relevant day and create stack of missing tiles
+    
     missing_tiles <- df_missing_tiles_day[i,]
     date_str <- missing_tiles$date
-    
-    #r_tiles_s <- list_param$r_tiles_s
-    list_param$list_tiles_predicted_masked
-    
     selected_col <- names(list_tiles_predicted_masked)
     missing_tiles_subset <- subset(missing_tiles,select=selected_col)
     selected_missing <- missing_tiles_subset==1
-    #names(df_missing_tiles_day)[selected_missing]
-    
-    #names(list_tiles_predicted_masked)[selected_missing]
+
     list_missing_tiles_raster <- list_tiles_predicted_masked[selected_missing]
     r_tiles_s <- stack(list_missing_tiles_raster)
     
-    ### first sum missing
+    ##### Sum missing tiles in the stack and generate number of predictions by pixels
+    
     datasum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum)
      
     ### then substract missing tiles...
     r_day_predicted <- r_overlap_m - datasum
-    
+    raster_name_number_prediction <- file.path(out_dir_str,paste("r_day_number_of_prediction_sum_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+    writeRaster(r_day_predicted, NAflag=NA_flag_val,filename=raster_name_number_prediction,overwrite=TRUE)  
+
     r_table <- ratify(r_day_predicted) # build the Raster Attibute table
     rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
     #rat$legend <- paste0("tile_",1:26)
@@ -612,7 +646,17 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
     dev.off()
 
-    ### generate retunr object
+    ### writeout data
+    #extension_str <- extension(lf_files)
+    #raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
+    #out_suffix_str <- paste0(region_name,"_",out_suffix)
+    raster_name_missing <- file.path(out_dir_str,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+    writeRaster(r_missing_day, NAflag=NA_flag_val,filename=raster_name_missing,overwrite=TRUE)  
+    
+    ### generate return object
+    obj_number_day_predicted <- list(raster_name_number_prediction,raster_name_missing)
+    names(obj_number_day_predicted) <- c("raster_name_number_prediction","raster_name_missing")
+    
     returm(r_day_predicted)
   }
   
