@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/14/2016            
+#MODIFIED ON: 11/16/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: adding and debugging function to generate raster of number of predictions for day with missing tiles   
+#COMMIT: testing and moving generate raster of number of predictions for day with missing tiles   
 
 #################################################################################################
 
@@ -54,7 +54,7 @@ library(colorRamps)
 library(zoo)
 library(xts)
 library(lubridate)
-#library(mosaic) #not installed on NEX
+#library(mosaic) #not installed on NEX, drop for the workflow
 
 ###### Function used in the script #######
   
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11052016.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -170,8 +170,24 @@ if (var == "TMIN") {
 
 i<-1
 
+
+##### prepare list of parameters for call of function
+
+list_param_predictions_tiles_missing <- list(in_dir1,region_name,y_var_name,interpolation_method,out_suffix,out_dir,
+                                             create_out_dir_param,proj_str,list_year_predicted,file_format,NA_flag_val,
+                                             num_cores,plotting_figures,item_no,day_to_mosaic,countries_shp,plot_region,
+                                             threshold_missing_day,pred_mod_name,metric_name)
+
+names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_name","interpolation_method","out_suffix","out_dir",
+                                             "create_out_dir_param","proj_str","list_year_predicted","file_format","NA_flag_val",
+                                             "num_cores","plotting_figures","item_no","day_to_mosaic","countries_shp","plot_region",
+                                             "threshold_missing_day","pred_mod_name","metric_name")
+
+debug(predictions_tiles_missing_fun)
+predictions_tiles_missing_fun(1,list_param=list_param_predictions_tiles_missing)
+
 #### Function to check missing tiles and estimate potential gaps
-predictions_tiles_missing_fun <- function(list_param,i){
+predictions_tiles_missing_fun <- function(i,list_param){
   
 
   ##############################
@@ -190,7 +206,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   file_format <- list_param$file_format #<- ".tif" #format for mosaiced files #PARAM10
   NA_flag_val <- list_param$NA_flag_val #<- -9999  #No data value, #PARAM11
   num_cores <- list_param$num_cores #<- 6 #number of cores used #PARAM13
-  plotting_figures <- list_param$plotting_figures #if true run part2 of assessment
+  plotting_figures <- list_param$plotting_figures #if true run generate png for missing date
   
   ##for plotting assessment function
   
@@ -458,7 +474,7 @@ predictions_tiles_missing_fun <- function(list_param,i){
   
   out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",out_suffix_str_tmp,".tif",sep=""))
 
-  r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked)
+  r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked,overwrite=T)
   #plot(r_overlap_m)
   #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
   
@@ -540,125 +556,19 @@ predictions_tiles_missing_fun <- function(list_param,i){
   names(list_param_generate_raster_number_pred) <- c("list_tiles_predicted_masked","df_missing_tiles_day","r_overlap_m",
                                                      "num_cores","region_name",
                                                       "NA_flag_val","out_suffix","out_dir")
-  debug(generate_raster_number_of_prediction_by_day)
   
-  obj_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param_generate_raster_number_pred)
+  #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
+  #source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+
+  #debug(generate_raster_number_of_prediction_by_day)
+  
+  #obj_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param_generate_raster_number_pred)
   
   obj_number_pix_predictions <- mcapply(1:nrow(df_missing_tiles_day),
                                         FUN=generate_raster_number_of_prediction_by_day,
                                         list_param=list_param_generate_raster_number_pred,
                                         mc.preschedule=FALSE,
                                         mc.cores = num_cores)
-  
-  generate_raster_number_of_prediction_by_day <- function(i,list_param){
-    ##This function generates raster of missing pixels and number of predictions for days with missing tiles for a given region.
-    #INPUTS
-    #1) list_tiles_predicted_masked 
-    #2) df_missing_tiles_day     
-    #3) r_overlap_m 
-    #4) num_cores
-    #5) region_name 
-    #6) NA_flag_val 
-    #7) out_suffix 
-    #8) out_dir 
-    
-    
-    ###### Start script #####
-    
-    #### read in paramters    
-    list_tiles_predicted_masked <- list_param$list_tiles_predicted_masked
-    df_missing_tiles_day <- list_param$df_missing_tiles_day    
-    r_overlap_m <- list_param$r_overlap_m
-    num_cores <- list_param$num_cores # 6 #PARAM 14
-    region_name <- list_param$region_name #<- "world" #PARAM 15
-    NA_flag_val <-list_param$NA_flag_val
-    out_suffix  <- list_param$out_suffix
-    out_dir  <- list_param$out_dir
-    
-    ### To add or explore later...could have differences between predictions and rmse
-    layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-    NA_value <- NA_flag_val 
-    #metric_name <- "rmse" #to be added to the code later...
-
-    ##### Select relevant day and create stack of missing tiles
-    
-    missing_tiles <- df_missing_tiles_day[i,]
-    date_str <- missing_tiles$date
-    selected_col <- names(list_tiles_predicted_masked)
-    missing_tiles_subset <- subset(missing_tiles,select=selected_col)
-    selected_missing <- missing_tiles_subset==1
-
-    list_missing_tiles_raster <- list_tiles_predicted_masked[selected_missing]
-    r_tiles_s <- stack(list_missing_tiles_raster)
-    
-    ##### Sum missing tiles in the stack and generate number of predictions by pixels
-    
-    datasum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum)
-     
-    ### then substract missing tiles...
-    r_day_predicted <- r_overlap_m - datasum
-    raster_name_number_prediction <- file.path(out_dir_str,paste("r_day_number_of_prediction_sum_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
-    writeRaster(r_day_predicted, NAflag=NA_flag_val,filename=raster_name_number_prediction,overwrite=TRUE)  
-
-    r_table <- ratify(r_day_predicted) # build the Raster Attibute table
-    rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
-    #rat$legend <- paste0("tile_",1:26)
-    tb_freq <- as.data.frame(freq(r_table))
-    rat$legend <- tb_freq$value
-    levels(r_table) <- rat
-
-    res_pix <- 800
-    #res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-  
-    png_filename <-  file.path(out_dir,paste("Figure_number_of_predictionds_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
-    
-    title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
-  
-    png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-    #my_col=c('blue','red','green')
-    my_col <- rainbow(length(tb_freq$value))
-    plot(r_table,col=my_col,legend=F,box=F,axes=F,main=title_str)
-    legend(x='topright', legend =rat$legend,fill = my_col,cex=0.8)
-  
-    dev.off()
-
-    ### Day missing reclass above
-    
-    ## do this in gdalcalc?
-    r_missing_day <- r_day_predicted == 0
-    
-    res_pix <- 800
-    #res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-  
-    png_filename <-  file.path(out_dir,paste("Figure_missing_predictionds_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
-    
-    title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
-  
-    png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-    #my_col=c('blue','red','green')
-    my_col <- c("black","red")
-    plot(r_missing_day,col=my_col,legend=F,box=F,axes=F,main=title_str)
-    legend(x='topright', legend =c("prediced","missing"),fill = my_col,cex=0.8)
-  
-    dev.off()
-
-    ### writeout data
-    #extension_str <- extension(lf_files)
-    #raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
-    #out_suffix_str <- paste0(region_name,"_",out_suffix)
-    raster_name_missing <- file.path(out_dir_str,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
-    writeRaster(r_missing_day, NAflag=NA_flag_val,filename=raster_name_missing,overwrite=TRUE)  
-    
-    ### generate return object
-    obj_number_day_predicted <- list(raster_name_number_prediction,raster_name_missing)
-    names(obj_number_day_predicted) <- c("raster_name_number_prediction","raster_name_missing")
-    
-    returm(r_day_predicted)
-  }
   
   ## Make a function,
   #for specifi i (day) select tile with missing info, load it and subsetract to overlap raster, save it.
@@ -672,12 +582,6 @@ predictions_tiles_missing_fun <- function(list_param,i){
   #3. for every pixel generate and ID (tile ID) as integer, there should  be 26 layers at the mosaic extent
   #4. generate a table? for each pixel it can say if is part of a specific tile
   #5. workout a formula to generate the number of predictions for each pixel based on tile predicted for each date!!
-
-  
-
-  
-  
-  
 
   return()
 }
