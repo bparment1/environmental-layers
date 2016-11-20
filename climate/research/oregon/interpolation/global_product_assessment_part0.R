@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/16/2016            
+#MODIFIED ON: 11/20/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: testing and moving generate raster of number of predictions for day with missing tiles   
+#COMMIT: debugging function of number of predictions for day with missing tiles   
 
 #################################################################################################
 
@@ -97,10 +97,12 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 ###############################
 ####### Parameters, constants and arguments ###
 
-CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
+#CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
+proj_str <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0"
+
 var<-"TMAX" # variable being interpolated #param 1, arg 1
 interpolation_method<-c("gam_CAI") #param 2
-CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
+#CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
 #list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 metric_name <- "var_pred" #use RMSE if accuracy
 pred_mod_name <- "mod1"
@@ -175,13 +177,15 @@ i<-1
 
 list_param_predictions_tiles_missing <- list(in_dir1,region_name,y_var_name,interpolation_method,out_suffix,out_dir,
                                              create_out_dir_param,proj_str,list_year_predicted,file_format,NA_flag_val,
-                                             num_cores,plotting_figures,item_no,day_to_mosaic,countries_shp,plot_region,
-                                             threshold_missing_day,pred_mod_name,metric_name)
+                                             num_cores,plotting_figures,item_no,day_to_mosaic_range,countries_shp,plotting_figures,
+                                             #threshold_missing_day,
+                                             pred_mod_name,metric_name)
 
 names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_name","interpolation_method","out_suffix","out_dir",
                                              "create_out_dir_param","proj_str","list_year_predicted","file_format","NA_flag_val",
-                                             "num_cores","plotting_figures","item_no","day_to_mosaic","countries_shp","plot_region",
-                                             "threshold_missing_day","pred_mod_name","metric_name")
+                                             "num_cores","plotting_figures","item_no","day_to_mosaic_range","countries_shp","plotting_figures",
+                                             #"threshold_missing_day",
+                                             "pred_mod_name","metric_name")
 
 debug(predictions_tiles_missing_fun)
 predictions_tiles_missing_fun(1,list_param=list_param_predictions_tiles_missing)
@@ -211,10 +215,10 @@ predictions_tiles_missing_fun <- function(i,list_param){
   ##for plotting assessment function
   
   item_no <- list_param_run_assessment_prediction$mosaic_plot  #PARAM14
-  day_to_mosaic <- list_param$day_to_mosaic #PARAM15
+  day_to_mosaic_range <- list_param$day_to_mosaic_range #PARAM15
   countries_shp <- list_param$countries_shp #PARAM17
-  plot_region <- list_param$plot_region #PARAM18
-  threshold_missing_day <- list_param$threshold_missing_day #PARM20
+  plotting_figures <- list_param$plotting_figures #PARAM18
+  #threshold_missing_day <- list_param$threshold_missing_day #PARM20
   pred_mod_name <- list_param$pred_mod_name
   metric_name <- list_param$metric_name
   
