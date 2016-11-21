@@ -262,6 +262,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   list_tiles_predicted_masked <- list_param$list_tiles_predicted_masked
   df_missing_tiles_day <- list_param$df_missing_tiles_day    
   r_overlap_m <- list_param$r_overlap_m
+  item_no <- list_param$item_no
   num_cores <- list_param$num_cores # 6 #PARAM 14
   region_name <- list_param$region_name #<- "world" #PARAM 15
   NA_flag_val <-list_param$NA_flag_val
@@ -363,8 +364,8 @@ predictions_tiles_missing_fun <- function(i,list_param){
   in_dir1 <- list_param$in_dir1 
   region_name <- list_param$region_name #e.g. c("reg23","reg4") #run only for one region
   y_var_name <- list_param$y_var_name # e.g. dailyTmax" #PARAM3
-  interpolation_method <- list_param_run_assessment_prediction$interpolation_method #c("gam_CAI") #PARAM4
-  out_suffix <- list_param_run$out_suffix #output suffix e.g."run_global_analyses_pred_12282015" #PARAM5
+  interpolation_method <- list_param$interpolation_method #c("gam_CAI") #PARAM4
+  out_suffix <- list_param$out_suffix #output suffix e.g."run_global_analyses_pred_12282015" #PARAM5
   out_dir <- list_param$out_dir #<- "/nobackupp8/bparmen1/" #PARAM6
   create_out_dir_param <-list_param$create_out_dir_param #if TRUE output dir created #PARAM7
   proj_str <- list_param$proj_str # CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Station coords WGS84, #PARAM8
@@ -376,7 +377,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
   
   ##for plotting assessment function
   
-  item_no <- list_param_run_assessment_prediction$mosaic_plot  #PARAM14
+  item_no <- list_param$item_no  #PARAM14
   day_to_mosaic_range <- list_param$day_to_mosaic_range #PARAM15
   countries_shp <- list_param$countries_shp #PARAM17
   plotting_figures <- list_param$plotting_figures #PARAM18
@@ -384,9 +385,11 @@ predictions_tiles_missing_fun <- function(i,list_param){
   pred_mod_name <- list_param$pred_mod_name
   metric_name <- list_param$metric_name
   
+  year_predicted <- list_param$list_year_predicted[i] #selected year
+
   ########################## START SCRIPT #########################################
   
-  #system("ls /nobackup/bparmen1")
+  #system("ls /nobackup/bparmen1"
   out_dir <- in_dir
   if(create_out_dir_param==TRUE){
     out_dir <- create_dir_fun(out_dir,out_suffix)
@@ -399,8 +402,6 @@ predictions_tiles_missing_fun <- function(i,list_param){
   
   #list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
   #list_outfiles_names <- vector("list", length=35) #collect names of output files
-
-  year_predicted <- list_param_run_assessment_prediction$list_year_predicted[i] 
 
   in_dir1_reg <- file.path(in_dir1,region_name)
   
@@ -475,6 +476,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
   #gam_CAI_dailyTmax_predicted_mod1_0_1_20001231_30_1-39.7_165.1.tif
   
   #undebug(check_missing)
+
   test_missing <- try(lapply(1:length(list_lf_raster_tif_tiles),function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
                                                                       pattern_str=NULL,
                                                                       in_dir=out_dir,
@@ -486,12 +488,24 @@ predictions_tiles_missing_fun <- function(i,list_param){
                                                                       out_dir=".")}))
 
  
+  #test_missing <- try(lapply(1:1,function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
+  #                                                                    pattern_str=NULL,
+  #                                                                    in_dir=out_dir,
+  #                                                                    date_start=start_date,
+  #                                                                    date_end=end_date,
+  #                                                                    item_no=item_no, #9 for predicted tiles
+  #                                                                    out_suffix=out_suffix,
+  #                                                                    num_cores=num_cores,
+  #                                                                    out_dir=".")}))
+  
+  #browser()
+  
   df_time_series <- test_missing[[1]]$df_time_series
   head(df_time_series)
 
   table(df_time_series$missing)
   table(df_time_series$year)
-  
+  #browser()
   #####
   #Now combine df_time_series in one table
   
@@ -519,6 +533,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
   
   ########################
   #### Step 2: examine overlap
+  #browser()
   
   path_to_shp <- dirname(countries_shp)
   layer_name <- sub(".shp","",basename(countries_shp))
@@ -548,8 +563,8 @@ predictions_tiles_missing_fun <- function(i,list_param){
   #centroids_pts <- tmp_pts 
   
   r_mask <- raster(infile_mask)
-  plot(r)
-  plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+  #plot(r)
+  #plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
   ## find overlap
   #http://gis.stackexchange.com/questions/156660/loop-to-check-multiple-polygons-overlap-in-r
@@ -562,6 +577,8 @@ predictions_tiles_missing_fun <- function(i,list_param){
     }
     #
   }
+   
+  #browser()
   
   names(shps_tiles) <- basename(unlist(in_dir_reg))
   r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
@@ -569,20 +586,19 @@ predictions_tiles_missing_fun <- function(i,list_param){
   tile_spdf <- shps_tiles[[1]]
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
-  
-  ### use rasterize
-  spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
 
-  #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11052016.R"
-  #source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+  ### use rasterize
+  #spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
+  #Error in (function (classes, fdef, mtable)  : 
+  #unable to find an inherited method for function 'bind' for signature '"missing", "missing"'
 
   #undebug(rasterize_tile_day)
-  list_predicted <- rasterize_tile_day(1,
-           list_spdf=shps_tiles,
-           df_missing=df_missing,
-           list_r_ref=list_r_ref,
-           col_name="overlap",
-           date_val=df_missing$date[1])
+  #list_predicted <- rasterize_tile_day(1,
+  #        list_spdf=shps_tiles,
+  #         df_missing=df_missing,
+  #         list_r_ref=list_r_ref,
+  #         col_name="overlap",
+  #         date_val=df_missing$date[1])
   #list_predicted <- mclapply(1:6,
   #         FUN=rasterize_tile_day,
   #         list_spdf=shps_tiles,
@@ -604,9 +620,9 @@ predictions_tiles_missing_fun <- function(i,list_param){
            mc.cores = num_cores)
 
   ##check that everything is correct:
-  plot(r_mask)
-  plot(raster(list_predicted[[1]]),add=T)
-  plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+  #plot(r_mask)
+  #plot(raster(list_predicted[[1]]),add=T)
+  #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
   ### Make a list of file
   out_suffix_str_tmp <- paste0(region_name,"_",out_suffix)
@@ -618,6 +634,8 @@ predictions_tiles_missing_fun <- function(i,list_param){
       
   writeLines(unlist(list_predicted),con=filename_list_predicted) #weights files to mosaic 
 
+  browser()
+  
   #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
   #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
   out_mosaic_name_predicted_m  <- file.path(out_dir_str,paste("r_overlap_sum_m_",out_suffix_str_tmp,".tif",sep=""))
