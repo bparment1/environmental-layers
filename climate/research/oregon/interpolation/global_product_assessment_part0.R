@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/21/2016            
+#MODIFIED ON: 11/22/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -58,6 +58,9 @@ library(lubridate)
 
 ###### Function used in the script #######
   
+#Adding command line arguments to use mpiexec
+args<-commandArgs(TRUE)
+
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script, NEX
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts" #path to script
 
@@ -86,7 +89,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11212016.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11222016b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -96,6 +99,10 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 
 ###############################
 ####### Parameters, constants and arguments ###
+
+#Find number of param
+#var <- args[1] # variable being interpolated #param 1, arg 1
+#var<-"TMAX" # variable being interpolated #param 1, arg 1
 
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
 proj_str <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0"
@@ -124,7 +131,7 @@ in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment"
 region_name <- c("reg6") #param 6, arg 3
 out_suffix <- "global_assessment_reg6_10232016"
 create_out_dir_param <- TRUE #param 9, arg 6
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
+out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment"
 file_format <- ".tif" #format for mosaiced files # param 11
 NA_flag_val <- -32768  #No data value, # param 12
 plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
@@ -135,7 +142,7 @@ python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30"
 NA_flag_val_mosaic <- -32768
 in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
 #countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
-countries_hsp <- "/nobackupp8/bparmen1/NEX_data/countries.shp"
+countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp"
 lf_raster <- NULL #list of raster to consider
 #On NEX
 #contains all data from the run by Alberto
@@ -148,7 +155,6 @@ NA_value <- -9999 #PARAM10
 NA_flag_val <- NA_value
 #multiple_region <- TRUE #PARAM 12
 region_name <- "reg6" #PARAM 13
-countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #PARAM 13, copy this on NEX too
 #/nobackupp6/aguzman4/climateLayers/out/reg6/subset/shapefiles
 list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
   
@@ -174,7 +180,7 @@ i<-1
 
 
 ##### prepare list of parameters for call of function
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11212016b.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11222016b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 list_param_predictions_tiles_missing <- list(in_dir1,region_name,y_var_name,interpolation_method,out_suffix,out_dir,
@@ -190,6 +196,7 @@ names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_
                                              "pred_mod_name","metric_name")
 
 #debug(predictions_tiles_missing_fun)
+#Started at 11.06pm
 predictions_tiles_missing_fun(1,list_param=list_param_predictions_tiles_missing)
 
 #### Function to check missing tiles and estimate potential gaps
