@@ -634,7 +634,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
       
   writeLines(unlist(list_predicted),con=filename_list_predicted) #weights files to mosaic 
 
-  browser()
+  #browser()
   
   #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
   #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
@@ -716,10 +716,10 @@ predictions_tiles_missing_fun <- function(i,list_param){
   #r_stack <- stack(list_tiles_predicted_m)
   list_mask_out_file_name <- raster_name
   list_tiles_predicted_masked <- unlist(mclapply(1:length(list_tiles_predicted_m),
-                                                 FUN=function(i){mask(raster(list_tiles_predicted_m[i]),r_mask,filename=list_mask_out_file_name[i])},
+                                                 FUN=function(i){mask(raster(list_tiles_predicted_m[i]),r_mask,filename=list_mask_out_file_name[i],overwrite=T)},
                                                        mc.preschedule=FALSE,mc.cores = num_cores))                         
   #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
-  
+  browser()
   ########################
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
@@ -747,25 +747,16 @@ predictions_tiles_missing_fun <- function(i,list_param){
   #debug(generate_raster_number_of_prediction_by_day)
   
   #obj_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param_generate_raster_number_pred)
-  
-  obj_number_pix_predictions <- mcapply(1:nrow(df_missing_tiles_day),
+  if(nrow(df_missing_tiles_day)>0){
+    
+    obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
                                         FUN=generate_raster_number_of_prediction_by_day,
                                         list_param=list_param_generate_raster_number_pred,
                                         mc.preschedule=FALSE,
                                         mc.cores = num_cores)
+    
+  }
   
-  ## Make a function,
-  #for specifi i (day) select tile with missing info, load it and subsetract to overlap raster, save it.
-  
-  #http://stackoverflow.com/questions/19586945/how-to-legend-a-raster-using-directly-the-raster-attribute-table-and-displaying
-  #
-  #http://gis.stackexchange.com/questions/148398/how-does-spatial-polygon-over-polygon-work-to-when-aggregating-values-in-r
-  #ok other way of doing this:
-  #1. find overlap assuming all predictions!
-  #2. Us raster image with number of overlaps in the mosaic tile
-  #3. for every pixel generate and ID (tile ID) as integer, there should  be 26 layers at the mosaic extent
-  #4. generate a table? for each pixel it can say if is part of a specific tile
-  #5. workout a formula to generate the number of predictions for each pixel based on tile predicted for each date!!
 
   return()
 }
