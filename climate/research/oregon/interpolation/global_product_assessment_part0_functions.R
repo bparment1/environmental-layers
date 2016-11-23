@@ -291,7 +291,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
      
   ### then substract missing tiles...
   r_day_predicted <- r_overlap_m - datasum
-  raster_name_number_prediction <- file.path(out_dir_str,paste("r_day_number_of_prediction_sum_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+  raster_name_number_prediction <- file.path(out_dir,paste("r_day_number_of_prediction_sum_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
   writeRaster(r_day_predicted, NAflag=NA_flag_val,filename=raster_name_number_prediction,overwrite=TRUE)  
 
   r_table <- ratify(r_day_predicted) # build the Raster Attibute table
@@ -306,7 +306,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir,paste("Figure_number_of_predictionds_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+  png_filename <-  file.path(out_dir,paste("Figure_number_of_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
     
   title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
   
@@ -328,7 +328,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir,paste("Figure_missing_predictionds_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+  png_filename <-  file.path(out_dir,paste("Figure_missing_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
     
   title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
   
@@ -344,7 +344,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #extension_str <- extension(lf_files)
   #raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
   #out_suffix_str <- paste0(region_name,"_",out_suffix)
-  raster_name_missing <- file.path(out_dir_str,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+  raster_name_missing <- file.path(out_dir,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
   writeRaster(r_missing_day, NAflag=NA_flag_val,filename=raster_name_missing,overwrite=TRUE)  
     
   ### generate return object
@@ -719,7 +719,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
                                                  FUN=function(i){mask(raster(list_tiles_predicted_m[i]),r_mask,filename=list_mask_out_file_name[i],overwrite=T)},
                                                        mc.preschedule=FALSE,mc.cores = num_cores))                         
   #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
-  browser()
+
   ########################
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
@@ -744,9 +744,11 @@ predictions_tiles_missing_fun <- function(i,list_param){
   #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
   #source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
-  #debug(generate_raster_number_of_prediction_by_day)
-  
-  #obj_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param_generate_raster_number_pred)
+  #undebug(generate_raster_number_of_prediction_by_day)
+  #4.51pm
+  browser()
+  #5.10pm
+  #obj_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
   if(nrow(df_missing_tiles_day)>0){
     
     obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
@@ -755,10 +757,14 @@ predictions_tiles_missing_fun <- function(i,list_param){
                                         mc.preschedule=FALSE,
                                         mc.cores = num_cores)
     
+  }else{
+    obj_number_pix_predictions <- NULL
   }
   
-
-  return()
+  predictions_tiles_missing_obj <- list(df_lf_tiles_time_series,df_missing_tiles_day,obj_number_pix_predictions)
+  names(predictions_tiles_missing_obj) <- c("df_lf_tiles_time_series","df_missing_tiles_day","obj_number_pix_predictions")
+  
+  return(predictions_tiles_missing_obj)
 }
 
 
