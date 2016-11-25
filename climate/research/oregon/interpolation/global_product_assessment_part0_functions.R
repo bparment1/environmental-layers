@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 11/15/2016            
+#MODIFIED ON: 11/25/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -748,7 +748,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
   #4.51pm
   browser()
   #5.10pm
-  #obj_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
+  #test_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
   if(nrow(df_missing_tiles_day)>0){
     
     obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
