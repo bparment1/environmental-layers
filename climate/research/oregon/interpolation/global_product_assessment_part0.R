@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 11/22/2016            
+#MODIFIED ON: 11/25/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -20,7 +20,7 @@
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: moving function of number of predictions for day with missing tiles to functon script
+#COMMIT: making callable from shel for function of number of predictions for day with missing tiles 
 
 #################################################################################################
 
@@ -89,7 +89,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11222016b.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11252016.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -100,64 +100,67 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 ###############################
 ####### Parameters, constants and arguments ###
 
-#Find number of param
+### ARGUMENTS: inputs parameters set from the command line
 #var <- args[1] # variable being interpolated #param 1, arg 1
 #var<-"TMAX" # variable being interpolated #param 1, arg 1
 
+var<-"TMAX" # variable being interpolated #PARAM 1, arg 1
+interpolation_method<-c("gam_CAI") #PARAM 2
+layers_option <- c("var_pred") #options are:
+item_no <- 9 #PARAM 4
+day_start <- "2000101" #PARAM 5, arg 12
+day_end <- "20001231" #PARAM 6, arg 13
+#day_start <- "1984101" #PARAM 12 arg 12
+#day_end <- "20141231" #PARAM 13 arg 13
+day_to_mosaic_range <- NULL #PARAM 7
+#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg6.tif"
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif" #PARAM 8
+in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM 9
+region_name <- c("reg6") #PARAM 10, arg 3
+out_suffix <- "predictions_assessment_reg6_10302016" #PARAM 11
+create_out_dir_param <- TRUE #PARAM 12, arg 6
+out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM 13
+file_format <- ".tif" #format for mosaiced files # PARAM 14
+NA_value <- -32768 #PARAM 15
+#NA_flag_val <- -32768  #No data value, # param 12
+plotting_figures <- TRUE #running part2 of assessment to generate figures... # PARAM 13
+num_cores <- 6 #number of cores used # PARAM 14, arg 8
+#python_bin <- "/usr/bin" #PARAM 15, NCEAS
+python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 15"
+in_dir_list_filename <- NULL # PARAM 16, if NULL, use the in_dir directory to search for info
+#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
+countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp" #PARAM 17
+lf_raster <- NULL #list of raster to consider #PARAM 18
+#contains all data from the run by Alberto
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" # PARAM 19 On NEX
+#list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6 #only consider first year!
+list_year_predicted <- c(2000) #PARAM 20, year still on disk for reg6 #only consider first year!
+ 
+metric_name <- "var_pred" #PARAM 3, use RMSE if accuracy
+
+layers_option <- args[17] # PARAM 17 options are:
+#layers_option <- c("var_pred") #options are:
+#res_training, res_testing,ac_training, ac_testing, var_pred
+tmp_files <- args[18] #PARAM 18
+data_type <- args[19] #PARAM 19 #use integer 32 for layers outputs
+scaling <- args[20] #PARAM 19 #use integer 32 for layers outputs
+values_range <-  args[21] #Param 21, args 21
+
+
+###################
+### CONSTANT: not set from command line
+
+pred_mod_name <- "mod1"
+date_start <- day_start
+date_end <- day_end
+NA_flag_val <- NA_value
+#NA_flag_val_mosaic <- -32768
 #CRS_locs_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
 proj_str <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0"
 
-var<-"TMAX" # variable being interpolated #param 1, arg 1
-interpolation_method<-c("gam_CAI") #param 2
 #CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
 #list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
-metric_name <- "var_pred" #use RMSE if accuracy
-pred_mod_name <- "mod1"
-item_no <- 9
-day_start <- "2000101" #PARAM 12 arg 12
-day_end <- "20001231" #PARAM 13 arg 13
-#date_start <- day_start
-#date_end <- day_end
-date_start <- day_start
-date_end <- day_end
-#day_start <- "1984101" #PARAM 12 arg 12
-#day_end <- "20141231" #PARAM 13 arg 13
-day_to_mosaic_range <- NULL
-#infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg6.tif"
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif"
 
-in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment"
-#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
-region_name <- c("reg6") #param 6, arg 3
-out_suffix <- "global_assessment_reg6_10232016"
-create_out_dir_param <- TRUE #param 9, arg 6
-out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment"
-file_format <- ".tif" #format for mosaiced files # param 11
-NA_flag_val <- -32768  #No data value, # param 12
-plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
-num_cores <- 6 #number of cores used # param 13, arg 8
-#python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
-#python_bin <- "/usr/bin" #PARAM 30, NCEAS
-python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30"
-NA_flag_val_mosaic <- -32768
-in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
-#countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
-countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp"
-lf_raster <- NULL #list of raster to consider
-#On NEX
-#contains all data from the run by Alberto
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" #On NEX
-#parent output dir for the current script analyes
-y_var_name <- "dailyTmax" #PARAM1
-out_suffix <- "predictions_assessment_reg6_10302016"
-#file_format <- ".rst" #PARAM 9
-NA_value <- -9999 #PARAM10
-NA_flag_val <- NA_value
-#multiple_region <- TRUE #PARAM 12
-region_name <- "reg6" #PARAM 13
-#/nobackupp6/aguzman4/climateLayers/out/reg6/subset/shapefiles
-list_year_predicted <- c(2000,2012,2013) #year still on disk for reg6
-  
 ##Add for precip later...
 if (var == "TMAX") {
   y_var_name <- "dailyTmax"
@@ -176,12 +179,10 @@ if (var == "TMIN") {
   variable_name <- "minimum temperature"
 }
 
-i<-1
+#i<-1
 
 
 ##### prepare list of parameters for call of function
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11222016b.R"
-source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 list_param_predictions_tiles_missing <- list(in_dir1,region_name,y_var_name,interpolation_method,out_suffix,out_dir,
                                              create_out_dir_param,proj_str,list_year_predicted,file_format,NA_flag_val,
@@ -203,50 +204,4 @@ predictions_tiles_missing_fun(1,list_param=list_param_predictions_tiles_missing)
 
 ############################ END OF SCRIPT ##################################
 
-  # spdf_tiles <- do.call(intersect, shps_tiles)
-  # 
-  # ### Now use intersect to retain actual overlap
-  # 
-  # for(i in 1:length(shps_tiles)){
-  #   overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[i]])
-  # }
-  # 
-  # overlap_intersect <- lapply(1:length(shps_tiles),FUN=function(i){intersect(shps_tiles[[1]],shps_tiles[[i]])})
-  # #test <- overlap_intersect <- intersect(shps_tiles[[1]],shps_tiles[[2]]))
-  # 
-  # names(overlap_intersect) <- basename(in_dir_reg)
-  # shp_selected <- unlist(lapply(1:length(overlap_intersect),function(i){!is.null(overlap_intersect[[i]])}))
-  # test_list <- overlap_intersect[shp_selected]
-  # spdf_tiles_test <- do.call(bind, test_list) #combines all intersect!!
-  # #ll <- ll[ ! sapply(ll, is.null) ]
-  # test <- overlap_intersect[!lapply(overlap_intersect,is.null)]
-  # spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
-  # #ll <- ll[ ! sapply(ll, is.null) ]
-  # spdf_tiles <- do.call(bind, overlap_intersect[1:4]) #combines all intersect!!
-  # spdf_tiles_test <- do.call(bind, test) #combines all intersect!!
-  # 
-  # plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-  # 
-  # matrix_overlap%*%df_missing[1,1:26]
-  # 
-  # 
-  # ## For each day can do overalp matrix* prediction
-  # ## if prediction and overlap then 1 else 0, if no-overlap is then NA
-  # ## then for each tile compute the number of excepted predictions taken into account in a tile
-  # 
-  # #combine polygon
-  # #http://gis.stackexchange.com/questions/155328/merging-multiple-spatialpolygondataframes-into-1-spdf-in-r
-  # 
-  # #http://gis.stackexchange.com/questions/116388/count-overlapping-polygons-in-single-shape-file-with-r
-  # 
-  # #### Use the predictions directory
-  # #By region
-  # #For each polygon/tile find polygon overlapping with count and ID (like list w)
-  # #for each polygon/tile and date find if there is a prediction using the tif (multiply number)
-  # #for each date of year report data in table.
-  # 
-  # #go through table and hsow if there are missing data (no prediction) or report min predictions for tile set?
-  #   
-  # #for each polygon find you overlap!!
-  # #plot number of overlap
-  # #for specific each find prediction...
+
