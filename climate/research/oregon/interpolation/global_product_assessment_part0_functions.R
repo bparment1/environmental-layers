@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 11/25/2016            
+#MODIFIED ON: 11/27/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: adding necessary function for assessment from other script
+##COMMIT: modification of inputs for checking missing 
 
 #################################################################################################
 
@@ -354,7 +354,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   return(obj_number_day_predicted)
 }
 
-predictions_tiles_missing_fun <- function(i,list_param){
+predictions_tiles_missing_fun <- function(list_param){
   #Add documentation
 
   ##############################
@@ -385,7 +385,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
   pred_mod_name <- list_param$pred_mod_name
   metric_name <- list_param$metric_name
   
-  year_predicted <- list_param$list_year_predicted[i] #selected year
+  year_predicted <- list_param$year_predicted #selected year
 
   ########################## START SCRIPT #########################################
   
@@ -746,7 +746,7 @@ predictions_tiles_missing_fun <- function(i,list_param){
 
   #undebug(generate_raster_number_of_prediction_by_day)
   #4.51pm
-  browser()
+  #browser()
   #5.10pm
   #test_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
   if(nrow(df_missing_tiles_day)>0){
