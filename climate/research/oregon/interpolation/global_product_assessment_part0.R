@@ -93,7 +93,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11292016b.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11302016.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -132,9 +132,10 @@ tmp_files <- args[17]
 var <- "TMAX" # variable being interpolated #PARAM 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM2
 region_name <- c("reg6") #PARAM 3, arg 3
-out_suffix <- "predictions_assessment_reg6_10302016" #PARAM 4
+out_suffix <- "predictions_assessment_reg6_11302016" #PARAM 4
 #out_suffix_str <- region_name #PARAM 4, CONST 3
 out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM 5
+out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg6/assessment"
 create_out_dir_param <- TRUE #PARAM 12, arg 6
 year_predicted <- c(2000) #PARAM 7, arg7
 num_cores <- 6 #number of cores used # PARAM 8, arg 8
@@ -219,7 +220,7 @@ names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_
                                              "pred_mod_name","metric_name")
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11292016b.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11302016.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 #debug(predictions_tiles_missing_fun)
