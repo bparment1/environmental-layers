@@ -252,8 +252,11 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #4) num_cores
   #5) region_name 
   #6) NA_flag_val 
-  #7) out_suffix 
-  #8) out_dir 
+  #7)  scaling <- list_param$scaling
+  #8) python_bin <- list_param$python_bin
+  #9) data_type <- list_param$data_type
+  #10) out_suffix 
+  #11) out_dir 
     
     
   ###### Start script #####
@@ -266,14 +269,19 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   num_cores <- list_param$num_cores # 6 #PARAM 14
   region_name <- list_param$region_name #<- "world" #PARAM 15
   NA_flag_val <-list_param$NA_flag_val
+  scaling <- list_param$scaling
+  python_bin <- list_param$python_bin
+  data_type <- list_param$data_type
   out_suffix  <- list_param$out_suffix
   out_dir  <- list_param$out_dir
+
     
   ### To add or explore later...could have differences between predictions and rmse
   layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
   NA_value <- NA_flag_val 
   #metric_name <- "rmse" #to be added to the code later...
-
+  #data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
+  
   ##### Select relevant day and create stack of missing tiles
     
   missing_tiles <- df_missing_tiles_day[i,]
@@ -291,8 +299,10 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   r_data_sum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum,filename=raster_name_data_sum)
      
   ### then substract missing tiles...
-  #r_day_predicted <- r_overlap_m - r_data_sum
   raster_name_number_prediction <- file.path(out_dir,paste("r_day_number_of_prediction_sum_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+
+  #r_day_predicted <- r_overlap_m - r_data_sum
+  #r_day_predicted <- overlay(r_overlap_m, r_data_sum, fun=function(x,y) x - y, filename=raster_name_number_prediction, overwrite=TRUE)
 
   #raster_name_day_predicted <- file.path(out_dir,paste("r_day_predicted","_",region_name,"_masked_",date_str,file_format,sep=""))
   ## do this in gdalcalc or overlay function to go faster?
@@ -334,26 +344,28 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #my_col=c('blue','red','green')
   my_col <- rainbow(length(tb_freq$value))
   plot(r_day_predicted,col=my_col,legend=F,box=F,axes=F,main=title_str)
-  legend(x='topright', legend =rat$legend,fill = my_col,cex=0.8)
-  
+  legend(x='topright', legend =tb_freq$value,fill = my_col,cex=0.8)
   dev.off()
 
   ### Day missing reclass above
   ## change here
-  r_missing_day <- r_day_predicted == 0
-    
+  #r_missing_day <- r_day_predicted == 0
+  raster_name_missing <- file.path(out_dir,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+  
   ## do this in gdalcalc or overlay function to go faster?
   python_cmd <- file.path(python_bin,"gdal_calc.py")
   cmd_str2 <- paste(python_cmd, 
                      paste("-A ", raster_name_number_prediction,sep=""),
-                     paste("--outfile=",r_m_weighted_mean_raster_name,sep=""),
+                     paste("--outfile=",raster_name_missing,sep=""),
                      paste("--type=",data_type,sep=""),
                      "--co='COMPRESS=LZW'",
                      paste("--NoDataValue=",NA_flag_val,sep=""),
-                     paste("--calc='(A=0)*",scaling,"'",sep=""),
+                     paste("--calc='(A<1)*",scaling,"'",sep=""),
                      "--overwrite",sep=" ") #division by zero is problematic...
   system(cmd_str2)
-    
+  
+  r_missing_day <- raster(raster_name_missing)  
+  
   res_pix <- 800
   #res_pix <- 480
   col_mfrow <- 1
@@ -375,20 +387,13 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #extension_str <- extension(lf_files)
   #raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
   #out_suffix_str <- paste0(region_name,"_",out_suffix)
-  raster_name_missing <- file.path(out_dir,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
-  writeRaster(r_missing_day, NAflag=NA_flag_val,filename=raster_name_missing,overwrite=TRUE)  
+  #raster_name_missing <- file.path(out_dir,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+  #writeRaster(r_missing_day, NAflag=NA_flag_val,filename=raster_name_missing,overwrite=TRUE)  
     
-  ##Took 13-14 minutes for 28 tiles and one date...!!! 
-  
-  #if(tmp_files==F){ #if false...delete all files with "_tmp"
-  #  lf_tmp <- unlist(lf_accuracy_training_raster)
-  #  ##now delete temporary files...
-  #  file.remove(lf_tmp)
-  #}
-  
+
   ### generate return object
-  obj_number_day_predicted <- list(raster_name_number_prediction,raster_name_missing)
-  names(obj_number_day_predicted) <- c("raster_name_number_prediction","raster_name_missing")
+  obj_number_day_predicted <- list(raster_name_number_prediction,raster_name_missing,tb_freq)
+  names(obj_number_day_predicted) <- c("raster_name_number_prediction","raster_name_missing","tb_freq")
     
   return(obj_number_day_predicted)
 }
@@ -412,20 +417,22 @@ predictions_tiles_missing_fun <- function(list_param){
   file_format <- list_param$file_format #<- ".tif" #format for mosaiced files #PARAM10
   NA_flag_val <- list_param$NA_flag_val #<- -9999  #No data value, #PARAM11
   num_cores <- list_param$num_cores #<- 6 #number of cores used #PARAM13
-  plotting_figures <- list_param$plotting_figures #if true run generate png for missing date
+  plotting_figures <- list_param$plotting_figures #if true run generate png for missing date #PARAm 14
   
   ##for plotting assessment function
   
-  item_no <- list_param$item_no  #PARAM14
-  day_to_mosaic_range <- list_param$day_to_mosaic_range #PARAM15
+  item_no <- list_param$item_no  #PARAM15
+  day_to_mosaic_range <- list_param$day_to_mosaic_range #PARAM16
   countries_shp <- list_param$countries_shp #PARAM17
   plotting_figures <- list_param$plotting_figures #PARAM18
-  #threshold_missing_day <- list_param$threshold_missing_day #PARM20
-  pred_mod_name <- list_param$pred_mod_name
-  metric_name <- list_param$metric_name
+  #threshold_missing_day <- list_param$threshold_missing_day #PARAM20
+  pred_mod_name <- list_param$pred_mod_name #PARAM21
+  metric_name <- list_param$metric_name #PARAM22
   
-  year_predicted <- list_param$year_predicted #selected year
-
+  year_predicted <- list_param$year_predicted #selected year #PARAM 23
+  data_type <- list_param$data_type #PARAM 24
+  scaling <- list_param$scaling #PARAM 25
+  
   ########################## START SCRIPT #########################################
   
   #system("ls /nobackup/bparmen1"
@@ -561,7 +568,7 @@ predictions_tiles_missing_fun <- function(list_param){
   
   list_missing <- lapply(1:length(test_missing),FUN=function(i){df_time_series <- test_missing[[i]]$df_time_series$missing})
   
-  browser()
+  #browser()
   df_missing <- as.data.frame(do.call(cbind,list_missing))
   names(df_missing) <- unlist(basename(in_dir_reg))
   df_missing$tot_missing <- rowSums (df_missing, na.rm = FALSE, dims = 1)
@@ -698,16 +705,25 @@ predictions_tiles_missing_fun <- function(list_param){
   
   out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",out_suffix_str_tmp,".tif",sep=""))
 
-  r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked,overwrite=T)
+  r_overlap_m <- mask(r_overlap,
+                  mask=r_mask,
+                  filename=out_mosaic_name_overlap_masked,
+                  datatype=data_type,
+                  #datatype=data_type_str,
+                  options=c("COMPRESS=LZW"),#compress tif
+                  overwrite=TRUE,
+                  NAflag=NA_flag_val)
+
+  #r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked,overwrite=T)
   #plot(r_overlap_m)
   #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
   
-  r_table <- ratify(r_overlap_m) # build the Raster Attibute table
-  rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
+  #r_table <- ratify(r_overlap_m) # build the Raster Attibute table
+  #rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
   #rat$legend <- paste0("tile_",1:26)
-  tb_freq <- as.data.frame(freq(r_table))
-  rat$legend <- tb_freq$value
-  levels(r_table) <- rat
+  tb_freq_overlap <- as.data.frame(freq(r_overlap_m))
+  #rat$legend <- tb_freq$value
+  #levels(r_table) <- rat
   
   res_pix <- 800
   #res_pix <- 480
@@ -720,10 +736,10 @@ predictions_tiles_missing_fun <- function(list_param){
   
   png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     #my_col=c('blue','red','green')
-  my_col <- rainbow(length(tb_freq$value))
+  my_col <- rainbow(length(tb_freq_overlap$value))
 
-  plot(r_table,col=my_col,legend=F,box=F,axes=F,main=title_str)
-  legend(x='topright', legend =rat$legend,fill = my_col,cex=0.8)
+  plot(r_overlap_m,col=my_col,legend=F,box=F,axes=F,main=title_str)
+  legend(x='topright', legend =tb_freq_overlap$value,fill = my_col,cex=0.8)
   
   dev.off()
 
@@ -756,8 +772,13 @@ predictions_tiles_missing_fun <- function(list_param){
   #r_stack <- stack(list_tiles_predicted_m)
   list_mask_out_file_name <- raster_name
   list_tiles_predicted_masked <- unlist(mclapply(1:length(list_tiles_predicted_m),
-                                                 FUN=function(i){mask(raster(list_tiles_predicted_m[i]),r_mask,filename=list_mask_out_file_name[i],overwrite=T)},
-                                                       mc.preschedule=FALSE,mc.cores = num_cores))                         
+                                                 FUN=function(i){mask(raster(list_tiles_predicted_m[i]),
+                                                                      r_mask,filename=list_mask_out_file_name[i],
+                                                                      overwrite=T,
+                                                                      datatype=data_type,                  
+                                                                      options=c("COMPRESS=LZW"))},
+                                                 mc.preschedule=FALSE,
+                                                 mc.cores = num_cores))                         
   #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
 
   ########################
@@ -774,11 +795,11 @@ predictions_tiles_missing_fun <- function(list_param){
   
   
   list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
-                                                 num_cores,region_name,
+                                                 num_cores,region_name,data_type,scaling,
                                                  NA_flag_val,out_suffix,out_dir)
   
   names(list_param_generate_raster_number_pred) <- c("list_tiles_predicted_masked","df_missing_tiles_day","r_overlap_m",
-                                                     "num_cores","region_name",
+                                                     "num_cores","region_name","data_type","scaling",
                                                       "NA_flag_val","out_suffix","out_dir")
   
   #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
@@ -801,8 +822,19 @@ predictions_tiles_missing_fun <- function(list_param){
     obj_number_pix_predictions <- NULL
   }
   
-  predictions_tiles_missing_obj <- list(df_lf_tiles_time_series,df_missing_tiles_day,obj_number_pix_predictions)
-  names(predictions_tiles_missing_obj) <- c("df_lf_tiles_time_series","df_missing_tiles_day","obj_number_pix_predictions")
+  #Delete temporary files : Fix this part later...
+  #rasterOptions(), find where tmp dir are stored
+  #rasterOptions(tempdir=out_dir)
+  if(tmp_files==F){ #if false...delete all files with "_tmp"
+    lf_tmp <- unlist(lf_accuracy_training_raster)
+    ##now delete temporary files...
+    file.remove(lf_tmp)
+  }
+  
+  predictions_tiles_missing_obj <- list(df_lf_tiles_time_series,df_missing_tiles_day,out_mosaic_name_overlap_masked,
+                                        tb_freq_overlap,obj_number_pix_predictions)
+  names(predictions_tiles_missing_obj) <- c("df_lf_tiles_time_series","df_missing_tiles_day","raster_name_overlap",
+                                            "tb_freq_overlap","obj_number_pix_predictions")
   
   return(predictions_tiles_missing_obj)
 }
