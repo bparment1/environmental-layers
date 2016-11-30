@@ -197,9 +197,25 @@ centroids_shp_fun <- function(i,list_shp_reg_files){
   return(shp_obj)
 }
 
-rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_val){
+rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_val,out_dir=".",out_suffix=""){
   #
+  #This function creates a raster image from tiles and missing information data.frame.
   #
+  #INPUTS:
+  #1) i : counter to consider tile being processed
+  #2) list_spdf: list of spatial polygon data.frame to convert in raster
+  #3) df_missing: data.frame with information used in rasterization
+  #4) list_r_ref: reference raster to use
+  #5) col_name: name of column containing value used in the rasteriation, the column is stored in the df_missing data.frame
+  #6) date_val:
+  #7) out_dir:
+  #8) out_suffix
+  #OUTPUTS
+  #1) raster_name: output raster_name 
+  #
+  
+  #### Start script ####
+  
   tile_spdf <- list_spdf[[i]]
   tile_coord <- names(list_spdf)[i]
   r_ref <- list_r_ref[[i]]
@@ -233,8 +249,8 @@ rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_v
    	r <- init(r, fun=set1f, overwrite=TRUE)
   }
     
-  out_dir <- "." #can set this up later
-  out_suffix_str <- paste0(col_name,"") # can set this parameter later
+  #out_dir <- "." #can set this up later
+  out_suffix_str <- paste0(col_name,out_suffix) # can set this parameter later
   raster_name <- file.path(out_dir,paste("r_",tile_id,"_",tile_coord,"_",out_suffix_str,".tif",sep=""))
   #raster_name <- 
   writeRaster(r, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  #unweighted mean
@@ -243,8 +259,9 @@ rasterize_tile_day <- function(i,list_spdf,df_missing,list_r_ref,col_name,date_v
 }
 
 generate_raster_number_of_prediction_by_day <- function(i,list_param){
-  
+  #
   ##This function generates raster of missing pixels and number of predictions for days with missing tiles for a given region.
+  #
   #INPUTS
   #1) list_tiles_predicted_masked 
   #2) df_missing_tiles_day     
@@ -255,8 +272,10 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #7)  scaling <- list_param$scaling
   #8) python_bin <- list_param$python_bin
   #9) data_type <- list_param$data_type
-  #10) out_suffix 
-  #11) out_dir 
+  #10) plotting figures: if True plot png for missing day predictions
+  #11) out_suffix 
+  #12) out_dir 
+  #OUTPUTS
     
     
   ###### Start script #####
@@ -272,6 +291,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   scaling <- list_param$scaling
   python_bin <- list_param$python_bin
   data_type <- list_param$data_type
+  plotting_figures <- list_param$plotting_figures
   out_suffix  <- list_param$out_suffix
   out_dir  <- list_param$out_dir
 
@@ -300,7 +320,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   ##### Sum missing tiles in the stack and generate number of predictions by pixels
   ## This stores files in the temp dir
   raster_name_data_sum <- file.path(out_dir,paste("r_data_sum","_",region_name,"_masked_",date_str,file_format,sep=""))
-  r_data_sum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum,filename=raster_name_data_sum)
+  r_data_sum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum,filename=raster_name_data_sum,overwrite=TRUE)
      
   ### then substract missing tiles...
   raster_name_number_prediction <- file.path(out_dir,paste("r_day_number_of_prediction_sum_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
@@ -335,21 +355,25 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #rat$legend <- tb_freq$value
   #levels(r_table) <- rat
 
-  res_pix <- 800
-  #res_pix <- 480
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png_filename_number_of_predictions <-  file.path(out_dir,paste("Figure_number_of_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+  if(plotting_figures==TRUE){
     
-  title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
+    res_pix <- 800
+    #res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
   
-  png(filename=png_filename_number_of_predictions,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  #my_col=c('blue','red','green')
-  my_col <- rainbow(length(tb_freq$value))
-  plot(r_day_predicted,col=my_col,legend=F,box=F,axes=F,main=title_str)
-  legend(x='topright', legend =tb_freq$value,fill = my_col,cex=0.8)
-  dev.off()
+    png_filename_number_of_predictions <-  file.path(out_dir,paste("Figure_number_of_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+    title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
+  
+    png(filename=png_filename_number_of_predictions,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    #my_col=c('blue','red','green')
+    my_col <- rainbow(length(tb_freq$value))
+    plot(r_day_predicted,col=my_col,legend=F,box=F,axes=F,main=title_str)
+    legend(x='topright', legend =tb_freq$value,fill = my_col,cex=0.8)
+    dev.off()
+  }else{
+    png_filename_number_of_predictions <- NULL
+  }
 
   ### Day missing reclass above
   ## change here
@@ -370,22 +394,27 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   
   r_missing_day <- raster(raster_name_missing)  
   
-  res_pix <- 800
-  #res_pix <- 480
-  col_mfrow <- 1
-  row_mfrow <- 1
-  
-  png_filename_missing_predictions <-  file.path(out_dir,paste("Figure_missing_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+  if(plotting_figures==TRUE){
     
-  title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
+    res_pix <- 800
+    #res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
   
-  png(filename=png_filename_missing_predictions,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  #my_col=c('blue','red','green')
-  my_col <- c("black","red")
-  plot(r_missing_day,col=my_col,legend=F,box=F,axes=F,main=title_str)
-  legend(x='topright', legend =c("prediced","missing"),fill = my_col,cex=0.8)
+    png_filename_missing_predictions <-  file.path(out_dir,paste("Figure_missing_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+    title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
   
-  dev.off()
+    png(filename=png_filename_missing_predictions,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    #my_col=c('blue','red','green')
+    my_col <- c("black","red")
+    plot(r_missing_day,col=my_col,legend=F,box=F,axes=F,main=title_str)
+    legend(x='topright', legend =c("prediced","missing"),fill = my_col,cex=0.8)
+  
+    dev.off()
+    
+  }else{
+    png_filename_missing_predictions <- NULL
+  }
 
   ### writeout data
   #extension_str <- extension(lf_files)
@@ -441,8 +470,9 @@ predictions_tiles_missing_fun <- function(list_param){
   
   ########################## START SCRIPT #########################################
   
+  #browser()
   #system("ls /nobackup/bparmen1"
-  out_dir <- in_dir
+  #out_dir <- in_dir #use directory of out_dir
   if(create_out_dir_param==TRUE){
     out_dir <- create_dir_fun(out_dir,out_suffix)
     setwd(out_dir)
@@ -539,14 +569,14 @@ predictions_tiles_missing_fun <- function(list_param){
   #undebug(check_missing)
 
   test_missing <- try(lapply(1:length(list_lf_raster_tif_tiles),function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
-                                                                      pattern_str=NULL,
-                                                                      in_dir=out_dir,
-                                                                      date_start=start_date,
-                                                                      date_end=end_date,
-                                                                      item_no=item_no, #9 for predicted tiles
-                                                                      out_suffix=out_suffix,
-                                                                      num_cores=num_cores,
-                                                                      out_dir=".")}))
+                                                                                          pattern_str=NULL,
+                                                                                          in_dir=in_dir,
+                                                                                          date_start=start_date,
+                                                                                          date_end=end_date,
+                                                                                          item_no=item_no, #9 for predicted tiles
+                                                                                          out_suffix=out_suffix,
+                                                                                          num_cores=num_cores,
+                                                                                          out_dir=out_dir)}))
 
  
   #test_missing <- try(lapply(1:1,function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
@@ -576,7 +606,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #http://stackoverflow.com/questions/26220913/replace-na-with-na
   #Use dfr[dfr=="<NA>"]=NA where dfr is your dataframe.
   names(df_lf_tiles_time_series) <- unlist(basename(in_dir_reg))
-  filename_df_lf_tiles <- paste0("df_files_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix)
+  filename_df_lf_tiles <- file.path(out_dir,paste0("df_files_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix))
   write.table(df_lf_tiles_time_series,file=filename_df_lf_tiles)
 
   ###Now combined missing in one table?
@@ -590,7 +620,7 @@ predictions_tiles_missing_fun <- function(list_param){
   df_missing$reg <- region_name
   df_missing$date <- day_to_mosaic
 
-  filename_df_missing <- paste0("df_missing_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix)
+  filename_df_missing <- file.path(out_dir,paste0("df_missing_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix))
   write.table(df_missing,file=filename_df_missing)
   
   ########################
@@ -678,6 +708,8 @@ predictions_tiles_missing_fun <- function(list_param){
            list_r_ref=list_r_ref,
            col_name = "overlap",
            date_val=df_missing$date[1],
+           out_dir = out_dir,
+           out_suffix = "",
             mc.preschedule=FALSE,
            mc.cores = num_cores)
 
@@ -808,13 +840,15 @@ predictions_tiles_missing_fun <- function(list_param){
   #r_tiles_s <- r_tiles_stack
   names_tiles <- basename(in_dir_reg)
   
-  
+  browser()
   list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
                                                  num_cores,region_name,data_type,scaling,python_bin,
+                                                 plotting_figures,
                                                  NA_flag_val,out_suffix,out_dir)
   
   names(list_param_generate_raster_number_pred) <- c("list_tiles_predicted_masked","df_missing_tiles_day","r_overlap_m",
                                                      "num_cores","region_name","data_type","scaling","python_bin",
+                                                     "plotting_figures",
                                                       "NA_flag_val","out_suffix","out_dir")
   
   #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
@@ -825,6 +859,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #browser()
   #5.10pm
   #test_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
+
   if(nrow(df_missing_tiles_day)>0){
     
     obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
@@ -850,7 +885,7 @@ predictions_tiles_missing_fun <- function(list_param){
                                         tb_freq_overlap,png_filename_maximum_overlap,obj_number_pix_predictions)
   names(predictions_tiles_missing_obj) <- c("df_lf_tiles_time_series","df_missing_tiles_day","raster_name_overlap",
                                             "tb_freq_overlap","png_maximum_overlap","obj_number_pix_predictions")
-  browser()
+  
   
   return(predictions_tiles_missing_obj)
 }
