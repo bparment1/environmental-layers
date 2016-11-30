@@ -281,7 +281,11 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   NA_value <- NA_flag_val 
   #metric_name <- "rmse" #to be added to the code later...
   #data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
-  
+
+  if(data_type=="Int16"){
+    data_type_str <- "INT2S"
+  }
+
   ##### Select relevant day and create stack of missing tiles
     
   missing_tiles <- df_missing_tiles_day[i,]
@@ -336,11 +340,11 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir,paste("Figure_number_of_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+  png_filename_number_of_predictions <-  file.path(out_dir,paste("Figure_number_of_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
     
   title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
   
-  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  png(filename=png_filename_number_of_predictions,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
   #my_col=c('blue','red','green')
   my_col <- rainbow(length(tb_freq$value))
   plot(r_day_predicted,col=my_col,legend=F,box=F,axes=F,main=title_str)
@@ -371,11 +375,11 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir,paste("Figure_missing_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
+  png_filename_missing_predictions <-  file.path(out_dir,paste("Figure_missing_predictions_by_pixel_",date_str,"_",region_name,"_",out_suffix,".png",sep =""))
     
   title_str <-  paste("Number of predicted pixels for ",variable_name," on ",date_str, sep = "")
   
-  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  png(filename=png_filename_missing_predictions,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
   #my_col=c('blue','red','green')
   my_col <- c("black","red")
   plot(r_missing_day,col=my_col,legend=F,box=F,axes=F,main=title_str)
@@ -392,8 +396,10 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
     
 
   ### generate return object
-  obj_number_day_predicted <- list(raster_name_number_prediction,raster_name_missing,tb_freq)
-  names(obj_number_day_predicted) <- c("raster_name_number_prediction","raster_name_missing","tb_freq")
+  obj_number_day_predicted <- list(raster_name_number_prediction,raster_name_missing,tb_freq,
+                                   png_filename_number_of_predictions,png_filename_missing_predictions)
+  names(obj_number_day_predicted) <- c("raster_name_number_prediction","raster_name_missing","tb_freq",
+                                       "png_filename_number_of_predictions","png_missing_predictions")
     
   return(obj_number_day_predicted)
 }
@@ -446,6 +452,15 @@ predictions_tiles_missing_fun <- function(list_param){
   
   setwd(out_dir)
   
+  if(is.null(scaling)){
+    scaling <- 1
+  }
+  #valid_range <- values_range #if NULL don't screen values!!
+  #valid_range <- c(-100,100) #pass this as parameter!! (in the next update)
+  if(data_type=="Int16"){
+    data_type_str <- "INT2S"
+  }
+
   #list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
   #list_outfiles_names <- vector("list", length=35) #collect names of output files
 
@@ -708,8 +723,8 @@ predictions_tiles_missing_fun <- function(list_param){
   r_overlap_m <- mask(r_overlap,
                   mask=r_mask,
                   filename=out_mosaic_name_overlap_masked,
-                  datatype=data_type,
-                  #datatype=data_type_str,
+                  datatype=data_type_str,
+                  #datatype=data_type,
                   options=c("COMPRESS=LZW"),#compress tif
                   overwrite=TRUE,
                   NAflag=NA_flag_val)
@@ -730,11 +745,11 @@ predictions_tiles_missing_fun <- function(list_param){
   col_mfrow <- 1
   row_mfrow <- 1
   
-  png_filename <-  file.path(out_dir,paste("Figure_maximum_overlap_",region_name,"_",out_suffix,".png",sep =""))
+  png_filename_maximum_overlap <-  file.path(out_dir,paste("Figure_maximum_overlap_",region_name,"_",out_suffix,".png",sep =""))
     
   title_str <-  paste("Maximum overlap: Number of predicted pixels for ",variable_name, sep = "")
   
-  png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  png(filename=png_filename_maximum_overlap,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     #my_col=c('blue','red','green')
   my_col <- rainbow(length(tb_freq_overlap$value))
 
@@ -775,7 +790,7 @@ predictions_tiles_missing_fun <- function(list_param){
                                                  FUN=function(i){mask(raster(list_tiles_predicted_m[i]),
                                                                       r_mask,filename=list_mask_out_file_name[i],
                                                                       overwrite=T,
-                                                                      datatype=data_type,                  
+                                                                      datatype=data_type_str,                  
                                                                       options=c("COMPRESS=LZW"))},
                                                  mc.preschedule=FALSE,
                                                  mc.cores = num_cores))                         
@@ -795,11 +810,11 @@ predictions_tiles_missing_fun <- function(list_param){
   
   
   list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
-                                                 num_cores,region_name,data_type,scaling,
+                                                 num_cores,region_name,data_type,scaling,python_bin,
                                                  NA_flag_val,out_suffix,out_dir)
   
   names(list_param_generate_raster_number_pred) <- c("list_tiles_predicted_masked","df_missing_tiles_day","r_overlap_m",
-                                                     "num_cores","region_name","data_type","scaling",
+                                                     "num_cores","region_name","data_type","scaling","python_bin",
                                                       "NA_flag_val","out_suffix","out_dir")
   
   #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
@@ -807,7 +822,7 @@ predictions_tiles_missing_fun <- function(list_param){
 
   #undebug(generate_raster_number_of_prediction_by_day)
   #4.51pm
-  browser()
+  #browser()
   #5.10pm
   #test_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
   if(nrow(df_missing_tiles_day)>0){
@@ -832,9 +847,10 @@ predictions_tiles_missing_fun <- function(list_param){
   }
   
   predictions_tiles_missing_obj <- list(df_lf_tiles_time_series,df_missing_tiles_day,out_mosaic_name_overlap_masked,
-                                        tb_freq_overlap,obj_number_pix_predictions)
+                                        tb_freq_overlap,png_filename_maximum_overlap,obj_number_pix_predictions)
   names(predictions_tiles_missing_obj) <- c("df_lf_tiles_time_series","df_missing_tiles_day","raster_name_overlap",
-                                            "tb_freq_overlap","obj_number_pix_predictions")
+                                            "tb_freq_overlap","png_maximum_overlap","obj_number_pix_predictions")
+  browser()
   
   return(predictions_tiles_missing_obj)
 }
