@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 11/28/2016            
+#MODIFIED ON: 12/01/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -319,7 +319,7 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
     
   ##### Sum missing tiles in the stack and generate number of predictions by pixels
   ## This stores files in the temp dir
-  raster_name_data_sum <- file.path(out_dir,paste("r_data_sum","_",region_name,"_masked_",date_str,file_format,sep=""))
+  raster_name_data_sum <- file.path(out_dir,paste("r_data_sum","_",region_name,"_masked_",date_str,"_tmp",file_format,sep=""))
   r_data_sum <- stackApply(r_tiles_s, 1:nlayers(r_tiles_s), fun = sum,filename=raster_name_data_sum,overwrite=TRUE)
      
   ### then substract missing tiles...
@@ -467,6 +467,7 @@ predictions_tiles_missing_fun <- function(list_param){
   year_predicted <- list_param$year_predicted #selected year #PARAM 23
   data_type <- list_param$data_type #PARAM 24
   scaling <- list_param$scaling #PARAM 25
+  tmp_files <- list_param$tmp_files
   
   ########################## START SCRIPT #########################################
   
@@ -606,7 +607,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #http://stackoverflow.com/questions/26220913/replace-na-with-na
   #Use dfr[dfr=="<NA>"]=NA where dfr is your dataframe.
   names(df_lf_tiles_time_series) <- unlist(basename(in_dir_reg))
-  filename_df_lf_tiles <- file.path(out_dir,paste0("df_files_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix))
+  filename_df_lf_tiles <- file.path(out_dir,paste0("df_files_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
   write.table(df_lf_tiles_time_series,file=filename_df_lf_tiles)
 
   ###Now combined missing in one table?
@@ -620,7 +621,7 @@ predictions_tiles_missing_fun <- function(list_param){
   df_missing$reg <- region_name
   df_missing$date <- day_to_mosaic
 
-  filename_df_missing <- file.path(out_dir,paste0("df_missing_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix))
+  filename_df_missing <- file.path(out_dir,paste0("df_missing_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
   write.table(df_missing,file=filename_df_missing)
   
   ########################
@@ -709,7 +710,8 @@ predictions_tiles_missing_fun <- function(list_param){
            col_name = "overlap",
            date_val=df_missing$date[1],
            out_dir = out_dir,
-           out_suffix = "",
+           #out_suffix = "",
+           out_suffix = "_tmp",
             mc.preschedule=FALSE,
            mc.cores = num_cores)
 
@@ -719,7 +721,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
   ### Make a list of file
-  out_suffix_str_tmp <- paste0(region_name,"_",out_suffix)
+  out_suffix_str_tmp <- paste0(region_name,"_",out_suffix,"_tmp")
   out_dir_str <- out_dir
   filename_list_predicted <- file.path(out_dir_str,paste("list_to_mosaics_",out_suffix_str_tmp,".txt",sep=""))
 
@@ -732,7 +734,7 @@ predictions_tiles_missing_fun <- function(list_param){
   
   #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
   #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
-  out_mosaic_name_predicted_m  <- file.path(out_dir_str,paste("r_overlap_sum_m_",out_suffix_str_tmp,".tif",sep=""))
+  out_mosaic_name_predicted_m  <- file.path(out_dir_str,paste("r_overlap_sum_m_",out_suffix_str_tmp,"_tmp",".tif",sep=""))
 
   rast_ref_name <- infile_mask
   mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
@@ -750,7 +752,7 @@ predictions_tiles_missing_fun <- function(list_param){
   r_overlap <- raster(r_overlap_raster_name)
   r_mask <- raster(infile_mask)
   
-  out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",out_suffix_str_tmp,".tif",sep=""))
+  out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",region_name,"_",out_suffix,".tif",sep=""))
 
   r_overlap_m <- mask(r_overlap,
                   mask=r_mask,
@@ -831,7 +833,8 @@ predictions_tiles_missing_fun <- function(list_param){
   ########################
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
-  
+   
+  #browser()
   #r_tiles_stack <- stack(list_tiles_predicted_masked)
   #names(r_tiles_stack) <- basename(in_dir_reg) #this does not work, X. is added to the name, use list instead
   
@@ -840,7 +843,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #r_tiles_s <- r_tiles_stack
   names_tiles <- basename(in_dir_reg)
   
-  browser()
+
   list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
                                                  num_cores,region_name,data_type,scaling,python_bin,
                                                  plotting_figures,
@@ -872,11 +875,13 @@ predictions_tiles_missing_fun <- function(list_param){
     obj_number_pix_predictions <- NULL
   }
   
+  #browser()
   #Delete temporary files : Fix this part later...
   #rasterOptions(), find where tmp dir are stored
   #rasterOptions(tempdir=out_dir)
   if(tmp_files==F){ #if false...delete all files with "_tmp"
-    lf_tmp <- unlist(lf_accuracy_training_raster)
+    lf_tmp <- list.files(path=out_dir,pattern=".*._tmp.*")
+    #lf_tmp <- unlist(lf_accuracy_training_raster)
     ##now delete temporary files...
     file.remove(lf_tmp)
   }
@@ -887,6 +892,9 @@ predictions_tiles_missing_fun <- function(list_param){
                                             "tb_freq_overlap","png_maximum_overlap","obj_number_pix_predictions")
   
   
+  predictions_tiles_missing_obj_filename <- file.path(out_dir,paste("obj_predictions_tiles_missing_fun_",interpolation_method,y_var_name,region_name,out_suffix,".RData",sep=""))
+  save(predictions_tiles_missing_obj,file=predictions_tiles_missing_obj_filename)
+
   return(predictions_tiles_missing_obj)
 }
 
