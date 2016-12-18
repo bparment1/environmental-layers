@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 12/05/2016            
+#MODIFIED ON: 12/18/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -105,6 +105,7 @@ finding_missing_dates <- function(date_start,date_end,list_dates){
   names(missing_dates_obj) <- c("missing_dates","df_dates")
   return(missing_dates_obj)
 }
+
 check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",date_end="20141231",item_no=13,out_suffix="",num_cores=1,out_dir="."){
   #Function to check for missing files such as mosaics or predictions for tiles etc.
   #The function assumes the name of the files contain "_".
@@ -492,6 +493,8 @@ predictions_tiles_missing_fun <- function(list_param){
     data_type_str <- "INT2S"
   }
 
+  rasterOptions(tmpdir=out_dir)#trying to resolve long time when use from command line
+  
   #list_outfiles <- vector("list", length=35) #collect names of output files, this should be dynamic?
   #list_outfiles_names <- vector("list", length=35) #collect names of output files
 
@@ -834,7 +837,8 @@ predictions_tiles_missing_fun <- function(list_param){
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
    
-  browser()
+  #browser()
+  #Debugged on 12/16
   #r_tiles_stack <- stack(list_tiles_predicted_masked)
   #names(r_tiles_stack) <- basename(in_dir_reg) #this does not work, X. is added to the name, use list instead
   
@@ -878,7 +882,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #browser()
   #Delete temporary files : Fix this part later...
   #rasterOptions(), find where tmp dir are stored
-  #rasterOptions(tempdir=out_dir)
+  
   if(tmp_files==F){ #if false...delete all files with "_tmp"
     lf_tmp <- list.files(path=out_dir,pattern=".*._tmp.*")
     #lf_tmp <- unlist(lf_accuracy_training_raster)
