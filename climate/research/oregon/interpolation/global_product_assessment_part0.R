@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 12/05/2016            
+#MODIFIED ON: 12/18/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -93,7 +93,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12052016.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -104,52 +104,52 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 ###############################
 ####### Parameters, constants and arguments ###
 
-#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12012016.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_assessment_reg6_10302016 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
-#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12012016.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_tiles_assessment_reg6_2000 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_assessment_reg6_2000_test2 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_tiles_assessment_reg6_2000_test2 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
 
 ### ARGUMENTS: inputs parameters set from the command line
 
-# var <- args[1] # variable being interpolated #param 1, arg 1
-# in_dir <- args[2] #input dir containing tiles predictions from stage 4 workflow
-# region_name <- args[3] #PARAM3  #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
-# out_suffix <- args[4] #PARAM 4 # output suffix, add region and year of assessment
-# out_dir <- args[5] #PARAM 5, parent output dir, a new dir is generated using the "output_"+out_suffix 
-# create_out_dir_param <- args[6] #PARAM 6, if true create out_dir otherwise use given out_dir
-# year_predicted <- args[7] #PARAM 7, year being assessed
-# num_cores <- args[8] #PARAM 8, number of cores used in the parraleliation
-# max_mem<-args[9] #PARAM 9, maximum memory used in raster package
-# item_no <- args[10] #PARAM10, string position of date in tile tif prediciton, use 9 as default
-# metric_name <- args[11] #PARAM 11, prediction or accuracy: rmse, mae
-# day_start <- args[12] #PARAM 12, start of day to process
-# day_end <- args[13] #PARAM 13, end of day to process
-# infile_mask <- args[14]#PARAM 14, input mask file for the region
-# in_dir1 <- args[15] #PARAM 15, files containing assessment information
-# layers_option <- args[16] # PARAM 16 options are: prediction or accuracy
-# tmp_files <- args[17] # PARAM 17, if FALSE, temporary files are removed
-# plotting_figures <- args[18]# PARAM 18, if TRUE, png files are produced for missing tiles and day predicted
+var <- args[1] # variable being interpolated #param 1, arg 1
+in_dir <- args[2] #input dir containing tiles predictions from stage 4 workflow
+region_name <- args[3] #PARAM3  #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+out_suffix <- args[4] #PARAM 4 # output suffix, add region and year of assessment
+out_dir <- args[5] #PARAM 5, parent output dir, a new dir is generated using the "output_"+out_suffix
+create_out_dir_param <- args[6] #PARAM 6, if true create out_dir otherwise use given out_dir
+year_predicted <- args[7] #PARAM 7, year being assessed
+num_cores <- args[8] #PARAM 8, number of cores used in the parraleliation
+max_mem<-args[9] #PARAM 9, maximum memory used in raster package
+item_no <- args[10] #PARAM10, string position of date in tile tif prediciton, use 9 as default
+metric_name <- args[11] #PARAM 11, prediction or accuracy: rmse, mae
+day_start <- args[12] #PARAM 12, start of day to process
+day_end <- args[13] #PARAM 13, end of day to process
+infile_mask <- args[14]#PARAM 14, input mask file for the region
+in_dir1 <- args[15] #PARAM 15, files containing assessment information
+layers_option <- args[16] # PARAM 16 options are: prediction or accuracy
+tmp_files <- args[17] # PARAM 17, if FALSE, temporary files are removed
+plotting_figures <- args[18]# PARAM 18, if TRUE, png files are produced for missing tiles and day predicted
 
 #### values used for testing
-var <- "TMAX" # variable being interpolated #PARAM 1, arg 1
-in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM2
-region_name <- c("reg6") #PARAM 3, arg 3
-out_suffix <- "predictions_tiles_assessment_reg6_2000_test" #PARAM 4
-#out_suffix_str <- region_name #PARAM 4, CONST 3
-#out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM 5
-out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg6/assessment"
-create_out_dir_param <- TRUE #PARAM 12, arg 6
-year_predicted <- c(2000) #PARAM 7, arg7
-num_cores <- 6 #number of cores used # PARAM 8, arg 8
-max_mem <- 1e+07 #PARAM 9
-#mosaicing_method <- args[10] #PARAM10
-item_no <- 9 #PARAM 10, arg 10
-metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-day_start <- "20000101" #PARAM 12, arg 12
-day_end <- "20001231" #PARAM 13, arg 13
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif" #PARAM 14, arg 14
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" # PARAM 15 On NEX
-layers_option <- c("var_pred") #PARAM 16, arg 16
-tmp_files <- FALSE #PARAM 17, arg 17
-plotting_figures <- FALSE #PARAm 18, arg 18
+# var <- "TMAX" # variable being interpolated #PARAM 1, arg 1
+# in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM2
+# region_name <- c("reg6") #PARAM 3, arg 3
+# out_suffix <- "predictions_tiles_assessment_reg6_2000_test2" #PARAM 4
+# #out_suffix_str <- region_name #PARAM 4, CONST 3
+# #out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM 5
+# out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg6/assessment"
+# create_out_dir_param <- TRUE #PARAM 12, arg 6
+# year_predicted <- c(2000) #PARAM 7, arg7
+# num_cores <- 6 #number of cores used # PARAM 8, arg 8
+# max_mem <- 1e+07 #PARAM 9
+# #mosaicing_method <- args[10] #PARAM10
+# item_no <- 9 #PARAM 10, arg 10
+# metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+# day_start <- "20000101" #PARAM 12, arg 12
+# day_end <- "20001231" #PARAM 13, arg 13
+# infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif" #PARAM 14, arg 14
+# in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" # PARAM 15 On NEX
+# layers_option <- c("var_pred") #PARAM 16, arg 16
+# tmp_files <- FALSE #PARAM 17, arg 17
+# plotting_figures <- FALSE #PARAm 18, arg 18
 
 ###################
 ### CONSTANT: not set from command line
@@ -219,8 +219,8 @@ names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_
                                              "pred_mod_name","metric_name")
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12052016.R"
-source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+#function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016.R"
+#source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 #debug(predictions_tiles_missing_fun)
 #Started at 9.35am
