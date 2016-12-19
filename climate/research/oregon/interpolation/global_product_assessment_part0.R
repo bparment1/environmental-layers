@@ -93,7 +93,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -104,8 +104,8 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 ###############################
 ####### Parameters, constants and arguments ###
 
-#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_assessment_reg6_2000_test2 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
-#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_tiles_assessment_reg6_2000_test2 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016b.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_assessment_reg6_2000_test2 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016b.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_tiles_assessment_reg6_2000_test3 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
 
 ### ARGUMENTS: inputs parameters set from the command line
 
