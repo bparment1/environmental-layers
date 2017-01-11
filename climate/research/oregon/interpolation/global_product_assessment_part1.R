@@ -4,10 +4,10 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 09/19/2016            
+#MODIFIED ON: 01/11/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
+#COMMENTS: extraction of data and figures for global climate layers
 #TODO:
 #1) Add plot broken down by year and region 
 #2) Modify code for overall assessment accross all regions and year
@@ -87,7 +87,13 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016b.R"
+source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+##Don't load part 1 and part2, mosaic package does not work on NEX
+#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
+#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+#function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
+#source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 ###############################
 ####### Parameters, constants and arguments ###
 
@@ -129,7 +135,7 @@ in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/assessme
 in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaic/mosaic"
 
 region_name <- c("reg1") #param 6, arg 3
-out_suffix <- "_global_assessment_reg1_08282016"
+out_suffix <- "_global_assessment_reg1_01112017"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
@@ -241,12 +247,57 @@ l_dates_month_str <- format(list_dates_val, "%b") ## Month, char, abbreviated
 l_dates_year_str <- format(list_dates_val, "%Y") ## Year with century
 l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 
+####
+#1) for each year and region find unique station for testing and training, make it a spdf
+#2) Use existing function to extract
+#3) Combine both
+#4) Make this a function that run fast and in parallel.
+
 
 ##start new function
 ### Needs to make this a function!!!
 #Step 1 for a list of dates, load relevant files with year matching,
 #Step 2 for giving dates subset the data.frame
 #Step 3: find duplicates, create return object and return given station data for the date
+
+list_data_v_fname
+list_data_s_fname
+
+aggregate_by_id_and_coord <- function(i,list_df_data,list_out_suffix,out_dir){
+  #This functions aggrate iput data.frame based on the ID of the station and coordinates x,y
+  #
+  #
+  
+  df_points_data <- list_df_data[[i]]
+  out_suffix_str <- list_out_suffix[i]
+  ##Begin
+  if(class(df_points_data)!="data.frame"){
+    df_points_data <- read.table(df_points_data,stringsAsFactors=F,sep=",")
+  }
+  #df_points_data <- (list_df_v_stations[[1]])
+  #test3 <- aggregate(id  ~x + y,data=test,FUN=mean)
+  df_station_data <- aggregate(id  ~ x + y,data=df_points_data,FUN=mean)
+  out_filename <- file.path(out_dir,paste0("df_station_data_",out_suffix_str,".txt"))
+  write.table(df_station_data,out_filename,sep=",")
+  return(df_station_data)
+}
+
+debug(aggregate_by_id_and_coord)
+list_out_suffix <- paste0(out_suffix,"_",c("1984","1985"))
+test<- mclapply(1:length(list_data_v_fname[1:1]),
+                FUN=aggregate_by_id_and_coord,
+         list_df_data = list_data_v_fname,
+         list_out_suffix = list_out_suffix, 
+         out_dir=out_dir,
+         mc.preschedule=FALSE,
+         mc.cores = 1
+         )
+
+t<-unique(test$id)
+    md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+    #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+    
+    pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
 
 list_year_str <- unique(l_dates_year_str)
 list_df_v_stations <- vector("list",length=length(list_year_str))
