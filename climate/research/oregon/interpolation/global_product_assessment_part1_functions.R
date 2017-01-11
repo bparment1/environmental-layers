@@ -4,10 +4,10 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 09/20/2016            
+#MODIFIED ON: 01/11/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: Initial commit, script based on part NASA biodiversity conference 
+#COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
 #TODO:
 #1) Add plot broken down by year and region 
 #2) Modify code for overall assessment accross all regions and year
@@ -19,8 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: time profiles run on multiple selected stations and fixing bugs 
-
+##COMMIT: function for combining extracted values and 
 #################################################################################################
 
 ### Loading R library and packages        
@@ -570,7 +569,7 @@ finding_missing_dates <- function(date_start,date_end,list_dates){
 
   missing_dates_obj <- list(missing_dates,df_dates)
   names(missing_dates_obj) <- c("missing_dates","df_dates")
-  return(missing_dates)
+  return(missing_dates_obj)
 }
 
 
@@ -620,6 +619,7 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
   #15.17 (on 09/08)
   ##10.41 (on 05/22)
   #took about 7h for 5262 layers, maybe can be sped up later
+  #took about 16h for 10289 layers (reg1) to extract 4800 points
   df_points_extracted <- extract(r_stack,df_points,df=T,sp=T) #attach back to the original data...
 
   #17.19 (on 05/23)
@@ -630,13 +630,15 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
   df_points_extracted_fname <- file.path(out_dir,paste0("df_points_extracted_",out_suffix,".txt"))
   write.table(df_points_extracted,file= df_points_extracted_fname,sep=",",row.names = F) 
   #17.19 (on 05/23)
+  #browser()
   
   #### Now check for missing dates
   
   #debug(extract_date)
   #test <- extract_date(6431,lf_mosaic_list,12) #extract item number 12 from the name of files to get the data
   #list_dates_produced <- unlist(mclapply(1:length(lf_raster),FUN=extract_date,x=lf_raster,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
-  #list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)                         
+  #list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)      
+  #takes about 1 hour for 10289 files from stack
   list_dates_produced <- unlist(mclapply(1:length(lf_raster),FUN=extract_date,x=lf_raster,item_no=item_no,
                                          mc.preschedule=FALSE,mc.cores = num_cores))                         
 
@@ -650,12 +652,12 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
                           month_str=month_str,
                           year=year_str,
                           day=day_str,
-                          dir=dirname(lf_mosaic_list))
+                          dir=dirname(lf_raster))
 
   df_raster_fname <- file.path(out_dir,paste0("df_raster_",out_suffix,".txt"))
   write.table(df_raster,file= df_raster_fname,sep=",",row.names = F) 
 
-  missing_dates_obj <- finding_missing_dates (date_start,date_end,list_dates_produced_date_val)
+  missing_dates_obj <- finding_missing_dates(date_start,date_end,list_dates_produced_date_val)
   
   df_time_series <- missing_dates_obj$df_dates
   df_time_series$date <- as.character(df_time_series$date)  
@@ -669,6 +671,10 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
   extract_obj <- list(df_points_extracted_fname,df_raster_fname,df_time_series_fname)
   names(extract_obj) <- c("df_points_extracted_fname","df_raster_fname","df_time_series_fname")
   
+  #extract_obj_fname <- file.path(out_path,paste("raster_extract_obj_",interpolation_method,"_", y_var_name,out_prefix_str[i],".RData",sep=""))
+  extract_obj_fname <- file.path(out_dir,paste("raster_extract_obj_",out_suffix,".RData",sep=""))
+  save( extract_obj,file= extract_obj_fname)
+
   return(extract_obj)
 }
 
@@ -786,240 +792,6 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts,df_pix_ts_filename )
   names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var","df_pix_ts","df_pix_ts_filename")
   return(station_summary_obj)
-}
-
-
-plot_observation_predictions_time_series <- function(df_pix_time_series,var_name1,var_name2,list_windows=NULL,time_series_id=NULL,scaling_factors=NULL,out_dir=".",out_suffix=""){
-  #This function plots time series for observed and predicted points.
-  #This assumes that time series with residuals were extracted from raster stacks.
-  #
-  #Inputs:
-  #1) df_pix_time_series
-  #2) var_name1: name of variables use
-  #3) var_name2:
-  #4) list_windows:
-  #5) time_series_id
-  #6) scaling_factors: if null no scaling
-  #7) out_dir
-  #8) out_suffix
-  #
-  
-  ########## Start script #########
-  
-  ## Screen of NaN and make sure we have NA
-  df_pix_time_series[is.na(df_pix_time_series)] <- NA
-  
-  #Scale if necessary, this should be a list
-  if(!is.null(scaling_factors)){
-    
-    df_pix_time_series[[var_name2]] <-  df_pix_time_series[[var_name2]]*scaling_factors[2] 
-  }
-
-  if(is.null(time_series_id)){
-    time_series_id <- unique(na.omit(df_pix_time_series$id))
-  }
-  
-  #### var_name 1
-  d_z_obs <- zoo(as.numeric(df_pix_time_series[[var_name1]]),as.Date(df_pix_time_series$date))
-  #plot(d_z_obs)  
-  
-  #### var_name 2
-  d_z_var <- zoo(as.numeric(df_pix_time_series[[var_name2]]),as.Date(df_pix_time_series$date)) #make sure date is a date object !!!
-  #names(d_z_var) <- var_pred_mosaic
-  #plot(d_z_var)  
-
-  d_z_diff <- d_z_var - d_z_obs #this is residuals if var is predicted
-  #d_z_res <- d_z_var - d_z_obs 
-  
-  #d_z_res <- zoo(as.numeric(df_pix_time_series[[paste0("res_",var_pred_mosaic)]]),as.Date(df_pix_time_series$date))
-  #plot(d_z_diff)  
-
-  d_z_all <- merge(d_z_obs,d_z_var,d_z_diff)
-  names(d_z_all) <- c("obs","pred","diff")
-  d_z <-  merge(d_z_obs,d_z_var)
-  names(d_z) <- c("obs","pred")
-  
-  range(d_z_diff,na.rm=T)
-  mean(d_z_diff,na.rm=T)
-  quantile(d_z_diff,na.rm=T)
-  
-  ##Make data.frame with dates for later use!!
-  #from libary mosaic
-
-  rmse_val <- rmse_fun(d_z_diff)
-  df_basic_stat <- c(fav_stats(d_z_diff),rmse_val=rmse_val)
-  
-  #df_basic_stat <- fav_stats(d_z_all) #does not work on multiple ts
-  #df_basic_stat$date <- date_processed
-  #df_basic_stat$reg <- reg
-  #quantile(data_stations_var_pred$res_mod1,c(1,5,10,90,95,99))
-  df_quantile_val <- quantile(na.omit(d_z_diff),c(0,0.01,0.05,0.10,0.45,0.50,0.55,0.90,0.95,0.99,1))
-  #names(df_quantile_val)
-  #as.list(df_quantile_val)
-  #df_test <- data.frame(names(df_quantile_val))[numeric(0), ]
-
-
-  range_dates <- range(as.Date(df_pix_time_series$date))
-  day_start <- range_dates[1]
-  day_end <- range_dates[2]
-  #day_start <- "1984-01-01" #PARAM 12 arg 12
-  #day_end <- "2014-12-31" #PARAM 13 arg 13
-  start_date <- as.Date(day_start)
-  end_date <- as.Date(day_end)
-  #range_year <- range(df_pix_time_series$year)
-  #start_year <- range_year[1]
-  #end_year <- range_year[2]
-  #var="tmax"
-
-  res_pix <- 1000
-  #res_pix <- 480
-  col_mfrow <- 2
-  row_mfrow <- 1
-  
-  png_filename1 <-  file.path(out_dir,paste("Figure_5a_time_series_profile_combined_",region_name,"_",time_series_id,"_",
-                                           var_name1,"_",var_name2,
-                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-  png_filename2 <-  file.path(out_dir,paste("Figure_5a_time_series_profile_separate_",region_name,"_",time_series_id,"_",
-                                           var_name1,"_",var_name2,
-                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-  png_filename3 <-  file.path(out_dir,paste("Figure_5a_time_series_profile_separate_with_difference_",region_name,"_",
-                                            time_series_id,"_", var_name1,"_",var_name2,
-                                            "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-
-  title_str <- paste("Daily", var_name1,"and", var_name2,"for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
-  col_str <- c("blue","red")
-  title_str2 <- paste("Daily", var_name1,"-", var_name2,"and difference","for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
-  col_str2 <- c("blue","red","darkgreen")
-    
-  png(filename=png_filename1,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  #this is the whole time series
-  plot(d_z,plot.type="single",col=col_str,
-       ylab="tmax in deg C",xlab="Daily time steps",
-       main=title_str,cex=1,font=2,type="l",
-       cex.main=1.5,cex.lab=1.5,font.lab=2)
-  legend("topleft",legend=c(var_name1,var_name2),
-       col=col_str,lty=c(1,1),
-       cex=1.2,bty="n")
-  dev.off()
-
-  png(filename=png_filename2,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  #this is the whole time series
-  plot(d_z,plot.type="multiple",col=col_str,
-       ylab="tmax in deg C",xlab="Daily time steps",
-       main=title_str,cex=1,font=2,type="l",
-       cex.main=1.5,cex.lab=1.5,font.lab=2)
-
-  legend("topleft",legend=c(var_name1,var_name2),
-       col=col_str,lty=c(1,1),
-       cex=1.2,bty="n")
-  dev.off()
-  
-  png(filename=png_filename3,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-  #this is the whole time series
-  plot(d_z_all,plot.type="multiple",col=col_str2,
-       ylab="tmax in deg C",xlab="Daily time steps",
-       main=title_str2,cex=1,font=2,type="l",
-       cex.main=1.5,cex.lab=1.5,font.lab=2)
-
-  legend("topleft",legend=c(var_name1,var_name2,"diff"),
-       col=col_str2,lty=c(1,1),
-       cex=1.2,bty="n")
-  dev.off()
-  
-  #for list_windows go in a loop
-  if(!is.null(list_windows)){
-    
-    for(i in 1:length(list_windows)){
-      
-      ### get smaller window
-
-      window_range <- list_windows[[i]]
-      #day_start <- "1999-01-01" #PARAM 12 arg 12
-      #day_end <- "1999-12-31" #PARAM 13 arg 13
-      day_start <- window_range[1]
-      day_end <- window_range[2]
-      
-      start_date <- as.Date(day_start)
-      end_date <- as.Date(day_end)
-      #start_year <- year(start_date)
-      #end_year <- year(end_date)
-      
-      ### now select from the original time series
-      #
-      d_z_all_w <- window(d_z_all,start=start_date,end=end_date)
-      d_z_w <- window(d_z,start=start_date,end=end_date)
-
-      
-      #### prepare inputs for plots
-      png_filename4 <-  file.path(out_dir,paste("Figure_5b_time_series_profile_window_combined_",region_name,"_",time_series_id,"_",
-                                           var_name1,"_",var_name2,
-                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-      png_filename5 <-  file.path(out_dir,paste("Figure_5b_time_series_profile_window_separate_",region_name,"_",time_series_id,"_",
-                                           var_name1,"_",var_name2,
-                                           "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-      png_filename6 <-  file.path(out_dir,paste("Figure_5b_time_series_profile_window_separate_with_difference_",region_name,"_",
-                                            time_series_id,"_", var_name1,"_",var_name2,
-                                            "_",start_date,"_",end_date,"_",out_suffix,".png",sep =""))
-
-      title_str <- paste("Daily", var_name1,"and", var_name2,"for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
-      col_str <- c("blue","red")
-      title_str2 <- paste("Daily", var_name1,"-", var_name2,"and difference","for", time_series_id,"over the", start_date,"-",end_date,"time period",sep=" ")
-      col_str2 <- c("blue","red","darkgreen")
-
-      res_pix <- 1000
-      #res_pix <- 480
-      col_mfrow <- 2
-      row_mfrow <- 1
-
-      png(filename=png_filename4,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-      #this is the windowed time series
-      plot(d_z_w,plot.type="single",col=col_str,
-           ylab="tmax in deg C",xlab="Daily time steps",
-           main=title_str,cex=1,font=2,type="l",
-           cex.main=1.5,cex.lab=1.5,font.lab=2)
-      legend("topleft",legend=c(var_name1,var_name2),
-            col=col_str,lty=c(1,1),
-            cex=1.2,bty="n")
-      dev.off()
-
-      png(filename=png_filename5,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-      #this is the windowed time series
-      plot(d_z_w,plot.type="multiple",col=col_str,
-           ylab="tmax in deg C",xlab="Daily time steps",
-           main=title_str,cex=1,font=2,type="l",
-           cex.main=1.5,cex.lab=1.5,font.lab=2)
-
-      legend("topleft",legend=c(var_name1,var_name2),
-            col=col_str,lty=c(1,1),
-            cex=1.2,bty="n")
-      dev.off()
-  
-      png(filename=png_filename6,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
-      #this is the windowed time series
-      plot(d_z_all_w,plot.type="multiple",col=col_str2,
-          ylab="tmax in deg C",xlab="Daily time steps",
-          main=title_str2,cex=1,font=2,type="l",
-          cex.main=1.5,cex.lab=1.5,font.lab=2)
-
-      legend("topleft",legend=c(var_name1,var_name2,"diff"),
-          col=col_str2,lty=c(1,1),
-          cex=1.2,bty="n")
-      dev.off()
-
-      list_png_files <- list(png_filename4,png_filename5,png_filename5)
-    }
-    
-  }
-  
-  plot_time_seris_obj <- list(df_basic_stat,df_quantile_val)
-  names(plot_time_seris_obj) <- c("df_basic_stat","df_quantile_val")
-  return(plot_time_seris_obj)
-}
-
-rmse_fun <- function(x){
-  #x: residuals vector
-  rmse_val <-sqrt(mean(x^2,na.rm=T))
-  return(rmse_val)
 }
 
 ############################ END OF SCRIPT ##################################
