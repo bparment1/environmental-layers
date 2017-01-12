@@ -4,10 +4,10 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/11/2017            
+#MODIFIED ON: 01/12/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: extraction of data and figures for global climate layers
+#COMMENTS: clean up and moving function to function script
 #TODO:
 #1) Add plot broken down by year and region 
 #2) Modify code for overall assessment accross all regions and year
@@ -85,7 +85,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01112017.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -154,9 +154,9 @@ num_cores <- 11 #number of cores used # param 13, arg 8
 python_bin <- "/usr/bin" #PARAM 30
 
 day_start <- "1984101" #PARAM 12 arg 12
-day_end <- "19991231" #PARAM 13 arg 13
-#date_start <- day_start
-#date_end <- day_end
+day_end <- "20141231" #PARAM 13 arg 13
+date_start <- day_start
+date_end <- day_end
 
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif"
 #infile_mask <- "/data/project/layers/commons/NEX_data/regions_input_files/r_mask_LST_reg5.tif"
@@ -263,41 +263,156 @@ l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 list_data_v_fname
 list_data_s_fname
 
-aggregate_by_id_and_coord <- function(i,list_df_data,list_out_suffix,out_dir){
-  #This functions aggrate iput data.frame based on the ID of the station and coordinates x,y
-  #
-  #
+#debug(aggregate_by_id_and_coord)
+list_out_suffix <- paste0(out_suffix,"_",c("1984","1985"))
+#test<- mclapply(1:length(list_data_v_fname[1:1]),
+#                FUN=aggregate_by_id_and_coord,
+#         list_df_data = list_data_v_fname,
+#         list_out_suffix = list_out_suffix, 
+#         out_dir=out_dir,
+#         mc.preschedule=FALSE,
+#         mc.cores = 1
+#         )
+
+list_out_suffix <- paste0(out_suffix,"_",1984:2014)
+
+test<- mclapply(1:length(list_data_v_fname),
+                FUN=aggregate_by_id_and_coord,
+                list_df_data = list_data_v_fname,
+                list_out_suffix = list_out_suffix, 
+                out_dir=out_dir,
+                mc.preschedule=FALSE,
+                mc.cores = 11)
+df_tmp <- do.call(rbind,test)         
+df_tmp2 <- aggregate(id  ~ x + y,data=df_tmp,FUN=mean)
+df_points_tmp2 <- df_tmp2 
+coords<- df_points_tmp2[,c("x","y")]
+coordinates(df_points_tmp2 )<-coords
+
+#now extract from mosaic
+#t<-unique(test$id)
+#md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+#formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+#pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01122017.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
+
+if(is.null(df_points_extracted_fname)){
   
-  df_points_data <- list_df_data[[i]]
-  out_suffix_str <- list_out_suffix[i]
-  ##Begin
-  if(class(df_points_data)!="data.frame"){
-    df_points_data <- read.table(df_points_data,stringsAsFactors=F,sep=",")
-  }
-  #df_points_data <- (list_df_v_stations[[1]])
-  #test3 <- aggregate(id  ~x + y,data=test,FUN=mean)
-  df_station_data <- aggregate(id  ~ x + y,data=df_points_data,FUN=mean)
-  out_filename <- file.path(out_dir,paste0("df_station_data_",out_suffix_str,".txt"))
-  write.table(df_station_data,out_filename,sep=",")
-  return(df_station_data)
+  in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
+  #in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
+  pattern_str <- ".*.tif"
+  #df_points <- #this contains the location of points to be used for extraction
+  #df_points <- data_stations_var_pred_data_s #collected previously
+    
+  #undebug(extract_from_time_series_raster_stack)
+  #extract from var pred mosaic, tmax in this case:
+  extract_obj_var_pred <- extract_from_time_series_raster_stack(df_points=df_points_tmp2,
+                                                                date_start,
+                                                                date_end,
+                                                                lf_raster=NULL,
+                                                                item_no=13,
+                                                                num_cores=11,
+                                                                pattern_str=NULL,
+                                                                in_dir=in_dir_mosaic,
+                                                                out_dir=out_dir,
+                                                                out_suffix=out_suffix)
+  
+}else{
+  extract_obj_fname <- file.path(out_dir,paste("raster_extract_obj_",out_suffix,".RData",sep=""))
+  extract_obj_var_pred <-load_obj(extract_obj_fname)
+  #df_points_day_extracted <- read.table(df_points_extracted_fname,sep=",")
+  #df_time_series <- read.table( df_time_series,sep=",")
+  #df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
 }
 
-debug(aggregate_by_id_and_coord)
-list_out_suffix <- paste0(out_suffix,"_",c("1984","1985"))
-test<- mclapply(1:length(list_data_v_fname[1:1]),
-                FUN=aggregate_by_id_and_coord,
-         list_df_data = list_data_v_fname,
-         list_out_suffix = list_out_suffix, 
-         out_dir=out_dir,
-         mc.preschedule=FALSE,
-         mc.cores = 1
-         )
+df_points_extracted_fname <-extract_obj_var_pred$df_points_extracted_fname
+df_raster_fname <- extract_obj_var_pred$df_raster_fname
+df_time_series_fname <- extract_obj_var_pred$df_time_series_fname
 
-t<-unique(test$id)
-    md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
-    #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
-    
-    pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
+df_raster <- read.table(df_points_extracted_fname,sep=",")
+df_time_series <- read.table( df_time_series,sep=",")
+df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
+
+### Now combine
+#combine
+head(data_stations_var_pred)
+
+
+#           id     date        x      y dailyTmax     mod1  res_mod1          id     date training testing
+#1 71238099999 19930703 -112.867 53.683      20.2 18.19909 -2.000915 71238099999 19930703        4       0
+#2 71238099999 19930704 -112.867 53.683      23.4 17.74476 -5.655237 71238099999 19930704        3       1
+#3 71238099999 19930705 -112.867 53.683      21.7 19.22313 -2.476870 71238099999 19930705        3       1
+#4 71238099999 19930706 -112.867 53.683      22.0 19.53294 -2.467061 71238099999 19930706        3       1
+#5 71238099999 19930707 -112.867 53.683      20.9 17.84168 -3.058324 71238099999 19930707        2       2
+#6 71238099999 19930708 -112.867 53.683      21.2 16.50887 -4.691128 71238099999 19930708        1       3
+
+#need to combine:
+#data_stations_var_pred: constains id, x, y, dailyTmax, mod1, res_mod1, date, training, testing
+#df_time_series
+#df_points_extracted #contains id,x,y of stations and extracted values from raster stack
+dim(df_time_series)
+#dim(data_stations_var_pred)
+df_points_extracted_tmp <- df_points_extracted
+#df_points_extracted <- cbind(df_points,df_points_extracted)
+
+df_points_extracted$id <- df_points$id #this should have been done earlier in the extraction function
+df_points_extracted$x <- df_points$x #this should have been done earlier in the extraction function
+df_points_extracted$y <- df_points$y #this should have been done earlier in the extraction function
+
+dim(df_time_series)
+
+list_selected_ID <- unique(data_stations_var_pred$id) #11 stations selected
+data_var <- data_stations_var_pred
+df_ts_pix <- df_points_extracted
+r_ts_name <- sub(extension(lf_raster),"",basename(lf_raster))
+var_name <- "dailyTmax" #observed measurements
+var_pred <- "mod1" #predictions
+#dates_str <-
+#dates_val <-
+df_raster
+df_time_series
+plot_fig <- FALSE
+i<-1
+
+#Product assessment
+out_suffix_str <- paste0(region_name,"_",out_suffix)
+#this can be run with mclapply, very fast right now:
+#station_summary_obj <- combine_measurements_and_predictions_df(i=i,
+#                                        df_raster=df_raster,
+#                                        df_time_series=df_time_series,
+#                                        df_ts_pix=df_ts_pix,
+#                                        data_var=data_var,
+#                                        list_selected_ID=list_selected_ID,
+#                                        r_ts_name=r_ts_name,
+#                                        var_name=var_name,
+#                                        var_pred = var_pred,
+#                                        out_dir =out_dir,
+#                                        out_suffix=out_suffix_str,
+#                                        plot_fig=F)
+df_pix_ts <- station_summary_obj$df_pix_ts
+
+#####
+##combine information for the 11 selected stations
+
+list_station_summary_obj <- mclapply(1:length(list_selected_ID),
+                                        FUN=combine_measurements_and_predictions_df,
+                                        df_raster=df_raster,
+                                        df_time_series=df_time_series,
+                                        df_ts_pix=df_ts_pix,
+                                        data_var=data_var,
+                                        list_selected_ID=list_selected_ID,
+                                        r_ts_name=r_ts_name,
+                                        var_name=var_name,
+                                        var_pred = var_pred,
+                                        out_dir =out_dir,
+                                        out_suffix=out_suffix_str,
+                                        plot_fig=F,
+                                        mc.preschedule=FALSE,
+                                        mc.cores = num_cores)
+
+#station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
+
 
 list_year_str <- unique(l_dates_year_str)
 list_df_v_stations <- vector("list",length=length(list_year_str))
@@ -769,123 +884,6 @@ test_plot <- mclapply(list_df_pix_ts,
                       out_suffix=out_suffix_str2,
                       mc.preschedule=FALSE,
                       mc.cores = num_cores)
-
-############### PART5: Make raster stack and display maps #############
-#### Extract corresponding raster for given dates and plot stations used
-
-## TODO: make movies from time series in png
-
-#start_date <- day_to_mosaic_range[1]
-#end_date <- day_to_mosaic_range[2]
-#start_date <- day_start #PARAM 12 arg 12
-#end_date <- day_end #PARAM 13 arg 13
-
-#date_to_plot <- seq(as.Date(strptime(start_date,"%Y%m%d")), as.Date(strptime(end_date,"%Y%m%d")), 'day')
-#l_dates <- format(date_to_plot,"%Y%m%d") #format back to the relevant date format for files
-#mask_pred <- FALSE
-#matching <- FALSE #to be added after mask_pred option
-#list_param_pre_process <- list(raster_name_lf,python_bin,infile_mask,scaling,mask_pred,NA_flag_val,out_suffix,out_dir) 
-#names(list_param_pre_process) <- c("lf","python_bin","infile_mask","scaling","mask_pred","NA_flag_val","out_suffix","out_dir") 
-  
-#debug(pre_process_raster_mosaic_fun)
-
-#lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
-#lf_mosaic_scaled <- mclapply(1:length(raster_name_lf),FUN=pre_process_raster_mosaic_fun,list_param=list_param_pre_process,mc.preschedule=FALSE,mc.cores = num_cores)                         
-
-#test <- pre_process_raster_mosaic_fun(2,list_param_pre_process)
-#lf_mosaic_scaled <- unlist(lf_mosaic_scaled)
-
-##################################### PART 5  ######
-##### Plotting specific days for the mosaics
-
-r_mosaic_scaled <- stack(lf_mosaic_scaled)
-NAvalue(r_mosaic_scaled)<- -3399999901438340239948148078125514752.000
-plot(r_mosaic_scaled,y=6,zlim=c(-50,50))
-plot(r_mosaic_scaled,zlim=c(-50,50),col=matlab.like(255))
-
-#layout_m<-c(1,3) #one row two columns
-#levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
-#levelplot(r_mosaic_scaled,zlim=c(-50,50),col.regions=matlab.like(255))
-
-#png(paste("Figure7a__spatial_pattern_tmax_prediction_levelplot_",date_selected,out_prefix,".png", sep=""),
-#    height=480*layout_m[1],width=480*layout_m[2])
-#plot(r_pred,col=temp.colors(255),zlim=c(-3500,4500))
-#plot(r_pred,col=matlab.like(255),zlim=c(-40,50))
-#paste(raster_name[1:7],collapse="_")
-#add filename option later
-
-#NA_flag_val_mosaic <- -3399999901438340239948148078125514752.000
-
-list_param_plot_raster_mosaic <- list(l_dates,r_mosaic_scaled,NA_flag_val_mosaic,out_dir,out_suffix,
-                                      region_name,variable_name)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaic_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name")
-
-lf_mosaic_plot_fig <- mclapply(1:length(lf_mosaic_scaled),FUN=plot_raster_mosaic,list_param=list_param_plot_raster_mosaic,mc.preschedule=FALSE,mc.cores = num_cores)                         
-
-#### PLOT ACCURACY METRICS: First test ####
-##this will be cleaned up later:
-
-#dir_ac_mosaics <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/output_reg4_1999"
-lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif")
-
-#lf_tmp1 <- lf_tmp[21:24]
-#list_param_plot_raster_mosaic
-lf_tmp <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.ac.*._reg4_1999.tif",full.names=T)
-#Product assessment
-#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_06142016b.R"
-#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-
-r_mosaiced_ac <- stack(lf_tmp)
-l_dates <- unlist(lapply(1:length(lf_tmp),FUN=extract_date,x=basename(lf_tmp),item_no=14))
-variable_name
-zlim_val <- NULL
-list_param_plot_raster_mosaic <- list(l_dates,r_mosaiced_ac,NA_flag_val_mosaic,out_dir,out_suffix,
-                                      region_name,variable_name, zlim_val)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name","zlim_val")
-#debug(plot_raster_mosaic)
-plot_raster_mosaic(1,list_param_plot_raster_mosaic)
-lf_mosaic_plot_fig <- mclapply(1:length(lf_tmp),
-                               FUN=plot_raster_mosaic,
-                               list_param=list_param_plot_raster_mosaic,
-                               mc.preschedule=FALSE,
-                               mc.cores = num_cores)                         
-
-#### Now plot kriged residuals from mosaiced surfaces
-
-lf_tmp_res <-list.files(path=dir_ac_mosaics,pattern="r_m_use_edge_weights_weighted_mean_mask_gam_CAI_.*.residuals.*._reg4_1999.tif",full.names=T)
-
-l_dates <- unlist(lapply(1:length(lf_tmp_res),FUN=extract_date,x=basename(lf_tmp),item_no=14))
-variable_name
-zlim_val <- NULL
-r_mosaiced_res <- stack(lf_tmp_res)
-list_param_plot_raster_mosaic <- list(l_dates,r_mosaiced_res,NA_flag_val_mosaic,out_dir,out_suffix,
-                                      region_name,variable_name, zlim_val)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name","zlim_val")
-#debug(plot_raster_mosaic)
-plot_raster_mosaic(1,list_param_plot_raster_mosaic)
-lf_mosaic_plot_fig_res <- mclapply(1:length(lf_tmp_res),
-                               FUN=plot_raster_mosaic,
-                               list_param=list_param_plot_raster_mosaic,
-                               mc.preschedule=FALSE,
-                               mc.cores = num_cores)                         
-
-### New plot of residuals surface with zlim
-zlim_val <- c(-60,60)
-#r_mosaiced_res <- stack(lf_tmp_res)
-list_param_plot_raster_mosaic <- list(l_dates,r_mosaiced_res,NA_flag_val_mosaic,out_dir,out_suffix,
-                                      region_name,variable_name, zlim_val)
-names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir","out_suffix",
-                                          "region_name","variable_name","zlim_val")
-#debug(plot_raster_mosaic)
-#plot_raster_mosaic(1,list_param_plot_raster_mosaic)
-lf_mosaic_plot_fig_res <- mclapply(1:length(lf_tmp_res),
-                               FUN=plot_raster_mosaic,
-                               list_param=list_param_plot_raster_mosaic,
-                               mc.preschedule=FALSE,
-                               mc.cores = num_cores)                         
 
 
 ############################ END OF SCRIPT ##################################
