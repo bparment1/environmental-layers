@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 01/11/2016            
+#MODIFIED ON: 01/12/2016            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: function for combining extracted values and 
+##COMMIT: added function for aggregate_by_id_and_coord
 #################################################################################################
 
 ### Loading R library and packages        
@@ -792,6 +792,25 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts,df_pix_ts_filename )
   names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var","df_pix_ts","df_pix_ts_filename")
   return(station_summary_obj)
+}
+
+aggregate_by_id_and_coord <- function(i,list_df_data,list_out_suffix,out_dir){
+  #This functions aggrate iput data.frame based on the ID of the station and coordinates x,y
+  #
+  #
+  
+  df_points_data <- list_df_data[[i]]
+  out_suffix_str <- list_out_suffix[i]
+  ##Begin
+  if(class(df_points_data)!="data.frame"){
+    df_points_data <- read.table(df_points_data,stringsAsFactors=F,sep=",")
+  }
+  #df_points_data <- (list_df_v_stations[[1]])
+  #test3 <- aggregate(id  ~x + y,data=test,FUN=mean)
+  df_station_data <- aggregate(id  ~ x + y,data=df_points_data,FUN=mean)
+  out_filename <- file.path(out_dir,paste0("df_station_data_",out_suffix_str,".txt"))
+  write.table(df_station_data,out_filename,sep=",")
+  return(df_station_data)
 }
 
 ############################ END OF SCRIPT ##################################
