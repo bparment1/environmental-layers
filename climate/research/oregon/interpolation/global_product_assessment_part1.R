@@ -249,9 +249,11 @@ l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 
 ####
 #1) for each year and region find unique station for testing and training, make it a spdf
-#2) Use existing function to extract
-#3) Combine both
-#4) Make this a function that run fast and in parallel.
+#2) Combine training station (over 31 years) into one spdf and use existing function to extract over 31 years
+#3) Combine testing station (over 31 years) into one spdf and use existing function to extract over 31 years
+#note that 
+#4) Combine stations extracted and every year
+#5) Make this a function that run fast and in parallel.
 
 
 ##start new function
@@ -260,42 +262,65 @@ l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 #Step 2 for giving dates subset the data.frame
 #Step 3: find duplicates, create return object and return given station data for the date
 
+#### Before aggregation and extraction by stations combine data_s and data_v?
+## retain all fields? this must be tested
 list_data_v_fname
 list_data_s_fname
 
+
+
+
+
 #debug(aggregate_by_id_and_coord)
-list_out_suffix <- paste0(out_suffix,"_",c("1984","1985"))
-#test<- mclapply(1:length(list_data_v_fname[1:1]),
-#                FUN=aggregate_by_id_and_coord,
-#         list_df_data = list_data_v_fname,
-#         list_out_suffix = list_out_suffix, 
-#         out_dir=out_dir,
-#         mc.preschedule=FALSE,
-#         mc.cores = 1
-#         )
+data_name_point <- c("data_v","data_s") #move this up, this can be any data.frame
 
-list_out_suffix <- paste0(out_suffix,"_",1984:2014)
+for(k in 1:length(data_name_point)){
+  
+  
+  out_suffix_str <- paste0(y_var_name,"_",interpolation_method,"_",region_name,out_suffix)
+  list_out_suffix <- paste0(data_name_point[k],out_suffix_str,"_",1984:2014)
+  #test<- mclapply(1:length(list_data_v_fname[1:1]),
+  #                FUN=aggregate_by_id_and_coord,
+  #         list_df_data = list_data_v_fname,
+  #         list_out_suffix = list_out_suffix, 
+  #         out_dir=out_dir,
+  #         mc.preschedule=FALSE,
+  #         mc.cores = 1
+  #         )
 
-test<- mclapply(1:length(list_data_v_fname),
+  aggregated_data_points<- mclapply(1:length(list_data_v_fname),
                 FUN=aggregate_by_id_and_coord,
                 list_df_data = list_data_v_fname,
                 list_out_suffix = list_out_suffix, 
                 out_dir=out_dir,
                 mc.preschedule=FALSE,
                 mc.cores = 11)
-df_tmp <- do.call(rbind,test)         
-df_tmp2 <- aggregate(id  ~ x + y,data=df_tmp,FUN=mean)
+  df_tmp <- do.call(rbind,aggregated_data_points)         
+  df_tmp2 <- aggregate(id  ~ x + y,data=df_tmp,FUN=mean)
+  write.table(df_tmp2,data_name_point[k])
+
+}
+
+#Can combine data_v and data_s before extraction!
+
+#### Part 2: perform extraction
+
 df_points_tmp2 <- df_tmp2 
 coords<- df_points_tmp2[,c("x","y")]
-coordinates(df_points_tmp2 )<-coords
+coordinates(df_points_tmp2 )<- coords #maybe change this to data_stations? #these are the lcoations of climate stations
 
 #now extract from mosaic
 #t<-unique(test$id)
 #md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
 #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
 #pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01122017.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
+#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01142017.R"
+#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
+
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
+#in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
+pattern_str <- ".*.tif"
+lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic)
 
 if(is.null(df_points_extracted_fname)){
   
@@ -330,91 +355,17 @@ df_points_extracted_fname <-extract_obj_var_pred$df_points_extracted_fname
 df_raster_fname <- extract_obj_var_pred$df_raster_fname
 df_time_series_fname <- extract_obj_var_pred$df_time_series_fname
 
-df_raster <- read.table(df_points_extracted_fname,sep=",")
-df_time_series <- read.table( df_time_series,sep=",")
-df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
+df_raster <- read.table(df_raster_fname,sep=",",header=T,stringsAsFactors =F)
+df_time_series <- read.table( df_time_series_fname,sep=",",header=T,stringsAsFactors =F)
+df_points_extracted <- read.table(df_points_extracted_fname,sep=",",header=T,stringsAsFactors = F)
 
+#######################
 ### Now combine
-#combine
-head(data_stations_var_pred)
 
+#read in the data first
 
-#           id     date        x      y dailyTmax     mod1  res_mod1          id     date training testing
-#1 71238099999 19930703 -112.867 53.683      20.2 18.19909 -2.000915 71238099999 19930703        4       0
-#2 71238099999 19930704 -112.867 53.683      23.4 17.74476 -5.655237 71238099999 19930704        3       1
-#3 71238099999 19930705 -112.867 53.683      21.7 19.22313 -2.476870 71238099999 19930705        3       1
-#4 71238099999 19930706 -112.867 53.683      22.0 19.53294 -2.467061 71238099999 19930706        3       1
-#5 71238099999 19930707 -112.867 53.683      20.9 17.84168 -3.058324 71238099999 19930707        2       2
-#6 71238099999 19930708 -112.867 53.683      21.2 16.50887 -4.691128 71238099999 19930708        1       3
-
-#need to combine:
-#data_stations_var_pred: constains id, x, y, dailyTmax, mod1, res_mod1, date, training, testing
-#df_time_series
-#df_points_extracted #contains id,x,y of stations and extracted values from raster stack
-dim(df_time_series)
-#dim(data_stations_var_pred)
-df_points_extracted_tmp <- df_points_extracted
-#df_points_extracted <- cbind(df_points,df_points_extracted)
-
-df_points_extracted$id <- df_points$id #this should have been done earlier in the extraction function
-df_points_extracted$x <- df_points$x #this should have been done earlier in the extraction function
-df_points_extracted$y <- df_points$y #this should have been done earlier in the extraction function
-
-dim(df_time_series)
-
-list_selected_ID <- unique(data_stations_var_pred$id) #11 stations selected
-data_var <- data_stations_var_pred
-df_ts_pix <- df_points_extracted
-r_ts_name <- sub(extension(lf_raster),"",basename(lf_raster))
-var_name <- "dailyTmax" #observed measurements
-var_pred <- "mod1" #predictions
-#dates_str <-
-#dates_val <-
-df_raster
-df_time_series
-plot_fig <- FALSE
-i<-1
-
-#Product assessment
-out_suffix_str <- paste0(region_name,"_",out_suffix)
-#this can be run with mclapply, very fast right now:
-#station_summary_obj <- combine_measurements_and_predictions_df(i=i,
-#                                        df_raster=df_raster,
-#                                        df_time_series=df_time_series,
-#                                        df_ts_pix=df_ts_pix,
-#                                        data_var=data_var,
-#                                        list_selected_ID=list_selected_ID,
-#                                        r_ts_name=r_ts_name,
-#                                        var_name=var_name,
-#                                        var_pred = var_pred,
-#                                        out_dir =out_dir,
-#                                        out_suffix=out_suffix_str,
-#                                        plot_fig=F)
-df_pix_ts <- station_summary_obj$df_pix_ts
-
-#####
-##combine information for the 11 selected stations
-
-list_station_summary_obj <- mclapply(1:length(list_selected_ID),
-                                        FUN=combine_measurements_and_predictions_df,
-                                        df_raster=df_raster,
-                                        df_time_series=df_time_series,
-                                        df_ts_pix=df_ts_pix,
-                                        data_var=data_var,
-                                        list_selected_ID=list_selected_ID,
-                                        r_ts_name=r_ts_name,
-                                        var_name=var_name,
-                                        var_pred = var_pred,
-                                        out_dir =out_dir,
-                                        out_suffix=out_suffix_str,
-                                        plot_fig=F,
-                                        mc.preschedule=FALSE,
-                                        mc.cores = num_cores)
-
-#station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
-
-
-list_year_str <- unique(l_dates_year_str)
+l_dates_year <- 1984:2014
+list_year_str <- unique(l_dates_year)
 list_df_v_stations <- vector("list",length=length(list_year_str))
 list_df_s_stations <- vector("list",length=length(list_year_str))
 
@@ -442,6 +393,84 @@ for(i in 1:length(l_dates)){
 
 df_combined_data_v_dates <- do.call(rbind,list_df_points_data_v_dates)
 df_combined_data_s_dates <- do.call(rbind,list_df_points_data_s_dates)
+
+
+#combine
+#head(data_stations_var_pred)
+
+#           id     date        x      y dailyTmax     mod1  res_mod1          id     date training testing
+#1 71238099999 19930703 -112.867 53.683      20.2 18.19909 -2.000915 71238099999 19930703        4       0
+#2 71238099999 19930704 -112.867 53.683      23.4 17.74476 -5.655237 71238099999 19930704        3       1
+#3 71238099999 19930705 -112.867 53.683      21.7 19.22313 -2.476870 71238099999 19930705        3       1
+
+#need to combine:
+#data_stations_var_pred: constains id, x, y, dailyTmax, mod1, res_mod1, date, training, testing
+#df_time_series
+#df_points_extracted #contains id,x,y of stations and extracted values from raster stack
+
+dim(df_time_series)
+
+## Need to combine back with original data:
+i<-1
+
+data_var<- list_df_v_stations[[i]] 
+
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01142017.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
+
+### prepare arguments to combine stations
+list_selected_ID <- unique(data_stations_var_pred$id) #11 stations selected
+data_var# contain testing or training data with variable being modeled and covariates
+df_ts_pix <- df_points_extracted #this is extracted points with rows stations, columns are x,y, id and predictions from raster 
+r_ts_name <- sub(extension(lf_raster),"",basename(lf_raster))
+var_name <- "dailyTmax" #observed measurements, y_var_name
+var_pred <- "mod1" #predictions
+#dates_str <-
+#dates_val <-
+df_raster #contains dates of raster mosaic produced
+df_time_series #contains de date , name, and dir for raster time series from date_star to end including missing dates field 
+plot_fig <- FALSE
+i<-1
+
+#Product assessment
+#out_suffix_str <- paste0(region_name,"_",out_suffix)
+debug(combine_measurements_and_predictions_df)
+#this can be run with mclapply, very fast right now:
+station_summary_obj <- combine_measurements_and_predictions_df(i=i,
+                                       df_raster=df_raster,
+                                       df_time_series=df_time_series,
+                                       df_ts_pix=df_ts_pix,
+                                       data_var=data_var,
+                                       list_selected_ID=list_selected_ID,
+                                       r_ts_name=r_ts_name,
+                                       var_name=var_name,
+                                       var_pred = var_pred,
+                                       out_dir =out_dir,
+                                       out_suffix=out_suffix_str,
+                                       plot_fig=F)
+df_pix_ts <- station_summary_obj$df_pix_ts
+
+#####
+##combine information for the 1458 stations
+#started at 17.12pm
+list_station_summary_obj <- mclapply(1:length(list_selected_ID),
+                                        FUN=combine_measurements_and_predictions_df,
+                                        df_raster=df_raster,
+                                        df_time_series=df_time_series,
+                                        df_ts_pix=df_ts_pix,
+                                        data_var=data_var,
+                                        list_selected_ID=list_selected_ID,
+                                        r_ts_name=r_ts_name,
+                                        var_name=var_name,
+                                        var_pred = var_pred,
+                                        out_dir =out_dir,
+                                        out_suffix=out_suffix_str,
+                                        plot_fig=F,
+                                        mc.preschedule=FALSE,
+                                        mc.cores = num_cores)
+
+#station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
+
 
 ####
 
