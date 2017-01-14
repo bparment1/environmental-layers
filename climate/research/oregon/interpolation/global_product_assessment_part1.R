@@ -267,8 +267,143 @@ l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 list_data_v_fname
 list_data_s_fname
 
+#######################
+### Now combine
+
+#read in the data first
+
+l_dates_year <- 1984:2014
+list_year_str <- unique(l_dates_year)
+
+list_data_df_training <- list_data_s_fname
+list_data_df_testing <- list_data_v_fname
+
+### combine training and testing by year
+combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,formula_str_sum,for,out_suffix,out_dir){
+  #
+  #
+  
+  data_s_df  <- read.table(list_data_df_training[i],header=T,stringsAsFactors=F,sep=",")
+  data_v_df <- read.table(list_data_df_testing[i],header=T,stringsAsFactors=F,sep=",")
+  
+  data_s_df$training <- 1
+  data_v_df$testing <- 1
+  
+  ## use merge function
+  #df_combined_data <- do.call(rbind,list(data_df1,data_df2)) #reading only the years related to the the dates e.g. 1999
+  data_stations <- rbind.fill(data_v_df, data_s_df) #should work?
+  write.table(data_stations,...)
+  #Now aggregate 
+  data_stations_var_pred <- 
+    
+  #data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + res_mod1 + tile_id + reg ,data = df_points, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+  #data_stations_var_pred <- aggregate(id + date ~ x + y ,data = data_stations, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+  
+  #merge(data_stations_var_pred,)
+
+  #data_stations <- rbind(data_s_subset,data_v_subset)
+
+  #coordinates(data_stations) <- cbind(data_stations$x,data_stations$y)
+  #proj4string(data_stations) <- CRS_locs_WGS84
+
+  #data_stations_var_pred <- aggregate(id ~ date, data = data_stations, min)
+  #data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
+
+  ##Add tile id here...and check if data stations was training or testing.
+
+  #16.30 pm on 09/09
+  #data_stations_var_pred <- aggregate(id2 + date ~ x + y + dailyTmax + mod1 + res_mod1 ,data = data_stations, FUN=mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+  #dim(data_stations_var_pred)
+  #md <- melt(mydata, id=(c("id", "time")),)
+  md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("x","y","dailyTmax","mod1","res_mod1"))
+  #also need to count number of time a station is used for training or testing by date!!
+  #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+  data_stations_var_pred <- cast(md, id + date ~ variable, fun.aggregate = mean, 
+  na.rm = TRUE)
+  md2 <- melt(data_stations, id=(c("id", "date")),measure.vars=c("testing","training"))
+    
+  data_stations_var_pred2 <- cast(md2, id + date ~ variable, fun.aggregate = sum, 
+  na.rm = TRUE)
+    
+  
+  ### Now combine both
+  #write.table(data_stations_var_pred,
+  #            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt",
+  #                                                                 sep=",")))
+  
+  #test <- merge(data_stations_var_pred2,data_stations_var_pred,by=c(("id")))  
+  test <- data_stations_var_pred  
+
+  test$testing <- data_stations_var_pred2$testing
+  test$training <- data_stations_var_pred2$training
+  
+  #An inner join of df1 and df2:
+  #Return only the rows in which the left table have matching keys in the right table.
+  selected_var <- c("mflag","qflag","sflag","elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
+                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03"  ,     
+                     "nobs_04","nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10"     ,   "nobs_11"  ,     
+                     "nobs_12","lon","lat","N","E","N_w","E_w","elev_s",     
+                     "slope","aspect","DISTOC","CANHGHT","mm_01","mm_02",         
+                     "mm_03","mm_04","mm_05","mm_06","mm_07","mm_08","mm_09","mm_10",         
+                     "mm_11","mm_12")
+  
+  #test2<- merge(test,data_stations[,c("id",selected_var)],by=c("id"),all=F)
+  md3 <- melt(data_stations, id=(c("id", "date")),measure.vars=c("testing","training"))
+
+  data_stations_var_pred3 <- cast(md2, id + date ~ variable, fun.aggregate = mean, 
+  na.rm = TRUE)
+
+  write.table(data_stations_var_pred,
+            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt")),
+            sep=",")
+
+  #data_stations_var_pred <- read.table(
+  #            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt",
+  #                                                                 sep=",")))
+
+  md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("training","testing"))
+  data_stations_training_testing <- cast(md, id + date ~ variable, fun.aggregate = sum, 
+  na.rm = TRUE)
+
+  #write.table(data_stations_training_testing,
+  #            file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt",
+  #                                                                 sep=",")))
+  write.table(data_stations_training_testing,
+            file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt")),
+            sep=",")
+  #data_stations_var_pred <- aggregate(id2 ~ x + y + date + dailyTmax + mod1 + res_mod1 ,data = data_stations, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
+  #data_stations$id2 <- as.numeric(data_stations$id)
+  #data_stations$date <- as.character(data_stations$date)
+
+  dim(data_stations_var_pred)
+  #> dim(data_stations_var_pred)
+  #[1] 57154     7
+  unique(data_stations_var_pred$id)
+  dim(data_stations_training_testing)
+  #[1] 57154     4
+
+  data_stations_var_pred$date_str <- data_stations_var_pred$date
+  data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+
+  ##Find stations used for training and testing
+  #data_stations_var_pred2 <- aggregate(id ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
+  #data_stations_var_pred2 <- aggregate(date ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
+
+  #data_stations_var_pred <- merge(data_stations_var_pred, data_stations_training_testing , by="id") #this is slow maybe do cbind?
+  #data_stations_var_pred_test <- data_stations_var_pred 
+
+  write.table(data_stations_var_pred,
+            file=file.path(out_dir,paste0("data_stations_var_pred_",out_suffix,".txt")),
+            sep=",")
+
+  #started at 16.51, 09/07
+  
+}
 
 
+
+######## 
+### Use combine training and testing data!!!
 
 
 #debug(aggregate_by_id_and_coord)
@@ -301,9 +436,9 @@ for(k in 1:length(data_name_point)){
 
 }
 
-#Can combine data_v and data_s before extraction!
-
+########
 #### Part 2: perform extraction
+## Do the extraction with training and test combined station data!!
 
 df_points_tmp2 <- df_tmp2 
 coords<- df_points_tmp2[,c("x","y")]
@@ -359,25 +494,6 @@ df_raster <- read.table(df_raster_fname,sep=",",header=T,stringsAsFactors =F)
 df_time_series <- read.table( df_time_series_fname,sep=",",header=T,stringsAsFactors =F)
 df_points_extracted <- read.table(df_points_extracted_fname,sep=",",header=T,stringsAsFactors = F)
 
-#######################
-### Now combine
-
-#read in the data first
-
-l_dates_year <- 1984:2014
-list_year_str <- unique(l_dates_year)
-list_df_v_stations <- vector("list",length=length(list_year_str))
-list_df_s_stations <- vector("list",length=length(list_year_str))
-
-for(i in 1:length(list_year_str)){
-  filename_tmp<- df_data_v_fname$file[df_data_v_fname$year==list_year_str[i]]
-  list_df_v_stations[[i]] <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
-  filename_tmp<- df_data_s_fname$file[df_data_s_fname$year==list_year_str[i]]
-  list_df_s_stations[[i]] <- read.table(filename_tmp,stringsAsFactors=F,sep=",")
-}
-
-df_combined_data_v <- do.call(rbind,list_df_v_stations) #reading only the years related to the the dates e.g. 1999
-df_combined_data_s <- do.call(rbind,list_df_s_stations)
 
 #### Get df points for specific dates
 #lapply(1:length(l_dates)list_df_v_stations,function(x){x$date==l_dates})
@@ -436,7 +552,7 @@ i<-1
 #out_suffix_str <- paste0(region_name,"_",out_suffix)
 debug(combine_measurements_and_predictions_df)
 #this can be run with mclapply, very fast right now:
-station_summary_obj <- combine_measurements_and_predictions_df(i=i,
+station_summary_obj <- combine_measurements_and_predictions_df(i=1379,
                                        df_raster=df_raster,
                                        df_time_series=df_time_series,
                                        df_ts_pix=df_ts_pix,
@@ -470,8 +586,9 @@ list_station_summary_obj <- mclapply(1:length(list_selected_ID),
                                         mc.cores = num_cores)
 
 #station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
-
-
+#check ID:70162026508
+test<- unlist(lapply(list_station_summary_obj, function(x) !inherits(x, "try-error")))
+#problem with 1379
 ####
 
 
