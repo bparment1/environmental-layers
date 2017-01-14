@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 01/12/2016            
+#MODIFIED ON: 01/14/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: added function for aggregate_by_id_and_coord
+##COMMIT: debugging combine function for extracted and observed temp data
 #################################################################################################
 
 ### Loading R library and packages        
@@ -682,11 +682,18 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
 combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,var_pred,out_dir=".",out_suffix="",plot_fig=T){
   
   # Input arguments:
-  # i : selected station
-  # df_ts_pix_data : data extracted from raster layer
-  # data_var : data with station measurements (tmin,tmax or precip)
-  # list_selected_ID : list of selected station
-  # plot_fig : if T, figures are plotted
+  #1) i : selected station
+  #2) df_raster:
+  #3) df_time_series
+  #4) df_ts_pix : data extracted from raster layer
+  #5) data_var : data with station measurements (tmin,tmax or precip)
+  #6) list_selected_ID : list of selected station
+  #7) r_ts_name
+  #8) var_name
+  #9) var_pred
+  #10) out_dir
+  #11) out_suffix
+  #12) plot_fig : if T, figures are plotted
   # Output
   #
   
@@ -741,13 +748,13 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   #pix_ts <- merge(df_raster,pix_ts,by="date")
   
   pix_ts$lf <- df_raster$lf
-  #pix_ts$
+  #Combine data with list of range and missing: this is fast
   pix_ts <- merge(df_time_series,pix_ts,by="date",all=T)
-  
+  pix_ts$id_val <- id_name
   #check for duplicates in extracted values (this can happen if there is a test layer or repetition
   if(nrow(pix_ts)!=length(unique(pix_ts$date))){
     var_pred_tmp <- paste0(var_pred,"_mosaic")
-    md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+    md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp,"missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
     #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
     pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
     na.rm = TRUE)
@@ -763,6 +770,8 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   #
   #  
   #}
+  
+  ## Combined extracted values (pix_ts) with data observation (var_pix)
   df_pix_ts <- merge(pix_ts,var_pix,by="date",all=T)
   #Create time series object from extract pixel time series
 
@@ -771,6 +780,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   df_pix_ts$day <- as.numeric(format(as.Date(df_pix_ts$date), "%d")) ## numeric month
   
   #compute residuals from mosaics
+  var_pred_tmp <- paste0(var_pred,"_mosaic")
   df_pix_ts[[paste0("res_",var_pred_tmp)]] <- df_pix_ts[[var_pred_tmp]] - df_pix_ts[[y_var_name]]
   
   id_name <- list_selected_ID[i]
@@ -778,7 +788,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   write.table(df_pix_ts,df_pix_ts_filename,sep=",")
 
 
-  nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0) #relevant for precip
+  nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0,na.rm=T) #relevant for precip
   #nb_NA <- sum(is.na(df2$COL_SCORE))
   nb_NA <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
   ##Add quantile, and range info later on...
