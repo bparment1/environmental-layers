@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/12/2017            
+#MODIFIED ON: 01/23/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: clean up and moving function to function script
@@ -296,35 +296,17 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
   #Now aggregate 
   data_stations_var_pred <- 
     
-  #data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + res_mod1 + tile_id + reg ,data = df_points, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
-  #data_stations_var_pred <- aggregate(id + date ~ x + y ,data = data_stations, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
-  
-  #merge(data_stations_var_pred,)
-
-  #data_stations <- rbind(data_s_subset,data_v_subset)
-
-  #coordinates(data_stations) <- cbind(data_stations$x,data_stations$y)
-  #proj4string(data_stations) <- CRS_locs_WGS84
-
-  #data_stations_var_pred <- aggregate(id ~ date, data = data_stations, min)
-  #data_stations_var_pred <- aggregate(id ~ x + y + date + dailyTmax + mod1 + res_mod1 , data = data_stations, min)
-
   ##Add tile id here...and check if data stations was training or testing.
 
-  #16.30 pm on 09/09
-  #data_stations_var_pred <- aggregate(id2 + date ~ x + y + dailyTmax + mod1 + res_mod1 ,data = data_stations, FUN=mean ) #+ mod1 + res_mod1 , data = data_stations, min)
-  #dim(data_stations_var_pred)
-  #md <- melt(mydata, id=(c("id", "time")),)
+  #01/23 21:58  
   md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("x","y","dailyTmax","mod1","res_mod1"))
-  #also need to count number of time a station is used for training or testing by date!!
-  #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
-  data_stations_var_pred <- cast(md, id + date ~ variable, fun.aggregate = mean, 
-  na.rm = TRUE)
+  data_stations_var_pred_tmp1 <- cast(md, id + date ~ variable, fun.aggregate = mean, na.rm = TRUE)
+  #01/23 22:08
+  
+  #01/23 22:10
   md2 <- melt(data_stations, id=(c("id", "date")),measure.vars=c("testing","training"))
-    
-  data_stations_var_pred2 <- cast(md2, id + date ~ variable, fun.aggregate = sum, 
-  na.rm = TRUE)
-    
+  data_stations_var_pred_tmp2 <- cast(md2, id + date ~ variable, fun.aggregate = sum,na.rm = TRUE)
+  #01/23 22:14  
   
   ### Now combine both
   #write.table(data_stations_var_pred,
@@ -332,49 +314,46 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
   #                                                                 sep=",")))
   
   #test <- merge(data_stations_var_pred2,data_stations_var_pred,by=c(("id")))  
-  test <- data_stations_var_pred  
+  #test <- data_stations_var_pred  
 
-  test$testing <- data_stations_var_pred2$testing
-  test$training <- data_stations_var_pred2$training
+  data_stations_var_pred_tmp1$testing <- data_stations_var_pred_tmp2$testing
+  data_stations_var_pred_tmp1$training <- data_stations_var_pred_tmp2$training
   
   #An inner join of df1 and df2:
   #Return only the rows in which the left table have matching keys in the right table.
   selected_var <- c("mflag","qflag","sflag","elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
-                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03"  ,     
-                     "nobs_04","nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10"     ,   "nobs_11"  ,     
-                     "nobs_12","lon","lat","N","E","N_w","E_w","elev_s",     
-                     "slope","aspect","DISTOC","CANHGHT","mm_01","mm_02",         
-                     "mm_03","mm_04","mm_05","mm_06","mm_07","mm_08","mm_09","mm_10",         
-                     "mm_11","mm_12")
-  
+                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
+                    "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
+                    "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
+                    "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
+                    "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")        
+   
+  selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
+                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
+                    "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
+                    "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
+                    "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
+                    "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")                  
+  #8:42
   #test2<- merge(test,data_stations[,c("id",selected_var)],by=c("id"),all=F)
-  md3 <- melt(data_stations, id=(c("id", "date")),measure.vars=c("testing","training"))
+  md3 <- melt(data_stations, id=(c("id", "date")),measure.vars=selected_var)
+  data_stations_var_pred_tmp3 <- cast(md3, id + date ~ variable, fun.aggregate = min,na.rm = TRUE)
+  #8:4
+  #Error in Summary.factor(integer(0), na.rm = FALSE) : 
+  #‘min’ not meaningful for factors
+  
+  data_stations_var_pred4 <- cbind(test,data_stations_var_pred3)
+  write.table(data_stations_var_pred4,
+              file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt")), sep=",")
 
-  data_stations_var_pred3 <- cast(md2, id + date ~ variable, fun.aggregate = mean, 
-  na.rm = TRUE)
-
-  write.table(data_stations_var_pred,
-            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt")),
-            sep=",")
-
-  #data_stations_var_pred <- read.table(
-  #            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt",
-  #                                                                 sep=",")))
-
-  md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("training","testing"))
-  data_stations_training_testing <- cast(md, id + date ~ variable, fun.aggregate = sum, 
-  na.rm = TRUE)
-
-  #write.table(data_stations_training_testing,
-  #            file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt",
-  #                                                                 sep=",")))
   write.table(data_stations_training_testing,
             file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt")),
             sep=",")
-  #data_stations_var_pred <- aggregate(id2 ~ x + y + date + dailyTmax + mod1 + res_mod1 ,data = data_stations, mean ) #+ mod1 + res_mod1 , data = data_stations, min)
-  #data_stations$id2 <- as.numeric(data_stations$id)
-  #data_stations$date <- as.character(data_stations$date)
-
+  
+  #write.table(data_stations_training_testing,
+  #            file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt",
+  #                                                                 sep=",")))
+  
   dim(data_stations_var_pred)
   #> dim(data_stations_var_pred)
   #[1] 57154     7
@@ -385,19 +364,14 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
   data_stations_var_pred$date_str <- data_stations_var_pred$date
   data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
 
-  ##Find stations used for training and testing
-  #data_stations_var_pred2 <- aggregate(id ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
-  #data_stations_var_pred2 <- aggregate(date ~ training,data = data_stations, sum ) #+ mod1 + res_mod1 , data = data_stations, min)
-
-  #data_stations_var_pred <- merge(data_stations_var_pred, data_stations_training_testing , by="id") #this is slow maybe do cbind?
-  #data_stations_var_pred_test <- data_stations_var_pred 
-
   write.table(data_stations_var_pred,
             file=file.path(out_dir,paste0("data_stations_var_pred_",out_suffix,".txt")),
             sep=",")
 
   #started at 16.51, 09/07
   
+  
+  return()
 }
 
 
