@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/23/2017            
+#MODIFIED ON: 01/24/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: clean up and moving function to function script
@@ -277,10 +277,23 @@ list_year_str <- unique(l_dates_year)
 
 list_data_df_training <- list_data_s_fname
 list_data_df_testing <- list_data_v_fname
-
+  selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
+                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
+                    "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
+                    "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
+                    "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
+                    "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")     
+#selected_var <- c("mflag","qflag","sflag","elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
+#                  "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
+#                  "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
+#                  "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
+#                  "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
+#                  "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")     
+  
+  
 ### combine training and testing by year
-combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,formula_str_sum,for,out_suffix,out_dir){
-  #
+combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",out_suffix=NULL,out_dir="."){
+  #i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",out_suffix="",out_dir="."
   #
   
   data_s_df  <- read.table(list_data_df_training[i],header=T,stringsAsFactors=F,sep=",")
@@ -292,15 +305,15 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
   ## use merge function
   #df_combined_data <- do.call(rbind,list(data_df1,data_df2)) #reading only the years related to the the dates e.g. 1999
   data_stations <- rbind.fill(data_v_df, data_s_df) #should work?
-  write.table(data_stations,...)
-  #Now aggregate 
-  data_stations_var_pred <- 
+  ### Write out combined training and testing data
+  filename_data_stations_combined_v_s <- file.path(out_dir,paste0("data_stations_combined_v_s_",out_suffix,".txt"))
+  write.table(data_stations,file=filename_data_stations_combined_v_s,sep=",")
     
   ##Add tile id here...and check if data stations was training or testing.
 
   #01/23 21:58  
   md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("x","y","dailyTmax","mod1","res_mod1"))
-  data_stations_var_pred_tmp1 <- cast(md, id + date ~ variable, fun.aggregate = mean, na.rm = TRUE)
+  data_stations_var_pred <- cast(md, id + date ~ variable, fun.aggregate = mean, na.rm = TRUE)
   #01/23 22:08
   
   #01/23 22:10
@@ -316,62 +329,45 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
   #test <- merge(data_stations_var_pred2,data_stations_var_pred,by=c(("id")))  
   #test <- data_stations_var_pred  
 
-  data_stations_var_pred_tmp1$testing <- data_stations_var_pred_tmp2$testing
-  data_stations_var_pred_tmp1$training <- data_stations_var_pred_tmp2$training
-  
+  data_stations_var_pred$testing <- data_stations_var_pred_tmp2$testing
+  data_stations_var_pred$training <- data_stations_var_pred_tmp2$training
+  dim(data_stations_var_pred)
+    
   #An inner join of df1 and df2:
   #Return only the rows in which the left table have matching keys in the right table.
-  selected_var <- c("mflag","qflag","sflag","elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
-                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
-                    "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
-                    "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
-                    "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
-                    "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")        
    
-  selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
-                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
-                    "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
-                    "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
-                    "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
-                    "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")                  
-  #8:42
-  #test2<- merge(test,data_stations[,c("id",selected_var)],by=c("id"),all=F)
-  md3 <- melt(data_stations, id=(c("id", "date")),measure.vars=selected_var)
-  data_stations_var_pred_tmp3 <- cast(md3, id + date ~ variable, fun.aggregate = min,na.rm = TRUE)
-  #8:4
-  #Error in Summary.factor(integer(0), na.rm = FALSE) : 
-  #‘min’ not meaningful for factors
-  
-  data_stations_var_pred4 <- cbind(test,data_stations_var_pred3)
-  write.table(data_stations_var_pred4,
-              file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt")), sep=",")
-
-  write.table(data_stations_training_testing,
-            file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt")),
-            sep=",")
-  
-  #write.table(data_stations_training_testing,
-  #            file=file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt",
-  #                                                                 sep=",")))
-  
-  dim(data_stations_var_pred)
-  #> dim(data_stations_var_pred)
-  #[1] 57154     7
+  if(!is.null(selecte_var)){
+    
+    #8:42
+    #test2<- merge(test,data_stations[,c("id",selected_var)],by=c("id"),all=F)
+    md3 <- melt(data_stations, id=(c("id", "date")),measure.vars=selected_var)
+    data_stations_var_pred_tmp3 <- cast(md3, id + date ~ variable, fun.aggregate = min,na.rm = TRUE)
+    #10:14
+    #Error in Summary.factor(integer(0), na.rm = FALSE) : 
+    #‘min’ not meaningful for factors
+    data_stations_var_pred <- cbind(data_stations_var_pred, data_stations_var_pred_tmp3)
+    dim(data_stations_var_pred)
+  }
+             
   unique(data_stations_var_pred$id)
   dim(data_stations_training_testing)
   #[1] 57154     4
 
   data_stations_var_pred$date_str <- data_stations_var_pred$date
   data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+  #data_stations_var_pred$year <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
 
-  write.table(data_stations_var_pred,
-            file=file.path(out_dir,paste0("data_stations_var_pred_",out_suffix,".txt")),
-            sep=",")
-
-  #started at 16.51, 09/07
+  ### Write out data combined
+  filename_data_stations_var_pred <- file.path(out_dir,paste0("data_stations_var_pred_",out_suffix,".txt"))
+  write.table( filename_data_stations_var_pred,file=filename_data_stations_var_pred,sep=",")
+  ### Write out combined training and testing data
+  #filename_data_stations_training_testing <- file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt"))
+  #write.table(data_stations_training_testing,file=filename_data_stations_training_testing,sep=",")
   
-  
-  return()
+  #Prepare return object
+  combine_data_obj <- list(filename_data_stations_var_pred,filename_data_stations_combined_v_s)
+  names(combine_data_obj) <- c("data_stations_var_pred","data_stations_combined_v_s")
+  return(combine_data_obj)
 }
 
 
