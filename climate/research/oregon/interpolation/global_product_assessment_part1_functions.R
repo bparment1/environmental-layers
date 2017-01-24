@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 01/14/2017            
+#MODIFIED ON: 01/24/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: debugging combine function for extracted and observed temp data
+##COMMIT: adding function to combine testing and training by year for each region
 #################################################################################################
 
 ### Loading R library and packages        
@@ -822,5 +822,102 @@ aggregate_by_id_and_coord <- function(i,list_df_data,list_out_suffix,out_dir){
   write.table(df_station_data,out_filename,sep=",")
   return(df_station_data)
 }
+
+
+### combine training and testing by year
+#also count testing and training used by day 
+combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",list_out_suffix=NULL,out_dir="."){
+  #i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",out_suffix="",out_dir="."
+  #
+  
+  if(is.null(list_out_suffix)){
+    out_suffix_str <- ""
+  }else{
+    out_suffix_str <- list_out_suffix[i]
+  }
+  
+  data_s_df  <- read.table(list_data_df_training[i],header=T,stringsAsFactors=F,sep=",")
+  data_v_df <- read.table(list_data_df_testing[i],header=T,stringsAsFactors=F,sep=",")
+  
+  data_s_df$training <- 1
+  data_v_df$testing <- 1
+  
+  ## use merge function
+  #df_combined_data <- do.call(rbind,list(data_df1,data_df2)) #reading only the years related to the the dates e.g. 1999
+  data_stations <- rbind.fill(data_v_df, data_s_df) #should work?
+  ### Write out combined training and testing data
+  filename_data_stations_combined_v_s <- file.path(out_dir,paste0("data_stations_combined_v_s_",out_suffix_str,".txt"))
+  write.table(data_stations,file=filename_data_stations_combined_v_s,sep=",")
+    
+  ##Add tile id here...and check if data stations was training or testing.
+
+  #01/23 21:58  
+  md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("x","y","dailyTmax","mod1","res_mod1"))
+  data_stations_var_pred <- cast(md, id + date ~ variable, fun.aggregate = mean, na.rm = TRUE)
+  #01/23 22:08
+  
+  #01/23 22:10
+  md2 <- melt(data_stations, id=(c("id", "date")),measure.vars=c("testing","training"))
+  data_stations_var_pred_tmp2 <- cast(md2, id + date ~ variable, fun.aggregate = sum,na.rm = TRUE)
+  #01/23 22:14  
+  
+  ### Now combine both
+  #write.table(data_stations_var_pred,
+  #            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt",
+  #                                                                 sep=",")))
+  
+  #test <- merge(data_stations_var_pred2,data_stations_var_pred,by=c(("id")))  
+  #test <- data_stations_var_pred  
+
+  data_stations_var_pred$testing <- data_stations_var_pred_tmp2$testing
+  data_stations_var_pred$training <- data_stations_var_pred_tmp2$training
+  #dim(data_stations_var_pred)
+    
+  #An inner join of df1 and df2:
+  #Return only the rows in which the left table have matching keys in the right table.
+   
+  if(!is.null(selected_var)){
+    
+    #8:42
+    #test2<- merge(test,data_stations[,c("id",selected_var)],by=c("id"),all=F)
+    md3 <- melt(data_stations, id=(c("id", "date")),measure.vars=selected_var)
+    data_stations_var_pred_tmp3 <- cast(md3, id + date ~ variable, fun.aggregate = min,na.rm = TRUE)
+    #10:14
+    #Error in Summary.factor(integer(0), na.rm = FALSE) : 
+    #‘min’ not meaningful for factors
+    data_stations_var_pred <- cbind(data_stations_var_pred, data_stations_var_pred_tmp3)
+    dim(data_stations_var_pred)
+  }
+             
+  data_stations_var_pred$date_str <- data_stations_var_pred$date
+  data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+  #dim(data_stations_var_pred)
+  #[1] 462885     10
+  
+  #> length(unique(data_stations_var_pred$id))
+  #[1] 1464
+  #length(unique(data_s_df$id))
+  #[1] 1464
+  #length(unique(data_v_df$id))
+  #[1] 1458
+  #interesect(unique(data_v_df$id),unique(data_s_df$id))
+
+  #data_s_df
+  
+  #data_stations_var_pred$year <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+
+  ### Write out data combined
+  filename_data_stations_var_pred <- file.path(out_dir,paste0("data_stations_var_pred_",out_suffix_str,".txt"))
+  write.table(data_stations_var_pred,file=filename_data_stations_var_pred,sep=",")
+  ### Write out combined training and testing data
+  #filename_data_stations_training_testing <- file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt"))
+  #write.table(data_stations_training_testing,file=filename_data_stations_training_testing,sep=",")
+  
+  #Prepare return object
+  combine_data_obj <- list(filename_data_stations_var_pred,filename_data_stations_combined_v_s)
+  names(combine_data_obj) <- c("data_stations_var_pred","data_stations_combined_v_s")
+  return(combine_data_obj)
+}
+
 
 ############################ END OF SCRIPT ##################################
