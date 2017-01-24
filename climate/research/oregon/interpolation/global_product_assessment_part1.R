@@ -274,10 +274,11 @@ list_data_s_fname
 
 l_dates_year <- 1984:2014
 list_year_str <- unique(l_dates_year)
+list_out_suffix <- paste(region_name,list_year_str,sep="_")
 
 list_data_df_training <- list_data_s_fname
 list_data_df_testing <- list_data_v_fname
-  selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
+selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
                     "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
                     "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
                     "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
@@ -292,9 +293,15 @@ list_data_df_testing <- list_data_v_fname
   
   
 ### combine training and testing by year
-combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",out_suffix=NULL,out_dir="."){
+combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",list_out_suffix=NULL,out_dir="."){
   #i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",out_suffix="",out_dir="."
   #
+  
+  if(is.null(list_out_suffix)){
+    out_suffix_str <- ""
+  }else{
+    out_suffix_str <- list_out_suffix[i]
+  }
   
   data_s_df  <- read.table(list_data_df_training[i],header=T,stringsAsFactors=F,sep=",")
   data_v_df <- read.table(list_data_df_testing[i],header=T,stringsAsFactors=F,sep=",")
@@ -306,7 +313,7 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
   #df_combined_data <- do.call(rbind,list(data_df1,data_df2)) #reading only the years related to the the dates e.g. 1999
   data_stations <- rbind.fill(data_v_df, data_s_df) #should work?
   ### Write out combined training and testing data
-  filename_data_stations_combined_v_s <- file.path(out_dir,paste0("data_stations_combined_v_s_",out_suffix,".txt"))
+  filename_data_stations_combined_v_s <- file.path(out_dir,paste0("data_stations_combined_v_s_",out_suffix_str,".txt"))
   write.table(data_stations,file=filename_data_stations_combined_v_s,sep=",")
     
   ##Add tile id here...and check if data stations was training or testing.
@@ -331,7 +338,7 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
 
   data_stations_var_pred$testing <- data_stations_var_pred_tmp2$testing
   data_stations_var_pred$training <- data_stations_var_pred_tmp2$training
-  dim(data_stations_var_pred)
+  #dim(data_stations_var_pred)
     
   #An inner join of df1 and df2:
   #Return only the rows in which the left table have matching keys in the right table.
@@ -349,17 +356,26 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
     dim(data_stations_var_pred)
   }
              
-  unique(data_stations_var_pred$id)
-  dim(data_stations_training_testing)
-  #[1] 57154     4
-
   data_stations_var_pred$date_str <- data_stations_var_pred$date
   data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+  #dim(data_stations_var_pred)
+  #[1] 462885     10
+  
+  #> length(unique(data_stations_var_pred$id))
+  #[1] 1464
+  #length(unique(data_s_df$id))
+  #[1] 1464
+  #length(unique(data_v_df$id))
+  #[1] 1458
+  #interesect(unique(data_v_df$id),unique(data_s_df$id))
+
+  #data_s_df
+  
   #data_stations_var_pred$year <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
 
   ### Write out data combined
-  filename_data_stations_var_pred <- file.path(out_dir,paste0("data_stations_var_pred_",out_suffix,".txt"))
-  write.table( filename_data_stations_var_pred,file=filename_data_stations_var_pred,sep=",")
+  filename_data_stations_var_pred <- file.path(out_dir,paste0("data_stations_var_pred_",out_suffix_str,".txt"))
+  write.table(data_stations_var_pred,file=filename_data_stations_var_pred,sep=",")
   ### Write out combined training and testing data
   #filename_data_stations_training_testing <- file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt"))
   #write.table(data_stations_training_testing,file=filename_data_stations_training_testing,sep=",")
@@ -375,9 +391,9 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
 ######## 
 ### Use combine training and testing data!!!
 
-
 #debug(aggregate_by_id_and_coord)
-data_name_point <- c("data_v","data_s") #move this up, this can be any data.frame
+data_name_point <- c("combined_data_v_s") #move this up, this can be any data.frame
+list_combined_data_v_s_fname
 
 for(k in 1:length(data_name_point)){
   
@@ -393,7 +409,7 @@ for(k in 1:length(data_name_point)){
   #         mc.cores = 1
   #         )
 
-  aggregated_data_points<- mclapply(1:length(list_data_v_fname),
+  aggregated_data_points<- mclapply(1:length(list_combined_data_v_s_fname),
                 FUN=aggregate_by_id_and_coord,
                 list_df_data = list_data_v_fname,
                 list_out_suffix = list_out_suffix, 
