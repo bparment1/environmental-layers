@@ -85,7 +85,8 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01112017.R"
+#global_product_assessment_part1_functions_01242017.R
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01242017.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -272,12 +273,7 @@ list_data_s_fname
 
 #read in the data first
 
-l_dates_year <- 1984:2014
-list_year_str <- unique(l_dates_year)
-list_out_suffix <- paste(region_name,list_year_str,sep="_")
 
-list_data_df_training <- list_data_s_fname
-list_data_df_testing <- list_data_v_fname
 selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
                     "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
                     "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
@@ -290,103 +286,35 @@ selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",
 #                  "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
 #                  "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
 #                  "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")     
-  
-  
-### combine training and testing by year
-combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",list_out_suffix=NULL,out_dir="."){
-  #i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",out_suffix="",out_dir="."
-  #
-  
-  if(is.null(list_out_suffix)){
-    out_suffix_str <- ""
-  }else{
-    out_suffix_str <- list_out_suffix[i]
-  }
-  
-  data_s_df  <- read.table(list_data_df_training[i],header=T,stringsAsFactors=F,sep=",")
-  data_v_df <- read.table(list_data_df_testing[i],header=T,stringsAsFactors=F,sep=",")
-  
-  data_s_df$training <- 1
-  data_v_df$testing <- 1
-  
-  ## use merge function
-  #df_combined_data <- do.call(rbind,list(data_df1,data_df2)) #reading only the years related to the the dates e.g. 1999
-  data_stations <- rbind.fill(data_v_df, data_s_df) #should work?
-  ### Write out combined training and testing data
-  filename_data_stations_combined_v_s <- file.path(out_dir,paste0("data_stations_combined_v_s_",out_suffix_str,".txt"))
-  write.table(data_stations,file=filename_data_stations_combined_v_s,sep=",")
-    
-  ##Add tile id here...and check if data stations was training or testing.
+l_dates_year <- 1984:2014
+list_year_str <- unique(l_dates_year)
+list_out_suffix <- paste(region_name,list_year_str,sep="_")
 
-  #01/23 21:58  
-  md <- melt(data_stations, id=(c("id", "date")),measure.vars=c("x","y","dailyTmax","mod1","res_mod1"))
-  data_stations_var_pred <- cast(md, id + date ~ variable, fun.aggregate = mean, na.rm = TRUE)
-  #01/23 22:08
-  
-  #01/23 22:10
-  md2 <- melt(data_stations, id=(c("id", "date")),measure.vars=c("testing","training"))
-  data_stations_var_pred_tmp2 <- cast(md2, id + date ~ variable, fun.aggregate = sum,na.rm = TRUE)
-  #01/23 22:14  
-  
-  ### Now combine both
-  #write.table(data_stations_var_pred,
-  #            file=file.path(out_dir,paste0("data_stations_var_pred_tmp_",out_suffix,".txt",
-  #                                                                 sep=",")))
-  
-  #test <- merge(data_stations_var_pred2,data_stations_var_pred,by=c(("id")))  
-  #test <- data_stations_var_pred  
+list_data_df_training <- list_data_s_fname
+list_data_df_testing <- list_data_v_fname
 
-  data_stations_var_pred$testing <- data_stations_var_pred_tmp2$testing
-  data_stations_var_pred$training <- data_stations_var_pred_tmp2$training
-  #dim(data_stations_var_pred)
-    
-  #An inner join of df1 and df2:
-  #Return only the rows in which the left table have matching keys in the right table.
-   
-  if(!is.null(selecte_var)){
-    
-    #8:42
-    #test2<- merge(test,data_stations[,c("id",selected_var)],by=c("id"),all=F)
-    md3 <- melt(data_stations, id=(c("id", "date")),measure.vars=selected_var)
-    data_stations_var_pred_tmp3 <- cast(md3, id + date ~ variable, fun.aggregate = min,na.rm = TRUE)
-    #10:14
-    #Error in Summary.factor(integer(0), na.rm = FALSE) : 
-    #‘min’ not meaningful for factors
-    data_stations_var_pred <- cbind(data_stations_var_pred, data_stations_var_pred_tmp3)
-    dim(data_stations_var_pred)
-  }
-             
-  data_stations_var_pred$date_str <- data_stations_var_pred$date
-  data_stations_var_pred$date <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
-  #dim(data_stations_var_pred)
-  #[1] 462885     10
-  
-  #> length(unique(data_stations_var_pred$id))
-  #[1] 1464
-  #length(unique(data_s_df$id))
-  #[1] 1464
-  #length(unique(data_v_df$id))
-  #[1] 1458
-  #interesect(unique(data_v_df$id),unique(data_s_df$id))
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01242017.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+#16:24
+#combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",list_out_suffix=NULL,out_dir="."){
+list_combine_agg_fanme <- mclapply(1:length(list_year_str),
+                                  FUN=combine_and_aggregate_df_data_fun,
+                                  list_data_df_training=list_data_s_fname,
+                                  list_data_df_testing=list_data_v_fname,
+                                  selected_var=NULL,
+                                  fun_selected_var="mean",
+                                  list_out_suffix=list_out_suffix,
+                                  out_dir=out_dir,
+                                  mc.preschedule=FALSE,
+                                  mc.cores = 11)
+#16:47 
+#data_stations_var_pred1 <- list_combine_agg_fanme[[1]]$data_stations_var_pred
+#list_combine_agg_fanme[[1]]$data_stations_combined_v_s
 
-  #data_s_df
-  
-  #data_stations_var_pred$year <- as.Date(strptime(data_stations_var_pred$date_str,"%Y%m%d"))
+data_stations_var_pred1 <- read.table(list_combine_agg_fanme[[1]]$data_stations_var_pred,header=T,stringsAsFactors = F,sep=",")
+data_stations <- read.table(list_combine_agg_fanme[[1]]$data_stations_combined_v_s,header=T,stringsAsFactors = F,sep=",")
 
-  ### Write out data combined
-  filename_data_stations_var_pred <- file.path(out_dir,paste0("data_stations_var_pred_",out_suffix_str,".txt"))
-  write.table(data_stations_var_pred,file=filename_data_stations_var_pred,sep=",")
-  ### Write out combined training and testing data
-  #filename_data_stations_training_testing <- file.path(out_dir,paste0("data_stations_training_testing_",out_suffix,".txt"))
-  #write.table(data_stations_training_testing,file=filename_data_stations_training_testing,sep=",")
-  
-  #Prepare return object
-  combine_data_obj <- list(filename_data_stations_var_pred,filename_data_stations_combined_v_s)
-  names(combine_data_obj) <- c("data_stations_var_pred","data_stations_combined_v_s")
-  return(combine_data_obj)
-}
-
-
+list_data_stations_var_pred_df_filename <- list.files(path=out_dir,pattern=paste0("data_stations_var_pred_",region_name,"_",".*.","txt"))
 
 ######## 
 ### Use combine training and testing data!!!
