@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/24/2017            
+#MODIFIED ON: 01/25/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: clean up and moving function to function script
@@ -296,8 +296,9 @@ list_data_df_testing <- list_data_v_fname
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01242017.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 #16:24
+#17:21
 #combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",list_out_suffix=NULL,out_dir="."){
-list_combine_agg_fanme <- mclapply(1:length(list_year_str),
+list_combine_agg_fname <- mclapply(1:length(list_year_str),
                                   FUN=combine_and_aggregate_df_data_fun,
                                   list_data_df_training=list_data_s_fname,
                                   list_data_df_testing=list_data_v_fname,
@@ -307,12 +308,15 @@ list_combine_agg_fanme <- mclapply(1:length(list_year_str),
                                   out_dir=out_dir,
                                   mc.preschedule=FALSE,
                                   mc.cores = 11)
-#16:47 
+#16:47
+#20:48
+#For 31 years and region 1, it took 2h27 minutes to produce the combine data
+
 #data_stations_var_pred1 <- list_combine_agg_fanme[[1]]$data_stations_var_pred
 #list_combine_agg_fanme[[1]]$data_stations_combined_v_s
 
-data_stations_var_pred1 <- read.table(list_combine_agg_fanme[[1]]$data_stations_var_pred,header=T,stringsAsFactors = F,sep=",")
-data_stations <- read.table(list_combine_agg_fanme[[1]]$data_stations_combined_v_s,header=T,stringsAsFactors = F,sep=",")
+data_stations_var_pred1 <- read.table(list_combine_agg_fname[[31]]$data_stations_var_pred,header=T,stringsAsFactors = F,sep=",")
+#data_stations <- read.table(list_combine_agg_fname[[31]]$data_stations_combined_v_s,header=T,stringsAsFactors = F,sep=",")
 
 list_data_stations_var_pred_df_filename <- list.files(path=out_dir,pattern=paste0("data_stations_var_pred_",region_name,"_",".*.","txt"))
 
@@ -321,13 +325,11 @@ list_data_stations_var_pred_df_filename <- list.files(path=out_dir,pattern=paste
 
 #debug(aggregate_by_id_and_coord)
 data_name_point <- c("combined_data_v_s") #move this up, this can be any data.frame
-list_combined_data_v_s_fname
 
 for(k in 1:length(data_name_point)){
   
-  
   out_suffix_str <- paste0(y_var_name,"_",interpolation_method,"_",region_name,out_suffix)
-  list_out_suffix <- paste0(data_name_point[k],out_suffix_str,"_",1984:2014)
+  list_out_suffix <- paste0(data_name_point[k],"_",1984:2014)
   #test<- mclapply(1:length(list_data_v_fname[1:1]),
   #                FUN=aggregate_by_id_and_coord,
   #         list_df_data = list_data_v_fname,
@@ -337,16 +339,20 @@ for(k in 1:length(data_name_point)){
   #         mc.cores = 1
   #         )
 
-  aggregated_data_points<- mclapply(1:length(list_combined_data_v_s_fname),
-                FUN=aggregate_by_id_and_coord,
-                list_df_data = list_data_v_fname,
-                list_out_suffix = list_out_suffix, 
-                out_dir=out_dir,
-                mc.preschedule=FALSE,
-                mc.cores = 11)
+  #21:34
+  aggregated_data_points <- mclapply(1:length(list_data_stations_var_pred_df_filename),
+                                     FUN=aggregate_by_id_and_coord,
+                                     list_df_data = list_data_stations_var_pred_df_filename,
+                                     list_out_suffix = list_out_suffix, 
+                                     out_dir=out_dir,
+                                     mc.preschedule=FALSE,
+                                     mc.cores = 11)
+  
   df_tmp <- do.call(rbind,aggregated_data_points)         
-  df_tmp2 <- aggregate(id  ~ x + y,data=df_tmp,FUN=mean)
-  write.table(df_tmp2,data_name_point[k])
+  df_data_points <- aggregate(id  ~ x + y,data=df_tmp,FUN=mean)
+  filename_df_data_points <- file.path(out_dir,
+                                       paste0("df_data_points_id_stations","_",region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)],".txt"))
+  write.table(df_data_points,filename_df_data_points)
 
 }
 
@@ -354,9 +360,9 @@ for(k in 1:length(data_name_point)){
 #### Part 2: perform extraction
 ## Do the extraction with training and test combined station data!!
 
-df_points_tmp2 <- df_tmp2 
-coords<- df_points_tmp2[,c("x","y")]
-coordinates(df_points_tmp2 )<- coords #maybe change this to data_stations? #these are the lcoations of climate stations
+#df_data_points <- df_data_points 
+coords<- df_data_points[,c("x","y")]
+coordinates(df_data_points)<- coords #maybe change this to data_stations? #these are the lcoations of climate stations
 
 #now extract from mosaic
 #t<-unique(test$id)
@@ -370,18 +376,12 @@ in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/m
 #in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
 pattern_str <- ".*.tif"
 lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic)
-
+out_suffix_str <- paste0(region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)])
 if(is.null(df_points_extracted_fname)){
   
-  in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
-  #in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
-  pattern_str <- ".*.tif"
-  #df_points <- #this contains the location of points to be used for extraction
-  #df_points <- data_stations_var_pred_data_s #collected previously
-    
   #undebug(extract_from_time_series_raster_stack)
   #extract from var pred mosaic, tmax in this case:
-  extract_obj_var_pred <- extract_from_time_series_raster_stack(df_points=df_points_tmp2,
+  extract_obj_var_pred <- extract_from_time_series_raster_stack(df_points=df_data_points,
                                                                 date_start,
                                                                 date_end,
                                                                 lf_raster=NULL,
@@ -390,7 +390,7 @@ if(is.null(df_points_extracted_fname)){
                                                                 pattern_str=NULL,
                                                                 in_dir=in_dir_mosaic,
                                                                 out_dir=out_dir,
-                                                                out_suffix=out_suffix)
+                                                                out_suffix=out_suffix_str)
   
 }else{
   extract_obj_fname <- file.path(out_dir,paste("raster_extract_obj_",out_suffix,".RData",sep=""))
@@ -408,37 +408,7 @@ df_raster <- read.table(df_raster_fname,sep=",",header=T,stringsAsFactors =F)
 df_time_series <- read.table( df_time_series_fname,sep=",",header=T,stringsAsFactors =F)
 df_points_extracted <- read.table(df_points_extracted_fname,sep=",",header=T,stringsAsFactors = F)
 
-
-#### Get df points for specific dates
-#lapply(1:length(l_dates)list_df_v_stations,function(x){x$date==l_dates})
-#dim(list_df_v_stations[[1]])
-list_df_points_data_v_dates <- vector("list",length=length(l_dates))
-list_df_points_data_s_dates <- vector("list",length=length(l_dates))
-for(i in 1:length(l_dates)){
-  #year_str <- list_year_str[[i]]
-  list_df_points_data_v_dates[[i]] <- subset(df_combined_data_v,df_combined_data_v$date==l_dates[i])
-  list_df_points_data_s_dates[[i]] <- subset(df_combined_data_s,df_combined_data_s$date==l_dates[i])
-
-}
-
-df_combined_data_v_dates <- do.call(rbind,list_df_points_data_v_dates)
-df_combined_data_s_dates <- do.call(rbind,list_df_points_data_s_dates)
-
-
-#combine
-#head(data_stations_var_pred)
-
-#           id     date        x      y dailyTmax     mod1  res_mod1          id     date training testing
-#1 71238099999 19930703 -112.867 53.683      20.2 18.19909 -2.000915 71238099999 19930703        4       0
-#2 71238099999 19930704 -112.867 53.683      23.4 17.74476 -5.655237 71238099999 19930704        3       1
-#3 71238099999 19930705 -112.867 53.683      21.7 19.22313 -2.476870 71238099999 19930705        3       1
-
-#need to combine:
-#data_stations_var_pred: constains id, x, y, dailyTmax, mod1, res_mod1, date, training, testing
-#df_time_series
-#df_points_extracted #contains id,x,y of stations and extracted values from raster stack
-
-dim(df_time_series)
+#dim(df_time_series)
 
 ## Need to combine back with original data:
 i<-1
