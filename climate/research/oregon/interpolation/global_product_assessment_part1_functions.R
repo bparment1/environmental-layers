@@ -805,9 +805,23 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
 }
 
 aggregate_by_id_and_coord <- function(i,list_df_data,list_out_suffix,out_dir){
-  #This functions aggrate iput data.frame based on the ID of the station and coordinates x,y
   #
+  #This functions aggrate input data.frame based on the ID of the station and coordinates x,y
+  #INPUT
+  #1) i: selected data.frame, used to run in parralel
+  #2) list_df_data: dataframe list to aggreagate
+  #3) list_out_suffix: output suffix for the aggregated data
+  #4) out_dir: output directory
+  #OUTPUT:
+  #1) df_station_data: data.frame with unique identifier and coordinates x,y 
   #
+  #AUTHORS: Benoit Parmentier
+  #Created on: 01/11/2017
+  #Modfied on: 01/25/2017
+  #
+  
+  ###################
+  #START SCRIPT
   
   df_points_data <- list_df_data[[i]]
   out_suffix_str <- list_out_suffix[i]
