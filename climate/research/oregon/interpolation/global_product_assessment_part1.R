@@ -19,7 +19,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: plotting extracted predicted values and measured tmax 
+#COMMIT: testing extraction of nearly full reg1 stack
 
 #################################################################################################
 
@@ -378,7 +378,8 @@ pattern_str <- ".*.tif"
 lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic)
 out_suffix_str <- paste0(region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)])
 if(is.null(df_points_extracted_fname)){
-  
+  #started at 22:10pm
+  #For region 1, with 4,803 stations for 31 years but missing some stations
   #undebug(extract_from_time_series_raster_stack)
   #extract from var pred mosaic, tmax in this case:
   extract_obj_var_pred <- extract_from_time_series_raster_stack(df_points=df_data_points,
@@ -410,12 +411,13 @@ df_points_extracted <- read.table(df_points_extracted_fname,sep=",",header=T,str
 
 #dim(df_time_series)
 
-## Need to combine back with original data:
+###### STEP 4: Combine extracted and observation with testing and training information ####
+## Need to combine back with original data, this is done station by station...
 i<-1
 
 data_var<- list_df_v_stations[[i]] 
 
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01142017.R"
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01252017.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
 
 ### prepare arguments to combine stations
@@ -481,6 +483,7 @@ test<- unlist(lapply(list_station_summary_obj, function(x) !inherits(x, "try-err
 reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
 countries_shp_tmp <- reg_layer
 
+####################### This should be the end of the script, move other code for visualization out #########
 ## Now plot by dates:
 
 model_name <- "res_mod1"
