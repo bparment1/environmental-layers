@@ -422,9 +422,6 @@ k <- 1
 #data_var<- list_df_v_stations[[i]] 
 data_var <- read.table(list_data_stations_var_pred_df_filename[[k]],header=T, stringsAsFactors = F,sep=",")
 
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01252017.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
-
 ### prepare arguments to combine stations
 list_selected_ID <- unique(df_points_extracted$id) #4800 stations selected
 #test_list<- table(df_points_extracted$id)
@@ -452,38 +449,48 @@ plot_fig <- FALSE
 i<-1
 
 #Product assessment
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01262017c.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
 #out_suffix_str <- paste0(region_name,"_",out_suffix)
-debug(combine_measurements_and_predictions_df)
+#debug(combine_measurements_and_predictions_df)
 #this can be run with mclapply, very fast right now:
+#18:00pm
 station_summary_obj <- combine_measurements_and_predictions_df(
-                                       i=1,
+                                       i=2400,
                                        df_raster=df_raster,
                                        df_time_series=df_time_series,
-                                       df_ts_pix=df_points_extracted,
-                                       #data_var=data_var,
+                                       df_points_extracted=df_points_extracted,
                                        data_var=list_data_stations_var_pred_df_filename, #this can be a list
                                        list_selected_ID=list_selected_ID,
                                        r_ts_name=r_ts_name,
                                        var_name=var_name,
                                        var_pred = var_pred,
+                                       scaling= scaling,
                                        out_dir =out_dir,
                                        out_suffix=out_suffix_str,
                                        plot_fig=F)
+
+#18:02pm
+##Quick look at the data:
 df_pix_ts <- station_summary_obj$df_pix_ts
+plot(df_pix_ts$mod1_mosaic,type="l",col="blue")
+lines(df_pix_ts$dailyTmax,type="l",col="red")
+station_summary_obj$metric_stat_df
 
 #####
 ##combine information for the 1458 stations
 #started at 17.12pm
-list_station_summary_obj <- mclapply(1:length(list_selected_ID),
+list_station_summary_obj <- mclapply(1:length(list_selected_ID[2400:2410]),
                                         FUN=combine_measurements_and_predictions_df,
                                         df_raster=df_raster,
                                         df_time_series=df_time_series,
-                                        df_ts_pix=df_ts_pix,
-                                        data_var=data_var, #this can be a list of file
-                                        list_selected_ID=list_selected_ID,
+                                        df_points_extracted=df_points_extracted,
+                                        data_var=list_data_stations_var_pred_df_filename, #this can be a list
+                                        list_selected_ID=list_selected_ID[2400:2410],
                                         r_ts_name=r_ts_name,
                                         var_name=var_name,
                                         var_pred = var_pred,
+                                        scaling=scaling,
                                         out_dir =out_dir,
                                         out_suffix=out_suffix_str,
                                         plot_fig=F,
@@ -497,10 +504,6 @@ test<- unlist(lapply(list_station_summary_obj, function(x) !inherits(x, "try-err
 ####
 
 
-#function(x){x$date==}
-#df_points <- subset(df_stations,df_stations_tmp$date==l_dates[1])
-reg_layer <- readOGR(dsn=dirname(countries_shp),sub(".shp","",basename(countries_shp)))
-countries_shp_tmp <- reg_layer
 
 ####################### This should be the end of the script, move other code for visualization out #########
 ## Now plot by dates:
