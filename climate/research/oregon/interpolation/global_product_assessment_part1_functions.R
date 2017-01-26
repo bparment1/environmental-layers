@@ -680,20 +680,21 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
 }
 
 
-combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,df_ts_pix,data_var,list_selected_ID,r_ts_name,var_name,var_pred,out_dir=".",out_suffix="",plot_fig=T){
+combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, df_points_extracted,data_var,list_selected_ID,r_ts_name,var_name,var_pred,scaling=NULL,out_dir=".",out_suffix="",plot_fig=T){
   
   # Input arguments:
   #1) i : selected station
   #2) df_raster:
   #3) df_time_series
-  #4) df_ts_pix : data extracted from raster layer
+  #4) df_points_extracted : data extracted from raster layer
   #5) data_var : data with station measurements (tmin,tmax or precip), this can be a list of files
   #6) list_selected_ID : list of selected station
-  #7) r_ts_name
-  #8) var_name
-  #9) var_pred
-  #10) out_dir
-  #11) out_suffix
+  #7) r_ts_name: names of the raster layers extracted and relevant to combine
+  #8) var_name: variable predicted (e.g. dailyTmax)
+  #9) var_pred: model predicted (e.g. "mod1)
+  #10) sclaing: if NUll no scaing, the extracted value is multiplied by scaling
+  #10) out_dir: output directory
+  #11) out_suffix_str: output suffix
   #12) plot_fig : if T, figures are plotted
   # Output
   #
@@ -705,21 +706,25 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   
   id_name <- list_selected_ID[i] # e.g. WS037.00,1238099999
   #id_selected <- df_ts_pix[[var_ID]]==id_name
-  id_selected <- df_ts_pix[["id"]]== id_name #select specific station from data extracted from raster stack
+  id_selected <- df_points_extracted[["id"]]== id_name #select specific station from data extracted from raster stack
+  #id_selected <- df_ts_pix[["id"]]== id_name #select specific station from data extracted from raster stack
   
   #######
   ## STEP 2: Select stations with data extracted from raster stack 
   ## Now get time series
-  data_pixel <- df_ts_pix[id_selected,] #this should be a unique row!!!, e.g. 1x10295
-  #data_pixel <- data_pixel[1,]
+  data_pixel <- df_points_extracted[id_selected,] #this should be a unique row!!!, e.g. 1x10295
   data_pixel <- as.data.frame(data_pixel)
   
   ##Transpose data to have rows as date and one unique column
   pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #subset to relevant layers, e.g. climate time series
   #pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
   pix_ts <- (as.data.frame(pix_ts)) # transform the matrix transposed into data.frame
+  
   names(pix_ts) <- paste(var_pred,"_mosaic",sep="")
   #add scaling option
+  if(!is.null(scaling)){
+    pix_ts[paste(var_pred,"_mosaic",sep="")] <- pix_ts[paste(var_pred,"_mosaic",sep="")]*scaling
+  }
   #!is.null(scaling)
   
   ########
@@ -755,7 +760,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   pix_ts <- merge(df_time_series,pix_ts,by="date",all=T)
   pix_ts$id_val <- id_name
       
-  var_pred_tmp <- paste0(var_pred,"_mosaic")
+  #var_pred_tmp <- paste0(var_pred,"_mosaic")
   #check for duplicates in extracted values (this can happen if there is a test layer or repetition
   if(nrow(pix_ts)!=length(unique(pix_ts$date))){
 
@@ -784,16 +789,19 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   
   #compute residuals from mosaics
   var_pred_tmp <- paste0(var_pred,"_mosaic")
-  df_pix_ts[[paste0("res_",var_pred_tmp)]] <- df_pix_ts[[var_pred_tmp]] - df_pix_ts[[y_var_name]]
+  df_pix_ts[[paste0("res_",var_pred_tmp)]] <- df_pix_ts[[var_pred_tmp]] - df_pix_ts[[var_name]]
   
-  id_name <- list_selected_ID[i]
-  df_pix_ts_filename <- file.path(out_dir,paste0("df_pix_ts_",id_name,y_var_name,out_suffix,".txt"))
+  #id_name <- list_selected_ID[i]
+  df_pix_ts_filename <- file.path(out_dir,paste0("df_pix_ts_id_",id_name,"_",var_name,"_",out_suffix_str,".txt"))
   write.table(df_pix_ts,df_pix_ts_filename,sep=",")
 
 
   nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0,na.rm=T) #relevant for precip
   #nb_NA <- sum(is.na(df2$COL_SCORE))
-  nb_NA <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
+  nb_NA_pred <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
+  nb_NA_obs <- sum(is.na( df_pix_ts[[var_name]])) #for ID 394 DMR it is 361 missing values for 2012!!
+  #mean <- mean( df_pix_ts[[var_pred_tmp]]==0,na.rm=T) #relevant for precip
+  #rmse_val <- 
   ##Add quantile, and range info later on...
   
   ## Cumulated precip and lag?
@@ -802,8 +810,8 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   #Kepp number of NA for scores... 
   #Summarize by season...
   ## Threshold?
-  station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts,df_pix_ts_filename )
-  names(station_summary_obj) <- c("nb_zero_precip","nb_NA_var","df_pix_ts","df_pix_ts_filename")
+  station_summary_obj <- list(nb_zero,nb_NA_obs,nb_NA_pred ,df_pix_ts,df_pix_ts_filename )
+  names(station_summary_obj) <- c("nb_zero","nb_NA_obs","nb_NA_pred","df_pix_ts","df_pix_ts_filename")
   return(station_summary_obj)
 }
 
