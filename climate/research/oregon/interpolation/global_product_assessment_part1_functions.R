@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 01/24/2017            
+#MODIFIED ON: 01/26/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
@@ -19,7 +19,8 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: adding function to combine testing and training by year for each region
+##COMMIT: changing function to combine testing and training observed data with extracted stations
+#
 #################################################################################################
 
 ### Loading R library and packages        
@@ -686,7 +687,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   #2) df_raster:
   #3) df_time_series
   #4) df_ts_pix : data extracted from raster layer
-  #5) data_var : data with station measurements (tmin,tmax or precip)
+  #5) data_var : data with station measurements (tmin,tmax or precip), this can be a list of files
   #6) list_selected_ID : list of selected station
   #7) r_ts_name
   #8) var_name
@@ -699,50 +700,52 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   
   ##### START FUNCTION ############
   
-  #get the relevant station
+  #######
+  ## STEP 1: Select stations by ID 
+  
   id_name <- list_selected_ID[i] # e.g. WS037.00,1238099999
   #id_selected <- df_ts_pix[[var_ID]]==id_name
-  id_selected <- df_ts_pix[["id"]]== id_name
+  id_selected <- df_ts_pix[["id"]]== id_name #select specific station from data extracted from raster stack
   
-  ### Not get the data from the time series
-  data_pixel <- df_ts_pix[id_selected,] #this should be a unique row!!!
+  #######
+  ## STEP 2: Select stations with data extracted from raster stack 
+  ## Now get time series
+  data_pixel <- df_ts_pix[id_selected,] #this should be a unique row!!!, e.g. 1x10295
   #data_pixel <- data_pixel[1,]
   data_pixel <- as.data.frame(data_pixel)
   
   ##Transpose data to have rows as date and one unique column
-  pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #can subset to range later
+  pix_ts <- t(as.data.frame(subset(data_pixel,select=r_ts_name))) #subset to relevant layers, e.g. climate time series
   #pix_ts <- subset(as.data.frame(pix_ts),select=r_ts_name)
-  pix_ts <- (as.data.frame(pix_ts))
+  pix_ts <- (as.data.frame(pix_ts)) # transform the matrix transposed into data.frame
   names(pix_ts) <- paste(var_pred,"_mosaic",sep="")
   #add scaling option
   #!is.null(scaling)
-  ## Process the measurements data (with tmax/tmin/precip)
   
+  ########
+  ## STEP 3: Process the measurements data (with tmax/tmin/precip)
+  ## 
+  
+  if(class(data_var)!="data.frame"){
+    #
+    lf_data_var_subset <- mclapply(data_var,
+                           FUN=extract_from_df,
+                           col_selected="id",
+                           val_selected=id_name,
+                           mc.preschedule=FALSE,
+                           mc.cores = num_cores)   
+    #took less than 2 minutes to extract one station data for 31 years (one year by file)
+    df_tmp <- do.call(rbind,lf_data_var_subset)
+  }else{
+    df_tmp <- subset(data_var,data_var$id==id_name)
+  }
   #there are several measurements per day for some stations !!!
-  #id_name <- data_pixel[[var_ID]]
-  
-  #df_tmp  <-data_var[data_var$LOCATION_ID==id_name,]
-  df_tmp <- subset(data_var,data_var$id==id_name)
-  #if(da)
-  #aggregate(df_tmp
-  #if(nrow(df_tmp)>1){
-  #  
-  #  formula_str <- paste(var_name," ~ ","TRIP_START_DATE_f",sep="")
-  #  #var_pix <- aggregate(COL_SCORE ~ TRIP_START_DATE_f, data = df_tmp, mean) #aggregate by date
-  #  var_pix <- try(aggregate(as.formula(formula_str), data = df_tmp, FUN=mean)) #aggregate by date
-  #  #length(unique(test$TRIP_START_DATE_f))
-  #  #var_pix_ts <- t(as.data.frame(subset(data_pixel,select=var_name)))
-  #  #pix <- t(data_pixel[1,24:388])#can subset to range later
-  #}else{
-  #  var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
-  #}
-  #var_pix <- subset(as.data.frame(data_id_selected,c(var_name,"TRIP_START_DATE_f")])) #,select=var_name)
+
   var_pix <- as.data.frame(df_tmp) #select only dates and var_name!!!
   var_pix$date_str <- as.character(var_pix$date)
   #match from 20011231 to 2001-12-31 to date format
-  var_pix$date <- as.character(as.Date(var_pix$date_str,"%Y%m%d")) #format back to the relevant date format for files
+  var_pix$date_str <- as.character(as.Date(var_pix$date_str,"%Y%m%d")) #format back to the relevant date format for files
   
-  #dates_val <- df_time_series$date
   dates_val <- df_raster$date
   pix_ts$date <- dates_val 
   #pix_ts <- merge(df_raster,pix_ts,by="date")
@@ -751,14 +754,14 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
   #Combine data with list of range and missing: this is fast
   pix_ts <- merge(df_time_series,pix_ts,by="date",all=T)
   pix_ts$id_val <- id_name
+      
+  var_pred_tmp <- paste0(var_pred,"_mosaic")
   #check for duplicates in extracted values (this can happen if there is a test layer or repetition
   if(nrow(pix_ts)!=length(unique(pix_ts$date))){
-    var_pred_tmp <- paste0(var_pred,"_mosaic")
+
     md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp,"missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
     #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
-    pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
-    na.rm = TRUE)
-
+    pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, na.rm = TRUE)
   }
   
   #if(nrow(var_pix)!=length(unique(var_pix$date))){
@@ -805,23 +808,9 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series,d
 }
 
 aggregate_by_id_and_coord <- function(i,list_df_data,list_out_suffix,out_dir){
+  #This functions aggrate iput data.frame based on the ID of the station and coordinates x,y
   #
-  #This functions aggrate input data.frame based on the ID of the station and coordinates x,y
-  #INPUT
-  #1) i: selected data.frame, used to run in parralel
-  #2) list_df_data: dataframe list to aggreagate
-  #3) list_out_suffix: output suffix for the aggregated data
-  #4) out_dir: output directory
-  #OUTPUT:
-  #1) df_station_data: data.frame with unique identifier and coordinates x,y 
   #
-  #AUTHORS: Benoit Parmentier
-  #Created on: 01/11/2017
-  #Modfied on: 01/25/2017
-  #
-  
-  ###################
-  #START SCRIPT
   
   df_points_data <- list_df_data[[i]]
   out_suffix_str <- list_out_suffix[i]
