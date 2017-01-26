@@ -1,10 +1,12 @@
-####################################  INTERPOLATION OF TEMPERATURES  #######################################
-#######################  Assessment of product part 1: mosaic and accuracy ##############################
+#################################################  INTERPOLATION OF TEMPERATURES  #######################################
+#######################  Assessment of product part 1: extraction of values and matching to testing/traing ######################
 #This script uses the worklfow code applied to the globe. Results currently reside on NEX/PLEIADES NASA.
-#Combining tables and figures for individual runs for years and tiles.
+#This part 1 of the porduct assessment focuses on extraction from raster times series of mosaics.
+#Observed data contained in testing and training data.frame by tiles are aggregated.
+#Aggregated observed data are combiend with extracted predictions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/25/2017            
+#MODIFIED ON: 01/26/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: clean up and moving function to function script
@@ -19,7 +21,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: testing extraction of nearly full reg1 stack
+#COMMIT: combining extracted values with combined data_s data_v observation data
 
 #################################################################################################
 
@@ -399,6 +401,8 @@ if(is.null(df_points_extracted_fname)){
   #df_points_day_extracted <- read.table(df_points_extracted_fname,sep=",")
   #df_time_series <- read.table( df_time_series,sep=",")
   #df_points_extracted <- read.table(df_points_extracted_fname,sep=",")
+  #Ended at 16:50
+  #so for 10,289 mosaics and 4,803 stations it took about 18h40 minutes
 }
 
 df_points_extracted_fname <-extract_obj_var_pred$df_points_extracted_fname
@@ -412,24 +416,37 @@ df_points_extracted <- read.table(df_points_extracted_fname,sep=",",header=T,str
 #dim(df_time_series)
 
 ###### STEP 4: Combine extracted and observation with testing and training information ####
-## Need to combine back with original data, this is done station by station...
-i<-1
+## Need to combine back with original data, this is done station by station... and year?
 
-data_var<- list_df_v_stations[[i]] 
+k <- 1
+#data_var<- list_df_v_stations[[i]] 
+data_var <- read.table(list_data_stations_var_pred_df_filename[[k]],header=T, stringsAsFactors = F,sep=",")
 
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01252017.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
 
 ### prepare arguments to combine stations
-list_selected_ID <- unique(data_stations_var_pred$id) #11 stations selected
-data_var# contain testing or training data with variable being modeled and covariates
-df_ts_pix <- df_points_extracted #this is extracted points with rows stations, columns are x,y, id and predictions from raster 
+list_selected_ID <- unique(df_points_extracted$id) #4800 stations selected
+#test_list<- table(df_points_extracted$id)
+#> test_list[test_list >1]
+#
+#71534099999 71689099999 71706099999 
+#          2           2           2 
+          
+#data_var# This contains testing or training data with variable being modeled and covariates
+#list_data_stations_var_pred_df_filename
+
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
+#in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
+pattern_str <- ".*.tif"
+lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic,full.names = T)
+#df_ts_pix <- df_points_extracted #this is extracted points with rows stations, columns are x,y, id and predictions from raster 
 r_ts_name <- sub(extension(lf_raster),"",basename(lf_raster))
 var_name <- "dailyTmax" #observed measurements, y_var_name
 var_pred <- "mod1" #predictions
 #dates_str <-
 #dates_val <-
-df_raster #contains dates of raster mosaic produced
+#df_raster #contains dates of raster mosaic produced
 df_time_series #contains de date , name, and dir for raster time series from date_star to end including missing dates field 
 plot_fig <- FALSE
 i<-1
@@ -438,11 +455,13 @@ i<-1
 #out_suffix_str <- paste0(region_name,"_",out_suffix)
 debug(combine_measurements_and_predictions_df)
 #this can be run with mclapply, very fast right now:
-station_summary_obj <- combine_measurements_and_predictions_df(i=1379,
+station_summary_obj <- combine_measurements_and_predictions_df(
+                                       i=1,
                                        df_raster=df_raster,
                                        df_time_series=df_time_series,
-                                       df_ts_pix=df_ts_pix,
-                                       data_var=data_var,
+                                       df_ts_pix=df_points_extracted,
+                                       #data_var=data_var,
+                                       data_var=list_data_stations_var_pred_df_filename, #this can be a list
                                        list_selected_ID=list_selected_ID,
                                        r_ts_name=r_ts_name,
                                        var_name=var_name,
@@ -460,7 +479,7 @@ list_station_summary_obj <- mclapply(1:length(list_selected_ID),
                                         df_raster=df_raster,
                                         df_time_series=df_time_series,
                                         df_ts_pix=df_ts_pix,
-                                        data_var=data_var,
+                                        data_var=data_var, #this can be a list of file
                                         list_selected_ID=list_selected_ID,
                                         r_ts_name=r_ts_name,
                                         var_name=var_name,
