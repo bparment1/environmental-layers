@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 01/27/2017            
+#MODIFIED ON: 01/28/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
@@ -312,12 +312,7 @@ plot_stations_val_by_date <- function(i,list_param){
   return(plot_obj)
 }
 
-extract_from_df <- function(x,col_selected,val_selected){
-  df_tmp <- read.table(x,stringsAsFactors=F,sep=",")
-  #data_subset <- subset(data_stations,col_selected==val_selected)
-  data_subset <- subset(df_tmp,df_tmp$id%in%val_selected)
-  return(data_subset)
-}
+
 
 sub_sampling_by_dist <- function(target_range_nb=c(10000,10000),dist_val=0.0,max_dist=NULL,step_val,data_in){
   #Function to select stations data that are outside a specific spatial range from each other
