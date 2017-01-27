@@ -679,6 +679,25 @@ extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,
   return(extract_obj)
 }
 
+#Functions used in the validation metric script
+calc_val_metrics<-function(x,y){
+  #This functions calculates accurayc metrics on given two vectors.
+  #Arguments: list of fitted models, raster stack of covariates
+  #Output: spatial grid data frame of the subset of tiles
+  #s_sgdf<-as(r_stack,"SpatialGridDataFrame") #Conversion to spatial grid data frame
+  
+  residuals<-x-y
+  mae<-mean(abs(residuals),na.rm=T)
+  rmse<-sqrt(mean((residuals)^2,na.rm=T))
+  me<-mean(residuals,na.rm=T)
+  r<-cor(x,y,use="complete")
+  m50<-median(residuals,na.rm=T)
+  metrics_dat<-as.data.frame(cbind(mae,rmse,me,r,m50))
+  names(metrics_dat)<-c("mae","rmse","me","r","m50")
+  metrics_obj<-list(metrics_dat,as.data.frame(residuals))
+  names(metrics_obj)<-c("metrics_dat","residuals")
+  return(metrics_obj)
+}
 
 combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, df_points_extracted,data_var,list_selected_ID,r_ts_name,var_name,var_pred,scaling=NULL,out_dir=".",out_suffix="",plot_fig=T){
   
@@ -790,28 +809,25 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, 
   #compute residuals from mosaics
   var_pred_tmp <- paste0(var_pred,"_mosaic")
   df_pix_ts[[paste0("res_",var_pred_tmp)]] <- df_pix_ts[[var_pred_tmp]] - df_pix_ts[[var_name]]
-  
+  #browser()
   #id_name <- list_selected_ID[i]
   df_pix_ts_filename <- file.path(out_dir,paste0("df_pix_ts_id_",id_name,"_",var_name,"_",out_suffix_str,".txt"))
   write.table(df_pix_ts,df_pix_ts_filename,sep=",")
-
-
+  
+  #Compute accuracy metrics
+  metrics_obj <- calc_val_metrics(x=df_pix_ts[[var_pred_tmp]],y=df_pix_ts[[var_name]])
+  
   nb_zero <- sum( df_pix_ts[[var_pred_tmp]]==0,na.rm=T) #relevant for precip
-  #nb_NA <- sum(is.na(df2$COL_SCORE))
   nb_NA_pred <- sum(is.na( df_pix_ts[[var_pred_tmp]])) #for ID 394 DMR it is 361 missing values for 2012!!
   nb_NA_obs <- sum(is.na( df_pix_ts[[var_name]])) #for ID 394 DMR it is 361 missing values for 2012!!
-  #mean <- mean( df_pix_ts[[var_pred_tmp]]==0,na.rm=T) #relevant for precip
-  #rmse_val <- 
-  ##Add quantile, and range info later on...
+  n <- length(df_pix_ts[[var_name]])
   
-  ## Cumulated precip and lag?
-  #Keep number of  0 for every year for rainfall
-  #summarize by month
-  #Kepp number of NA for scores... 
-  #Summarize by season...
-  ## Threshold?
-  station_summary_obj <- list(nb_zero,nb_NA_obs,nb_NA_pred ,df_pix_ts,df_pix_ts_filename )
-  names(station_summary_obj) <- c("nb_zero","nb_NA_obs","nb_NA_pred","df_pix_ts","df_pix_ts_filename")
+  number_data_df <- data.frame(id=id_name,n_zero=nb_zero,n_NA_pred=nb_NA_pred,n_NA_obs=nb_NA_obs,n=n)
+  metric_dat <- metrics_obj$metrics_dat
+  
+  metric_stat_df <- cbind(number_data_df,metric_dat)
+  station_summary_obj <- list(metric_stat_df,df_pix_ts,df_pix_ts_filename )
+  names(station_summary_obj) <- c("metric_stat_df","df_pix_ts","df_pix_ts_filename")
   return(station_summary_obj)
 }
 
