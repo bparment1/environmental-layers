@@ -4,6 +4,11 @@
 #This part 1 of the porduct assessment focuses on extraction from raster times series of mosaics.
 #Observed data contained in testing and training data.frame by tiles are aggregated.
 #Aggregated observed data are combiend with extracted predictions.
+#There are three options for each step:
+#step 1: combining testing and training from observed stations
+#step 2: extraction from predicted raster mosaic
+#step 3: combining extraction predicted and observed data
+#
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
 #MODIFIED ON: 01/27/2017            
@@ -88,10 +93,10 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 
 #Product assessment
 #global_product_assessment_part1_functions_01242017.R
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01272017.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01272017b.R"
+source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 #source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
@@ -99,6 +104,12 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 #source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 ###############################
 ####### Parameters, constants and arguments ###
+
+##Running steps
+run_steps <- c(FALSE,FALSE,TRUE)
+#step 1: combining testing and training from observed stations
+#step 2: extraction from predicted raster mosaic
+#step 3: combining extraction predicted and observed data
 
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
 
@@ -141,7 +152,6 @@ region_name <- c("reg1") #param 6, arg 3
 out_suffix <- "_global_assessment_reg1_01112017"
 
 create_out_dir_param <- TRUE #param 9, arg 6
-
 
 out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/assessment"
 
@@ -241,23 +251,10 @@ df_data_v_fname$file <- as.character(df_data_v_fname$file)
 df_data_s_fname$file <- as.character(df_data_s_fname$file)
 df_data_s_fname$year <- as.character(df_data_s_fname$year_str)
 
-############### PART1: Select stations for specific list of dates #############
-#### Extract corresponding stationsfor given dates and/or plot stations used
-## Use station from specific year and date?
-
 list_dates_val <- as.Date(strptime(l_dates,"%Y%m%d"))
 l_dates_month_str <- format(list_dates_val, "%b") ## Month, char, abbreviated
 l_dates_year_str <- format(list_dates_val, "%Y") ## Year with century
 l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
-
-####
-#1) for each year and region find unique station for testing and training, make it a spdf
-#2) Combine training station (over 31 years) into one spdf and use existing function to extract over 31 years
-#3) Combine testing station (over 31 years) into one spdf and use existing function to extract over 31 years
-#note that 
-#4) Combine stations extracted and every year
-#5) Make this a function that run fast and in parallel.
-
 
 ##start new function
 ### Needs to make this a function!!!
@@ -270,37 +267,42 @@ l_dates_day_str <- as.numeric(format(list_dates_val, "%d")) ## numeric month
 list_data_v_fname
 list_data_s_fname
 
-#######################
-### Now combine
+###########################################################################
+############### PART1: Combine testing and training stations #############
+#######
 
-#read in the data first
+if(run_steps[1]==TRUE){
+  #selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
+  #                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
+  #                    "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
+  #                    "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
+  #                    "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
+  #                    "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")     #
 
+  #selected_var <- c("mflag","qflag","sflag","elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
+  #                  "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
+  #                  "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
+  #                  "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
+  #                  "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
+  #                  "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")     
 
-selected_var <- c("elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
-                    "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
-                    "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
-                    "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
-                    "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
-                    "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")     
-#selected_var <- c("mflag","qflag","sflag","elev","LC1","LC2","LC3","LC4","LC5","LC6","LC7",           
-#                  "LC8", "LC9", "LC10","LC11","LC12","nobs_01","nobs_02","nobs_03","nobs_04",     
-#                  "nobs_05","nobs_06","nobs_07","nobs_08","nobs_09","nobs_10","nobs_11",     
-#                  "nobs_12","lon","lat","N","E","N_w","E_w","elev_s","slope","aspect",     
-#                  "DISTOC","CANHGHT","mm_01","mm_02","mm_03","mm_04","mm_05",        
-#                  "mm_06","mm_07","mm_08","mm_09","mm_10","mm_11","mm_12")     
-l_dates_year <- 1984:2014
-list_year_str <- unique(l_dates_year)
-list_out_suffix <- paste(region_name,list_year_str,sep="_")
+  #read from 
+  #list_year_predicted <- "1984,2014"
 
-list_data_df_training <- list_data_s_fname
-list_data_df_testing <- list_data_v_fname
+  l_dates_year <- 1984:2014
+  list_year_str <- unique(l_dates_year)
+  list_out_suffix <- paste(region_name,list_year_str,sep="_")
 
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01242017.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-#16:24
-#17:21
-#combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",list_out_suffix=NULL,out_dir="."){
-list_combine_agg_fname <- mclapply(1:length(list_year_str),
+  list_data_df_training <- list_data_s_fname
+  list_data_df_testing <- list_data_v_fname
+
+  #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01242017.R"
+  #source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+  #16:24
+  #17:21
+  #For 31 years and region 1, it took 2h27 minutes to produce the combine data
+  #combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_df_testing,selected_var=NULL,fun_selected_var="mean",list_out_suffix=NULL,out_dir="."){
+  list_combine_agg_fname <- mclapply(1:length(list_year_str),
                                   FUN=combine_and_aggregate_df_data_fun,
                                   list_data_df_training=list_data_s_fname,
                                   list_data_df_testing=list_data_v_fname,
@@ -310,25 +312,25 @@ list_combine_agg_fname <- mclapply(1:length(list_year_str),
                                   out_dir=out_dir,
                                   mc.preschedule=FALSE,
                                   mc.cores = 11)
-#16:47
-#20:48
-#For 31 years and region 1, it took 2h27 minutes to produce the combine data
+  #16:47
+  #20:48
 
-#data_stations_var_pred1 <- list_combine_agg_fanme[[1]]$data_stations_var_pred
-#list_combine_agg_fanme[[1]]$data_stations_combined_v_s
 
-data_stations_var_pred1 <- read.table(list_combine_agg_fname[[31]]$data_stations_var_pred,header=T,stringsAsFactors = F,sep=",")
-#data_stations <- read.table(list_combine_agg_fname[[31]]$data_stations_combined_v_s,header=T,stringsAsFactors = F,sep=",")
+  #data_stations_var_pred1 <- list_combine_agg_fanme[[1]]$data_stations_var_pred
+  #list_combine_agg_fanme[[1]]$data_stations_combined_v_s
 
-list_data_stations_var_pred_df_filename <- list.files(path=out_dir,pattern=paste0("data_stations_var_pred_",region_name,"_",".*.","txt"))
+  data_stations_var_pred1 <- read.table(list_combine_agg_fname[[31]]$data_stations_var_pred,header=T,stringsAsFactors = F,sep=",")
+  #data_stations <- read.table(list_combine_agg_fname[[31]]$data_stations_combined_v_s,header=T,stringsAsFactors = F,sep=",")
 
-######## 
-### Use combine training and testing data!!!
+  list_data_stations_var_pred_df_filename <- list.files(path=out_dir,pattern=paste0("data_stations_var_pred_",region_name,"_",".*.","txt"))
 
-#debug(aggregate_by_id_and_coord)
-data_name_point <- c("combined_data_v_s") #move this up, this can be any data.frame
+  ######## 
+  ### Use combine training and testing data!!!
 
-for(k in 1:length(data_name_point)){
+  #debug(aggregate_by_id_and_coord)
+  data_name_point <- c("combined_data_v_s") #move this up, this can be any data.frame
+
+  #for(k in 1:length(data_name_point)){
   
   out_suffix_str <- paste0(y_var_name,"_",interpolation_method,"_",region_name,out_suffix)
   list_out_suffix <- paste0(data_name_point[k],"_",1984:2014)
@@ -355,31 +357,32 @@ for(k in 1:length(data_name_point)){
   filename_df_data_points <- file.path(out_dir,
                                        paste0("df_data_points_id_stations","_",region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)],".txt"))
   write.table(df_data_points,filename_df_data_points)
-
 }
 
-########
-#### Part 2: perform extraction
+##############################################################
+######## #  Part 2: perform extraction ###########################################
 ## Do the extraction with training and test combined station data!!
 
-#df_data_points <- df_data_points 
-coords<- df_data_points[,c("x","y")]
-coordinates(df_data_points)<- coords #maybe change this to data_stations? #these are the lcoations of climate stations
+if(run_steps[2]==TRUE){
+#if(is.null(df_points_extracted_fname)){
+  
+  #df_data_points <- df_data_points 
+  coords<- df_data_points[,c("x","y")]
+  coordinates(df_data_points)<- coords #maybe change this to data_stations? #these are the lcoations of climate stations
 
-#now extract from mosaic
-#t<-unique(test$id)
-#md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
-#formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
-#pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
-#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01142017.R"
-#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
+  #now extract from mosaic
+  #t<-unique(test$id)
+  #md <- melt(pix_ts, id=(c("date")),measure.vars=c(var_pred_tmp, "missing")) #c("x","y","dailyTmax","mod1","res_mod1"))
+  #formula_str <- "id + date ~ x + y + dailyTmax + mod1 + res_mod1"
+  #pix_ts <- cast(md, date ~ variable, fun.aggregate = mean, 
+  #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01142017.R"
+  #source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
 
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
-#in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
-pattern_str <- ".*.tif"
-lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic)
-out_suffix_str <- paste0(region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)])
-if(is.null(df_points_extracted_fname)){
+  in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
+  #in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
+  pattern_str <- ".*.tif"
+  lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic)
+  out_suffix_str <- paste0(region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)])
   #started at 22:10pm
   #For region 1, with 4,803 stations for 31 years but missing some stations
   #undebug(extract_from_time_series_raster_stack)
@@ -394,7 +397,6 @@ if(is.null(df_points_extracted_fname)){
                                                                 in_dir=in_dir_mosaic,
                                                                 out_dir=out_dir,
                                                                 out_suffix=out_suffix_str)
-  
 }else{
   extract_obj_fname <- file.path(out_dir,paste("raster_extract_obj_",out_suffix,".RData",sep=""))
   extract_obj_var_pred <-load_obj(extract_obj_fname)
@@ -415,47 +417,51 @@ df_points_extracted <- read.table(df_points_extracted_fname,sep=",",header=T,str
 
 #dim(df_time_series)
 
-###### STEP 4: Combine extracted and observation with testing and training information ####
+#################################
+###### STEP 3: Combine extracted and observation with testing and training information ####
 ## Need to combine back with original data, this is done station by station... and year?
 
-k <- 1
-#data_var<- list_df_v_stations[[i]] 
-data_var <- read.table(list_data_stations_var_pred_df_filename[[k]],header=T, stringsAsFactors = F,sep=",")
+if(run_steps[3]==TRUE){
 
-### prepare arguments to combine stations
-list_selected_ID <- unique(df_points_extracted$id) #4800 stations selected
-#test_list<- table(df_points_extracted$id)
-#> test_list[test_list >1]
-#
-#71534099999 71689099999 71706099999 
-#          2           2           2 
+  
+  k <- 1
+  #data_var<- list_df_v_stations[[i]] 
+  data_var <- read.table(list_data_stations_var_pred_df_filename[[k]],header=T, stringsAsFactors = F,sep=",")
+
+  ### prepare arguments to combine stations
+  list_selected_ID <- unique(df_points_extracted$id) #4800 stations selected
+  #test_list<- table(df_points_extracted$id)
+  #> test_list[test_list >1]
+  #
+  #71534099999 71689099999 71706099999 
+  #          2           2           2 
           
-#data_var# This contains testing or training data with variable being modeled and covariates
-#list_data_stations_var_pred_df_filename
+  #data_var# This contains testing or training data with variable being modeled and covariates
+  #list_data_stations_var_pred_df_filename
 
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
-#in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
-pattern_str <- ".*.tif"
-lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic,full.names = T)
-#df_ts_pix <- df_points_extracted #this is extracted points with rows stations, columns are x,y, id and predictions from raster 
-r_ts_name <- sub(extension(lf_raster),"",basename(lf_raster))
-var_name <- "dailyTmax" #observed measurements, y_var_name
-var_pred <- "mod1" #predictions
-#dates_str <-
-#dates_val <-
-#df_raster #contains dates of raster mosaic produced
-df_time_series #contains de date , name, and dir for raster time series from date_star to end including missing dates field 
-plot_fig <- FALSE
-i<-1
+  in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
+  #in_dir_mosaic_rmse <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaicsRMSE/mosaic"
+  pattern_str <- ".*.tif"
+  lf_raster <- list.files(pattern=pattern_str,path = in_dir_mosaic,full.names = T)
+  #df_ts_pix <- df_points_extracted #this is extracted points with rows stations, columns are x,y, id and predictions from raster 
+  r_ts_name <- sub(extension(lf_raster),"",basename(lf_raster))
+  var_name <- "dailyTmax" #observed measurements, y_var_name
+  var_pred <- "mod1" #predictions
+  #dates_str <-
+  #dates_val <-
+  #df_raster #contains dates of raster mosaic produced
+  df_time_series #contains de date , name, and dir for raster time series from date_star to end including missing dates field 
+  plot_fig <- FALSE
+  i<-1
 
-#Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01272017.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
-#out_suffix_str <- paste0(region_name,"_",out_suffix)
-#debug(combine_measurements_and_predictions_df)
-#this can be run with mclapply, very fast right now:
-#18:00pm
-station_summary_obj <- combine_measurements_and_predictions_df(
+  #Product assessment
+  function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01272017.R"
+  source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
+  #out_suffix_str <- paste0(region_name,"_",out_suffix)
+  #debug(combine_measurements_and_predictions_df)
+  #this can be run with mclapply, very fast right now:
+  #18:00pm
+  station_summary_obj <- combine_measurements_and_predictions_df(
                                        i=2400,
                                        df_raster=df_raster,
                                        df_time_series=df_time_series,
@@ -470,17 +476,17 @@ station_summary_obj <- combine_measurements_and_predictions_df(
                                        out_suffix=out_suffix_str,
                                        plot_fig=F)
 
-#18:02pm
-##Quick look at the data:
-df_pix_ts <- station_summary_obj$df_pix_ts
-plot(df_pix_ts$mod1_mosaic,type="l",col="blue")
-lines(df_pix_ts$dailyTmax,type="l",col="red")
-station_summary_obj$metric_stat_df
+  #18:02pm
+  ##Quick look at the data:
+  df_pix_ts <- station_summary_obj$df_pix_ts
+  plot(df_pix_ts$mod1_mosaic,type="l",col="blue")
+  lines(df_pix_ts$dailyTmax,type="l",col="red")
+  station_summary_obj$metric_stat_df
 
-#####
-##combine information for the 1458 stations
-#started at 17.12pm
-list_station_summary_obj <- mclapply(1:length(list_selected_ID[2400:2410]),
+  #####
+  ##combine information for the 1458 stations
+  #started at 17.12pm
+  list_station_summary_obj <- mclapply(1:length(list_selected_ID[2400:2410]),
                                         FUN=combine_measurements_and_predictions_df,
                                         df_raster=df_raster,
                                         df_time_series=df_time_series,
@@ -497,10 +503,11 @@ list_station_summary_obj <- mclapply(1:length(list_selected_ID[2400:2410]),
                                         mc.preschedule=FALSE,
                                         mc.cores = num_cores)
 
-#station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
-#check ID:70162026508
-test<- unlist(lapply(list_station_summary_obj, function(x) !inherits(x, "try-error")))
-#problem with 1379
-####
+  #station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
+  #check ID:70162026508
+  test<- unlist(lapply(list_station_summary_obj, function(x) !inherits(x, "try-error")))
+  #problem with 1379
+  ####
+}
 
 ##################################  END OF SCRIPT ########################################################
