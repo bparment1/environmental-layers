@@ -201,7 +201,7 @@ calc_val_metrics<-function(x,y){
   return(metrics_obj)
 }
 
-combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, df_points_extracted,data_var,list_selected_ID,r_ts_name,var_name,var_pred,scaling=NULL,out_dir=".",out_suffix="",plot_fig=T){
+combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, df_points_extracted,data_var,list_selected_ID,r_ts_name,var_name,var_pred,num_cores=1,scaling=NULL,out_dir=".",out_suffix="",plot_fig=T){
   
   # Input arguments:
   #1) i : selected station
@@ -214,6 +214,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, 
   #8) var_name: variable predicted (e.g. dailyTmax)
   #9) var_pred: model predicted (e.g. "mod1)
   #10) sclaing: if NUll no scaing, the extracted value is multiplied by scaling
+  #11) num_cores: 1, number of cores used in reading data
   #10) out_dir: output directory
   #11) out_suffix_str: output suffix
   #12) plot_fig : if T, figures are plotted
@@ -254,6 +255,7 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, 
   
   if(class(data_var)!="data.frame"){
     #
+    browser()
     lf_data_var_subset <- mclapply(data_var,
                            FUN=extract_from_df,
                            col_selected="id",
