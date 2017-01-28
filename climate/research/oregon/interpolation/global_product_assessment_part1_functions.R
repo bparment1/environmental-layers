@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 01/27/2017            
+#MODIFIED ON: 01/28/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
@@ -76,6 +76,15 @@ extract_date <- function(i,x,item_no=NULL){
   return(date_str)
 }
 
+extract_from_df <- function(df_x,col_selected,val_selected){
+  if(class(df_x)!="data.frame"){
+    df_x <- read.table(df_x,stringsAsFactors=F,sep=",")
+  }
+  
+  #data_subset <- subset(data_stations,col_selected==val_selected)
+  data_subset <- subset(df_x,df_x$id%in%val_selected) #Need to change this "id" later to make it wider funciton!!
+  return(data_subset)
+}
 
 extract_from_time_series_raster_stack <- function(df_points,date_start,date_end,lf_raster,item_no=13,num_cores=4,pattern_str=NULL,in_dir=NULL,out_dir=".",out_suffix=""){
   #
@@ -255,7 +264,10 @@ combine_measurements_and_predictions_df <- function(i,df_raster,df_time_series, 
   
   if(class(data_var)!="data.frame"){
     #
-    browser()
+    #browser()
+    #with one cores it takes 13.30 minutes
+    # with 11 cores about 2minutes
+    #debug(extract_from_df)
     lf_data_var_subset <- mclapply(data_var,
                            FUN=extract_from_df,
                            col_selected="id",
