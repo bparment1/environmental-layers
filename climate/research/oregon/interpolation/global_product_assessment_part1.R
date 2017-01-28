@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: major clean up- visualization of extraction and mosacing from script and splitting code
+#COMMIT: debugging run_steps option for code
 
 #################################################################################################
 
@@ -110,7 +110,10 @@ run_steps <- c(FALSE,FALSE,TRUE)
 #step 1: combining testing and training from observed stations
 #step 2: extraction from predicted raster mosaic
 #step 3: combining extraction predicted and observed data
+extract_obj_fname <- NULL
+filename_df_data_points <- NULL
 
+## Other parameters
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
 
 var<-"TMAX" # variable being interpolated #param 1, arg 1
@@ -357,6 +360,19 @@ if(run_steps[1]==TRUE){
   filename_df_data_points <- file.path(out_dir,
                                        paste0("df_data_points_id_stations","_",region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)],".txt"))
   write.table(df_data_points,filename_df_data_points)
+}else{
+  
+  #read from 
+  #list_year_predicted <- "1984,2014"
+
+  l_dates_year <- 1984:2014
+  list_year_str <- l_dates_year
+  if(is.null(filename_df_data_points)){
+    filename_df_data_points <- file.path(out_dir,
+                                       paste0("df_data_points_id_stations","_",region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)],".txt"))
+
+  }
+  df_data_points <- read.table(filename_df_data_points, sep =",",header=T, stringsAsFactors = F)
 }
 
 ##############################################################
@@ -398,7 +414,12 @@ if(run_steps[2]==TRUE){
                                                                 out_dir=out_dir,
                                                                 out_suffix=out_suffix_str)
 }else{
-  extract_obj_fname <- file.path(out_dir,paste("raster_extract_obj_",out_suffix,".RData",sep=""))
+  #df_data_points <- df_data_points 
+  #coords<- df_data_points[,c("x","y")]
+  #coordinates(df_data_points)<- coords #maybe change this to data_stations? #these are the lcoations of climate stations
+  if(is.null(extract_obj_fname)){
+    extract_obj_fname <- file.path(out_dir,paste("raster_extract_obj_",out_suffix,".RData",sep=""))
+  }
   extract_obj_var_pred <-load_obj(extract_obj_fname)
   #df_points_day_extracted <- read.table(df_points_extracted_fname,sep=",")
   #df_time_series <- read.table( df_time_series,sep=",")
@@ -423,19 +444,18 @@ df_points_extracted <- read.table(df_points_extracted_fname,sep=",",header=T,str
 
 if(run_steps[3]==TRUE){
 
-  
   k <- 1
+  
   #data_var<- list_df_v_stations[[i]] 
-  data_var <- read.table(list_data_stations_var_pred_df_filename[[k]],header=T, stringsAsFactors = F,sep=",")
-
+  #data_var <- read.table(list_data_stations_var_pred_df_filename[[k]],header=T, stringsAsFactors = F,sep=",")
+  list_data_stations_var_pred_df_filename <- list.files(path=out_dir,pattern=paste0("data_stations_var_pred_",region_name,"_",".*.","txt"))
   ### prepare arguments to combine stations
   list_selected_ID <- unique(df_points_extracted$id) #4800 stations selected
-  #test_list<- table(df_points_extracted$id)
-  #> test_list[test_list >1]
-  #
-  #71534099999 71689099999 71706099999 
-  #          2           2           2 
-          
+  #this takes 1minute and 30 sec
+  lf_data_var <- mclapply(list_data_stations_var_pred_df_filename,
+                           FUN=function(x){read.table(x,stringsAsFactors = F, header=T,sep=",")},
+                           mc.preschedule=FALSE,
+                           mc.cores = num_cores) 
   #data_var# This contains testing or training data with variable being modeled and covariates
   #list_data_stations_var_pred_df_filename
 
@@ -450,12 +470,13 @@ if(run_steps[3]==TRUE){
   #dates_str <-
   #dates_val <-
   #df_raster #contains dates of raster mosaic produced
-  df_time_series #contains de date , name, and dir for raster time series from date_star to end including missing dates field 
+  #df_time_series #contains de date , name, and dir for raster time series from date_star to end including missing dates field 
   plot_fig <- FALSE
+  out_suffix_str <- paste0(region_name,"_",list_year_str[1],"_",list_year_str[length(list_year_str)])
   i<-1
 
   #Product assessment
-  function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01272017.R"
+  function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_01282017.R"
   source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script
   #out_suffix_str <- paste0(region_name,"_",out_suffix)
   #debug(combine_measurements_and_predictions_df)
@@ -466,11 +487,12 @@ if(run_steps[3]==TRUE){
                                        df_raster=df_raster,
                                        df_time_series=df_time_series,
                                        df_points_extracted=df_points_extracted,
-                                       data_var=list_data_stations_var_pred_df_filename, #this can be a list
+                                       data_var=lf_data_var, #this can be a list
                                        list_selected_ID=list_selected_ID,
                                        r_ts_name=r_ts_name,
                                        var_name=var_name,
                                        var_pred = var_pred,
+                                       num_cores=1,
                                        scaling= scaling,
                                        out_dir =out_dir,
                                        out_suffix=out_suffix_str,
@@ -485,17 +507,18 @@ if(run_steps[3]==TRUE){
 
   #####
   ##combine information for the 1458 stations
-  #started at 17.12pm
-  list_station_summary_obj <- mclapply(1:length(list_selected_ID[2400:2410]),
+  #started at 22.54pm
+  list_station_summary_obj <- mclapply(1:length(list_selected_ID),
                                         FUN=combine_measurements_and_predictions_df,
                                         df_raster=df_raster,
                                         df_time_series=df_time_series,
                                         df_points_extracted=df_points_extracted,
-                                        data_var=list_data_stations_var_pred_df_filename, #this can be a list
-                                        list_selected_ID=list_selected_ID[2400:2410],
+                                        data_var=lf_data_var, #this can be a list
+                                        list_selected_ID=list_selected_ID,
                                         r_ts_name=r_ts_name,
                                         var_name=var_name,
                                         var_pred = var_pred,
+                                        num_cores=1,
                                         scaling=scaling,
                                         out_dir =out_dir,
                                         out_suffix=out_suffix_str,
@@ -503,11 +526,26 @@ if(run_steps[3]==TRUE){
                                         mc.preschedule=FALSE,
                                         mc.cores = num_cores)
 
+  list_station_summary_obj_fname <- file.path(out_dir,paste("list_station_summary_obs_pred_obj_",out_suffix_str,".RData",sep=""))
+  save(list_station_summary_obj,file= list_station_summary_obj_fname)
+  
   #station_summary_obj <- list(nb_zero,nb_NA, df_pix_ts)
   #check ID:70162026508
   test<- unlist(lapply(list_station_summary_obj, function(x) !inherits(x, "try-error")))
+  test <- list_station_summary_obj[test]
   #problem with 1379
+  
+  #> length(test)
+  #[1] 4014
+  
+  names(test[[1]])
+  #> names(test[[1]])
+  #[1] "metric_stat_df"     "df_pix_ts"          "df_pix_ts_filename"
+  test[[1]]$metric_stat_df
+  dim(test[[1]]$df_pix_ts)
+  
   ####
 }
 
+    
 ##################################  END OF SCRIPT ########################################################
