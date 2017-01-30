@@ -11,7 +11,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/27/2017            
+#MODIFIED ON: 01/30/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: clean up and moving function to function script
@@ -544,6 +544,46 @@ if(run_steps[3]==TRUE){
   test[[1]]$metric_stat_df
   dim(test[[1]]$df_pix_ts)
   
+  ### combine the metrics
+    ## Started at 22h30
+  l_metric_stat_df <- mclapply(1:length(test),
+                              FUN=function(i,x){df_tmp<-x[[i]]$metric_stat_df},
+                              x = test,
+                              mc.preschedule=FALSE,
+                              mc.cores = num_cores)
+  
+  l_df_pix_ts <- mclapply(1:length(test),
+                              FUN=function(i,x){df_tmp<-x[[i]]$df_pix_ts},
+                              x = test,
+                              mc.preschedule=FALSE,
+                              mc.cores = num_cores)
+  
+
+  l_metric_stat_df_obj_fname <- file.path(out_dir,paste("l_metric_stat_df_obj_",out_suffix_str,".RData",sep=""))
+  save(l_metric_stat_df ,file=  l_metric_stat_df_obj_fname )
+  
+  l_df_pix_ts_obj_fname <- file.path(out_dir,paste("l_df_pix_ts_obj_",out_suffix_str,".RData",sep=""))
+  save(l_df_pix_ts ,file=  l_df_pix_ts_obj_fname )
+  ## Started at 2h41
+  #So it takes about 2h and 5 minutes to assemble the data in each step
+  
+  ##### Now recombine this:
+  
+  metric_stat_df_combined <- do.call(rbind,l_metric_stat_df)
+  metric_stat_df_combined_filename <- file.path(out_dir,paste0("metric_stat_df_combined",out_suffix_str,".txt"))
+  write.table(metric_stat_df_combined,file =  metric_stat_df_combined_filename)
+  
+  ###
+  quantile(metric_stat_df_combined$rmse)
+  quantile(metric_stat_df_combined$rmse,probs = seq(0, 1,0.05))
+  plot(quantile(metric_stat_df_combined$rmse,probs = seq(0, 1,0.01)),type="h")
+  
+  ###
+  #length(l_df_pix_ts[[1]])
+  #14h41
+  df_pix_ts_combined <- do.call(rbind,l_df_pix_ts)
+  df_pix_ts_df_combined_filename <- file.path(out_dir,paste0("df_pix_ts_combined_",out_suffix_str,".txt"))
+  write.table(df_pix_ts_combined,file =  df_pix_ts_df_combined_filename)
   ####
 }
 
