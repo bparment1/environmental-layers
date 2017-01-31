@@ -11,7 +11,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/30/2017            
+#MODIFIED ON: 01/31/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: clean up and moving function to function script
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: debugging run_steps option for code
+#COMMIT: combining stations values for reg1 and quick exploration
 
 #################################################################################################
 
@@ -569,7 +569,7 @@ if(run_steps[3]==TRUE){
   
   ##### Now recombine this:
   
-  metric_stat_df_combined <- do.call(rbind,l_metric_stat_df)
+  metric_stat_df_combined <- do.call(rbind.fill,l_metric_stat_df)
   metric_stat_df_combined_filename <- file.path(out_dir,paste0("metric_stat_df_combined",out_suffix_str,".txt"))
   write.table(metric_stat_df_combined,file =  metric_stat_df_combined_filename)
   
@@ -580,8 +580,42 @@ if(run_steps[3]==TRUE){
   
   ###
   #length(l_df_pix_ts[[1]])
-  #14h41
-  df_pix_ts_combined <- do.call(rbind,l_df_pix_ts)
+  #22h11
+  df_pix_ts_combined1 <- do.call(rbind.fill,l_df_pix_ts[1:1000])
+  
+  #the problem is between 3050 and 3100
+  df_pix_ts_combined3 <- do.call(rbind.fill,l_df_pix_ts[3001:3100])
+  #> df_pix_ts_combined2 <- do.call(rbind.fill,l_df_pix_ts[2001:3000])
+  #Error in vector(type, length) : 
+  #vector: cannot make a vector of mode 'NULL'.
+  #> df_pix_ts_combined3 <- do.call(rbind.fill,l_df_pix_ts[3069:3070])
+  #Error in vector(type, length) : 
+  #vector: cannot make a vector of mode 'NULL'.
+  
+  ### Problem with NA as name of column. Remove it if it is the case!!!
+  
+  df_pix_ts_combined <- bind_rows(l_df_pix_ts)
+  df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts[3069:3070])
+  names(l_df_pix_ts[[3070]])
+  df_pix_ts_
+  selected_col <- c("date"            "missing"         "lf.x"            "month_str"       "year"            "day"             "dir"             "mod1_mosaic"    
+ [9] NA                "lf.y"            "id_val"          "id"              "x"               "y"               "dailyTmax"       "mod1"           
+[17] "res_mod1"        "testing"         "training"        "date_str"        "res_mod1_mosaic"
+  #One row is NA: bind_rows()
+   
+  #> df_pix_ts_combined <- do.call(rbind.fill,l_df_pix_ts)
+  #Error in vector(type, length) : 
+  #vector: cannot make a vector of mode 'NULL'.
+  l_test <- mclapply(1:length(l_df_pix_ts),
+                              FUN=function(i,x){try(is.null(x[[i]]))},
+                              x = l_df_pix_ts,
+                              mc.preschedule=FALSE,
+                              mc.cores = num_cores)
+    
+  #non_null_flagged_l_df_pix_ts <- do.call(is.null,l_df_pix_ts)
+  #l_df_pix_ts
+  
+  
   df_pix_ts_df_combined_filename <- file.path(out_dir,paste0("df_pix_ts_combined_",out_suffix_str,".txt"))
   write.table(df_pix_ts_combined,file =  df_pix_ts_df_combined_filename)
   ####
