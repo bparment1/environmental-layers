@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 08/22/2016            
+#MODIFIED ON: 02/01/2017            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -31,6 +31,8 @@
 #reg5   : Africa
 #reg6   : Oceania+ South East Asia
 #
+
+### COMMIT: first changes to code for global mosaics of regions
 
 #################################################################################################
 
@@ -177,15 +179,17 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   data_type <- list_param_run_mosaicing_prediction$data_type #PARAM 29
   scaling <- list_param_run_mosaicing_prediction$scaling 
   values_range <- list_param_run_mosaicing_prediction$values_range
+  infile_reg_mosaics <- list_param_run_mosaicing_prediction$infile_reg_mosaics
   
   #################################################################
   ####### PART 1: Read in data and process data ########
   ########################################################
   
+  #browser()
   #out_dir <- in_dir #PARAM 11
   #in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
   NA_flag_val <- NA_value #PARAM 16
-
+  
   #in_dir <- file.path(in_dir,region_name)
   #out_dir <- in_dir
   if(create_out_dir_param==TRUE){
@@ -202,28 +206,32 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   setwd(out_dir)
   
-  ### Read in assessment and accuracy files
-  df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
-  #browser()
-  tb_v_accuracy_name <- df_assessment_files$files[2] 
-  tb_s_accuracy_name <- df_assessment_files$files[4] 
-  tb_s_month_accuracy_name <- df_assessment_files$files[3] 
-  data_month_s_name <- df_assessment_files$files[5] 
-  data_day_s_name <- df_assessment_files$files[6] 
-  data_day_v_name <- df_assessment_files$files[7] 
+  ### Read in assessment and accuracy files if not null (not world mosaic)
+  if(!is.null(df_assessment_files_name)){
 
-  ##data_month_v_name <- file.path(in_dir,basename(df_assessment_files$files[8])) 
-  pred_data_month_info_name <- df_assessment_files$files[10]
-  pred_data_day_info_name <- df_assessment_files$files[11]
-  df_tile_processed_name <- df_assessment_files$files[12]
-  # accuracy table by tiles
-  tb <- read.table(tb_v_accuracy_name,sep=",")
-  tb_s <- read.table(tb_s_accuracy_name,sep=",")
-  data_month_s <- read.table(data_month_s_name,sep=",") # textfiles of stations by month
-  data_day_s <- read.table(data_day_s_name,sep=",") #daily testing/validation stations by dates and tiles
-  data_day_v <- read.table(data_day_v_name,sep=",") #daily training stations by dates and tiles
-  df_tile_processed <- read.table(df_tile_processed_name,sep=",")
-  
+    df_assessment_files <- read.table(df_assessment_files_name,stringsAsFactors=F,sep=",")
+    #browser()
+    tb_v_accuracy_name <- df_assessment_files$files[2] 
+    tb_s_accuracy_name <- df_assessment_files$files[4] 
+    tb_s_month_accuracy_name <- df_assessment_files$files[3] 
+    data_month_s_name <- df_assessment_files$files[5] 
+    data_day_s_name <- df_assessment_files$files[6] 
+    data_day_v_name <- df_assessment_files$files[7] 
+
+    ##data_month_v_name <- file.path(in_dir,basename(df_assessment_files$files[8])) 
+    pred_data_month_info_name <- df_assessment_files$files[10]
+    pred_data_day_info_name <- df_assessment_files$files[11]
+    df_tile_processed_name <- df_assessment_files$files[12]
+    # accuracy table by tiles
+    tb <- read.table(tb_v_accuracy_name,sep=",")
+    tb_s <- read.table(tb_s_accuracy_name,sep=",")
+    data_month_s <- read.table(data_month_s_name,sep=",") # textfiles of stations by month
+    data_day_s <- read.table(data_day_s_name,sep=",") #daily testing/validation stations by dates and tiles
+    data_day_v <- read.table(data_day_v_name,sep=",") #daily training stations by dates and tiles
+    df_tile_processed <- read.table(df_tile_processed_name,sep=",")
+    
+  }
+
   ##Read additional data from table assessment, add later
   #pred_data_day_info_1999_reg4_1999.txt
   #pred_data_day_info_name <- df_assessment_files$files[11]
@@ -245,26 +253,39 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     day_to_mosaic <- format(day_to_mosaic,"%Y%m%d") #format back to the relevant date format for files
   }
   
-  in_dir_tiles_tmp <- file.path(in_dir, region_name)
-  #fix this later and add the year..
-  #gam_CAI_dailyTmax_predicted_mod1
-  #this is very slow!!! it takes 8 minutes?!
-  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
-  #  list.files(path=file.path(in_dir_tiles_tmp),    
-  #  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),
-  #  full.names=T,recursive=T)})
+  if(is.null(infile_reg_mosaics)){
+    in_dir_tiles_tmp <- file.path(in_dir, region_name)
+    #fix this later and add the year..
+    #gam_CAI_dailyTmax_predicted_mod1
+    #this is very slow!!! it takes 8 minutes?!
+    #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+    #  list.files(path=file.path(in_dir_tiles_tmp),    
+    #  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),
+    #  full.names=T,recursive=T)})
 
-  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
-  #                                                                                  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=F)})
-  #Using changes from Alberto
-  #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
-  #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-  #  #print(searchStr)
-  #  Sys.glob(searchStr)})
-  # Making listing of files faster with multicores use
-  lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
+    #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
+    #                                                                                  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=F)})
+    #Using changes from Alberto
+    #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
+    #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+    #  #print(searchStr)
+    #  Sys.glob(searchStr)})
+    # Making listing of files faster with multicores use
+    lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
     searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
     Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
+
+    
+  }else{
+    tb_reg_mosaic_input <- read.table(infile_reg_mosaics,sep=",")
+    in_dir_mosaic_reg_list <- as.character(tb_reg_mosaic_input[,1])
+    
+    ### need to modify this
+    lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
+    searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
+
+  }
   #browser()
   
   #########################################################################
