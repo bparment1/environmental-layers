@@ -596,11 +596,6 @@ if(run_steps[3]==TRUE){
   
   df_pix_ts_combined <- bind_rows(l_df_pix_ts)
   df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts[3069:3070])
-  names(l_df_pix_ts[[3070]])
-  df_pix_ts_
-  selected_col <- c("date"            "missing"         "lf.x"            "month_str"       "year"            "day"             "dir"             "mod1_mosaic"    
- [9] NA                "lf.y"            "id_val"          "id"              "x"               "y"               "dailyTmax"       "mod1"           
-[17] "res_mod1"        "testing"         "training"        "date_str"        "res_mod1_mosaic"
   #One row is NA: bind_rows()
    
   #> df_pix_ts_combined <- do.call(rbind.fill,l_df_pix_ts)
