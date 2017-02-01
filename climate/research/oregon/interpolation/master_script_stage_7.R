@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 08/25/2016
+#MODIFIED ON: 02/01/2017
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -28,7 +28,7 @@
 ## TODO:
 # 
 ## Comments: Fixed accuracy bugs and tested command line script for jobs
-# 
+## Commit: checking day 01152000 mosaicing for gaps
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #Use the following command to run as script via the shell on the bridge 
@@ -42,6 +42,9 @@
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_06192016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg4 reg4_1999 /nobackupp8/bparmen1/climateLayers/out/reg4 TRUE 1999 6 1e+07 use_edge_weights n 19990107 19990108 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif /nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1999/df_assessment_files_reg4_1999_reg4_1999.txt python ac_testing FALSE Int16 100 -100,100
 #Region 5: test
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_07052016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg5 reg5_1991 /nobackupp6/aguzman4/climateLayers/out/reg5/mosaicsAc/ TRUE 1991 6 1e+07 use_edge_weights rmse 19910101 19910103 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif /nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1991/df_assessment_files_reg5_1991_reg5_1991.txt python ac_testing FALSE Int16 100 -100,100
+
+### Region 6
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_06192016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg6 reg6_2000 /nobackupp8/bparmen1/climateLayers/out/reg6/mosaics/ TRUE 2000 6 1e+07 use_edge_weights rmse 20000115 20000117 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif /nobackupp6/aguzman4/climateLayers/out/reg4/assessment/output_reg4_1999/df_assessment_files_reg6_2000_reg6_2000.txt python var_pred FALSE Int16 100 -100,100
 
 #Region 1: test
 
@@ -61,7 +64,13 @@
 #Run reg1 for reg1 and  var_pred (tmax):
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_08232016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg1 reg1_1984 /nobackupp8/bparmen1/climateLayers/out/reg1/mosaic/ TRUE 1984 6 1e+07 use_edge_weights rmse 19840101 19840101 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif /nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt python var_pred FALSE Int16 100 -100,100
 
+### For year 1992
 
+#Run reg1 for reg1 and ac testing rmse:
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_09282016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg1 reg1_1992 /nobackupp8/bparmen1/climateLayers/out/reg1/mosaic/ TRUE 1992 6 1e+07 use_edge_weights rmse 19920101 19920101 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif /nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1992/df_assessment_files_reg1_1992_reg1_1992.txt python ac_testing FALSE Int16 100 -100,100
+
+#Run reg1 for reg1 and var_pred (tmax):
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/master_script_stage_7_09282016.R TMAX /nobackupp6/aguzman4/climateLayers/out/ reg1 reg1_1992 /nobackupp8/bparmen1/climateLayers/out/reg1/mosaic/ TRUE 1992 6 1e+07 use_edge_weights rmse 19920101 19920101 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif /nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1992/df_assessment_files_reg1_1992_reg1_1992.txt python var_pred FALSE Int16 100 -100,100
 
 ##################################################################################################
 
@@ -99,9 +108,9 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_08222016.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_09282016.R"
 #function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07052016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_08222016.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_02012017.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -130,43 +139,44 @@ CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Stat
 #There are 33 parameters, 3 constants and 20 arguments (drawn from the parameters) for the Rscript shell call.
 #The 20 arguments are passed directly from Rscript:
 
-### Use the following values to run code from the shell:
+## Use the following values to run code from the shell:
 # var <- "TMAX" # variable being interpolated #param 1, arg 1
 # in_dir <- "/nobackupp6/aguzman4/climateLayers/out/" #PARAM2,arg 2
 # region_name <- "reg1" #PARAM 3, arg 3 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
-# out_suffix <- "reg1_1984" #PARAM 4, arg 4
+# out_suffix <- "reg1_1992" #PARAM 4, arg 4
 # out_suffix_str <- region_name #PARAM 4, CONST 3
 # #out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg5/mosaicsAc" #PARAM 5,arg 5 use this location for now
 # out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg1/mosaic"
 # create_out_dir_param <- TRUE #PARAM 6, arg 6
-# year_predicted <- 1984 #PARAM 7, arg 7
+# year_predicted <- 1992 #PARAM 7, arg 7
 # num_cores <- 6 #PARAM 8, arg 8
 # max_mem = 1e+07 #param 9, arg 9
 # mosaicing_method <- "use_edge_weights" #PARAM10, arg 10
-# #metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-# metric_name <- "n"
+# metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+# #metric_name <- "n"
 # #metric_name <- "mae"
 # 
-# #day_start <- "19990701" #PARAM 12 arg 12
-# #day_end <- "19990703" #PARAM 13 arg 13
-# day_start <- "19840101" #PARAM 12 arg 12
-# day_end <- "19840101" #PARAM 13 arg 13
+# day_start <- "19920701" #PARAM 12 arg 12
+# day_end <- "19920705" #PARAM 13 arg 13
+# #day_start <- "19920102" #PARAM 12 arg 12
+# #day_end <- "19920104" #PARAM 13 arg 13
+# 
 # #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif" #PARAM 14, arg 14
 # infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
-# df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1984/df_assessment_files_reg1_1984_reg1_1984.txt"
+# df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg1/assessment//output_reg1_1992/df_assessment_files_reg1_1992_reg1_1992.txt"
 # #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1991/df_assessment_files_reg5_1991_reg5_1991.txt"  # data.frame with all files used in assessmnet, PARAM 15
 # #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1985/df_assessment_files_reg5_1985_reg5_1985.txt"
 # algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
-# #layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+# layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 # #layers_option <- c("ac_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 # #layers_option <- c("res_training") # #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 # #layers_option <- c("res_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-# layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+# #layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
 # 
 # tmp_files <- FALSE #arg 18, param 18, keep temp files if TRUE
 # data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
 # scaling <- 100 #, param 20, if null use 1
-# scaling <- 1 #use this if predicting n rather than other variables
+# #scaling <- 1 #use this if predicting n rather than other variables
 # #values_range <- "-100,100"
 # values_range <- "0,32767" #this is for n variable
 # NA_flag_val <- -32768 #should be here
