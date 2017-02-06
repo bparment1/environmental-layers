@@ -11,10 +11,10 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 01/31/2017            
+#MODIFIED ON: 02/06/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: clean up and moving function to function script
+#COMMENTS: 
 #TODO:
 #1) Add plot broken down by year and region 
 #2) Modify code for overall assessment accross all regions and year
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-#COMMIT: combining stations values for reg1 and quick exploration
+#COMMIT: fixing bugs, NA in column names and combining data.frame
 
 #################################################################################################
 
@@ -594,22 +594,54 @@ if(run_steps[3]==TRUE){
   
   ### Problem with NA as name of column. Remove it if it is the case!!!
   
+  screening_for_binding_df <- function(i,x){
+    
+    df_tmp <- x[[i]]; 
+    df_tmp <- df_tmp[!is.na(names(df_tmp))]
+    df_tmp$id <- as.character(df_tmp$id)
+    return(df_tmp)
+  }
+  
   df_pix_ts_combined <- bind_rows(l_df_pix_ts)
-  df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts[3069:3070])
-  #One row is NA: bind_rows()
-   
+  df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts_tmp_m)
+  names(l_df_pix_ts[[3070]])
+  l_df_pix_ts_tmp_m <- mclapply(1:length(l_df_pix_ts),
+                            FUN= function(i,x){df_tmp <- x[[i]]; df_tmp[!is.na(names(df_tmp))]},
+                            x= l_df_pix_ts,
+                            mc.preschedule=FALSE,
+                            mc.cores = num_cores)
+  save(l_df_pix_ts_m,file="l_df_pix_ts_m.RData")
+  
+  l_df_pix_ts_m <- mclapply(1:length(l_df_pix_ts),
+                            FUN= screening_for_binding_df,
+                            x= l_df_pix_ts,
+                            mc.preschedule=FALSE,
+                            mc.cores = num_cores)
+  save(l_df_pix_ts_m,file="l_df_pix_ts_m.RData")
+
+  
+  df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts_m[1:1100])
+  test <- do.call(bind_rows,l_df_pix_ts_m[1039:1040])
+  
+  df_pix_ts_tmp <- (l_df_pix_ts[[1038]])
+  #df_pix_ts_tmp <- (l_df_pix_ts[[3070]])
+  #df_pix_ts_tmp <- df_pix_ts_tmp[!is.na(names(df_pix_ts_tmp))]
+
+  
+  #list_station_summary_obj_fname <- file.path(out_dir,paste("list_station_summary_obs_pred_obj_",out_suffix_str,".RData",sep=""))
+  #save(list_station_summary_obj,file= list_station_summary_obj_fname)
+  
   #> df_pix_ts_combined <- do.call(rbind.fill,l_df_pix_ts)
   #Error in vector(type, length) : 
   #vector: cannot make a vector of mode 'NULL'.
-  l_test <- mclapply(1:length(l_df_pix_ts),
-                              FUN=function(i,x){try(is.null(x[[i]]))},
-                              x = l_df_pix_ts,
-                              mc.preschedule=FALSE,
-                              mc.cores = num_cores)
+  #l_test <- mclapply(1:length(l_df_pix_ts),
+  #                            FUN=function(i,x){try(is.null(x[[i]]))},
+  #                            x = l_df_pix_ts,
+  #                            mc.preschedule=FALSE,
+  #                            mc.cores = num_cores)
     
   #non_null_flagged_l_df_pix_ts <- do.call(is.null,l_df_pix_ts)
   #l_df_pix_ts
-  
   
   df_pix_ts_df_combined_filename <- file.path(out_dir,paste0("df_pix_ts_combined_",out_suffix_str,".txt"))
   write.table(df_pix_ts_combined,file =  df_pix_ts_df_combined_filename)
