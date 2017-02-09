@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 02/01/2017            
+#MODIFIED ON: 02/09/2017            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -87,6 +87,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #33) data_type: if NULL, use Float32, other possibilities are gdal based in the final output
   #34) scaling: scaling factor to multiply the original variable before conversation to int
   #35) values_range: valid range for predicted values and mosaic e.g. -100,100
+  #36) infile_reg_mosaics: input mosaic files
   
   ###OUTPUT
   # 
@@ -206,6 +207,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   setwd(out_dir)
   
+  browser()
+  
   ### Read in assessment and accuracy files if not null (not world mosaic)
   if(!is.null(df_assessment_files_name)){
 
@@ -279,11 +282,33 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   }else{
     tb_reg_mosaic_input <- read.table(infile_reg_mosaics,sep=",")
     in_dir_mosaic_reg_list <- as.character(tb_reg_mosaic_input[,1])
-    
+    in_dir_tiles_tmp <- in_dir_mosaic_reg_list
     ### need to modify this
     lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
-    searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+    searchStr = paste(in_dir_tiles_tmp[1],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
     Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
+    
+    get_mosaic_files_fun  <- function(i,day_to_mosaic_range){
+      #d
+      lf_tmp <- lapply(1:length(in_dir_tiles_tmp),
+      FUN=function(j){
+      searchStr = paste(in_dir_tiles_tmp[j],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
+      Sys.glob(searchStr)})
+      return(lf_tmp)
+    }
+    
+    #debug(get_mosaic_files_fun)
+    #test_df <- get_mosaic_files_fun(1,day_to_mosaic_range)
+    
+    lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
+    searchStr = paste(in_dir_tiles_tmp,"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
+    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
+
+    lf_mosaic <- mclapply(1:length(day_to_mosaic),
+                          FUN=get_mosaic_files_fun,
+                          day_to_mosaic_range=day_to_mosaic_range,
+                          mc.preschedule=FALSE,
+                          mc.cores = num_cores)
 
   }
   #browser()
