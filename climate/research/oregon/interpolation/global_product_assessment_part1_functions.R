@@ -4,7 +4,7 @@
 #Combining tables and figures for individual runs for years and tiles.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/24/2016  
-#MODIFIED ON: 01/28/2017            
+#MODIFIED ON: 02/09/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: fixing bugs in extraction from raster time series and missing day functions 
@@ -462,5 +462,17 @@ combine_and_aggregate_df_data_fun <- function(i,list_data_df_training,list_data_
   return(combine_data_obj)
 }
 
+screening_for_binding_df <- function(i,x){
+    #
+    # Function to clean input data.frame with training and testing observation and predicted values
+    #
+  
+    ### Begin ####
+  
+    df_tmp <- x[[i]]; 
+    df_tmp <- df_tmp[!is.na(names(df_tmp))]
+    df_tmp$id <- as.character(df_tmp$id)
+    return(df_tmp)
+}
 
 ############################ END OF SCRIPT ##################################
