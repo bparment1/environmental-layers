@@ -11,7 +11,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 05/15/2016  
-#MODIFIED ON: 02/06/2017            
+#MODIFIED ON: 02/09/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -578,74 +578,29 @@ if(run_steps[3]==TRUE){
   quantile(metric_stat_df_combined$rmse,probs = seq(0, 1,0.05))
   plot(quantile(metric_stat_df_combined$rmse,probs = seq(0, 1,0.01)),type="h")
   
-  ###
-  #length(l_df_pix_ts[[1]])
-  #22h11
-  df_pix_ts_combined1 <- do.call(rbind.fill,l_df_pix_ts[1:1000])
-  
-  #the problem is between 3050 and 3100
-  df_pix_ts_combined3 <- do.call(rbind.fill,l_df_pix_ts[3001:3100])
-  #> df_pix_ts_combined2 <- do.call(rbind.fill,l_df_pix_ts[2001:3000])
-  #Error in vector(type, length) : 
-  #vector: cannot make a vector of mode 'NULL'.
-  #> df_pix_ts_combined3 <- do.call(rbind.fill,l_df_pix_ts[3069:3070])
-  #Error in vector(type, length) : 
-  #vector: cannot make a vector of mode 'NULL'.
-  
   ### Problem with NA as name of column. Remove it if it is the case!!!
-  
-  screening_for_binding_df <- function(i,x){
-    
-    df_tmp <- x[[i]]; 
-    df_tmp <- df_tmp[!is.na(names(df_tmp))]
-    df_tmp$id <- as.character(df_tmp$id)
-    return(df_tmp)
-  }
-  
-  df_pix_ts_combined <- bind_rows(l_df_pix_ts)
-  df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts_tmp_m)
-  names(l_df_pix_ts[[3070]])
-  l_df_pix_ts_tmp_m <- mclapply(1:length(l_df_pix_ts),
-                            FUN= function(i,x){df_tmp <- x[[i]]; df_tmp[!is.na(names(df_tmp))]},
-                            x= l_df_pix_ts,
-                            mc.preschedule=FALSE,
-                            mc.cores = num_cores)
-  save(l_df_pix_ts_m,file="l_df_pix_ts_m.RData")
-  
+  #started at 19.13
   l_df_pix_ts_m <- mclapply(1:length(l_df_pix_ts),
                             FUN= screening_for_binding_df,
                             x= l_df_pix_ts,
                             mc.preschedule=FALSE,
                             mc.cores = num_cores)
-  save(l_df_pix_ts_m,file="l_df_pix_ts_m.RData")
 
+  l_df_pix_ts_m_filename <- file.path(out_dir,paste0("l_df_pix_ts_m_",out_suffix_str,".txt"))
+  save(l_df_pix_ts_m,file= l_df_pix_ts_m_filename)
+  #ended at 22h42
   
-  df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts_m[1:1100])
-  test <- do.call(bind_rows,l_df_pix_ts_m[1039:1040])
-  
-  df_pix_ts_tmp <- (l_df_pix_ts[[1038]])
-  #df_pix_ts_tmp <- (l_df_pix_ts[[3070]])
-  #df_pix_ts_tmp <- df_pix_ts_tmp[!is.na(names(df_pix_ts_tmp))]
-
-  
-  #list_station_summary_obj_fname <- file.path(out_dir,paste("list_station_summary_obs_pred_obj_",out_suffix_str,".RData",sep=""))
-  #save(list_station_summary_obj,file= list_station_summary_obj_fname)
-  
-  #> df_pix_ts_combined <- do.call(rbind.fill,l_df_pix_ts)
-  #Error in vector(type, length) : 
-  #vector: cannot make a vector of mode 'NULL'.
-  #l_test <- mclapply(1:length(l_df_pix_ts),
-  #                            FUN=function(i,x){try(is.null(x[[i]]))},
-  #                            x = l_df_pix_ts,
-  #                            mc.preschedule=FALSE,
-  #                            mc.cores = num_cores)
-    
-  #non_null_flagged_l_df_pix_ts <- do.call(is.null,l_df_pix_ts)
-  #l_df_pix_ts
-  
+  df_pix_ts_combined <- do.call(bind_rows,l_df_pix_ts_m)
   df_pix_ts_df_combined_filename <- file.path(out_dir,paste0("df_pix_ts_combined_",out_suffix_str,".txt"))
   write.table(df_pix_ts_combined,file =  df_pix_ts_df_combined_filename)
   ####
+  boxplot(df_pix_ts_combined$res_mod1_mosaic,outline=F)
+  #View(df_pix_ts_combined)
+  ## Select testing==0 and summarize by day using RMSE?
+  #df_pix_ts_combined
+  
+  #### 
+  return()
 }
 
     
