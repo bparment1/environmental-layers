@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 02/09/2017            
+#MODIFIED ON: 02/13/2017            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
@@ -32,7 +32,7 @@
 #reg6   : Oceania+ South East Asia
 #
 
-### COMMIT: first changes to code for global mosaics of regions
+### COMMIT: moving function to list mosaics by regions and additional changes
 
 #################################################################################################
 
@@ -207,7 +207,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   
   setwd(out_dir)
   
-  browser()
+  #browser()
   
   ### Read in assessment and accuracy files if not null (not world mosaic)
   if(!is.null(df_assessment_files_name)){
@@ -257,29 +257,14 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   }
   
   if(is.null(infile_reg_mosaics)){
+    
     in_dir_tiles_tmp <- file.path(in_dir, region_name)
-    #fix this later and add the year..
-    #gam_CAI_dailyTmax_predicted_mod1
-    #this is very slow!!! it takes 8 minutes?!
-    #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
-    #  list.files(path=file.path(in_dir_tiles_tmp),    
-    #  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),
-    #  full.names=T,recursive=T)})
-
-    #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){list.files(path=file.path(in_dir_tiles_tmp),    
-    #                                                                                  pattern=paste("gam_CAI_dailyTmax_predicted_",pred_mod_name,".*.",day_to_mosaic[i],".*.tif$",sep=""),full.names=T,recursive=F)})
-    #Using changes from Alberto
-    #lf_mosaic <- lapply(1:length(day_to_mosaic),FUN=function(i){
-    #  searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-    #  #print(searchStr)
-    #  Sys.glob(searchStr)})
-    # Making listing of files faster with multicores use
     lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
     searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
     Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
-
     
   }else{
+    
     tb_reg_mosaic_input <- read.table(infile_reg_mosaics,sep=",")
     in_dir_mosaic_reg_list <- as.character(tb_reg_mosaic_input[,1])
     in_dir_tiles_tmp <- in_dir_mosaic_reg_list
@@ -288,30 +273,16 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     searchStr = paste(in_dir_tiles_tmp[1],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
     Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
     
-    get_mosaic_files_fun  <- function(i,day_to_mosaic_range){
-      #d
-      lf_tmp <- lapply(1:length(in_dir_tiles_tmp),
-      FUN=function(j){
-      searchStr = paste(in_dir_tiles_tmp[j],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
-      Sys.glob(searchStr)})
-      return(lf_tmp)
-    }
-    
     #debug(get_mosaic_files_fun)
     #test_df <- get_mosaic_files_fun(1,day_to_mosaic_range)
     
-    lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
-    searchStr = paste(in_dir_tiles_tmp,"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
-    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
-
     lf_mosaic <- mclapply(1:length(day_to_mosaic),
                           FUN=get_mosaic_files_fun,
                           day_to_mosaic_range=day_to_mosaic_range,
                           mc.preschedule=FALSE,
                           mc.cores = num_cores)
-
   }
-  #browser()
+  browser()
   
   #########################################################################
   ##################### PART 2: produce the mosaic ##################
