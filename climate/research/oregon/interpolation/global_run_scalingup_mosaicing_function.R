@@ -4,7 +4,7 @@
 #Different options to explore mosaicing are tested. This script only contains functions.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 08/23/2016            
+#MODIFIED ON: 02/13/2017            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS: Bug solved for reg5, problem in matching rmse val and number of files in predictions by tiles
@@ -1889,4 +1889,13 @@ remove_errors_list<-function(list_items){
   return(x)
 }
 
+get_mosaic_files_fun  <- function(i,day_to_mosaic_range){
+  #d
+  lf_tmp <- lapply(1:length(in_dir_tiles_tmp),
+                   FUN=function(j){
+                   searchStr = paste(in_dir_tiles_tmp[j],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
+                   Sys.glob(searchStr)})
+  return(lf_tmp)
+}
+    
 ##################### END OF SCRIPT ######################

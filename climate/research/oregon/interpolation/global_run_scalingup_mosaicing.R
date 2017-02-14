@@ -300,12 +300,13 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #################################
   #### Mosaic tiles for the variable predicted and accuracy metrics, residuals surfaces or other options
     
+  browser()
+
   #methods availbable:use_sine_weights,use_edge,use_linear_weights
   #only use edge method for now
   #loop to dates..., make this a function...
   #This is a loop but uses multicores when calling the mosaic function
   list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
-  browser()
   
   for(i in 1:length(day_to_mosaic)){
     #
