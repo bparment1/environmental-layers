@@ -269,20 +269,19 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     in_dir_mosaic_reg_list <- as.character(tb_reg_mosaic_input[,1])
     in_dir_tiles_tmp <- in_dir_mosaic_reg_list
     ### need to modify this
-    lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
-    searchStr = paste(in_dir_tiles_tmp[1],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
-    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
-    
+
     #debug(get_mosaic_files_fun)
-    #test_df <- get_mosaic_files_fun(1,day_to_mosaic_range)
+    #test_df <- get_mosaic_files_fun(1,day_to_mosaic_range,in_dir_tiles_tmp,year_processed)
     
     lf_mosaic <- mclapply(1:length(day_to_mosaic),
                           FUN=get_mosaic_files_fun,
-                          day_to_mosaic_range=day_to_mosaic_range,
+                          day_to_mosaic=day_to_mosaic,
+                          in_dir_tiles_tmp=in_dir_tiles_tmp,
+                          year_processed=year_processed,
                           mc.preschedule=FALSE,
                           mc.cores = num_cores)
   }
-  browser()
+  #browser()
   
   #########################################################################
   ##################### PART 2: produce the mosaic ##################
@@ -306,7 +305,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #loop to dates..., make this a function...
   #This is a loop but uses multicores when calling the mosaic function
   list_mosaic_obj <- vector("list",length=length(day_to_mosaic))
-  #browser()
+  browser()
   
   for(i in 1:length(day_to_mosaic)){
     #
