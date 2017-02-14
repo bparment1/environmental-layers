@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 02/09/2017
+#MODIFIED ON: 02/14/2017
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -29,7 +29,7 @@
 # 
 ## Comments: Fixed accuracy bugs and tested command line script for jobs
 #
-## Commit: adding variable to deal with world mosaic
+## Commit: testing modifications and mosaic reg1-reg4 for world
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #Use the following command to run as script via the shell on the bridge 
@@ -109,9 +109,9 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02012017.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02142017.R"
 #function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07052016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_02092017.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_02142017.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -170,8 +170,9 @@ day_end <- "19840705" #PARAM 13 arg 13
 # 
 # #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif" #PARAM 14, arg 14
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1_reg4.tif" #PARAM 14, arg 14
+#infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1_reg4.tif" #PARAM 14, arg 14
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_world.tif" #PARAM 14, arg 14
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/mean_LST_Day_jan_1_wgs84.tif" #use this for the world mask for now, update later
 
 df_assessment_files_name <- NULL
 # #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1991/df_assessment_files_reg5_1991_reg5_1991.txt"  # data.frame with all files used in assessmnet, PARAM 15
@@ -334,10 +335,10 @@ names(list_param_run_mosaicing_prediction) <- param_names
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
-#function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07012016.R" #PARAM12
-#function_mosaicing <-"global_run_scalingup_mosaicing_02012017.R"
-#source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
-#source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02142017.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_02142017.R"
+source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
+source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
 if (stages_to_run[7]==7){
   assessment_prediction_obj <- run_mosaicing_prediction_fun(i,list_param_run_mosaicing_prediction)
