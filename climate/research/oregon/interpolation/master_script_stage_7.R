@@ -109,9 +109,9 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02142017.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02182017.R"
 #function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07052016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_02142017.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_02182017.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -172,7 +172,7 @@ day_end <- "19840705" #PARAM 13 arg 13
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1_reg4.tif" #PARAM 14, arg 14
 #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_world.tif" #PARAM 14, arg 14
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/mean_LST_Day_jan_1_wgs84.tif" #use this for the world mask for now, update later
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_LST_mask_world_MOYDmax_Day_spline_month1.tif" #use this for the world mask for now, update later
 
 df_assessment_files_name <- NULL
 # #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1991/df_assessment_files_reg5_1991_reg5_1991.txt"  # data.frame with all files used in assessmnet, PARAM 15
@@ -186,9 +186,13 @@ layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res
 # 
 tmp_files <- FALSE #arg 18, param 18, keep temp files if TRUE
 data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
-scaling <- 100 #, param 20, if null use 1
+scaling <- 1 #, param 20, if null use 1, for world mosaic use 1, since it is already multiplied by 100
+#scaling <- 100 #, param 20, if null use 1
 # #scaling <- 1 #use this if predicting n rather than other variables
-values_range <- "-100,100"
+
+values_range <- "-10000,10000" #use 10,000 range for world mosaic
+#values_range <- "-100,100"
+
 #this could be a list of folder or file with location of region mosaics to list...
 #list_reg <- "reg1,reg4" # if NULL then use other information, use this if using world mosaicing #param 22
 #infile_reg_mosaics <- "/data/project/layers/commons/NEX_data/regions_input_files/world_input_mosaics_tmax_var_02102017.csv"
@@ -335,8 +339,8 @@ names(list_param_run_mosaicing_prediction) <- param_names
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02142017.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_02142017.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02182017.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_02182017.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
