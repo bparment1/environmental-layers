@@ -5,10 +5,14 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 02/13/2017            
+#MODIFIED ON: 02/23/2017            
 #Version: 6
 #PROJECT: Environmental Layers project     
-#COMMENTS: analyses run for reg4 1991 for test of mosaicing using 1500x4500km and other tiles
+#COMMENTS: 
+#
+#COMMIT: deal with raster temporary files from raster package in mosaics
+#
+
 #TODO:
 #1) Make this is a script/function callable from the shell/bash
 #2) clean up temporary files, it builds currently on the disk
