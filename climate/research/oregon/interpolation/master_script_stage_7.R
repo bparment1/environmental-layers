@@ -14,7 +14,7 @@
 
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 01/01/2016  
-#MODIFIED ON: 02/14/2017
+#MODIFIED ON: 02/23/2017
 #PROJECT: NCEAS INPLANT: Environment and Organisms                                                                           
 
 #First source these files:
@@ -29,7 +29,7 @@
 # 
 ## Comments: Fixed accuracy bugs and tested command line script for jobs
 #
-## Commit: testing modifications and mosaic reg1-reg4 for world
+## Commit: testing edits to handle raster temporary files from raster package in mosaics
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #Use the following command to run as script via the shell on the bridge 
@@ -109,9 +109,9 @@ args<-commandArgs(TRUE)
 
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02182017.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02232017.R"
 #function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_07052016.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_02182017.R"
+function_mosaicing <-"global_run_scalingup_mosaicing_02232017.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
@@ -339,8 +339,8 @@ names(list_param_run_mosaicing_prediction) <- param_names
 #debug(debug_fun_test)
 #debug_fun_test(list_param_raster_prediction)
 i <- 1 #this select the first year of list_year_predicted
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02182017.R" #PARAM12
-function_mosaicing <-"global_run_scalingup_mosaicing_02182017.R"
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_02232017.R" #PARAM12
+function_mosaicing <-"global_run_scalingup_mosaicing_02232017.R"
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
