@@ -12,7 +12,7 @@
 #STAGE 7: Mosaicing of predictions and accuracy layer productions
 #AUTHOR: Benoit Parmentier                                                                        
 #CREATED ON: 12/29/2015  
-#MODIFIED ON: 02/11/2016  
+#MODIFIED ON: 02/24/2017  
 #PROJECT: NCEAS-IPLANT-NASA: Environment Layers                                                                           
 
 #First source these files:
@@ -43,15 +43,15 @@
 #num_cores <- args[8] #number of cores used # param 13, arg 8
 #max_mem <- args[9] # maximum memory, param 21
 
-#var = "TMAX" # variable being interpolated #param 1, arg 1
-#in_dir1 = "/nobackupp6/aguzman4/climateLayers/out/" #param 5, arg 2
-#region_name = "reg4" #param 6, arg 3
-#out_prefix = "run_global_analyses_pred_12282015" #param 7, arg 4
-#out_dir = "/nobackupp8/bparmen1/" #param 8, arg 5
-#create_out_dir_param = "TRUE" #param 9, arg 6
-#list_year_predicted = c(2010) # param 10, arg 7
-#num_cores = 6 #number of cores used # param 13, arg 8
-#max_mem = 1e+07 #param 21, arg 9
+var = "TMIN" # variable being interpolated #param 1, arg 1
+in_dir1 = "/nobackupp6/aguzman4/climateLayers/tMinOut/" #param 5, arg 2
+region_name = "reg1" #param 6, arg 3
+out_prefix = "reg1_1985" #param 7, arg 4
+out_dir = "/nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment/" #param 8, arg 5
+create_out_dir_param = "TRUE" #param 9, arg 6
+list_year_predicted = c(1985) # param 10, arg 7
+num_cores = 6 #number of cores used # param 13, arg 8
+max_mem = 1e+07 #param 21, arg 9
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #This can be made in a data.frame to run through...  
@@ -103,14 +103,22 @@ args <- commandArgs(TRUE)
 #CALLED FROM MASTER SCRIPT:
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script
+#function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_12282015.R" #PARAM12
+#function_assessment_part1a <-"global_run_scalingup_assessment_part1a_10252016.R"
+#function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
+#function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
+
 function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_02112015.R" #PARAM12
-function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
+function_assessment_part1a <-"global_run_scalingup_assessment_part1a_02242017.R"
 function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
+function_assessment_part3 <- "global_run_scalingup_assessment_part3_02102016.R"
+
 source(file.path(script_path,function_assessment_part1_functions)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2)) #source all functions used in this script 
 source(file.path(script_path,function_assessment_part2_functions)) #source all functions used in this script 
+source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 ### Parameters, constants and arguments ###
 stages_to_run<-c(0,0,0,0,0,6) #this stage 2 to 5 currently stored in another file.
@@ -162,14 +170,17 @@ create_out_dir_param <- args[6] #param 9, arg 6
 #list_year_predicted <- c("2014") # param 10, arg 7
 #year_predicted <- list_year_predicted[1]
 list_year_predicted <- args[7] # param 10, arg 7
+num_cores <- args[8] #number of cores used # param 13, arg 8
+#max number of cells to read in memory
+max_mem <- args[9] #param 21
+
+##Additional parameters used in part 2, some these may be removed as code is simplified
 
 file_format <- ".tif" #format for mosaiced files # param 11
 NA_flag_val <- -9999  #No data value, # param 12
 #num_cores <- 6 #number of cores used # param 13, arg 8
 plotting_figures <- TRUE #running part2 of assessment to generate figures... # param 14
-num_cores <- args[8] #number of cores used # param 13, arg 8
-  
-##Additional parameters used in part 2, some these may be removed as code is simplified
+
 mosaic_plot <- FALSE #param 15
 day_to_mosaic <- c("19920102","19920103","19920103") #param 16, not in use...
 multiple_region <- TRUE #param 17
@@ -189,8 +200,9 @@ list_names <- c("in_dir1","region_name","y_var_name","interpolation_method","out
                                       
 names(list_param_run_assessment_prediction)<-list_names
   
-#max number of cells to read in memory
-max_mem <- args[9] #param 21
+function_assessment_part1a <-"global_run_scalingup_assessment_part1a_02242017.R"
+source(file.path(script_path,function_assessment_part1a)) #source all functions used in this script 
+
 #rasterOptions(maxmemory=1e+07,timer=TRUE)
 
 #debug(run_assessment_prediction_fun)
