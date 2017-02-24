@@ -204,6 +204,9 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   lf_covar_tif <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern="covar.*.tif",full.names=T)})
   
   lf_sub_sampling_obj_files <- lapply(in_dir_list,FUN=function(x){list.files(path=x,pattern=paste("^sub_sampling_obj_",interpolation_method,".*.RData",sep=""),full.names=T)})
+  lf_sub_sampling_obj_files <- lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern=paste("^sub_sampling_obj_",interpolation_method,".*.RData",sep=""),full.names=T)})
+  
+  
   lf_sub_sampling_obj_daily_files <- lapply(in_dir_list_tmp,FUN=function(x){list.files(path=x,pattern="^sub_sampling_obj_daily.*.RData",full.names=T)})
   
   ################################################################
@@ -372,6 +375,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   write.table((data_month_NAM),
               file=file.path(out_dir,paste("data_month_s_NAM_",year_predicted,"_",out_prefix,".txt",sep="")),sep=",")
   list_outfiles[[5]] <- file.path(out_dir,paste("data_month_s_NAM_",year_predicted,"_",out_prefix,".txt",sep=""))
+  browser()
   
   ##### Table 6 and table 7: stations for daily predictions
   
@@ -422,6 +426,7 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   #as no stations are removed if there are too enough stations in the tile
   #this will need to be checked later on...
   
+  ### This is not working on 02/24/2017, check if data input is present
   data_month_v_subsampling_list <- mclapply(lf_sub_sampling_obj_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_removed"))},mc.preschedule=FALSE,mc.cores = 6)                           
   #test <- mclapply(list_raster_obj_files[1:6],FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_s"))},mc.preschedule=FALSE,mc.cores = 6)                           
   names(data_month_v_subsampling_list) <- list_names_tile_id
@@ -442,6 +447,12 @@ run_assessment_prediction_fun <-function(i,list_param_run_assessment_prediction)
   }else{
     list_outfiles[[8]] <- NA
   }
+  
+  ####
+  data_day_v_subsampling_list <- mclapply(lf_sub_sampling_obj_daily_files,FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_removed"))},mc.preschedule=FALSE,mc.cores = 6)                           
+  data_day_v_subsampling_list <- mclapply(lf_sub_sampling_obj_daily_files[1:6],FUN=function(x){try(x<-load_obj(x));try(extract_from_list_obj(x$validation_mod_month_obj,"data_removed"))},mc.preschedule=FALSE,mc.cores = 6)                           
+
+  lf_sub_sampling_obj_daily_files
   
   ##### Table 9: validation accuracy metrics for monthly predictions
   
