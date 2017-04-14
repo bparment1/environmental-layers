@@ -1909,7 +1909,7 @@ get_mosaic_files_fun  <- function(i,day_to_mosaic,in_dir_tiles_tmp,year_processe
   #Find relevant files to mosaic for world/global mosaicing (by regions)
   lf_tmp <- lapply(1:length(in_dir_tiles_tmp),
                    FUN=function(j){
-                   searchStr = paste(in_dir_tiles_tmp[j],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmax_","*",day_to_mosaic[i],"*.tif",sep="")
+                   searchStr = paste(in_dir_tiles_tmp[j],"/","output_*",year_processed,"/r_m_use_edge_weights_weighted_mean_mask_","*",day_to_mosaic[i],"*.tif",sep="")
                    Sys.glob(searchStr)})
   lf_tmp <- unlist(lf_tmp)
   return(lf_tmp)
