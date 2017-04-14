@@ -5,7 +5,7 @@
 #Analyses, figures, tables and data are also produced in the script.
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 04/14/2015  
-#MODIFIED ON: 02/23/2017            
+#MODIFIED ON: 04/14/2017            
 #Version: 6
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -260,16 +260,18 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     day_to_mosaic <- format(day_to_mosaic,"%Y%m%d") #format back to the relevant date format for files
   }
   
-  if(is.null(infile_reg_mosaics)){
+  if(is.null(infile_reg_mosaics)){ #then this is not global mosaicing , get the tiles to mosaic at regional level
     
     in_dir_tiles_tmp <- file.path(in_dir, region_name)
-    lf_mosaic <- mclapply(1:length(day_to_mosaic),FUN=function(i){
-    searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
-    Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
+    lf_mosaic <- mclapply(1:length(day_to_mosaic),
+                          FUN=function(i){#check work for tmin too!
+                          #searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_dailyTmax_predicted_",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+                          searchStr = paste(in_dir_tiles_tmp,"/*/",year_processed,"/gam_CAI_","*",pred_mod_name,"*",day_to_mosaic[i],"*.tif",sep="")
+                          Sys.glob(searchStr)},mc.preschedule=FALSE,mc.cores = num_cores)
     
-  }else{
+  }else{ #it is global mosaicing
     
-    tb_reg_mosaic_input <- read.table(infile_reg_mosaics,sep=",")
+    tb_reg_mosaic_input <- read.table(infile_reg_mosaics,sep=",") #contains path to five regions used in regional mosaics outputs
     in_dir_mosaic_reg_list <- as.character(tb_reg_mosaic_input[,1])
     in_dir_tiles_tmp <- in_dir_mosaic_reg_list
     ### need to modify this
@@ -304,7 +306,7 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   #################################
   #### Mosaic tiles for the variable predicted and accuracy metrics, residuals surfaces or other options
     
-  browser()
+  #browser()
 
   #methods availbable:use_sine_weights,use_edge,use_linear_weights
   #only use edge method for now
