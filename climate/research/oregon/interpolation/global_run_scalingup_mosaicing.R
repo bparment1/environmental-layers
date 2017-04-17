@@ -190,13 +190,10 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
   ####### PART 1: Read in data and process data ########
   ########################################################
   
-  #browser()
-  #out_dir <- in_dir #PARAM 11
-  #in_dir_tiles <- file.path(in_dir,"tiles") #this is valid both for Atlas and NEX
+
   NA_flag_val <- NA_value #PARAM 16
   
-  #in_dir <- file.path(in_dir,region_name)
-  #out_dir <- in_dir
+
   if(create_out_dir_param==TRUE){
     out_dir_tmp <- file.path(out_dir,"mosaic")
     #   #create if does not exists
@@ -239,6 +236,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
     
   }
 
+  #browser()
+  
   ##Read additional data from table assessment, add later
   #pred_data_day_info_1999_reg4_1999.txt
   #pred_data_day_info_name <- df_assessment_files$files[11]
@@ -287,7 +286,8 @@ run_mosaicing_prediction_fun <-function(i,list_param_run_mosaicing_prediction){
                           mc.preschedule=FALSE,
                           mc.cores = num_cores)
   }
-  #browser()
+  
+  browser()
   
   #########################################################################
   ##################### PART 2: produce the mosaic ##################
