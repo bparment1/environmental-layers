@@ -153,63 +153,63 @@ CRS_WGS84 <- CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #Stat
 #/nobackupp6/aguzman4/climateLayers/out/mosaics/reg4/mosaic/output_reg4_1984
 
 ## Use the following values to run code from the shell:
-# var <- "TMIN" # variable being interpolated #param 1, arg 1
-# in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/" #PARAM2,arg 2
-# #in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/" #PARAM2,arg 2
-#  
-# #if region name is world then run full mosaic with data available for the corresponding year
-# #region_name <- "world"
-# region_name <- "reg1" #PARAM 3, arg 3 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
-# out_suffix <- "reg1_1985" #PARAM 4, arg 4
-# # out_suffix <- "world_1985"
-# out_suffix_str <- region_name #PARAM 4, CONST 3
-# # out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/world" #PARAM 5,arg 5 use this location for now
-# # #out_dir <- "/nobackupp8/bparmen1/climateLayers/out/world" #PARAM 5,arg 5 use this location for now
-# # #out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg5/mosaicsAc" #PARAM 5,arg 5 use this location for now
-# out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/reg1/mosaics"
-# create_out_dir_param <- TRUE #PARAM 6, arg 6
-# year_predicted <- 1985 #PARAM 7, arg 7
-# num_cores <- 6 #PARAM 8, arg 8
-# max_mem = 1e+07 #param 9, arg 9
-# mosaicing_method <- "use_edge_weights" #PARAM10, arg 10
-# metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-# #metric_name <- "n"
-# #metric_name <- "mae"
-#  
-# day_start <- "19850101" #PARAM 12 arg 12
-# day_end <- "19850102" #PARAM 13 arg 13
-# #day_start <- "19920102" #PARAM 12 arg 12
-# # #day_end <- "19920104" #PARAM 13 arg 13
-# # # 
-# # # #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif" #PARAM 14, arg 14
-# infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
-# # infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1_reg4.tif" #PARAM 14, arg 14
-# # #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_world.tif" #PARAM 14, arg 14
-# # infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_LST_mask_world_MOYDmax_Day_spline_month1.tif" #use this for the world mask for now, update later
-# # 
-# #df_assessment_files_name <- None #if global mosaic
-# df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment/output_reg1_1985/df_assessment_files_reg1_1985_reg1_1985.txt"  # data.frame with all files used in assessmnet, PARAM 15
-# #df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1985/df_assessment_files_reg5_1985_reg5_1985.txt"
-# algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
-# layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-# #layers_option <- c("ac_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-# #layers_option <- c("res_training") # #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-# #layers_option <- c("res_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-# #layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
-# 
-# tmp_files <- FALSE #arg 18, param 18, keep temp files if TRUE
-# data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
-# # scaling <- 1 #, param 20, if null use 1, for world mosaic use 1, since it is already multiplied by 100
-# scaling <- 100 #, param 20, if null use 1
-# # # #scaling <- 1 #use this if predicting n rather than other variables
-# # 
-# # values_range <- "-10000,10000" #use 10,000 range for world mosaic
-# values_range <- "-100,100"
-# # 
-# # #this could be a list of folder or file with location of region mosaics to list...
-# infile_reg_mosaics <- "None"
-# #infile_reg_mosaics <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/world_input_mosaics_tmin_var_04162017.csv"
-# #infile_reg_mosaics is "None" when doing regional mosaics
+var <- "TMIN" # variable being interpolated #param 1, arg 1
+in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/" #PARAM2,arg 2
+#in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/" #PARAM2,arg 2
+
+#if region name is world then run full mosaic with data available for the corresponding year
+region_name <- "world"
+#region_name <- "reg1" #PARAM 3, arg 3 #reg4 South America, Africa reg5,Europe reg2, North America reg1, Asia reg3
+#out_suffix <- "reg1_1985" #PARAM 4, arg 4
+out_suffix <- "world_1985"
+out_suffix_str <- region_name #PARAM 4, CONST 3
+out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/world/mosaics" #PARAM 5,arg 5 use this location for now
+# #out_dir <- "/nobackupp8/bparmen1/climateLayers/out/world" #PARAM 5,arg 5 use this location for now
+# #out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg5/mosaicsAc" #PARAM 5,arg 5 use this location for now
+#out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/reg1/mosaics"
+create_out_dir_param <- TRUE #PARAM 6, arg 6
+year_predicted <- 1985 #PARAM 7, arg 7
+num_cores <- 6 #PARAM 8, arg 8
+max_mem = 1e+07 #param 9, arg 9
+mosaicing_method <- "use_edge_weights" #PARAM10, arg 10
+metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+#metric_name <- "n"
+#metric_name <- "mae"
+
+day_start <- "19850101" #PARAM 12 arg 12
+day_end <- "19850102" #PARAM 13 arg 13
+#day_start <- "19920102" #PARAM 12 arg 12
+# #day_end <- "19920104" #PARAM 13 arg 13
+# #
+# # #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif" #PARAM 14, arg 14
+#infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
+# infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1_reg4.tif" #PARAM 14, arg 14
+# #infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_world.tif" #PARAM 14, arg 14
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_LST_mask_world_MOYDmax_Day_spline_month1.tif" #use this for the world mask for now, update later
+#
+df_assessment_files_name <- "None" #if global mosaic
+#df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment/output_reg1_1985/df_assessment_files_reg1_1985_reg1_1985.txt"  # data.frame with all files used in assessmnet, PARAM 15
+#df_assessment_files_name <- "/nobackupp6/aguzman4/climateLayers/out/reg5/assessment/output_reg5_1985/df_assessment_files_reg5_1985_reg5_1985.txt"
+algorithm <- "python" #PARAM 16 #if R use mosaic function for R, if python use modified gdalmerge script from Alberto Guzmann
+layers_option <- c("var_pred") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("ac_training") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("res_training") # #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("res_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+#layers_option <- c("ac_testing") #arg 17 ,param 17, options are:#res_training, res_testing,ac_training, ac_testing, var_pred
+
+tmp_files <- FALSE #arg 18, param 18, keep temp files if TRUE
+data_type <- "Int16" #, param 19, use int32 for output layers mosaiced
+scaling <- 1 #, param 20, if null use 1, for world mosaic use 1, since it is already multiplied by 100
+#scaling <- 100 #, param 20, if null use 1
+# # #scaling <- 1 #use this if predicting n rather than other variables
+
+values_range <- "-10000,10000" #use 10,000 range for world mosaic
+#values_range <- "-100,100"
+
+# #this could be a list of folder or file with location of region mosaics to list...
+#infile_reg_mosaics <- "None"
+infile_reg_mosaics <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/world_input_mosaics_tmin_var_04162017.csv"
+#infile_reg_mosaics is "None" when doing regional mosaics
 # 
 # ## NA_flag_val <- -32768 #should be here
 # ## values_range <- "0,32767" #this is for n variable
@@ -364,8 +364,8 @@ names(list_param_run_mosaicing_prediction) <- param_names
 i <- 1 #this select the first year of list_year_predicted
 
 #function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04142017.R" #PARAM12
-#function_mosaicing <-"global_run_scalingup_mosaicing_04142017.R"
-#source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
+function_mosaicing <-"global_run_scalingup_mosaicing_04172017.R"
+source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 #source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
 if (stages_to_run[7]==7){
