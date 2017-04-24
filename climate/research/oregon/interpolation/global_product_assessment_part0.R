@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 12/18/2016            
+#MODIFIED ON: 04/24/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -73,15 +73,15 @@ script_path <- "/nobackupp8/bparmen1/env_layers_scripts" #path to script, NEX
 
 #Mosaic related on NEX
 #script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
-function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_09282016.R" #Functions used to mosaic predicted tiles
-function_mosaicing <-"global_run_scalingup_mosaicing_09282016.R" #main scripts for mosaicing predicted tiles
+function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_04142017.R" #Functions used to mosaic predicted tiles
+function_mosaicing <-"global_run_scalingup_mosaicing_04172017.R" #main scripts for mosaicing predicted tiles
 
 source(file.path(script_path,function_mosaicing)) #source all functions used in this script 
 source(file.path(script_path,function_mosaicing_functions)) #source all functions used in this script 
 
 #Assessment on NEX
 function_assessment_part1_functions <- "global_run_scalingup_assessment_part1_functions_12282015.R" #PARAM12
-function_assessment_part1a <-"global_run_scalingup_assessment_part1a_01042016.R"
+function_assessment_part1a <-"global_run_scalingup_assessment_part1a_02242017.R"
 function_assessment_part2 <- "global_run_scalingup_assessment_part2_02092016.R"
 function_assessment_part2_functions <- "global_run_scalingup_assessment_part2_functions_01032016.R"
 function_assessment_part3 <- "global_run_scalingup_assessment_part3_07292016.R"
@@ -93,7 +93,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016b.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_04242017.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -129,27 +129,27 @@ tmp_files <- args[17] # PARAM 17, if FALSE, temporary files are removed
 plotting_figures <- args[18]# PARAM 18, if TRUE, png files are produced for missing tiles and day predicted
 
 #### values used for testing
-# var <- "TMAX" # variable being interpolated #PARAM 1, arg 1
-# in_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM2
-# region_name <- c("reg6") #PARAM 3, arg 3
-# out_suffix <- "predictions_tiles_assessment_reg6_2000_test2" #PARAM 4
-# #out_suffix_str <- region_name #PARAM 4, CONST 3
-# #out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM 5
-# out_dir <- "/nobackupp8/bparmen1/climateLayers/out/reg6/assessment"
-# create_out_dir_param <- TRUE #PARAM 12, arg 6
-# year_predicted <- c(2000) #PARAM 7, arg7
-# num_cores <- 6 #number of cores used # PARAM 8, arg 8
-# max_mem <- 1e+07 #PARAM 9
-# #mosaicing_method <- args[10] #PARAM10
-# item_no <- 9 #PARAM 10, arg 10
-# metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-# day_start <- "20000101" #PARAM 12, arg 12
-# day_end <- "20001231" #PARAM 13, arg 13
-# infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif" #PARAM 14, arg 14
-# in_dir1 <- "/nobackupp6/aguzman4/climateLayers/out" # PARAM 15 On NEX
-# layers_option <- c("var_pred") #PARAM 16, arg 16
-# tmp_files <- FALSE #PARAM 17, arg 17
-# plotting_figures <- FALSE #PARAm 18, arg 18
+var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
+in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment" #PARAM2
+region_name <- c("reg1") #PARAM 3, arg 3
+out_suffix <- "predictions_gaps_tiles_assessment_reg1_1985" #PARAM 4
+#out_suffix_str <- region_name #PARAM 4, CONST 3
+#out_dir <- "/nobackupp6/aguzman4/climateLayers/out/reg6/assessment" #PARAM 5
+out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/reg1/assessment"
+create_out_dir_param <- TRUE #PARAM 12, arg 6
+year_predicted <- c(1985) #PARAM 7, arg7
+num_cores <- 6 #number of cores used # PARAM 8, arg 8
+max_mem <- 1e+07 #PARAM 9
+#mosaicing_method <- args[10] #PARAM10
+item_no <- 9 #PARAM 10, arg 10
+metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+day_start <- "19850101" #PARAM 12, arg 12
+day_end <- "19851231" #PARAM 13, arg 13
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
+layers_option <- c("var_pred") #PARAM 16, arg 16
+tmp_files <- FALSE #PARAM 17, arg 17
+plotting_figures <- FALSE #PARAm 18, arg 18
 
 ###################
 ### CONSTANT: not set from command line
