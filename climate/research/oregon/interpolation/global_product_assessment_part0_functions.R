@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 04/24/2017            
+#MODIFIED ON: 04/25/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: reducing number of files for raster tif
+##COMMIT: adding options for raster_overlap and raster_pred
 
 #################################################################################################
 
@@ -636,6 +636,7 @@ predictions_tiles_missing_fun <- function(list_param){
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
   hist(df_missing$tot_missing)
   
+  ### do sum across tiles to find number of missing per tiles and map it
   
   ########################
   #### Step 2: examine overlap
@@ -684,7 +685,7 @@ predictions_tiles_missing_fun <- function(list_param){
     #
   }
    
-  #browser()
+  browser()
   
   names(shps_tiles) <- basename(unlist(in_dir_reg))
   r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
@@ -693,12 +694,8 @@ predictions_tiles_missing_fun <- function(list_param){
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
 
-  if(raster_map==TRUE){
+  if(raster_overlap==TRUE){
     
-    #d
-    #d
-    
-  }
     ### use rasterize
     #spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
     #Error in (function (classes, fdef, mtable)  : 
@@ -848,11 +845,19 @@ predictions_tiles_missing_fun <- function(list_param){
                                                  mc.preschedule=FALSE,
                                                  mc.cores = num_cores))                         
     #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
+    
+  }else{ #if raster_overalp==FALSE
+    out_mosaic_name_overlap_masked <- NULL
+    tb_freq_overlap <- NULL
+    png_filename_maximum_overlap <- NULL
+  }
 
-    ########################
-    #### Step 3: combine overlap information and number of predictions by day
-    ##Now loop through every day if missing then generate are raster showing map of number of prediction
-   
+  ########################
+  #### Step 3: combine overlap information and number of predictions by day
+  ##Now loop through every day if missing then generate are raster showing map of number of prediction
+  
+  if(raster_pred==TRUE){
+    
     #browser()
     #Debugged on 12/16
     #r_tiles_stack <- stack(list_tiles_predicted_masked)
@@ -869,41 +874,44 @@ predictions_tiles_missing_fun <- function(list_param){
                                                  plotting_figures,
                                                  NA_flag_val,out_suffix,out_dir)
   
-  names(list_param_generate_raster_number_pred) <- c("list_tiles_predicted_masked","df_missing_tiles_day","r_overlap_m",
+    names(list_param_generate_raster_number_pred) <- c("list_tiles_predicted_masked","df_missing_tiles_day","r_overlap_m",
                                                      "num_cores","region_name","data_type","scaling","python_bin",
                                                      "plotting_figures",
                                                       "NA_flag_val","out_suffix","out_dir")
   
-  #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
-  #source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+    #function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_11152016b.R"
+    #source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
-  #undebug(generate_raster_number_of_prediction_by_day)
-  #4.51pm
-  #browser()
-  #5.10pm
-  #test_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
+    #undebug(generate_raster_number_of_prediction_by_day)
+    #4.51pm
+    #browser()
+    #5.10pm
+    #test_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
 
-  if(nrow(df_missing_tiles_day)>0){
-    
-    obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
+    if(nrow(df_missing_tiles_day)>0){
+
+      obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
                                         FUN=generate_raster_number_of_prediction_by_day,
                                         list_param=list_param_generate_raster_number_pred,
                                         mc.preschedule=FALSE,
                                         mc.cores = num_cores)
     
+    }else{
+      obj_number_pix_predictions <- NULL
+    }
   }else{
     obj_number_pix_predictions <- NULL
   }
-  
+    
   #browser()
   #Delete temporary files : Fix this part later...
   #rasterOptions(), find where tmp dir are stored
   
   if(tmp_files==F){ #if false...delete all files with "_tmp"
-    lf_tmp <- list.files(path=out_dir,pattern=".*._tmp.*")
-    #lf_tmp <- unlist(lf_accuracy_training_raster)
-    ##now delete temporary files...
-    file.remove(lf_tmp)
+      lf_tmp <- list.files(path=out_dir,pattern=".*._tmp.*")
+      #lf_tmp <- unlist(lf_accuracy_training_raster)
+      ##now delete temporary files...
+      file.remove(lf_tmp)
   }
   
   predictions_tiles_missing_obj <- list(df_lf_tiles_time_series,df_missing_tiles_day,out_mosaic_name_overlap_masked,
