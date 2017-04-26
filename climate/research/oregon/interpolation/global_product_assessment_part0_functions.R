@@ -4,12 +4,12 @@
 #This script checks the number of predictions by tiles and years.
 #with the goal of predicting potential gaps or missing predictions in fugure mosaics by region.
 #The general logic is to check the number of overlap by shapefile polyon tiles
-#along with the predicitons for every day of the year (*.tif)
+#along with the predictions for every day of the year (*.tif)
 #Summary tables and data are also produced in the script.
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 04/25/2017            
+#MODIFIED ON: 04/26/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -468,7 +468,11 @@ predictions_tiles_missing_fun <- function(list_param){
   year_predicted <- list_param$year_predicted #selected year #PARAM 23
   data_type <- list_param$data_type #PARAM 24
   scaling <- list_param$scaling #PARAM 25
-  tmp_files <- list_param$tmp_files
+  tmp_files <- list_param$tmp_files #PARAM 26
+  
+  ## generate raster
+  raster_overlap <- list_param$raster_overlap #PARAM 27
+  raster_pred <-list_param$raster_pred #PARAM 28
   
   ########################## START SCRIPT #########################################
   
@@ -634,6 +638,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #4) Keep raster of number pix predictions of overlap
   
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
+  
   hist(df_missing$tot_missing)
   
   ### do sum across tiles to find number of missing per tiles and map it
@@ -673,26 +678,17 @@ predictions_tiles_missing_fun <- function(list_param){
   #plot(r)
   #plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
-  ## find overlap
-  #http://gis.stackexchange.com/questions/156660/loop-to-check-multiple-polygons-overlap-in-r
+  #browser()
   
-  matrix_overlap <- matrix(data=NA,nrow=length(shps_tiles),ncol=length(shps_tiles))
-  for(i in 1:length(shps_tiles)){
-     for(j in 1:length(shps_tiles)){
-      overlap_val <- as.numeric(over(shps_tiles[[i]],shps_tiles[[j]]))
-      matrix_overlap[i,j]<- overlap_val
-    }
-    #
-  }
-   
-  browser()
-  
+  ### preparing inputs for raster_overlap production
   names(shps_tiles) <- basename(unlist(in_dir_reg))
   r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
   list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
   tile_spdf <- shps_tiles[[1]]
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
+  
+  browser()
 
   if(raster_overlap==TRUE){
     
@@ -740,18 +736,16 @@ predictions_tiles_missing_fun <- function(list_param){
     out_suffix_str_tmp <- paste0(region_name,"_",out_suffix,"_tmp")
     out_dir_str <- out_dir
     filename_list_predicted <- file.path(out_dir_str,paste("list_to_mosaics_",out_suffix_str_tmp,".txt",sep=""))
-
+    writeLines(unlist(list_predicted),con=filename_list_predicted) #weights files to mosaic 
+    
     #writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
     #writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
       
-    writeLines(unlist(list_predicted),con=filename_list_predicted) #weights files to mosaic 
-
     #browser()
   
     #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
     #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
     out_mosaic_name_predicted_m  <- file.path(out_dir_str,paste("r_overlap_sum_m_",out_suffix_str_tmp,"_tmp",".tif",sep=""))
-
     rast_ref_name <- infile_mask
     mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
     rast_ref_name <- infile_mask
@@ -767,7 +761,6 @@ predictions_tiles_missing_fun <- function(list_param){
 
     r_overlap <- raster(r_overlap_raster_name)
     r_mask <- raster(infile_mask)
-  
     out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",region_name,"_",out_suffix,".tif",sep=""))
 
     r_overlap_m <- mask(r_overlap,
@@ -787,27 +780,24 @@ predictions_tiles_missing_fun <- function(list_param){
     #rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
     #rat$legend <- paste0("tile_",1:26)
     tb_freq_overlap <- as.data.frame(freq(r_overlap_m))
-    #rat$legend <- tb_freq$value
-    #levels(r_table) <- rat
-  
+    write.table(tb_freq_overlap,file=paste0("tb_freq_overlap_",out_suffix,".txt"))
+    
     res_pix <- 800
     #res_pix <- 480
     col_mfrow <- 1
     row_mfrow <- 1
   
     png_filename_maximum_overlap <-  file.path(out_dir,paste("Figure_maximum_overlap_",region_name,"_",out_suffix,".png",sep =""))
-    
     title_str <-  paste("Maximum overlap: Number of predicted pixels for ",variable_name, sep = "")
   
     png(filename=png_filename_maximum_overlap,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     #my_col=c('blue','red','green')
     my_col <- rainbow(length(tb_freq_overlap$value))
-
     plot(r_overlap_m,col=my_col,legend=F,box=F,axes=F,main=title_str)
     legend(x='topright', legend =tb_freq_overlap$value,fill = my_col,cex=0.8)
-  
     dev.off()
-
+    browser()
+    
     ### now assign id and match extent for tiles
   
     lf_files <- unlist(list_predicted)
@@ -831,7 +821,8 @@ predictions_tiles_missing_fun <- function(list_param){
     raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
     out_suffix_str <- paste0(region_name,"_",out_suffix)
     raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_","masked_",out_suffix_str,file_format,sep=""))
-  
+    
+
     #writeRaster(r, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
 
     #r_stack <- stack(list_tiles_predicted_m)
@@ -852,6 +843,8 @@ predictions_tiles_missing_fun <- function(list_param){
     png_filename_maximum_overlap <- NULL
   }
 
+  browser()
+  
   ########################
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
