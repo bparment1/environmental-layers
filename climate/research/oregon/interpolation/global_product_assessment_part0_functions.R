@@ -638,24 +638,32 @@ predictions_tiles_missing_fun <- function(list_param){
   #4) Keep raster of number pix predictions of overlap
   
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
+  
   if(nrow(df_missing_tiles_day)>0){
+
+    res_pix <- 800
+    #res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+    png_filename_histogram <-  file.path(out_dir,paste("Figure_histogram_",region_missing_tiles_name,"_",out_suffix,".png",sep =""))
     
-    #hist(df_missing$tot_missing)
+    png(filename=png_filename_maximum_overlap,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    hist(df_missing$tot_missing,
+         ylab="frequency of missing",
+         xlab="tiles",
+         main="Number of missing predictions over a year by tile")
+    dev.off()
   }
-  
-  
-  ### do sum across tiles to find number of missing per tiles and map it
   
   ########################
   #### Step 2: examine overlap
   #browser()
-  
+
   path_to_shp <- dirname(countries_shp)
   layer_name <- sub(".shp","",basename(countries_shp))
   reg_layer <- readOGR(path_to_shp, layer_name)
   
   #collect info: read in all shapefiles
-  
   #obj_centroids_shp <- centroids_shp_fun(1,list_shp_reg_files=in_dir_shp_list)
                                          
   obj_centroids_shp <- mclapply(1:length(in_dir_shp_list),
@@ -682,6 +690,13 @@ predictions_tiles_missing_fun <- function(list_param){
   #plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
 
   #browser()
+  ### do sum across tiles to find number of missing per tiles and map it
+  
+  df_missing_sp <- t(df_missing[1:length(test_missing),])
+  strsplit(unlist(basename(in_dir_reg)),"_")
+  list_xy <- lapply(centroids_pts,function(x){coordinates(x)})
+  coord_xy <- do.call(rbind,list_xy)
+  coordinates(df_missing_sp) <- coord_xy
   
   ### preparing inputs for raster_overlap production
   names(shps_tiles) <- basename(unlist(in_dir_reg))
