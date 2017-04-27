@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 04/24/2017            
+#MODIFIED ON: 04/27/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -93,7 +93,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_04242017.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_04282017.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -106,6 +106,7 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016b.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_assessment_reg6_2000_test2 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016b.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_tiles_assessment_reg6_2000_test3 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_04272017.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg1/assessment reg1 predictions_tiles_assessment_reg6_2000_test3 /nobackupp8/bparmen1/climateLayers/tMinOut/reg1/assessment TRUE 1985 6 1e+07 9 rmse 19850101 19851231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif /nobackupp6/aguzman4/climateLayers/tMinOut var_pred FALSE FALSE FALSE FALSE
 
 ### ARGUMENTS: inputs parameters set from the command line
 
@@ -127,6 +128,8 @@ in_dir1 <- args[15] #PARAM 15, files containing assessment information
 layers_option <- args[16] # PARAM 16 options are: prediction or accuracy
 tmp_files <- args[17] # PARAM 17, if FALSE, temporary files are removed
 plotting_figures <- args[18]# PARAM 18, if TRUE, png files are produced for missing tiles and day predicted
+raster_overlap <- args[19] # PARAM 19, if TRUE, raster overlap is generated
+raster_pred <- args[20] # PARAM 20, if TRUE, raster prediction is generated
 
 #### values used for testing
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
@@ -150,6 +153,8 @@ in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
 layers_option <- c("var_pred") #PARAM 16, arg 16
 tmp_files <- FALSE #PARAM 17, arg 17
 plotting_figures <- FALSE #PARAm 18, arg 18
+raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
+raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
 
 ###################
 ### CONSTANT: not set from command line
@@ -210,17 +215,17 @@ list_param_predictions_tiles_missing <- list(in_dir1,region_name,y_var_name,inte
                                              create_out_dir_param,proj_str,year_predicted,file_format,NA_flag_val,
                                              num_cores,plotting_figures,item_no,day_to_mosaic_range,countries_shp,plotting_figures,
                                              scaling, data_type, python_bin,tmp_files,
-                                             pred_mod_name,metric_name)
+                                             pred_mod_name,metric_name,raster_overlap,raster_pred)
 
 names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_name","interpolation_method","out_suffix","out_dir",
                                              "create_out_dir_param","proj_str","year_predicted","file_format","NA_flag_val",
                                              "num_cores","plotting_figures","item_no","day_to_mosaic_range","countries_shp","plotting_figures",
                                              "scaling", "data_type", "python_bin","tmp_files",
-                                             "pred_mod_name","metric_name")
+                                             "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
 #Product assessment
-#function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_12182016.R"
-#source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_04282017.R"
+source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 #debug(predictions_tiles_missing_fun)
 #Started at 9.35am
