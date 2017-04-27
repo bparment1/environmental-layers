@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 04/26/2017            
+#MODIFIED ON: 04/27/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: adding options for raster_overlap and raster_pred
+##COMMIT: debugging options for raster_overlap and raster_pred
 
 #################################################################################################
 
@@ -598,7 +598,7 @@ predictions_tiles_missing_fun <- function(list_param){
   
   #browser()
   
-  df_time_series <- test_missing[[1]]$df_time_series
+  #df_time_series <- test_missing[[1]]$df_time_series
   #head(df_time_series)
 
   #table(df_time_series$missing)
@@ -638,8 +638,11 @@ predictions_tiles_missing_fun <- function(list_param){
   #4) Keep raster of number pix predictions of overlap
   
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
+  if(nrow(df_missing_tiles_day)>0){
+    
+    #hist(df_missing$tot_missing)
+  }
   
-  hist(df_missing$tot_missing)
   
   ### do sum across tiles to find number of missing per tiles and map it
   
@@ -796,46 +799,9 @@ predictions_tiles_missing_fun <- function(list_param){
     plot(r_overlap_m,col=my_col,legend=F,box=F,axes=F,main=title_str)
     legend(x='topright', legend =tb_freq_overlap$value,fill = my_col,cex=0.8)
     dev.off()
-    browser()
     
-    ### now assign id and match extent for tiles
-  
-    lf_files <- unlist(list_predicted)
-    rast_ref_name <- infile_mask
-    rast_ref <- rast_ref_name
-  
-    ##Maching resolution is probably only necessary for the r mosaic function
-    #Modify later to take into account option R or python...
-    list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix_str_tmp,out_dir_str)
-    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
-
-    #undebug(raster_match)
-    #r_test <- raster_match(1,list_param_raster_match)
-    #r_test <- raster(raster_match(1,list_param_raster_match))
-
-    list_tiles_predicted_m <- unlist(mclapply(1:length(lf_files),
-                                            FUN=raster_match,list_param=list_param_raster_match,
-                                            mc.preschedule=FALSE,mc.cores = num_cores))                           
-
-    extension_str <- extension(lf_files)
-    raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
-    out_suffix_str <- paste0(region_name,"_",out_suffix)
-    raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_","masked_",out_suffix_str,file_format,sep=""))
+    #browser()
     
-
-    #writeRaster(r, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
-
-    #r_stack <- stack(list_tiles_predicted_m)
-    list_mask_out_file_name <- raster_name
-    list_tiles_predicted_masked <- unlist(mclapply(1:length(list_tiles_predicted_m),
-                                                 FUN=function(i){mask(raster(list_tiles_predicted_m[i]),
-                                                                      r_mask,filename=list_mask_out_file_name[i],
-                                                                      overwrite=T,
-                                                                      datatype=data_type_str,                  
-                                                                      options=c("COMPRESS=LZW"))},
-                                                 mc.preschedule=FALSE,
-                                                 mc.cores = num_cores))                         
-    #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
     
   }else{ #if raster_overalp==FALSE
     out_mosaic_name_overlap_masked <- NULL
@@ -843,23 +809,64 @@ predictions_tiles_missing_fun <- function(list_param){
     png_filename_maximum_overlap <- NULL
   }
 
-  browser()
+ 
   
   ########################
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
   
-  if(raster_pred==TRUE){
+  #df_missing_tiles_day <- subset(df_missing,tot_missing > 0) #already above
+  browser()
+  
+  if(raster_pred==TRUE & (nrow(df_missing_tiles_day)>0)){
     
     #browser()
+    
+    ### now assign id and match extent for tiles
+    
+    lf_files <- unlist(list_predicted)
+    rast_ref_name <- infile_mask
+    rast_ref <- rast_ref_name
+    
+    ##Maching resolution is probably only necessary for the r mosaic function
+    #Modify later to take into account option R or python...
+    list_param_raster_match <- list(lf_files,rast_ref,file_format,python_bin,out_suffix_str_tmp,out_dir_str)
+    names(list_param_raster_match) <- c("lf_files","rast_ref","file_format","python_bin","out_suffix","out_dir_str")
+    
+
+    #r_test <- raster(raster_match(1,list_param_raster_match))
+    list_tiles_predicted_m <- unlist(mclapply(1:length(lf_files),
+                                              FUN=raster_match,list_param=list_param_raster_match,
+                                              mc.preschedule=FALSE,mc.cores = num_cores))                           
+    
+    extension_str <- extension(lf_files)
+    raster_name_tmp <- gsub(extension_str,"",basename(lf_files))
+    out_suffix_str <- paste0(region_name,"_",out_suffix)
+    raster_name <- file.path(out_dir_str,paste(raster_name_tmp,"_","masked_",out_suffix_str,file_format,sep=""))
+    
+    
+    #writeRaster(r, NAflag=NA_flag_val,filename=raster_name,overwrite=TRUE)  
+    
+    #r_stack <- stack(list_tiles_predicted_m)
+    list_mask_out_file_name <- raster_name
+    list_tiles_predicted_masked <- unlist(mclapply(1:length(list_tiles_predicted_m),
+                                                   FUN=function(i){mask(raster(list_tiles_predicted_m[i]),
+                                                                        r_mask,filename=list_mask_out_file_name[i],
+                                                                        overwrite=T,
+                                                                        datatype=data_type_str,                  
+                                                                        options=c("COMPRESS=LZW"))},
+                                                   mc.preschedule=FALSE,
+                                                   mc.cores = num_cores))                         
+    #r_stack_masked <- mask(r, m2) #, maskvalue=TRUE)
+    
     #Debugged on 12/16
     #r_tiles_stack <- stack(list_tiles_predicted_masked)
     #names(r_tiles_stack) <- basename(in_dir_reg) #this does not work, X. is added to the name, use list instead
   
-    names(list_tiles_predicted_masked) <- basename(in_dir_reg)
-    df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
+    #names(list_tiles_predicted_masked) <- basename(in_dir_reg)
+    #df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
     #r_tiles_s <- r_tiles_stack
-    names_tiles <- basename(in_dir_reg)
+    #names_tiles <- basename(in_dir_reg)
   
 
     list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
@@ -880,18 +887,12 @@ predictions_tiles_missing_fun <- function(list_param){
     #browser()
     #5.10pm
     #test_number_pix_predictions <- generate_raster_number_of_prediction_by_day(1,list_param=list_param_generate_raster_number_pred)
-
-    if(nrow(df_missing_tiles_day)>0){
-
-      obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
+    obj_number_pix_predictions <- mclapply(1:nrow(df_missing_tiles_day),
                                         FUN=generate_raster_number_of_prediction_by_day,
                                         list_param=list_param_generate_raster_number_pred,
                                         mc.preschedule=FALSE,
                                         mc.cores = num_cores)
     
-    }else{
-      obj_number_pix_predictions <- NULL
-    }
   }else{
     obj_number_pix_predictions <- NULL
   }
