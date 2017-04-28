@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 04/27/2017            
+#MODIFIED ON: 04/28/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: debugging options for raster_overlap and raster_pred
+##COMMIT: modifying output figures and files 
 
 #################################################################################################
 
@@ -627,17 +627,41 @@ predictions_tiles_missing_fun <- function(list_param){
   df_missing$reg <- region_name
   df_missing$date <- day_to_mosaic
 
-  filename_df_missing <- file.path(out_dir,paste0("df_missing_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
+  #This contains in rows date and tiles columns
+  filename_df_missing <- file.path(out_dir,paste0("df_missing_by_dates_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
   write.table(df_missing,file=filename_df_missing)
   
+  ###### Assessment ####
   #### Generate summary from missing table
-  
   #1) Select dates with missing tiles
   #2) Plot number of days missing in maps over 365 days
   #3) Plot number of days missing in histograms/barplots
   #4) Keep raster of number pix predictions of overlap
+  ### do sum across tiles to find number of missing per tiles and map it
   
+  df_missing_tiles_sp <- t(df_missing[,1:length(test_missing)]) #transpose to get df with lines centroids of tiles
+  df_missing_tiles_sp <- as.data.frame(df_missing_tiles_sp)
+  names(df_missing_tiles_sp) <- df_missing$date
+  df_missing_tiles_sp$tot_missing <- rowSums(df_missing_tiles_sp) #total missing over a year by tile
+  df_missing_tiles_sp$tot_pred <- length(df_missing$date) - df_missing_tiles_sp$tot_missing
+  
+  list_xy <- strsplit(unlist(basename(in_dir_reg)),"_")
+  #list_xy <- lapply(centroids_pts,function(x){coordinates(x)})
+  coord_xy <- do.call(rbind,list_xy)
+  y_val <- as.numeric(coord_xy[,1]) #lat, long! need to reverse
+  x_val <- as.numeric(coord_xy[,2])
+  coordinates(df_missing_tiles_sp) <- as.matrix(cbind(x_val,y_val))
+  
+  #This contains in rows date and tiles columns
+  filename_df_missing_tiles_sp <- file.path(out_dir,paste0("df_missing_by_centroids_tiles_and_dates",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
+  write.table(as.data.frame(df_missing_tiles_sp),file=filename_df_missing_tiles_sp )
+ 
+  ### Now generate plots if missing tiles for specific dates in the region
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
+  path_to_shp <- dirname(countries_shp)
+  layer_name <- sub(".shp","",basename(countries_shp))
+  reg_layer <- readOGR(path_to_shp, layer_name) #outlines of the region
+  r_mask <- raster(infile_mask)
   
   if(nrow(df_missing_tiles_day)>0){
 
@@ -653,15 +677,58 @@ predictions_tiles_missing_fun <- function(list_param){
          xlab="tiles",
          main="Number of missing predictions over a year by tile")
     dev.off()
+    
+    #check for this in every output, if not present then there are no missing tiles over the full year for 
+    #the specific region
+    write.table(df_missing_tiles_day,file=paste0("df_missing_tiles_day_mosaic_",out_suffix,".txt"))
+    
+    #do spplot after that on tot sum
+    
+    png(filename=paste("Figure_total_missing_days_map_centroids_tile_",pred_mod_name,"_",
+                       "_",out_suffix,".png",sep=""),
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    #spplot for reg_layer not working on NEX again
+    #p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+    p_r <-levelplot(r_mask,colorkey=F) #no key legend
+    p <- bubble(df_missing_tiles_sp,"tot_missing",main=paste0("Missing per tile and by ",pred_mod_name,
+                                                             " for ",y_var_name))
+    #p1 <- p+p_shp
+    p_c <- p + p_r + p #set the legend first by using p first
+    
+    try(print(p_c)) #error raised if number of missing values below a threshold does not exist
+    dev.off()
+    
+  }else{
+    #do spplot after that on tot sum
+    res_pix <- 800
+    #res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+    
+    png(filename=paste("Figure_total_predicted_days_predicted_map_centroids_tile_",pred_mod_name,"_",
+                       "_",out_suffix,".png",sep=""),
+        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+    #bubble(pp, "att",
+    #       panel=function(...) {
+    #         sp.polygons(SpP, fill="blue")
+    #         sp:::panel.bubble(...)
+    #       }) 
+    
+    #p_shp <- spplot(reg_layer,"ISO3" ,sp.layout=list("sp.polygons", reg_layer, fill="white"))
+    #p_shp spplot not working on NEX anymore, use raster as background
+    p_r <-levelplot(r_mask,colorkey=F) #no key legend
+    p <- bubble(df_missing_tiles_sp,"tot_pred",main=paste0("Prediction per tile and by ",pred_mod_name,
+                                                          " for ", y_var_name))
+    p_c <- p + p_r + p #set the legend first by using p first
+    #p1 <- p+p_shp
+    try(print(p_c)) #error raised if number of missing values below a threshold does not exist
+    dev.off()
   }
   
   ########################
-  #### Step 2: examine overlap
+  #### Step 2: Examine tiles layout for the region 
   #browser()
-
-  path_to_shp <- dirname(countries_shp)
-  layer_name <- sub(".shp","",basename(countries_shp))
-  reg_layer <- readOGR(path_to_shp, layer_name)
   
   #collect info: read in all shapefiles
   #obj_centroids_shp <- centroids_shp_fun(1,list_shp_reg_files=in_dir_shp_list)
@@ -685,18 +752,12 @@ predictions_tiles_missing_fun <- function(list_param){
   centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
   #centroids_pts <- tmp_pts 
   
-  r_mask <- raster(infile_mask)
+
+  
+  ### Plot locations of tiles after?
   #plot(r)
   #plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-
   #browser()
-  ### do sum across tiles to find number of missing per tiles and map it
-  
-  df_missing_sp <- t(df_missing[1:length(test_missing),])
-  strsplit(unlist(basename(in_dir_reg)),"_")
-  list_xy <- lapply(centroids_pts,function(x){coordinates(x)})
-  coord_xy <- do.call(rbind,list_xy)
-  coordinates(df_missing_sp) <- coord_xy
   
   ### preparing inputs for raster_overlap production
   names(shps_tiles) <- basename(unlist(in_dir_reg))
@@ -817,15 +878,12 @@ predictions_tiles_missing_fun <- function(list_param){
     
     #browser()
     
-    
   }else{ #if raster_overalp==FALSE
     out_mosaic_name_overlap_masked <- NULL
     tb_freq_overlap <- NULL
     png_filename_maximum_overlap <- NULL
   }
 
- 
-  
   ########################
   #### Step 3: combine overlap information and number of predictions by day
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
@@ -912,7 +970,7 @@ predictions_tiles_missing_fun <- function(list_param){
     obj_number_pix_predictions <- NULL
   }
     
-  #browser()
+  browser()
   #Delete temporary files : Fix this part later...
   #rasterOptions(), find where tmp dir are stored
   
