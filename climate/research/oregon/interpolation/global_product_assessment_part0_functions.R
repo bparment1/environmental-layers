@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 04/28/2017            
+#MODIFIED ON: 04/29/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: modifying output figures and files 
+##COMMIT: testing command line
 
 #################################################################################################
 
@@ -614,7 +614,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #Use dfr[dfr=="<NA>"]=NA where dfr is your dataframe.
   names(df_lf_tiles_time_series) <- unlist(basename(in_dir_reg))
   filename_df_lf_tiles <- file.path(out_dir,paste0("df_files_by_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
-  write.table(df_lf_tiles_time_series,file=filename_df_lf_tiles)
+  write.table(df_lf_tiles_time_series,file=filename_df_lf_tiles,sep=",")
 
   ###Now combined missing in one table?
   
@@ -629,7 +629,7 @@ predictions_tiles_missing_fun <- function(list_param){
 
   #This contains in rows date and tiles columns
   filename_df_missing <- file.path(out_dir,paste0("df_missing_by_dates_tiles_predicted_tif_",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
-  write.table(df_missing,file=filename_df_missing)
+  write.table(df_missing,file=filename_df_missing,sep=",")
   
   ###### Assessment ####
   #### Generate summary from missing table
@@ -654,7 +654,7 @@ predictions_tiles_missing_fun <- function(list_param){
   
   #This contains in rows date and tiles columns
   filename_df_missing_tiles_sp <- file.path(out_dir,paste0("df_missing_by_centroids_tiles_and_dates",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
-  write.table(as.data.frame(df_missing_tiles_sp),file=filename_df_missing_tiles_sp )
+  write.table(as.data.frame(df_missing_tiles_sp),file=filename_df_missing_tiles_sp,sep=",")
  
   ### Now generate plots if missing tiles for specific dates in the region
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
@@ -669,9 +669,9 @@ predictions_tiles_missing_fun <- function(list_param){
     #res_pix <- 480
     col_mfrow <- 1
     row_mfrow <- 1
-    png_filename_histogram <-  file.path(out_dir,paste("Figure_histogram_",region_missing_tiles_name,"_",out_suffix,".png",sep =""))
+    png_filename_histogram <-  file.path(out_dir,paste("Figure_histogram_","region_missing_tiles","_",out_suffix,".png",sep =""))
     
-    png(filename=png_filename_maximum_overlap,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    png(filename=png_filename_histogram,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     hist(df_missing$tot_missing,
          ylab="frequency of missing",
          xlab="tiles",
@@ -767,7 +767,7 @@ predictions_tiles_missing_fun <- function(list_param){
   tile_coord <- basename(in_dir_reg[1])
   date_val <- df_missing$date[1]
   
-  browser()
+  #browser()
 
   if(raster_overlap==TRUE){
     
@@ -889,7 +889,7 @@ predictions_tiles_missing_fun <- function(list_param){
   ##Now loop through every day if missing then generate are raster showing map of number of prediction
   
   #df_missing_tiles_day <- subset(df_missing,tot_missing > 0) #already above
-  browser()
+  #browser()
   
   if(raster_pred==TRUE & (nrow(df_missing_tiles_day)>0)){
     
@@ -970,12 +970,12 @@ predictions_tiles_missing_fun <- function(list_param){
     obj_number_pix_predictions <- NULL
   }
     
-  browser()
+  #browser()
   #Delete temporary files : Fix this part later...
   #rasterOptions(), find where tmp dir are stored
   
-  if(tmp_files==F){ #if false...delete all files with "_tmp"
-      lf_tmp <- list.files(path=out_dir,pattern=".*._tmp.*")
+  if(tmp_files==FALSE){ #if false...delete all files with "_tmp"
+      lf_tmp <- list.files(path=out_dir,pattern=".*._tmp.*",full.names=T)
       #lf_tmp <- unlist(lf_accuracy_training_raster)
       ##now delete temporary files...
       file.remove(lf_tmp)
