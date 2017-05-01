@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 04/29/2017            
+#MODIFIED ON: 05/17/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -603,7 +603,7 @@ predictions_tiles_missing_fun <- function(list_param){
   #gam_CAI_dailyTmax_predicted_mod1_0_1_20001231_30_1-39.7_165.1.tif
   
   #undebug(check_missing)
-  browser()
+  #browser()
   
   test_missing <- mclapply(list_lf_raster_tif_tiles,
                            pattern_str=NULL,
@@ -616,7 +616,7 @@ predictions_tiles_missing_fun <- function(list_param){
                            out_dir=out_dir,
                            FUN=check_missing,
                            mc.preschedule=FALSE,
-                           mc.cores = 1)
+                           mc.cores = num_cores)
   #clim_method_mod_obj<-mclapply(1:length(sampling_month_obj$ghcn_data), list_param=list_param_runClim_KGFusion, runClim_KGFusion,mc.preschedule=FALSE,mc.cores = num_cores)   
   #error message on object 25
   #check also object 7
@@ -765,7 +765,6 @@ predictions_tiles_missing_fun <- function(list_param){
   
   ########################
   #### Step 2: Examine tiles layout for the region 
-  #browser()
   
   #collect info: read in all shapefiles
   #obj_centroids_shp <- centroids_shp_fun(1,list_shp_reg_files=in_dir_shp_list)
@@ -779,6 +778,7 @@ predictions_tiles_missing_fun <- function(list_param){
   centroids_pts <- lapply(obj_centroids_shp, FUN=function(x){x$centroid})
   shps_tiles <-   lapply(obj_centroids_shp, FUN=function(x){x$spdf})
 
+  browser()
   #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
   tmp <- shps_tiles
   shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
@@ -789,24 +789,52 @@ predictions_tiles_missing_fun <- function(list_param){
   centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
   #centroids_pts <- tmp_pts 
   
-
-  
   ### Plot locations of tiles after?
   #plot(r)
   #plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-  #browser()
-  
-  ### preparing inputs for raster_overlap production
-  names(shps_tiles) <- basename(unlist(in_dir_reg))
-  r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
-  list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
-  tile_spdf <- shps_tiles[[1]]
-  tile_coord <- basename(in_dir_reg[1])
-  date_val <- df_missing$date[1]
-  
-  #browser()
+  browser()
 
   if(raster_overlap==TRUE){
+    
+    ### preparing inputs for raster_overlap production
+    names(shps_tiles) <- basename(unlist(in_dir_reg))
+    r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
+    #list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
+    list_r_ref <- mclapply(1:length(list_lf_raster_tif_tiles), 
+                           function(i,x){raster(x[[i]][1])},
+                           x = list_lf_raster_tif_tiles,
+                           mc.preschedule=FALSE,
+                           mc.cores = num_cores)
+    
+    #find try-error
+    list_r_ref_error <- as.numeric(unlist(lapply(list_r_ref,function(x){class(x)=="try-error"})))
+    
+    ## Select tiles without raster predictions and crop from r_mask
+    #shps_tiles_selected <-  shps_tiles[list_r_ref_error]
+    
+    generate_raster_tile_ref <- function(i,shps_tiles,r_mask,list_r_ref_error){
+      shps_tiles_selected <- shps_tiles[[i]]
+      if(list_r_ref_error[i]==1){
+        r_tiles_ref <- crop(r_mask,shps_tiles_selected)
+        return(r_tiles_ref)
+      }
+    }
+    
+    ref_test<- mclapply(1:length(shps_tiles),
+                        FUN=generate_raster_tile_ref,
+                        shps_tiles = shps_tiles,
+                        r_mask=r_mask,
+                        list_r_ref_error=list_r_ref_error,
+                        mc.preschedule=FALSE,
+                        mc.cores = num_cores)
+    
+    #now fill in list_r_ref with ref_test
+    
+    list_r_ref[]
+    
+    tile_spdf <- shps_tiles[[1]]
+    tile_coord <- basename(in_dir_reg[1])
+    date_val <- df_missing$date[1]
     
     ### use rasterize
     #spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
