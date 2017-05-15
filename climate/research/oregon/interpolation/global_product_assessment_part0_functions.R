@@ -82,25 +82,35 @@ extract_date <- function(i,x,item_no=NULL){
 }
 
 finding_missing_dates <- function(date_start,date_end,list_dates){
-  #this assumes daily time steps!!
-  #can be improved later on
+  #
+  #Author: Benoit Parmentier
+  #Purpose: This function generates missing dates by comparing a list of dates to
+  #a range of given dates.
+  #INPUTS:
+  #1) date_start: start of the date sequence
+  #2) date_end: end of the date sequence
+  #3) list_dates: list of dates
+  #OUTPUTS:
+  #missing_dates_obj: list with two items
+  #1)missing_dates: list of dates missing as character
+  #2)df_dates: data frame with two columns: dates (date range) and missing (1 if missing) 
   
-  #date_start <- "19840101"
-  #date_end <- "19991231"
+  ###### Beging function ######
+  
   date1 <- as.Date(strptime(date_start,"%Y%m%d"))
   date2 <- as.Date(strptime(date_end,"%Y%m%d"))
   dates_range <- seq.Date(date1, date2, by="1 day") #sequence of dates
 
+  #compare date range to list of dates to find missing dates
   missing_dates <- setdiff(as.character(dates_range),as.character(list_dates))
-  #df_dates_missing <- data.frame(date=missing_dates)
-  #which(df_dates$date%in%missing_dates)
-  #df_dates_missing$missing <- 1
-  
+
+  ### Create data.frame
   df_dates <- data.frame(date=as.character(dates_range),missing = 0) 
 
+  ### Assign 1 if a date is missing
   df_dates$missing[df_dates$date %in% missing_dates] <- 1
-  #a$flag[a$id %in% temp] <- 1
-
+  
+  ### prepare return object
   missing_dates_obj <- list(missing_dates,df_dates)
   names(missing_dates_obj) <- c("missing_dates","df_dates")
   return(missing_dates_obj)
@@ -127,29 +137,45 @@ check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",d
   
   out_dir <- in_dir
   
-  list_dates_produced <- unlist(mclapply(1:length(lf),
-                                         FUN = extract_date,
-                                         x = lf,
-                                         item_no = item_no,
-                                         mc.preschedule = FALSE,
-                                         mc.cores = num_cores))
-  
-  list_dates_produced_date_val <- as.Date(strptime(list_dates_produced, "%Y%m%d"))
-  month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
-  year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
-  day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
-  df_files <- data.frame(lf =lf,
-                         date = list_dates_produced_date_val,
-                         month_str = month_str,
-                         year = year_str,
-                         day = day_str,
-                         dir = dirname(lf))
-  
+  #check for tiles without any predictions
+  if(length(lf)>0){
+    
+    list_dates_produced <- unlist(mclapply(1:length(lf),
+                                           FUN = extract_date,
+                                           x = lf,
+                                           item_no = item_no,
+                                           mc.preschedule = FALSE,
+                                           mc.cores = num_cores))
+    
+    list_dates_produced_date_val <- as.Date(strptime(list_dates_produced, "%Y%m%d"))
+    month_str <- format(list_dates_produced_date_val, "%b") ## Month, char, abbreviated
+    year_str <- format(list_dates_produced_date_val, "%Y") ## Year with century
+    day_str <- as.numeric(format(list_dates_produced_date_val, "%d")) ## numeric month
+    df_files <- data.frame(lf = lf,
+                           date = list_dates_produced_date_val,
+                           month_str = month_str,
+                           year = year_str,
+                           day = day_str,
+                           dir = dirname(lf))
+    
+    
+  }else{ #generate empty data.frame
+    #declare data.frame with specific type, with zero row initialization
+    df_files <- data.frame(lf = character(),
+                           date = as.Date(character()), 
+                           month_str = character(), 
+                           year = character(),
+                           day = character(),
+                           dir = character()) 
+    list_dates_produced_date_val <- as.Date(character()) #declare date of raster predictions, empty
+  }
+
   df_files_fname <- file.path(out_dir, paste0("df_files_", out_suffix, ".txt"))
   write.table(df_files,file = df_files_fname,sep = ",",row.names = F)
   
-  #undebug(finding_missing_dates )
-  missing_dates_obj <- finding_missing_dates (date_start,date_end,list_dates_produced_date_val)
+  #### Find dates missing by comparing dates of tiles predicted and date range considered
+  #undebug(finding_missing_dates)
+  missing_dates_obj <- finding_missing_dates(date_start,date_end,list_dates_produced_date_val)
   
   df_time_series <- missing_dates_obj$df_dates
   df_time_series$date <- as.character(df_time_series$date)  
@@ -160,6 +186,9 @@ check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",d
   df_time_series$month_str <- format(as.Date(df_time_series$date), "%b") ## Month, char, abbreviated
   df_time_series$year_str <- format(as.Date(df_time_series$date), "%Y") ## Year with century
   df_time_series$day <- as.numeric(format(as.Date(df_time_series$date), "%d")) ## numeric month
+  
+  ## replace <NA> by NA
+  #df_time_series[df_time_series=="<NA>"] = NA
   
   df_time_series_fname <- file.path(out_dir,paste0("df_time_series_",out_suffix,".txt")) #add the name of var later (tmax)
   write.table(df_time_series,file= df_time_series_fname,sep=",",row.names = F) 
@@ -574,19 +603,27 @@ predictions_tiles_missing_fun <- function(list_param){
   #gam_CAI_dailyTmax_predicted_mod1_0_1_20001231_30_1-39.7_165.1.tif
   
   #undebug(check_missing)
+  browser()
+  
+  test_missing <- mclapply(list_lf_raster_tif_tiles,
+                           pattern_str=NULL,
+                           in_dir=in_dir,
+                           date_start=start_date,
+                           date_end=end_date,
+                           item_no=item_no, #9 for predicted tiles
+                           out_suffix=out_suffix,
+                           num_cores=num_cores,
+                           out_dir=out_dir,
+                           FUN=check_missing,
+                           mc.preschedule=FALSE,
+                           mc.cores = 1)
+  #clim_method_mod_obj<-mclapply(1:length(sampling_month_obj$ghcn_data), list_param=list_param_runClim_KGFusion, runClim_KGFusion,mc.preschedule=FALSE,mc.cores = num_cores)   
+  #error message on object 25
+  #check also object 7
 
-  test_missing <- try(lapply(1:length(list_lf_raster_tif_tiles),function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
-                                                                                          pattern_str=NULL,
-                                                                                          in_dir=in_dir,
-                                                                                          date_start=start_date,
-                                                                                          date_end=end_date,
-                                                                                          item_no=item_no, #9 for predicted tiles
-                                                                                          out_suffix=out_suffix,
-                                                                                          num_cores=num_cores,
-                                                                                          out_dir=out_dir)}))
-
- 
-  #test_missing <- try(lapply(1:1,function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
+  #undebug(check_missing)
+  
+  #test_missing <- try(lapply(25:25,function(i){check_missing(lf=list_lf_raster_tif_tiles[[i]], 
   #                                                                    pattern_str=NULL,
   #                                                                    in_dir=out_dir,
   #                                                                    date_start=start_date,
