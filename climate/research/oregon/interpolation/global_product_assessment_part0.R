@@ -4,12 +4,12 @@
 #This script checks the number of predictions by tiles and years.
 #with the goal of predicting potential gaps or missing predictions in fugure mosaics by region.
 #The general logic is to check the number of overlap by shapefile polyon tiles
-#along with the predicitons for every day of the year (*.tif)
+#along with the predictions for every day of the year (*.tif)
 #Summary tables and data are also produced in the script.
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 05/15/2017            
+#MODIFIED ON: 05/17/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -94,7 +94,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05152017.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05172017.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -226,7 +226,7 @@ names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_
                                              "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05152017.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05172017.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 #debug(predictions_tiles_missing_fun)
