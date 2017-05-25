@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 05/17/2017            
+#MODIFIED ON: 05/25/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -21,7 +21,7 @@
 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: reduce the number of outputs tif by examining what day and tiles are missing
+#COMMIT: debugging raste_overlap part of the script
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #Use the following command to run as script via the shell on the bridge 
@@ -94,7 +94,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05172017.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05262017.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -153,7 +153,7 @@ infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
 layers_option <- c("var_pred") #PARAM 16, arg 16
 tmp_files <- FALSE #PARAM 17, arg 17
-plotting_figures <- FALSE #PARAm 18, arg 18
+plotting_figures <- TRUE #PARAm 18, arg 18
 raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
 raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
 
@@ -226,7 +226,7 @@ names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_
                                              "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05172017.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05262017.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 #debug(predictions_tiles_missing_fun)
