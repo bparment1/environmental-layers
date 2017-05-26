@@ -21,7 +21,7 @@
 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: debugging raste_overlap part of the script
+#COMMIT: debugging raste_pred part of the script
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #Use the following command to run as script via the shell on the bridge 
@@ -226,7 +226,7 @@ names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_
                                              "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05262017.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05262017b.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 #debug(predictions_tiles_missing_fun)
