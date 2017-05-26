@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 05/17/2017            
+#MODIFIED ON: 05/25/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -792,7 +792,6 @@ predictions_tiles_missing_fun <- function(list_param){
   ### Plot locations of tiles after?
   #plot(r)
   #plot(shps_tiles[[1]],add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-  browser()
 
   if(raster_overlap==TRUE){
     
@@ -812,14 +811,6 @@ predictions_tiles_missing_fun <- function(list_param){
     ## Select tiles without raster predictions and crop from r_mask
     #shps_tiles_selected <-  shps_tiles[list_r_ref_error]
     
-    generate_raster_tile_ref <- function(i,shps_tiles,r_mask,list_r_ref_error){
-      shps_tiles_selected <- shps_tiles[[i]]
-      if(list_r_ref_error[i]==1){
-        r_tiles_ref <- crop(r_mask,shps_tiles_selected)
-        return(r_tiles_ref)
-      }
-    }
-    
     ref_test<- mclapply(1:length(shps_tiles),
                         FUN=generate_raster_tile_ref,
                         shps_tiles = shps_tiles,
@@ -830,8 +821,11 @@ predictions_tiles_missing_fun <- function(list_param){
     
     #now fill in list_r_ref with ref_test
     
-    list_r_ref[]
-    
+    list_r_ref <- lapply(1:length(list_r_ref),
+                          FUN = replace_raster_ref,
+                          list_r_ref=list_r_ref,
+                          ref_missing = ref_test)
+    browser()
     tile_spdf <- shps_tiles[[1]]
     tile_coord <- basename(in_dir_reg[1])
     date_val <- df_missing$date[1]
@@ -1058,5 +1052,20 @@ predictions_tiles_missing_fun <- function(list_param){
   return(predictions_tiles_missing_obj)
 }
 
+generate_raster_tile_ref <- function(i,shps_tiles,r_mask,list_r_ref_error){
+  #Generate reference raster from region mask if it is not contained in the list of files.
+  shps_tiles_selected <- shps_tiles[[i]]
+  if(list_r_ref_error[i]==1){
+    r_tiles_ref <- crop(r_mask,shps_tiles_selected)
+    return(r_tiles_ref)
+  }
+}
+
+replace_raster_ref <-function(i,list_r_ref,ref_missing){
+  if(class(list_r_ref[[i]])=="try-error"){
+    list_r_ref[[i]] <- ref_missing[[i]]
+  }
+  return(list_r_ref[[i]])
+}
 
 ############################ END OF SCRIPT ##################################
