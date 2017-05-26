@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 05/25/2017            
+#MODIFIED ON: 05/26/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -385,6 +385,26 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #rat$legend <- tb_freq$value
   #levels(r_table) <- rat
 
+  ### Day missing reclass above
+  ## change here
+  #r_missing_day <- r_day_predicted == 0
+  raster_name_missing <- file.path(out_dir,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
+  
+  ## do this in gdalcalc or overlay function to go faster?
+  python_cmd <- file.path(python_bin,"gdal_calc.py")
+  cmd_str2 <- paste(python_cmd, 
+                    paste("-A ", raster_name_number_prediction,sep=""),
+                    paste("--outfile=",raster_name_missing,sep=""),
+                    paste("--type=",data_type,sep=""),
+                    "--co='COMPRESS=LZW'",
+                    paste("--NoDataValue=",NA_flag_val,sep=""),
+                    paste("--calc='(A<1)*",scaling,"'",sep=""),
+                    "--overwrite",sep=" ") #division by zero is problematic...
+  system(cmd_str2)
+  
+  r_missing_day <- raster(raster_name_missing)  
+  
+  ### This should be handled better with a function but works for now.
   if(plotting_figures==TRUE){
     
     res_pix <- 800
@@ -405,25 +425,6 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
     png_filename_number_of_predictions <- NULL
   }
 
-  ### Day missing reclass above
-  ## change here
-  #r_missing_day <- r_day_predicted == 0
-  raster_name_missing <- file.path(out_dir,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
-  
-  ## do this in gdalcalc or overlay function to go faster?
-  python_cmd <- file.path(python_bin,"gdal_calc.py")
-  cmd_str2 <- paste(python_cmd, 
-                     paste("-A ", raster_name_number_prediction,sep=""),
-                     paste("--outfile=",raster_name_missing,sep=""),
-                     paste("--type=",data_type,sep=""),
-                     "--co='COMPRESS=LZW'",
-                     paste("--NoDataValue=",NA_flag_val,sep=""),
-                     paste("--calc='(A<1)*",scaling,"'",sep=""),
-                     "--overwrite",sep=" ") #division by zero is problematic...
-  system(cmd_str2)
-  
-  r_missing_day <- raster(raster_name_missing)  
-  
   if(plotting_figures==TRUE){
     
     res_pix <- 800
@@ -453,7 +454,6 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
   #raster_name_missing <- file.path(out_dir,paste("r_missing_day_mosaiced","_",region_name,"_masked_",date_str,file_format,sep=""))
   #writeRaster(r_missing_day, NAflag=NA_flag_val,filename=raster_name_missing,overwrite=TRUE)  
     
-
   ### generate return object
   obj_number_day_predicted <- list(raster_name_number_prediction,raster_name_missing,tb_freq,
                                    png_filename_number_of_predictions,png_filename_missing_predictions)
@@ -461,6 +461,22 @@ generate_raster_number_of_prediction_by_day <- function(i,list_param){
                                        "png_filename_number_of_predictions","png_missing_predictions")
     
   return(obj_number_day_predicted)
+}
+
+generate_raster_tile_ref <- function(i,shps_tiles,r_mask,list_r_ref_error){
+  #Generate reference raster from region mask if it is not contained in the list of files.
+  shps_tiles_selected <- shps_tiles[[i]]
+  if(list_r_ref_error[i]==1){
+    r_tiles_ref <- crop(r_mask,shps_tiles_selected)
+    return(r_tiles_ref)
+  }
+}
+
+replace_raster_ref <-function(i,list_r_ref,ref_missing){
+  if(class(list_r_ref[[i]])=="try-error"){
+    list_r_ref[[i]] <- ref_missing[[i]]
+  }
+  return(list_r_ref[[i]])
 }
 
 predictions_tiles_missing_fun <- function(list_param){
@@ -778,7 +794,7 @@ predictions_tiles_missing_fun <- function(list_param){
   centroids_pts <- lapply(obj_centroids_shp, FUN=function(x){x$centroid})
   shps_tiles <-   lapply(obj_centroids_shp, FUN=function(x){x$spdf})
 
-  browser()
+  #browser()
   #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
   tmp <- shps_tiles
   shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
@@ -797,10 +813,10 @@ predictions_tiles_missing_fun <- function(list_param){
     
     ### preparing inputs for raster_overlap production
     names(shps_tiles) <- basename(unlist(in_dir_reg))
-    r_ref <- raster(list_lf_raster_tif_tiles[[1]][1])
+    #r_ref <- raster(list_lf_raster_tif_tiles[[15]][1])
     #list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
     list_r_ref <- mclapply(1:length(list_lf_raster_tif_tiles), 
-                           function(i,x){raster(x[[i]][1])},
+                           function(i,x){try(raster(x[[i]][1]))},
                            x = list_lf_raster_tif_tiles,
                            mc.preschedule=FALSE,
                            mc.cores = num_cores)
@@ -825,11 +841,12 @@ predictions_tiles_missing_fun <- function(list_param){
                           FUN = replace_raster_ref,
                           list_r_ref=list_r_ref,
                           ref_missing = ref_test)
-    browser()
+    
     tile_spdf <- shps_tiles[[1]]
     tile_coord <- basename(in_dir_reg[1])
     date_val <- df_missing$date[1]
     
+    #browser()
     ### use rasterize
     #spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
     #Error in (function (classes, fdef, mtable)  : 
@@ -897,6 +914,8 @@ predictions_tiles_missing_fun <- function(list_param){
     r_overlap_raster_name <- mosaic_overlap_tiles_obj$out_mosaic_name
     cmd_str1 <-   mosaic_overlap_tiles_obj$cmd_str
 
+    #browser()
+    
     r_overlap <- raster(r_overlap_raster_name)
     r_mask <- raster(infile_mask)
     out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",region_name,"_",out_suffix,".tif",sep=""))
@@ -995,12 +1014,13 @@ predictions_tiles_missing_fun <- function(list_param){
     #r_tiles_stack <- stack(list_tiles_predicted_masked)
     #names(r_tiles_stack) <- basename(in_dir_reg) #this does not work, X. is added to the name, use list instead
   
-    #names(list_tiles_predicted_masked) <- basename(in_dir_reg)
+    names(list_tiles_predicted_masked) <- basename(in_dir_reg)
     #df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
     #r_tiles_s <- r_tiles_stack
     #names_tiles <- basename(in_dir_reg)
   
-
+    browser()
+    
     list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
                                                  num_cores,region_name,data_type,scaling,python_bin,
                                                  plotting_figures,
@@ -1052,20 +1072,5 @@ predictions_tiles_missing_fun <- function(list_param){
   return(predictions_tiles_missing_obj)
 }
 
-generate_raster_tile_ref <- function(i,shps_tiles,r_mask,list_r_ref_error){
-  #Generate reference raster from region mask if it is not contained in the list of files.
-  shps_tiles_selected <- shps_tiles[[i]]
-  if(list_r_ref_error[i]==1){
-    r_tiles_ref <- crop(r_mask,shps_tiles_selected)
-    return(r_tiles_ref)
-  }
-}
-
-replace_raster_ref <-function(i,list_r_ref,ref_missing){
-  if(class(list_r_ref[[i]])=="try-error"){
-    list_r_ref[[i]] <- ref_missing[[i]]
-  }
-  return(list_r_ref[[i]])
-}
 
 ############################ END OF SCRIPT ##################################
