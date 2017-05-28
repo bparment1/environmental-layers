@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/27/2016  
-#MODIFIED ON: 05/25/2017            
+#MODIFIED ON: 05/28/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: 
@@ -21,7 +21,7 @@
 
 #
 #setfacl -Rm u:aguzman4:rwx /nobackupp6/aguzman4/climateLayers/LST_tempSpline/
-#COMMIT: debugging raste_pred part of the script
+#COMMIT: testing command line for reg 6 after debugging
 
 ### Testing several years on the bridge before running jobs on nodes with qsub
 #Use the following command to run as script via the shell on the bridge 
@@ -94,7 +94,7 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05262017.R"
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05282017.R"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 ##Don't load part 1 and part2, mosaic package does not work on NEX
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
@@ -109,7 +109,8 @@ source(file.path(script_path,function_product_assessment_part0_functions)) #sour
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_12182016b.R TMAX /nobackupp6/aguzman4/climateLayers/out/reg6/assessment reg6 predictions_tiles_assessment_reg6_2000_test3 /nobackupp8/bparmen1/climateLayers/out/reg6/assessment TRUE 2000 6 1e+07 9 rmse 20000101 20001231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/out var_pred FALSE FALSE
 #Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_04292017.R TMIN /nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment reg1 predictions_gaps_tiles_assessment_reg1_1985 /nobackupp8/bparmen1/climateLayers/tMinOut/reg1/assessment TRUE 1985 6 1e+07 9 rmse 19850101 19851231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif /nobackupp6/aguzman4/climateLayers/tMinOut var_pred FALSE FALSE FALSE FALSE
  
-#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_05152017.R TMIN /nobackupp6/aguzman4/climateLayers/tMinOut/reg6/assessment reg6 predictions_gaps_tiles_assessment_reg6_1985 /nobackupp8/bparmen1/climateLayers/tMinOut/reg6/assessment TRUE 1985 6 1e+07 9 rmse 19850101 19851231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/tMinOut var_pred FALSE FALSE FALSE FALSE                                                                                                
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_05282017.R TMIN /nobackupp6/aguzman4/climateLayers/tMinOut/reg6/assessment reg6 predictions_gaps_tiles_assessment_reg6_1985 /nobackupp8/bparmen1/climateLayers/tMinOut/reg6/assessment TRUE 1985 6 1e+07 9 rmse 19850101 19851231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif /nobackupp6/aguzman4/climateLayers/tMinOut var_pred FALSE FALSE FALSE FALSE                                                                                                
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/global_product_assessment_part0_05282017.R TMIN /nobackupp6/aguzman4/climateLayers/tMinOut/reg5/assessment reg5 predictions_gaps_tiles_assessment_reg5_1985 /nobackupp8/bparmen1/climateLayers/tMinOut/reg5/assessment TRUE 1985 6 1e+07 9 rmse 19850101 19851231 /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif /nobackupp6/aguzman4/climateLayers/tMinOut var_pred FALSE FALSE FALSE FALSE                                                                                                
 
 ### ARGUMENTS: inputs parameters set from the command line
 
@@ -135,27 +136,27 @@ raster_overlap <- args[19] # PARAM 19, if TRUE, raster overlap is generated
 raster_pred <- args[20] # PARAM 20, if TRUE, raster prediction is generated
 
 #### values used for testing
-var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
-in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg6/assessment" #PARAM2
-region_name <- c("reg6") #PARAM 3, arg 3
-out_suffix <- "predictions_gaps_tiles_assessment_reg6_1985" #PARAM 4
-#out_suffix_str <- region_name #PARAM 4, CONST 3
-out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/reg6/assessment"
-create_out_dir_param <- TRUE #PARAM 12, arg 6
-year_predicted <- c(1985) #PARAM 7, arg7
-num_cores <- 6 #number of cores used # PARAM 8, arg 8
-max_mem <- 1e+07 #PARAM 9
-item_no <- 9 #PARAM 10, arg 10
-metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-day_start <- "19850101" #PARAM 12, arg 12
-day_end <- "19851231" #PARAM 13, arg 13
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif" #PARAM 14, arg 14
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
-layers_option <- c("var_pred") #PARAM 16, arg 16
-tmp_files <- FALSE #PARAM 17, arg 17
-plotting_figures <- TRUE #PARAm 18, arg 18
-raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
-raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
+# var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
+# in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg6/assessment" #PARAM2
+# region_name <- c("reg6") #PARAM 3, arg 3
+# out_suffix <- "predictions_gaps_tiles_assessment_reg6_1985" #PARAM 4
+# #out_suffix_str <- region_name #PARAM 4, CONST 3
+# out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/reg6/assessment"
+# create_out_dir_param <- TRUE #PARAM 12, arg 6
+# year_predicted <- c(1985) #PARAM 7, arg7
+# num_cores <- 6 #number of cores used # PARAM 8, arg 8
+# max_mem <- 1e+07 #PARAM 9
+# item_no <- 9 #PARAM 10, arg 10
+# metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+# day_start <- "19850101" #PARAM 12, arg 12
+# day_end <- "19851231" #PARAM 13, arg 13
+# infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif" #PARAM 14, arg 14
+# in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
+# layers_option <- c("var_pred") #PARAM 16, arg 16
+# tmp_files <- FALSE #PARAM 17, arg 17
+# plotting_figures <- TRUE #PARAm 18, arg 18
+# raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
+# raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
 
 ###################
 ### CONSTANT: not set from command line
@@ -226,8 +227,8 @@ names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_
                                              "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05262017b.R"
-source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+#function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_05282017.R"
+#source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 
 #debug(predictions_tiles_missing_fun)
 #Started at 9.35am
