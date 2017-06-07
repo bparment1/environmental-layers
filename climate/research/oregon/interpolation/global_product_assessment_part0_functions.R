@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 05/26/2017            
+#MODIFIED ON: 06/07/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
@@ -709,6 +709,8 @@ predictions_tiles_missing_fun <- function(list_param){
   filename_df_missing_tiles_sp <- file.path(out_dir,paste0("df_missing_by_centroids_tiles_and_dates",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
   write.table(as.data.frame(df_missing_tiles_sp),file=filename_df_missing_tiles_sp,sep=",")
  
+  #browser()
+  
   ### Now generate plots if missing tiles for specific dates in the region
   df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
   path_to_shp <- dirname(countries_shp)
@@ -1019,7 +1021,7 @@ predictions_tiles_missing_fun <- function(list_param){
     #r_tiles_s <- r_tiles_stack
     #names_tiles <- basename(in_dir_reg)
   
-    browser()
+    #browser()
     
     list_param_generate_raster_number_pred <- list(list_tiles_predicted_masked,df_missing_tiles_day,r_overlap_m,
                                                  num_cores,region_name,data_type,scaling,python_bin,
