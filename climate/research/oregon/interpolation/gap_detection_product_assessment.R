@@ -95,7 +95,12 @@ in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps"
 num_cores <- 6
 pattern_str <- "df_missing_by_dates_tiles_predicted_tif_reg1_mod1_predictions_gaps_tiles_assessment_reg1_.*.txt"
 
-## selecte relevant files for region
+function(in_dir,region_name,num_cores,out_dir, out_suffix){
+  #d
+  #d
+  
+}
+## select relevant files for region
 in_dir_list_tmp <- list.files(pattern =paste0(".*.",region_name,".*."),full.names=T,path=in_dir)
 
 list_lf_df_missing_tiles <- unlist(mclapply(in_dir_list_tmp,
@@ -103,7 +108,7 @@ list_lf_df_missing_tiles <- unlist(mclapply(in_dir_list_tmp,
                                                                 pattern=paste0("df_missing_by_dates_tiles_predicted_tif_",".*.",region_name,".*.txt"),full.names=T)},
                                      mc.preschedule=FALSE,mc.cores = num_cores))
 list_df_missing_tiles <- mclapply(list_lf_df_missing_tiles,
-                                     FUN=function(x){read.table(x,sep=",",stringsAsFactors = F)},
+                                     FUN=function(x){read.table(x,sep=",",stringsAsFactors = F,check.names = F)},
                                      mc.preschedule=FALSE,mc.cores = num_cores)
 
 df_missing_tiles_reg <- do.call(rbind,list_df_missing_tiles)
@@ -114,6 +119,106 @@ table(df_missing_tiles_reg$tot_missing)
 histogram(df_missing_tiles_reg$tot_missing)
 
 
+###### Assessment ####
+#### Generate summary from missing table
+#1) Select dates with missing tiles
+#2) Plot number of days missing in maps over 365 days
+#3) Plot number of days missing in histograms/barplots
+#4) Keep raster of number pix predictions of overlap
+### do sum across tiles to find number of missing per tiles and map it
+
+n_tiles <- length(df_missing_tiles_reg) - 3
+df_missing_tiles_reg_sp <- t(df_missing_tiles_reg[,1:n_tiles]) #transpose to get df with lines centroids of tiles
+df_missing_tiles_reg_sp <- as.data.frame(df_missing_tiles_reg_sp)
+names(df_missing_tiles_reg_sp) <- df_missing_tiles_reg$date
+df_missing_tiles_reg_sp$tot_missing <- rowSums(df_missing_tiles_reg_sp) #total missing over a year by tile
+df_missing_tiles_reg_sp$tot_pred <- length(df_missing_tiles_reg$date) - df_missing_tiles_reg_sp$tot_missing
+
+tiles_names <- names(df_missing_tiles_reg)[1:n_tiles]
+list_xy <- strsplit(unlist(basename(tiles_names)),"_")
+sub("X","",list_xy)
+
+#list_xy <- lapply(centroids_pts,function(x){coordinates(x)})
+coord_xy <- do.call(rbind,list_xy)
+y_val <- as.numeric(coord_xy[,1]) #lat, long! need to reverse
+x_val <- as.numeric(coord_xy[,2])
+coordinates(df_missing_tiles_sp) <- as.matrix(cbind(x_val,y_val))
+
+#This contains in rows date and tiles columns
+filename_df_missing_tiles_sp <- file.path(out_dir,paste0("df_missing_by_centroids_tiles_and_dates",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
+write.table(as.data.frame(df_missing_tiles_sp),file=filename_df_missing_tiles_sp,sep=",")
+
+#browser()
+
+### Now generate plots if missing tiles for specific dates in the region
+df_missing_tiles_day <- subset(df_missing,tot_missing > 0)
+path_to_shp <- dirname(countries_shp)
+layer_name <- sub(".shp","",basename(countries_shp))
+reg_layer <- readOGR(path_to_shp, layer_name) #outlines of the region
+r_mask <- raster(infile_mask)
+
+if(nrow(df_missing_tiles_day)>0){
+  
+  res_pix <- 800
+  #res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+  png_filename_histogram <-  file.path(out_dir,paste("Figure_histogram_","region_missing_tiles","_",out_suffix,".png",sep =""))
+  
+  png(filename=png_filename_histogram,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+  hist(df_missing$tot_missing,
+       ylab="frequency of missing",
+       xlab="tiles",
+       main="Number of missing predictions over a year by tile")
+  dev.off()
+  
+  #check for this in every output, if not present then there are no missing tiles over the full year for 
+  #the specific region
+  write.table(df_missing_tiles_day,file=paste0("df_missing_tiles_day_mosaic_",out_suffix,".txt"))
+  
+  #do spplot after that on tot sum
+  
+  png(filename=paste("Figure_total_missing_days_map_centroids_tile_",pred_mod_name,"_",
+                     "_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  #spplot for reg_layer not working on NEX again
+  #p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  p_r <-levelplot(r_mask,colorkey=F) #no key legend
+  p <- bubble(df_missing_tiles_sp,"tot_missing",main=paste0("Missing per tile and by ",pred_mod_name,
+                                                            " for ",y_var_name))
+  #p1 <- p+p_shp
+  p_c <- p + p_r + p #set the legend first by using p first
+  
+  try(print(p_c)) #error raised if number of missing values below a threshold does not exist
+  dev.off()
+  
+}else{
+  #do spplot after that on tot sum
+  res_pix <- 800
+  #res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+  
+  png(filename=paste("Figure_total_predicted_days_predicted_map_centroids_tile_",pred_mod_name,"_",
+                     "_",out_suffix,".png",sep=""),
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  #bubble(pp, "att",
+  #       panel=function(...) {
+  #         sp.polygons(SpP, fill="blue")
+  #         sp:::panel.bubble(...)
+  #       }) 
+  
+  #p_shp <- spplot(reg_layer,"ISO3" ,sp.layout=list("sp.polygons", reg_layer, fill="white"))
+  #p_shp spplot not working on NEX anymore, use raster as background
+  p_r <-levelplot(r_mask,colorkey=F) #no key legend
+  p <- bubble(df_missing_tiles_sp,"tot_pred",main=paste0("Prediction per tile and by ",pred_mod_name,
+                                                         " for ", y_var_name))
+  p_c <- p + p_r + p #set the legend first by using p first
+  #p1 <- p+p_shp
+  try(print(p_c)) #error raised if number of missing values below a threshold does not exist
+  dev.off()
+}
 
 ## combine a make count+ plot
 
