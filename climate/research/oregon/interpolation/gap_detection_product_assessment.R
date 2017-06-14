@@ -63,9 +63,6 @@ library(lubridate)
 
 ###### Function used in the script #######
 
-
-
-
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment" #PARAM2
 region_name <- c("reg1") #PARAM 3, arg 3
@@ -90,20 +87,27 @@ raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
 
 
 #################### Begin Script ######
-in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps"
-# ./*reg1*/df_missing_by_dates_tiles_predicted_tif_reg1_mod1_predictions_gaps_tiles_assessment_reg1_*.txt 
-num_cores <- 6
-pattern_str <- "df_missing_by_dates_tiles_predicted_tif_reg1_mod1_predictions_gaps_tiles_assessment_reg1_.*.txt"
-countries_shp <- "/nobackupp8/bparmen1/NEX_data/countries.shp" #PARAM 17
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
 
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
-in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment" #PARAM2
+in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2
 region_name <- c("reg1") #PARAM 3, arg 3
 out_suffix <- "mosaic_gaps_tiles_assessment_reg1_combined" #PARAM 4
 #out_suffix_str <- region_name #PARAM 4, CONST 3
-out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/reg1/assessment"
+out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
 create_out_dir_param <- TRUE #PARAM 12, arg 6
+num_cores <- 6 #number of cores used # PARAM 8, arg 8
+max_mem <- 1e+07 #PARAM 9
+metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
+day_start <- "19930101" #PARAM 12, arg 12
+day_end <- "19931231" #PARAM 13, arg 13
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
+in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
+layers_option <- c("var_pred") #PARAM 16, arg 16
+tmp_files <- FALSE #PARAM 17, arg 17
+plotting_figures <- TRUE #PARAm 18, arg 18
+raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
+raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
+
 
 ### constant
 
@@ -145,7 +149,7 @@ if (var == "TMIN") {
   variable_name <- "minimum temperature"
 }
 
-function(in_dir,region_name,num_cores,out_dir, out_suffix){
+assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
   #d
   #d
   ## select relevant files for region
@@ -227,7 +231,7 @@ function(in_dir,region_name,num_cores,out_dir, out_suffix){
     
     ### Now output the table:
     out_filename <- paste0("missing_val_table_barplot_day_tiles_",out_suffix,".txt")
-    write.table(missing_val)
+    write.table(missing_val,file= file.path(out_dir,out_filename))
     #do spplot after that on tot sum
     
     png(filename=paste("Figure_total_missing_days_map_centroids_tile_",pred_mod_name,"_",
@@ -244,27 +248,206 @@ function(in_dir,region_name,num_cores,out_dir, out_suffix){
     try(print(p_c)) #error raised if number of missing values below a threshold does not exist
     dev.off()
     
-  }else{
-    #do spplot after that on tot sum
-    res_pix <- 800
-    #res_pix <- 480
-    col_mfrow <- 1
-    row_mfrow <- 1
-    
-    png(filename=paste("Figure_total_predicted_days_predicted_map_centroids_tile_",pred_mod_name,"_",
-                       "_",out_suffix,".png",sep=""),
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    p_r <-levelplot(r_mask,colorkey=F) #no key legend
-    p <- bubble(df_missing_tiles_sp,"tot_pred",main=paste0("Prediction per tile and by ",pred_mod_name,
-                                                           " for ", y_var_name))
-    p_c <- p + p_r + p #set the legend first by using p first
-    #p1 <- p+p_shp
-    try(print(p_c)) #error raised if number of missing values below a threshold does not exist
-    dev.off()
   }
   
+  #do spplot after that on tot sum
+  res_pix <- 800
+  #res_pix <- 480
+  col_mfrow <- 1
+  row_mfrow <- 1
+    
+  png(filename=paste("Figure_total_predicted_days_predicted_map_centroids_tile_",pred_mod_name,"_",
+                       "_",out_suffix,".png",sep=""),
+  width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+    
+  p_r <-levelplot(r_mask,colorkey=F) #no key legend
+  p <- bubble(df_missing_tiles_sp,"tot_pred",main=paste0("Prediction per tile and by ",pred_mod_name,
+                                                           " for ", y_var_name))
+  p_c <- p + p_r + p #set the legend first by using p first
+  #p1 <- p+p_shp
+  try(print(p_c)) #error raised if number of missing values below a threshold does not exist
+  dev.off()
+  
   #### add more here
+  if(raster_overlap==TRUE){
+    
+    ### preparing inputs for raster_overlap production
+    names(shps_tiles) <- basename(unlist(in_dir_reg))
+    #r_ref <- raster(list_lf_raster_tif_tiles[[15]][1])
+    #list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
+    
+    plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_missing,num_cores=1,
+                                         region_name="",out_suffix="",out_dir="."){
+      
+      ###This functions generate a mosaic of overlap for tiles of SpatialPolygonsDataFrame.
+      ##INPUTS
+      ##
+      
+      ########################### Beging script ##################
+      
+      if(!is.null(list_lf_raster_tif_tiles)){
+        list_r_ref <- mclapply(1:length(list_lf_raster_tif_tiles), 
+                               function(i,x){try(raster(x[[i]][1]))},
+                               x = list_lf_raster_tif_tiles,
+                               mc.preschedule=FALSE,
+                               mc.cores = num_cores)
+        
+        #find try-error
+        list_r_ref_error <- as.numeric(unlist(lapply(list_r_ref,function(x){class(x)=="try-error"})))
+        
+        ## Select tiles without raster predictions and crop from r_mask
+        #shps_tiles_selected <-  shps_tiles[list_r_ref_error]
+        
+        ref_test<- mclapply(1:length(shps_tiles),
+                            FUN=generate_raster_tile_ref,
+                            shps_tiles = shps_tiles,
+                            r_mask=r_mask,
+                            list_r_ref_error=list_r_ref_error,
+                            mc.preschedule=FALSE,
+                            mc.cores = num_cores)
+        
+        #now fill in list_r_ref with ref_test
+        
+        list_r_ref <- lapply(1:length(list_r_ref),
+                             FUN = replace_raster_ref,
+                             list_r_ref=list_r_ref,
+                             ref_missing = ref_test)
+        
+      }else{
+        #generate raster from polygon tiles
+        ref_test<- mclapply(1:length(shps_tiles),
+                            FUN=generate_raster_tile_ref,
+                            shps_tiles = shps_tiles,
+                            r_mask=r_mask,
+                            list_r_ref_error=list_r_ref_error,
+                            mc.preschedule=FALSE,
+                            mc.cores = num_cores)
+      }
+      
+      tile_spdf <- shps_tiles[[1]]
+      #tile_coord <- basename(in_dir_reg[1])
+      date_val <- df_missing$date[1] # need to get rid of this parameters later to make this a general function
+      
+      #browser()
+      ### use rasterize
+      #spdf_tiles <- do.call(bind, shps_tiles) #bind all tiles together in one shapefile
+      #Error in (function (classes, fdef, mtable)  : 
+      #unable to find an inherited method for function 'bind' for signature '"missing", "missing"'
+      
+      #undebug(rasterize_tile_day)
+      #list_predicted <- rasterize_tile_day(1,
+      #        list_spdf=shps_tiles,
+      #         df_missing=df_missing,
+      #         list_r_ref=list_r_ref,
+      #         col_name="overlap",
+      #         date_val=df_missing$date[1])
+      #list_predicted <- mclapply(1:6,
+      #         FUN=rasterize_tile_day,
+      #         list_spdf=shps_tiles,
+      #         df_missing=df_missing,
+      #         list_r_ref=list_r_ref,
+      #         col_name = "overlap",
+      #         date_val=df_missing$date[1],
+      #          mc.preschedule=FALSE,
+      #         mc.cores = num_cores)
+      
+      list_predicted <- mclapply(1:length(shps_tiles),
+                                 FUN=rasterize_tile_day,
+                                 list_spdf=shps_tiles,
+                                 df_missing=df_missing,
+                                 list_r_ref=list_r_ref,
+                                 col_name = "overlap",
+                                 date_val=df_missing$date[1],
+                                 out_dir = out_dir,
+                                 #out_suffix = "",
+                                 out_suffix = "_tmp",
+                                 mc.preschedule=FALSE,
+                                 mc.cores = num_cores)
+      
+      ##check that everything is correct:
+      #plot(r_mask)
+      #plot(raster(list_predicted[[1]]),add=T)
+      #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+      
+      ### Make a list of file
+      out_suffix_str_tmp <- paste0(region_name,"_",out_suffix,"_tmp")
+      out_dir_str <- out_dir
+      filename_list_predicted <- file.path(out_dir_str,paste("list_to_mosaics_",out_suffix_str_tmp,".txt",sep=""))
+      writeLines(unlist(list_predicted),con=filename_list_predicted) #weights files to mosaic 
+      
+      #writeLines(unlist(list_weights_m),con=filename_list_mosaics_weights_m) #weights files to mosaic 
+      #writeLines(unlist(list_weights_prod_m),con=filename_list_mosaics_prod_weights_m) #prod weights files to mosaic
+      
+      #browser()
+      
+      #out_mosaic_name_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+      #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
+      out_mosaic_name_predicted_m  <- file.path(out_dir_str,paste("r_overlap_sum_m_",out_suffix_str_tmp,"_tmp",".tif",sep=""))
+      rast_ref_name <- infile_mask
+      mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+      rast_ref_name <- infile_mask
+      #python /nobackupp6/aguzman4/climateLayers/sharedCode//gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o /nobackupp8/bparmen1/climateLayers/out
+      mosaic_overlap_tiles_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
+                                                      module_path=mosaic_python,
+                                                      module_name="gdal_merge_sum.py",
+                                                      input_file=filename_list_predicted,
+                                                      out_mosaic_name=out_mosaic_name_predicted_m,
+                                                      raster_ref_name = rast_ref_name) ##if NA, not take into account
+      r_overlap_raster_name <- mosaic_overlap_tiles_obj$out_mosaic_name
+      cmd_str1 <-   mosaic_overlap_tiles_obj$cmd_str
+      
+      #browser()
+      
+      r_overlap <- raster(r_overlap_raster_name)
+      r_mask <- raster(infile_mask)
+      out_mosaic_name_overlap_masked  <- file.path(out_dir_str,paste("r_overlap_sum_masked_",region_name,"_",out_suffix,".tif",sep=""))
+      
+      r_overlap_m <- mask(r_overlap,
+                          mask=r_mask,
+                          filename=out_mosaic_name_overlap_masked,
+                          datatype=data_type_str,
+                          #datatype=data_type,
+                          options=c("COMPRESS=LZW"),#compress tif
+                          overwrite=TRUE,
+                          NAflag=NA_flag_val)
+      
+      #r_overlap_m <- mask(r_overlap,r_mask,filename=out_mosaic_name_overlap_masked,overwrite=T)
+      #plot(r_overlap_m)
+      #plot(spdf_tiles_test,add=T,border="green",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+      
+      #r_table <- ratify(r_overlap_m) # build the Raster Attibute table
+      #rat <- levels(r_table)[[1]]#get the values of the unique cell frot the attribute table
+      #rat$legend <- paste0("tile_",1:26)
+      tb_freq_overlap <- as.data.frame(freq(r_overlap_m))
+      write.table(tb_freq_overlap,file=paste0("tb_freq_overlap_",out_suffix,".txt"))
+      
+      ####
+      
+      res_pix <- 800
+      #res_pix <- 480
+      col_mfrow <- 1
+      row_mfrow <- 1
+      
+      png_filename_maximum_overlap <-  file.path(out_dir,paste("Figure_maximum_overlap_",region_name,"_",out_suffix,".png",sep =""))
+      title_str <-  paste("Maximum overlap: Number of predicted pixels for ",variable_name, sep = "")
+      
+      png(filename=png_filename_maximum_overlap,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+      #my_col=c('blue','red','green')
+      my_col <- rainbow(length(tb_freq_overlap$value))
+      plot(r_overlap_m,col=my_col,legend=F,box=F,axes=F,main=title_str)
+      legend(x='topright', legend =tb_freq_overlap$value,fill = my_col,cex=0.8)
+      dev.off()
+      
+      #browser()
+    }
+    
+
+    
+  }else{ #if raster_overalp==FALSE
+    out_mosaic_name_overlap_masked <- NULL
+    tb_freq_overlap <- NULL
+    png_filename_maximum_overlap <- NULL
+  }
   
 }
 
