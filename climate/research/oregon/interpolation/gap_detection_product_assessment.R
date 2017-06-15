@@ -9,10 +9,10 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 06/14/2017            
+#MODIFIED ON: 06/15/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
-#COMMENTS: removing unused functions and clean up for part0 global prodduct assessment part0 
+#COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
 #TODO:#PROJECT: Environmental Layers project     
 #COMMENTS:
 #TODO:
@@ -98,16 +98,15 @@ create_out_dir_param <- TRUE #PARAM 12, arg 6
 num_cores <- 6 #number of cores used # PARAM 8, arg 8
 max_mem <- 1e+07 #PARAM 9
 metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-day_start <- "19930101" #PARAM 12, arg 12
-day_end <- "19931231" #PARAM 13, arg 13
+#day_start <- "19930101" #PARAM 12, arg 12
+#day_end <- "19931231" #PARAM 13, arg 13
 infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
 layers_option <- c("var_pred") #PARAM 16, arg 16
 tmp_files <- FALSE #PARAM 17, arg 17
 plotting_figures <- TRUE #PARAm 18, arg 18
 raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
-raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
-
+#raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
 
 ### constant
 
@@ -148,23 +147,31 @@ if (var == "TMAX") {
 if (var == "TMIN") {
   variable_name <- "minimum temperature"
 }
+#mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py"
 
-assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
-  #d
-  #d
-  ## select relevant files for region
-  in_dir_list_tmp <- list.files(pattern =paste0(".*.",region_name,".*."),full.names=T,path=in_dir)
+gap_tiles_assessment_fun <- function(in_dir,region_name,num_cores,NA_flag_val,data_type_str,
+                                     shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
+                                     moscaic_python_script,out_dir,out_suffix){
+  #
+  #This function assesses missing tiles over 31 years of predictions using output from product assessment.
+  #It is to be run region by region.
   
+  ###################### Begin script ##########################
+  
+  ##Select relevant folder/dir by region given input dir
+  in_dir_list_tmp <- list.files(pattern =paste0(".*.",region_name,".*."),full.names=T,path=in_dir)
+  ##collect data.frame with missing information from year assessments
   list_lf_df_missing_tiles <- unlist(mclapply(in_dir_list_tmp,
                                               FUN=function(x){list.files(path=x,
                                                                          pattern=paste0("df_missing_by_dates_tiles_predicted_tif_",".*.",region_name,".*.txt"),full.names=T)},
                                               mc.preschedule=FALSE,mc.cores = num_cores))
+  ## read in data.frame with missing information
   list_df_missing_tiles <- mclapply(list_lf_df_missing_tiles,
                                     FUN=function(x){read.table(x,sep=",",stringsAsFactors = F,check.names = F)},
                                     mc.preschedule=FALSE,mc.cores = num_cores)
-  
+  ## Combine all annual data.frame over the years
   df_missing_tiles_reg <- do.call(rbind,list_df_missing_tiles)
-
 
   ###### Assessment ####
   #### Generate summary from missing table
@@ -174,7 +181,7 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
   #4) Keep raster of number pix predictions of overlap
   ### do sum across tiles to find number of missing per tiles and map it
   
-  n_tiles <- length(df_missing_tiles_reg) - 3
+  n_tiles <- length(df_missing_tiles_reg) - 3 #number of tiles in this region
   df_missing_tiles_reg_sp <- t(df_missing_tiles_reg[,1:n_tiles]) #transpose to get df with lines centroids of tiles
   df_missing_tiles_reg_sp <- as.data.frame(df_missing_tiles_reg_sp)
   names(df_missing_tiles_reg_sp) <- df_missing_tiles_reg$date
@@ -184,8 +191,6 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
   tiles_names <- names(df_missing_tiles_reg)[1:n_tiles]
   list_xy <- strsplit(unlist(basename(tiles_names)),"_")
 
-  #df_missing_tiles_reg_sp <- df_missing_tiles_reg
-  #list_xy <- lapply(centroids_pts,function(x){coordinates(x)})
   coord_xy <- do.call(rbind,list_xy)
   y_val <- as.numeric(coord_xy[,1]) #lat, long! need to reverse
   x_val <- as.numeric(coord_xy[,2])
@@ -272,19 +277,22 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
   if(raster_overlap==TRUE){
     
     ### preparing inputs for raster_overlap production
-    names(shps_tiles) <- basename(unlist(in_dir_reg))
+    names(shps_tiles) <- tiles_names
     #r_ref <- raster(list_lf_raster_tif_tiles[[15]][1])
     #list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
     
     plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_missing,num_cores=1,
+                                         mosaic_python_script,data_tye_str,
                                          region_name="",out_suffix="",out_dir="."){
       
       ###This functions generate a mosaic of overlap for tiles of SpatialPolygonsDataFrame.
       ##INPUTS
       ##
+      ##TO DO: modify to drop df_missing
       
       ########################### Beging script ##################
       
+      ### if list of raster exist check that none are missing
       if(!is.null(list_lf_raster_tif_tiles)){
         list_r_ref <- mclapply(1:length(list_lf_raster_tif_tiles), 
                                function(i,x){try(raster(x[[i]][1]))},
@@ -292,12 +300,11 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
                                mc.preschedule=FALSE,
                                mc.cores = num_cores)
         
-        #find try-error
+        #find try-error: missing raster
         list_r_ref_error <- as.numeric(unlist(lapply(list_r_ref,function(x){class(x)=="try-error"})))
         
-        ## Select tiles without raster predictions and crop from r_mask
-        #shps_tiles_selected <-  shps_tiles[list_r_ref_error]
-        
+        ## Select tiles without raster, generate raster and from r_mask
+
         ref_test<- mclapply(1:length(shps_tiles),
                             FUN=generate_raster_tile_ref,
                             shps_tiles = shps_tiles,
@@ -314,7 +321,7 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
                              ref_missing = ref_test)
         
       }else{
-        #generate raster from polygon tiles
+        #generate raster from polygon tiles for al the list
         ref_test<- mclapply(1:length(shps_tiles),
                             FUN=generate_raster_tile_ref,
                             shps_tiles = shps_tiles,
@@ -354,7 +361,7 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
       list_predicted <- mclapply(1:length(shps_tiles),
                                  FUN=rasterize_tile_day,
                                  list_spdf=shps_tiles,
-                                 df_missing=df_missing,
+                                 df_missing=df_missing, #modify later to get rid of this input
                                  list_r_ref=list_r_ref,
                                  col_name = "overlap",
                                  date_val=df_missing$date[1],
@@ -384,12 +391,14 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
       #out_mosaic_name_prod_weights_m <- r_weights_sum_raster_name <- file.path(out_dir,paste("r_prod_weights_sum_m_",mosaic_method,"_weighted_mean_",out_suffix,".tif",sep=""))
       out_mosaic_name_predicted_m  <- file.path(out_dir_str,paste("r_overlap_sum_m_",out_suffix_str_tmp,"_tmp",".tif",sep=""))
       rast_ref_name <- infile_mask
-      mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+      #mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
+      mosaic_python <- dirname(mosaic_python_script)
       rast_ref_name <- infile_mask
       #python /nobackupp6/aguzman4/climateLayers/sharedCode//gdal_merge_sum.py --config GDAL_CACHEMAX=1500 --overwrite=TRUE -o /nobackupp8/bparmen1/climateLayers/out
       mosaic_overlap_tiles_obj <- mosaic_python_merge(NA_flag_val=NA_flag_val,
                                                       module_path=mosaic_python,
-                                                      module_name="gdal_merge_sum.py",
+                                                      #module_name="gdal_merge_sum.py",
+                                                      module_name = basename(mosaic_python_script),
                                                       input_file=filename_list_predicted,
                                                       out_mosaic_name=out_mosaic_name_predicted_m,
                                                       raster_ref_name = rast_ref_name) ##if NA, not take into account
@@ -439,6 +448,9 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
       dev.off()
       
       #browser()
+      #### prepare object to return
+      
+      return()
     }
     
 
@@ -450,11 +462,6 @@ assess_gaps <- function(in_dir,region_name,num_cores,out_dir, out_suffix){
   }
   
 }
-
-
-
-
-## combine a make count+ plot
 
 
 ############################# END OF SCRIPT ###################################
