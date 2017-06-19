@@ -16,14 +16,14 @@
 #TODO:#PROJECT: Environmental Layers project     
 #COMMENTS:
 #TODO:
-
+#
 #First source these files:
 #Resolved call issues from R.
 #source /nobackupp6/aguzman4/climateLayers/sharedModules2/etc/environ.sh 
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: initial commit, function for assembling gap dection results by regions
+##COMMIT: testing command line
 
 #################################################################################################
 
@@ -234,13 +234,31 @@ plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_miss
 
 
 
-gap_tiles_assessment_fun <- function(in_dir,region_name,num_cores,NA_flag_val,data_type_str,
+gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_flag_val,data_type_str,
                                      shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
                                      moscaic_python_script,out_dir,out_suffix){
   #
   #This function assesses missing tiles over 31 years of predictions using output from product assessment.
   #It is to be run region by region.
-  
+  #
+  #INPUTS
+  #1) in_dir
+  #2) y_var_name
+  #3) region_name
+  #4) num_cores
+  #5) NA_flag_val
+  #6) data_type_str
+  #7) shps_tile
+  #8) list_lf_raster_tif_tiles
+  #9) infile_mask
+  #10) countries_shp,
+  #11) moscaic_python_script
+  #12) out_dir
+  #13) out_suffix
+  #OUTPUTS
+  #
+  #
+
   ###################### Begin script ##########################
   
   ##Select relevant folder/dir by region given input dir
@@ -282,7 +300,7 @@ gap_tiles_assessment_fun <- function(in_dir,region_name,num_cores,NA_flag_val,da
   
   #This contains in rows date and tiles columns
   filename_df_missing_tiles_sp <- file.path(out_dir,paste0("df_missing_by_centroids_tiles_and_dates",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
-  write.table(as.data.frame(df_missing_tiles_sp),file=filename_df_missing_tiles_sp,sep=",")
+  write.table(as.data.frame(df_missing_tiles_reg_sp),file=filename_df_missing_tiles_sp,sep=",")
 
   #browser()
   
@@ -306,14 +324,14 @@ gap_tiles_assessment_fun <- function(in_dir,region_name,num_cores,NA_flag_val,da
     #res_pix <- 480
     col_mfrow <- 1
     row_mfrow <- 1
-    png_filename_histogram <-  file.path(out_dir,paste("Figure_barplot_","region_missing_tiles","_",out_suffix,".png",sep =""))
+    png_filename_histogram <-  file.path(out_dir,paste("Figure_barplot_",region_name,"region_missing_tiles","_",out_suffix,".png",sep =""))
     
     png(filename=png_filename_histogram,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     barplot(missing_val,
             ylab="frequency of missing",
             xlab="number of missing day predictions",
             main=paste0("Number of missing predictions over 31 years for ",region_name))
-    
+    dev.off()
     #check for this in every output, if not present then there are no missing tiles over the full year for 
     #the specific region
     write.table(df_missing_tiles_day,file=paste0("df_missing_tiles_day_mosaic_",out_suffix,".txt"))
@@ -365,11 +383,11 @@ gap_tiles_assessment_fun <- function(in_dir,region_name,num_cores,NA_flag_val,da
     #r_ref <- raster(list_lf_raster_tif_tiles[[15]][1])
     #list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
     
-  #### plot overlap raster    
-  plot_raster_poly_overlap(shps_tiles,list_lf_raster_tif_tiles,df_missing,num_cores=1,
-                             mosaic_python_script,data_tye_str,
-                             region_name="",out_suffix="",out_dir=".")
-    
+    ####  
+
+    plot_raster_poly_overlap(shps_tiles,list_lf_raster_tif_tiles,df_missing,num_cores=1,
+                                       mosaic_python_script,data_tye_str,
+                                       region_name="",out_suffix="",out_dir=".")
     
   }else{ #if raster_overalp==FALSE
     out_mosaic_name_overlap_masked <- NULL
@@ -377,6 +395,8 @@ gap_tiles_assessment_fun <- function(in_dir,region_name,num_cores,NA_flag_val,da
     png_filename_maximum_overlap <- NULL
   }
   
+  ##### Prepare object to return
+  return()
 }
 
 
