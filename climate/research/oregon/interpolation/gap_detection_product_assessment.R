@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 06/17/2017            
+#MODIFIED ON: 06/19/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -66,36 +66,15 @@ library(lubridate)
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
 function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_06192017.R"
 
+script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
 
 ###############################
 ####### Parameters, constants and arguments ###
 
-var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
-in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg1/assessment" #PARAM2
-region_name <- c("reg1") #PARAM 3, arg 3
-out_suffix <- "mosaic_gaps_tiles_assessment_reg1_combined" #PARAM 4
-#out_suffix_str <- region_name #PARAM 4, CONST 3
-out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/reg1/assessment"
-create_out_dir_param <- TRUE #PARAM 12, arg 6
-year_predicted <- c(1993) #PARAM 7, arg7
-num_cores <- 6 #number of cores used # PARAM 8, arg 8
-max_mem <- 1e+07 #PARAM 9
-item_no <- 9 #PARAM 10, arg 10
-metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-day_start <- "19930101" #PARAM 12, arg 12
-day_end <- "19931231" #PARAM 13, arg 13
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
-layers_option <- c("var_pred") #PARAM 16, arg 16
-tmp_files <- FALSE #PARAM 17, arg 17
-plotting_figures <- TRUE #PARAm 18, arg 18
-raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
-raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
 
-
-#################### Begin Script ######
+#################### Begin Script ##################################
 
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2
@@ -116,6 +95,7 @@ tmp_files <- FALSE #PARAM 17, arg 17
 plotting_figures <- TRUE #PARAm 18, arg 18
 raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
 #raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
+create_out_dir_param =T
 
 ### constant
 
@@ -159,9 +139,10 @@ if (var == "TMIN") {
 #mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
 mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py"
 
-gap_tiles_assessment_fun(in_dir,region_name,num_cores,NA_flag_val,data_type_str,
+debug(gap_tiles_assessment_fun)
+
+gap_tiles_assessment_fun(in_dir,y_var_name,region_name,num_cores,NA_flag_val,data_type_str,
                                      shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
                                      moscaic_python_script,out_dir,out_suffix)
-
-
+  
 ############################# END OF SCRIPT ###################################
