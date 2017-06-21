@@ -96,7 +96,10 @@ plotting_figures <- TRUE #PARAm 18, arg 18
 raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
 #raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
 create_out_dir_param =T
-
+#in_dir_shp <- file.path(in_dir_subset,"shapefiles")
+in_dir_shp <- NULL # if NULL look in a predetermined place (see below)
+#in_dir_shp <- /nobackupp6/aguzman4/climateLayers/tMinOut/reg*/subset/shapefiles/
+  
 ### constant
 
 pred_mod_name <- "mod1"
