@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 06/19/2017            
+#MODIFIED ON: 06/21/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -236,6 +236,7 @@ plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_miss
 
 gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_flag_val,data_type_str,
                                      shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
+                                     in_dir_shp,
                                      moscaic_python_script,out_dir,out_suffix){
   #
   #This function assesses missing tiles over 31 years of predictions using output from product assessment.
@@ -253,6 +254,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #9) infile_mask
   #10) countries_shp,
   #11) moscaic_python_script
+  #12) in_dir_shp
   #12) out_dir
   #13) out_suffix
   #OUTPUTS
@@ -260,6 +262,20 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #
 
   ###################### Begin script ##########################
+  
+  ## get shps_tiles
+  if(is.null(in_dir_shp)){
+    in_dir_shp <- file.path(in_dir1,region_name,"subset/shapefiles")
+    #in_dir_shp <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg*/subset/shapefiles/"
+  }
+
+  shps_tiles <- list.files(in_dir_shp,pattern="*.shp$",full.names=T)
+  
+  ### now make plot
+  
+  
+  ###
+  
   
   ##Select relevant folder/dir by region given input dir
   in_dir_list_tmp <- list.files(pattern =paste0(".*.",region_name,".*."),full.names=T,path=in_dir)
@@ -342,7 +358,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
     #do spplot after that on tot sum
     
     png(filename=paste("Figure_total_missing_days_map_centroids_tile_",pred_mod_name,"_",
-                       "_",out_suffix,".png",sep=""),
+                       region_name,"_",out_suffix,".png",sep=""),
         width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     #spplot for reg_layer not working on NEX again
     #p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
@@ -364,7 +380,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   row_mfrow <- 1
     
   png(filename=paste("Figure_total_predicted_days_predicted_map_centroids_tile_",pred_mod_name,"_",
-                       "_",out_suffix,".png",sep=""),
+                       region_name,"_",out_suffix,".png",sep=""),
   width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
   p_r <-levelplot(r_mask,colorkey=F) #no key legend
