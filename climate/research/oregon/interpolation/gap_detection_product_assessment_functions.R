@@ -60,6 +60,27 @@ library(lubridate)
 
 ###### Function used in the script #######
 
+remove_errors_list<-function(list_items){
+  
+  #This function removes "error" items in a list
+  list_tmp<-list_items
+  if(is.null(names(list_tmp))){
+    names(list_tmp) <- paste("l",1:length(list_tmp),sep="_")
+    names(list_items) <- paste("l",1:length(list_tmp),sep="_")
+  }
+  
+  for(i in 1:length(list_items)){
+    if(inherits(list_items[[i]],"try-error")){
+      list_tmp[[i]]<-0
+    }else{
+      list_tmp[[i]]<-1
+    }
+  }
+  cnames<-names(list_tmp[list_tmp>0])
+  x <- list_items[match(cnames,names(list_items))]
+  return(x)
+}
+
 plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_missing,num_cores=1,
                                      mosaic_python_script,data_type_str,
                                      region_name="",out_suffix="",out_dir="."){
@@ -233,9 +254,32 @@ plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_miss
 }
 
 
+read_shp_and_get_centroids <- function(in_filename,out_suffix,out_dir){
+  #Function to read shapefiles and find their centroids
+  #This function can be used in parallel for faster reads.
+  #
+  
+  ###### Begin script ###############
+  
+  #for(i in 1:length(list_shp_reg_files)){
+  #path_to_shp <- dirname(list_shp_reg_files[[i]])
+  in_dir_file <- dirname(in_filename)
+  layer_name <- sub(".shp","",basename(in_filename))
+  sp_reg <- try(readOGR(in_dir_file, layer_name)) #use try to resolve error below
+  #shp_61.0_-160.0
+  #Geographical CRS given to non-conformant data: -186.331747678
+  
+  pt <- try(gCentroid(sp_reg))
+  
+  #Prepare return object
+  
+  obj <- list(sp_reg,pt)
+  names(obj) <- c("sp_reg","pt")
+  return(obj)
+}
 
 gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_flag_val,
-                                     data_type_str,shps_tiles_filename,list_lf_raster_tif_tiles,
+                                     data_type_str,list_lf_raster_tif_tiles,
                                      infile_mask,countries_shp,moscaic_python_script,
                                      in_dir_shp,out_dir,out_suffix){
                                      
@@ -250,14 +294,13 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #4) num_cores
   #5) NA_flag_val
   #6) data_type_str
-  #7) shps_tiles_filename,
-  #8) list_lf_raster_tif_tiles
-  #9) infile_mask
-  #10) countries_shp,
-  #11) moscaic_python_script
-  #12) in_dir_shp
-  #13) out_dir
-  #14) out_suffix
+  #7) list_lf_raster_tif_tiles
+  #8) infile_mask
+  #9) countries_shp,
+  #10) moscaic_python_script
+  #11) in_dir_shp
+  #12) out_dir
+  #13) out_suffix
   #OUTPUTS
   #
   #
@@ -270,8 +313,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
     #in_dir_shp <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg*/subset/shapefiles/"
   }
 
-  shps_tiles <- list.files(in_dir_shp,pattern="*.shp$",full.names=T)
-  
+  shps_tiles_filename <- list.files(in_dir_shp,pattern="*.shp$",full.names=T)
   ### now make plot
   
   ### First get background map to display where study area is located
@@ -286,41 +328,6 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #This is slow...make a function and use mclapply??
   #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
   
-  #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
-  tmp <- shps_tiles
-  shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
-  #shps_tiles <- tmp
-  length(tmp)-length(shps_tiles) #number of tiles with error message
-  
-  #tmp_pts <- centroids_pts 
-  #centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
-  #centroids_pts <- tmp_pts 
-  
-  read_shp_and_get_centroids <- function(in_filename,out_suffix,out_dir){
-    #Function to read shapefiles and find their centroids
-    #This function can be used in parallel for faster reads.
-    #
-    
-    ###### Begin script ###############
-    
-    #for(i in 1:length(list_shp_reg_files)){
-      #path_to_shp <- dirname(list_shp_reg_files[[i]])
-    in_dir_file <- dirname(in_filename)
-    layer_name <- sub(".shp","",basename(in_filename))
-    sp_reg <- try(readOGR(in_dir_file, layer_name)) #use try to resolve error below
-    #shp_61.0_-160.0
-    #Geographical CRS given to non-conformant data: -186.331747678
-      
-    pt <- try(gCentroid(sp_reg))
-    
-    #Prepare return object
-    
-    obj <- list(sp_reg,pt)
-    names(obj) <- c("sp_reg","pt")
-    return(obj)
-  }
-  
-  
   test_shp1 <- read_shp_and_get_centroids(shps_tiles_filename[1],out_dir, out_suffix)
   #fun <- function(i,list_shp_files)
   #coord_names <- c("lon","lat")
@@ -328,7 +335,6 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
 
   list_shps_tiles_centroids <- mclapply(shps_tiles_filename,
                                         FUN=read_shp_and_get_centroids,
-                                        shps_tiles,
                                         out_dir,
                                         out_suffix,
                                         mc.preschedule = FALSE,
@@ -339,7 +345,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #shps_tiles <- vector("list",length(list_shp_reg_files))
   #collect info: read in all shapfiles
   centroids_pts <- mclapply(list_shps_tiles_centroids,
-                            FUN=function(x){x$sp_reg},
+                            FUN=function(x){x$pt},
                             mc.preschedule = FALSE,
                             mc.cores=num_cores)
   
@@ -347,9 +353,20 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
                             FUN=function(x){x$sp_reg},
                             mc.preschedule = FALSE,
                             mc.cores=num_cores)
+  
+  #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
+  tmp <- shps_tiles
+  shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
+  #shps_tiles <- tmp
+  length(tmp)-length(shps_tiles) #number of tiles with error message
+  
+  #tmp_pts <- centroids_pts 
+  centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
+  #centroids_pts <- tmp_pts 
   shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
   
-  df_pts <- as.data.frame(do.call(rbind,tmp_pts))
+  df_pts <- as.data.frame(do.call(rbind,centroids_pts))
+  
   #df_pts <- cbind(df_pts,df_tiles_reg)
   df_tiles_reg <- cbind(df_pts,df_tiles_reg) #(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
   df_tiles_reg$id <- as.numeric(unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]})))
@@ -361,7 +378,8 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   col_mfrow <- 1 
   row_mfrow <- 1
   
-  png(filename=paste("Figure1a_tile_processed_region_",region_name,"_",out_suffix,".png",sep=""),
+  png_filename <- paste("Figure_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
+  png(filename=png_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   plot(reg_layer)
@@ -392,7 +410,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   col_mfrow <- 1 
   row_mfrow <- 1
   
-  png(filename=paste("Figure1b_tile_processed_centroids_region_",region_name,"_",out_suffix,".png",sep=""),
+  png(filename=paste("Figure_tile_processed_centroids_region_",region_name,"_",out_suffix,".png",sep=""),
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   #plot(reg_layer)
@@ -420,7 +438,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #list_id <- df_tiles_reg$id
   dev.off()
   
-  ###
+  ######### NOW check for missing tiles 
   
   
   ##Select relevant folder/dir by region given input dir
