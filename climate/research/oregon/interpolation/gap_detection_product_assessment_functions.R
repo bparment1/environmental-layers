@@ -278,6 +278,173 @@ read_shp_and_get_centroids <- function(in_filename,out_suffix,out_dir){
   return(obj)
 }
 
+plot_tiles_fun <- function(shps_tiles_filename,countries_shp,region_name=NULL,num_cores=6,out_suffix="",out_dir="."){
+  ## This function plots tiles used in processing of region for parrallel jobs in projects.
+  #
+  #shps_tiles_filename,
+  #countries_shp
+  #region_name=NULL
+  #num_cores=6
+  #out_suffix=""
+  #out_dir="."
+  #
+  ## 
+  #
+  
+  ################ Begin script ######################
+  
+  if(is.null(region_name)){
+    region_name <- "region_1"
+  }
+  ### First get background map to display where study area is located
+  #can make this more general later on..should have this already in a local directory on Atlas or NEX!!!!
+  
+  path_to_shp <- dirname(countries_shp)
+  layer_name <- sub(".shp","",basename(countries_shp))
+  reg_layer <- readOGR(path_to_shp, layer_name)
+  #proj4string(reg_layer) <- CRS_locs_WGS84
+  #reg_shp<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
+  
+  #This is slow...make a function and use mclapply??
+  #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
+  
+  #test_shp1 <- read_shp_and_get_centroids(shps_tiles_filename[1],out_dir, out_suffix)
+  #fun <- function(i,list_shp_files)
+  #coord_names <- c("lon","lat")
+  #l_ras#t <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_suffix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
+  
+  list_shps_tiles_centroids <- mclapply(shps_tiles_filename,
+                                        FUN=read_shp_and_get_centroids,
+                                        out_dir,
+                                        out_suffix,
+                                        mc.preschedule = FALSE,
+                                        mc.cores=num_cores)
+  
+  
+  #centroids_pts <- vector("list",length(list_shp_reg_files))
+  #shps_tiles <- vector("list",length(list_shp_reg_files))
+  #collect info: read in all shapfiles
+  centroids_pts <- mclapply(list_shps_tiles_centroids,
+                            FUN=function(x){x$pt},
+                            mc.preschedule = FALSE,
+                            mc.cores=num_cores)
+  
+  shps_tiles <- mclapply(list_shps_tiles_centroids,
+                         FUN=function(x){x$sp_reg},
+                         mc.preschedule = FALSE,
+                         mc.cores=num_cores)
+  
+  #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
+  tmp <- shps_tiles
+  shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
+  #shps_tiles <- tmp
+  length(tmp)-length(shps_tiles) #number of tiles with error message
+  
+  #tmp_pts <- centroids_pts 
+  centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
+  #centroids_pts <- tmp_pts 
+  shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
+  
+  df_pts <- as.data.frame(do.call(rbind,centroids_pts))
+  
+  #list_shp_reg_files <- as.character(basename(filename(unlist(shps_tiles)))) #this could be the solution!!
+  #list_tile_id <- as.character((unique(df_tile_processed$tile_id))) #this is in the order of appearance
+  
+  list_shp_reg_files <- basename(shps_tiles_filename)
+  list_tile_id <- 1:length(list_shp_reg_files)
+  
+  df_tiles_reg <- data.frame(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
+  df_tiles_reg$tile_id <- as.character(list_tile_id)
+  
+  #df_pts <- cbind(df_pts,df_tiles_reg)
+  df_tiles_reg <- cbind(df_pts,df_tiles_reg) #(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
+  #df_tiles_reg$id <- as.numeric(unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]})))
+  
+  coordinates(df_tiles_reg)<- cbind(df_tiles_reg$x,df_tiles_reg$y)
+  
+  #plot info: with labels
+  res_pix <-1200
+  col_mfrow <- 1 
+  row_mfrow <- 1
+  
+  png_filename_tiles_outlines <- paste("Figure_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
+  png_filename_tiles_outlines <- file.path(out_dir,png_filename_tiles_outlines)
+  png(filename=png_filename_tiles_outlines,
+      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  plot(reg_layer,usePolypath = FALSE)
+  #Add polygon tiles...
+  for(i in 1:length(shps_tiles)){
+    shp1 <- shps_tiles[[i]]
+    pt <- centroids_pts[[i]]
+    #if(!inherits(shp1,"try-error")){
+    #  plot(shp1,add=T,border="blue")
+    #  #plot(pt,add=T,cex=2,pch=5)
+    #  label_id <- df_tile_processed$tile_id[i]
+    #  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
+    #}
+    #to be able to run on NEX set font and usePolypath, maybe add option NEX?
+    if(!inherits(shp1,"try-error")){
+      plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
+      #plot(pt,add=T,cex=2,pch=5)
+      label_id <- df_tiles_reg$tile_id[i]
+      text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
+    }
+    
+  }
+  #title(paste("Tiles ", tile_size,region_name,sep=""))
+  
+  dev.off()
+  
+  df_tiles_reg$tile_id <- as.numeric(list_tile_id)
+  
+  res_pix <-1200
+  col_mfrow <- 1 
+  row_mfrow <- 1
+  
+  png_filename_centroids <- paste("Figure_tile_processed_centroids_region_",region_name,"_",out_suffix,".png",sep="")
+  png_filename_centroids <- file.path(out_dir,png_filename_centroids)
+  
+  png(filename=png_filename_centroids,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  
+  #plot(reg_layer)
+  #Add polygon tiles...
+  #title(paste("Tiles ", tile_size,region_name,sep=""))
+  #plot(df_tiles_reg,add=T,pch=2)
+  #label_id <- df_tiles_reg$id
+  #text(coordinates(df_tiles_reg)[1],coordinates(df_tiles_reg)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
+  
+  p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
+  #title("(a) Mean for 1 January")
+  df_tiles_reg$lab <- 1
+  list_id <- df_tiles_reg$tile_id
+  sl1 <- list('sp.points',df_tiles_reg, pch=19, cex=.8, col='red')
+  sl2 <- list('sp.pointLabel', df_tiles_reg, label=list_id,
+              cex=2.4, font=2,col='red',col.regions="red",
+              fontfamily='Palatino') #Add labels at centroids
+  
+  #p <- spplot(df_tiles_reg,"tile_id",main=paste("Tile id processed",sep=""))
+  #,sp.layout=list(sl1, sl2))
+  
+  p <- spplot(df_tiles_reg,"tile_id",main=paste("Tile id processed",sep=""),sp.layout=list(sl1, sl2))
+  #spplot(meuse.grid["dist"], col.regions=myCols, sp.layout=list(sl1, sl2)
+  #p <- spplot(df_tiles_reg,"lab",main=paste("Tile id processed",sep=""))
+  p1 <- p+p_shp
+  try(print(p1)) #error raised if number of missing values below a threshold does not exist
+  #ltext(coordinates(df_tiles_reg)[,1],coordinates(df_tiles_reg)[,2],labels=list_tile_id)
+  
+  #list_id <- df_tiles_reg$id
+  dev.off()
+  
+  #### Prepare return object
+  
+  plot_obj <- list(png_filename_tiles_outlines,png_filename_centroids)
+  names(plot_obj) <- c("png_filename_tiles_outlines","png_filename_centroids")
+  
+  return(plot_obj)
+}
+
+
 gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_flag_val,
                                      data_type_str,list_lf_raster_tif_tiles,
                                      infile_mask,countries_shp,moscaic_python_script,
@@ -316,165 +483,13 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   shps_tiles_filename <- list.files(in_dir_shp,pattern="*.shp$",full.names=T)
   ### now make plot
   
-  plot_tiles_fun(shps_tiles_filename,countries_shp,region_name=NULL,num_cores=6,out_suffix="",out_dir="."){
-    ##
+  plot_tiles_fun(shps_tiles_filename,countries_shp,region_name=region_name,num_cores=6,out_suffix="",out_dir=out_dir)
     
-    if(is.null(region_name)){
-      region_name <- "region_1"
-    }
-    ### First get background map to display where study area is located
-    #can make this more general later on..should have this already in a local directory on Atlas or NEX!!!!
-    
-    path_to_shp <- dirname(countries_shp)
-    layer_name <- sub(".shp","",basename(countries_shp))
-    reg_layer <- readOGR(path_to_shp, layer_name)
-    #proj4string(reg_layer) <- CRS_locs_WGS84
-    #reg_shp<-readOGR(dirname(list_shp_reg_files[[i]]),sub(".shp","",basename(list_shp_reg_files[[i]])))
-    
-    #This is slow...make a function and use mclapply??
-    #/data/project/layers/commons/NEX_data/output_run6_global_analyses_09162014/shapefiles
-    
-    test_shp1 <- read_shp_and_get_centroids(shps_tiles_filename[1],out_dir, out_suffix)
-    #fun <- function(i,list_shp_files)
-    #coord_names <- c("lon","lat")
-    #l_ras#t <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_suffix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
-    
-    list_shps_tiles_centroids <- mclapply(shps_tiles_filename,
-                                          FUN=read_shp_and_get_centroids,
-                                          out_dir,
-                                          out_suffix,
-                                          mc.preschedule = FALSE,
-                                          mc.cores=num_cores)
-    
-    
-    #centroids_pts <- vector("list",length(list_shp_reg_files))
-    #shps_tiles <- vector("list",length(list_shp_reg_files))
-    #collect info: read in all shapfiles
-    centroids_pts <- mclapply(list_shps_tiles_centroids,
-                              FUN=function(x){x$pt},
-                              mc.preschedule = FALSE,
-                              mc.cores=num_cores)
-    
-    shps_tiles <- mclapply(list_shps_tiles_centroids,
-                           FUN=function(x){x$sp_reg},
-                           mc.preschedule = FALSE,
-                           mc.cores=num_cores)
-    
-    #remove try-error polygons...we loose three tiles because they extend beyond -180 deg
-    tmp <- shps_tiles
-    shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
-    #shps_tiles <- tmp
-    length(tmp)-length(shps_tiles) #number of tiles with error message
-    
-    #tmp_pts <- centroids_pts 
-    centroids_pts <- remove_errors_list(centroids_pts) #[[!inherits(shps_tiles,"try-error")]]
-    #centroids_pts <- tmp_pts 
-    shps_tiles <- remove_errors_list(shps_tiles) #[[!inherits(shps_tiles,"try-error")]]
-    
-    df_pts <- as.data.frame(do.call(rbind,centroids_pts))
-    
-    #list_shp_reg_files <- as.character(basename(filename(unlist(shps_tiles)))) #this could be the solution!!
-    #list_tile_id <- as.character((unique(df_tile_processed$tile_id))) #this is in the order of appearance
-    
-    list_shp_reg_files <- basename(shps_tiles_filename)
-    list_tile_id <- 1:length(list_shp_reg_files)
-    
-    df_tiles_reg <- data.frame(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
-    df_tiles_reg$tile_id <- as.character(list_tile_id)
-    
-    #df_pts <- cbind(df_pts,df_tiles_reg)
-    df_tiles_reg <- cbind(df_pts,df_tiles_reg) #(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
-    #df_tiles_reg$id <- as.numeric(unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]})))
-    
-    coordinates(df_tiles_reg)<- cbind(df_tiles_reg$x,df_tiles_reg$y)
-    
-    #plot info: with labels
-    res_pix <-1200
-    col_mfrow <- 1 
-    row_mfrow <- 1
-    
-    png_filename_tiles_outlines <- paste("Figure_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
-    png_filename_tiles_outlines <- file.path(out_dir,png_filename_tiles_outlines)
-    png(filename=png_filename_tiles_outlines,
-        width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    plot(reg_layer,usePolypath = FALSE)
-    #Add polygon tiles...
-    for(i in 1:length(shps_tiles)){
-      shp1 <- shps_tiles[[i]]
-      pt <- centroids_pts[[i]]
-      #if(!inherits(shp1,"try-error")){
-      #  plot(shp1,add=T,border="blue")
-      #  #plot(pt,add=T,cex=2,pch=5)
-      #  label_id <- df_tile_processed$tile_id[i]
-      #  text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"))
-      #}
-      #to be able to run on NEX set font and usePolypath, maybe add option NEX?
-      if(!inherits(shp1,"try-error")){
-        plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
-        #plot(pt,add=T,cex=2,pch=5)
-        label_id <- df_tiles_reg$tile_id[i]
-        text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
-      }
-      
-    }
-    #title(paste("Tiles ", tile_size,region_name,sep=""))
-    
-    dev.off()
-    
-    df_tiles_reg$tile_id <- as.numeric(list_tile_id)
-    
-    res_pix <-1200
-    col_mfrow <- 1 
-    row_mfrow <- 1
-    
-    png_filename_centroids <- paste("Figure_tile_processed_centroids_region_",region_name,"_",out_suffix,".png",sep="")
-    png_filename_centroids <- file.path(out_dir,png_filename_centroids)
-    
-    png(filename=png_filename_centroids,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
-    
-    #plot(reg_layer)
-    #Add polygon tiles...
-    #title(paste("Tiles ", tile_size,region_name,sep=""))
-    #plot(df_tiles_reg,add=T,pch=2)
-    #label_id <- df_tiles_reg$id
-    #text(coordinates(df_tiles_reg)[1],coordinates(df_tiles_reg)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
-    
-    p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
-    #title("(a) Mean for 1 January")
-    df_tiles_reg$lab <- 1
-    list_id <- df_tiles_reg$tile_id
-    sl1 <- list('sp.points',df_tiles_reg, pch=19, cex=.8, col='red')
-    sl2 <- list('sp.pointLabel', df_tiles_reg, label=list_id,
-                cex=2.4, font=2,col='red',col.regions="red",
-                fontfamily='Palatino') #Add labels at centroids
-    
-    #p <- spplot(df_tiles_reg,"tile_id",main=paste("Tile id processed",sep=""))
-    #,sp.layout=list(sl1, sl2))
-    
-    p <- spplot(df_tiles_reg,"tile_id",main=paste("Tile id processed",sep=""),sp.layout=list(sl1, sl2))
-    #spplot(meuse.grid["dist"], col.regions=myCols, sp.layout=list(sl1, sl2)
-    #p <- spplot(df_tiles_reg,"lab",main=paste("Tile id processed",sep=""))
-    p1 <- p+p_shp
-    try(print(p1)) #error raised if number of missing values below a threshold does not exist
-    #ltext(coordinates(df_tiles_reg)[,1],coordinates(df_tiles_reg)[,2],labels=list_tile_id)
-    
-    #list_id <- df_tiles_reg$id
-    dev.off()
-    
-    #### Prepare return object
-    
-    plot_obj <- list(png_filename_tiles_outlines,png_filename_centroids)
-    names(plot_obj) <- c("png_filename_tiles_outlines","png_filename_centroids")
-    
-    return(plot_obj)
-  }
-  
+  #plot_tiles_fun()
   
   #### This should be the end of the function!!
   
   ######### NOW check for missing tiles 
-  
   
   ##Select relevant folder/dir by region given input dir
   in_dir_list_tmp <- list.files(pattern =paste0(".*.",region_name,".*."),full.names=T,path=in_dir)
@@ -594,15 +609,17 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   if(raster_overlap==TRUE){
     
     ### preparing inputs for raster_overlap production
-    names(shps_tiles) <- tiles_names
+    names(as.list(shps_tiles_filename)) <- tiles_names
+    #note that we have a mismatch between tiles and shapefiles...
+    
     #r_ref <- raster(list_lf_raster_tif_tiles[[15]][1])
     #list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
     
     ####  
-
-    plot_raster_poly_overlap(shps_tiles,list_lf_raster_tif_tiles,df_missing,num_cores=1,
-                                       mosaic_python_script,data_tye_str,
-                                       region_name="",out_suffix="",out_dir=".")
+    debug(plot_raster_poly_overlap)
+    plot_raster_poly_overlap(shps_tiles_filename,list_lf_raster_tif_tiles,df_missing,num_cores=num_cores,
+                                       mosaic_python_script,data_type_str,
+                                       region_name=region_name,out_suffix=out_suffix,out_dir=out_dir)
     
   }else{ #if raster_overalp==FALSE
     out_mosaic_name_overlap_masked <- NULL
