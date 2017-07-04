@@ -367,9 +367,18 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   
   df_pts <- as.data.frame(do.call(rbind,centroids_pts))
   
+  #list_shp_reg_files <- as.character(basename(filename(unlist(shps_tiles)))) #this could be the solution!!
+  #list_tile_id <- as.character((unique(df_tile_processed$tile_id))) #this is in the order of appearance
+  
+  list_shp_reg_files <- basename(shps_tiles_filename)
+  list_tile_id <- 1:length(list_shp_reg_files)
+  
+  df_tiles_reg <- data.frame(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
+  df_tiles_reg$tile_id <- as.character(list_tile_id)
+  
   #df_pts <- cbind(df_pts,df_tiles_reg)
   df_tiles_reg <- cbind(df_pts,df_tiles_reg) #(shp_files=(list_shp_reg_files),tile_id=list_tile_id)
-  df_tiles_reg$id <- as.numeric(unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]})))
+  #df_tiles_reg$id <- as.numeric(unlist(lapply(strsplit(df_tiles_reg$tile_id,"_"),FUN=function(x){x[2]})))
   
   coordinates(df_tiles_reg)<- cbind(df_tiles_reg$x,df_tiles_reg$y)
   
@@ -379,10 +388,11 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   row_mfrow <- 1
   
   png_filename <- paste("Figure_tile_processed_region_",region_name,"_",out_suffix,".png",sep="")
+  png_filename <- file.path(out_dir,png_filename)
   png(filename=png_filename,
       width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
-  plot(reg_layer)
+  plot(reg_layer,usePolypath = FALSE)
   #Add polygon tiles...
   for(i in 1:length(shps_tiles)){
     shp1 <- shps_tiles[[i]]
@@ -397,7 +407,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
     if(!inherits(shp1,"try-error")){
       plot(shp1,add=T,border="blue",usePolypath = FALSE) #added usePolypath following error on brige and NEX
       #plot(pt,add=T,cex=2,pch=5)
-      label_id <- df_tile_processed$tile_id[i]
+      label_id <- df_tiles_reg$tile_id[i]
       text(coordinates(pt)[1],coordinates(pt)[2],labels=i,cex=1.3,font=2,col=c("red"),family="HersheySerif")
     }
     
@@ -406,12 +416,16 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   
   dev.off()
   
+  df_tiles_reg$tile_id <- as.numeric(list_tile_id)
+  
   res_pix <-1200
   col_mfrow <- 1 
   row_mfrow <- 1
   
-  png(filename=paste("Figure_tile_processed_centroids_region_",region_name,"_",out_suffix,".png",sep=""),
-      width=col_mfrow*res_pix,height=row_mfrow*res_pix)
+  png_filename_centroids <- paste("Figure_tile_processed_centroids_region_",region_name,"_",out_suffix,".png",sep="")
+  png_filename_centroids <- file.path(out_dir,png_filename_centroids)
+  
+  png(filename=png_filename_centroids,width=col_mfrow*res_pix,height=row_mfrow*res_pix)
   
   #plot(reg_layer)
   #Add polygon tiles...
@@ -423,12 +437,16 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
   #title("(a) Mean for 1 January")
   df_tiles_reg$lab <- 1
+  list_id <- df_tiles_reg$tile_id
   sl1 <- list('sp.points',df_tiles_reg, pch=19, cex=.8, col='red')
   sl2 <- list('sp.pointLabel', df_tiles_reg, label=list_id,
               cex=2.4, font=2,col='red',col.regions="red",
               fontfamily='Palatino') #Add labels at centroids
   
-  p <- spplot(df_tiles_reg,"id",main=paste("Tile id processed",sep=""),sp.layout=list(sl1, sl2))
+  #p <- spplot(df_tiles_reg,"tile_id",main=paste("Tile id processed",sep=""))
+  #,sp.layout=list(sl1, sl2))
+  
+  p <- spplot(df_tiles_reg,"tile_id",main=paste("Tile id processed",sep=""),sp.layout=list(sl1, sl2))
   #spplot(meuse.grid["dist"], col.regions=myCols, sp.layout=list(sl1, sl2)
   #p <- spplot(df_tiles_reg,"lab",main=paste("Tile id processed",sep=""))
   p1 <- p+p_shp
@@ -437,6 +455,8 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   
   #list_id <- df_tiles_reg$id
   dev.off()
+  
+  #### This should be the end of the function!!
   
   ######### NOW check for missing tiles 
   
