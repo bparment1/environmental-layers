@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 06/19/2017            
+#MODIFIED ON: 07/04/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -26,7 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: testing command line
+##COMMIT: modified gap detection function for overlap plot and return object
 
 #################################################################################################
 
@@ -64,7 +64,7 @@ library(lubridate)
 ###### Function used in the script #######
 #Product assessment
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_06192017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07042017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -142,10 +142,23 @@ if (var == "TMIN") {
 #mosaic_python <- "/nobackupp6/aguzman4/climateLayers/sharedCode/"
 mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py"
 
+#Product assessment
+function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07042017d.R"
+
+script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
+source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
+source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
+
 debug(gap_tiles_assessment_fun)
 
-gap_tiles_assessment_fun(in_dir,y_var_name,region_name,num_cores,NA_flag_val,data_type_str,
-                                     shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
-                                     moscaic_python_script,out_dir,out_suffix)
+#gap_tiles_assessment_fun(in_dir,y_var_name,region_name,num_cores,NA_flag_val,data_type_str,
+#                                     shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
+#                                     moscaic_python_script,out_dir,out_suffix)
+  
+gap_tiles_obj <- gap_tiles_assessment_fun(in_dir,y_var_name,region_name,num_cores,NA_flag_val,
+                                     data_type_str,list_lf_raster_tif_tiles,
+                                     infile_mask,countries_shp,moscaic_python_script,
+                                     in_dir_shp,out_dir,out_suffix)
   
 ############################# END OF SCRIPT ###################################
