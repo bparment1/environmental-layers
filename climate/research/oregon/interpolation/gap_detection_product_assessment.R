@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/04/2017            
+#MODIFIED ON: 07/06/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -26,8 +26,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: modified gap detection function for overlap plot and return object
-
+##COMMIT: testing gap detection function with output dir option
 #################################################################################################
 
 ### Loading R library and packages        
@@ -64,7 +63,7 @@ library(lubridate)
 ###### Function used in the script #######
 #Product assessment
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07042017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07062017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -79,7 +78,7 @@ source(file.path(script_path,function_product_assessment_gap_detection_functions
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2
 region_name <- c("reg1") #PARAM 3, arg 3
-out_suffix <- "mosaic_gaps_tiles_assessment_reg1_combined" #PARAM 4
+out_suffix <- "mosaic_gaps_tiles_assessment_reg1_combined_07062017" #PARAM 4
 #out_suffix_str <- region_name #PARAM 4, CONST 3
 out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
 create_out_dir_param <- TRUE #PARAM 12, arg 6
@@ -91,13 +90,13 @@ metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM
 infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
 layers_option <- c("var_pred") #PARAM 16, arg 16
-tmp_files <- FALSE #PARAM 17, arg 17
-plotting_figures <- TRUE #PARAm 18, arg 18
+tmp_files <- FALSE # PARAM 17, if FALSE, temporary files are removed, args[17]
+plotting_figures <- TRUE# PARAM 18, if TRUE, png files are produced for missing tiles and day predicted
 raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
+
 #raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
-create_out_dir_param =T
 #in_dir_shp <- file.path(in_dir_subset,"shapefiles")
-in_dir_shp <- NULL # if NULL look in a predetermined place (see below)
+in_dir_shp <- NULL # if NULL look in a predetermined place (see below) [args 20]
 #in_dir_shp <- /nobackupp6/aguzman4/climateLayers/tMinOut/reg*/subset/shapefiles/
   
 ### constant
@@ -143,11 +142,9 @@ if (var == "TMIN") {
 mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py"
 
 #Product assessment
-function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07042017d.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07062017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
-source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
 source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
 
 debug(gap_tiles_assessment_fun)
@@ -156,9 +153,27 @@ debug(gap_tiles_assessment_fun)
 #                                     shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
 #                                     moscaic_python_script,out_dir,out_suffix)
   
-gap_tiles_obj <- gap_tiles_assessment_fun(in_dir,y_var_name,region_name,num_cores,NA_flag_val,
-                                     data_type_str,list_lf_raster_tif_tiles,
-                                     infile_mask,countries_shp,moscaic_python_script,
-                                     in_dir_shp,out_dir,out_suffix)
+
+##### prepare list of parameters for call of function
+
+#list_param_predictions_tiles_missing <- list(in_dir1,region_name,y_var_name,interpolation_method,out_suffix,out_dir,
+#                                             create_out_dir_param,proj_str,year_predicted,file_format,NA_flag_val,
+#                                             num_cores,plotting_figures,item_no,day_to_mosaic_range,countries_shp,plotting_figures,
+#                                             scaling, data_type, python_bin,tmp_files,
+#                                             pred_mod_name,metric_name,raster_overlap,raster_pred)
+
+#names(list_param_predictions_tiles_missing) <- c("in_dir1","region_name","y_var_name","interpolation_method","out_suffix","out_dir",
+#                                                 "create_out_dir_param","proj_str","year_predicted","file_format","NA_flag_val",
+#                                                 "num_cores","plotting_figures","item_no","day_to_mosaic_range","countries_shp","plotting_figures",
+#                                                 "scaling", "data_type", "python_bin","tmp_files",
+#                                                 "pred_mod_name","metric_name","raster_overlap","raster_pred")
+
+gap_tiles_obj <- gap_tiles_assessment_fun(in_dir,in_dir1, y_var_name,region_name,num_cores,
+                                          interpolation_method,NA_flag_val,proj_str,file_format,
+                                          data_type_str,list_lf_raster_tif_tiles,
+                                          infile_mask,countries_shp,moscaic_python_script,
+                                          pred_mod_name,metric_name,tmp_files,plotting_figures,
+                                          raster_overlap,in_dir_shp,create_out_dir_param,
+                                          out_dir,out_suffix)
   
 ############################# END OF SCRIPT ###################################
