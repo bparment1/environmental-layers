@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/03/2017            
+#MODIFIED ON: 07/06/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -23,7 +23,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: testing command line
+##COMMIT: debugging plot polygon overlap function
 
 #################################################################################################
 
@@ -60,6 +60,25 @@ library(lubridate)
 
 ###### Function used in the script #######
 
+create_dir_fun <- function(outDir,out_suffix=NULL){
+  #if out_suffix is not null then append out_suffix string
+  if(!is.null(out_suffix)){
+    out_name <- paste("output_",out_suffix,sep="")
+    outDir <- file.path(outDir,out_name)
+  }
+  #create if does not exists
+  if(!file.exists(outDir)){
+    dir.create(outDir)
+  }
+  return(outDir)
+}
+
+#Used to load RData object saved within the functions produced.
+load_obj <- function(f){
+  env <- new.env()
+  nm <- load(f, env)[1]
+  env[[nm]]
+}
 remove_errors_list<-function(list_items){
   
   #This function removes "error" items in a list
@@ -81,8 +100,8 @@ remove_errors_list<-function(list_items){
   return(x)
 }
 
-plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_missing,num_cores=1,
-                                     mosaic_python_script,data_type_str,
+plot_raster_poly_overlap <- function(shps_tiles,list_lf_raster_tif_tiles,df_missing,
+                                     mosaic_python_script,data_type_str,num_cores=1,
                                      region_name="",out_suffix="",out_dir="."){
   
   ###This functions generate a mosaic of overlap for tiles of SpatialPolygonsDataFrame.
@@ -438,18 +457,22 @@ plot_tiles_fun <- function(shps_tiles_filename,countries_shp,region_name=NULL,nu
   
   #### Prepare return object
   
-  plot_obj <- list(png_filename_tiles_outlines,png_filename_centroids)
-  names(plot_obj) <- c("png_filename_tiles_outlines","png_filename_centroids")
+  plot_obj <- list(png_filename_tiles_outlines,png_filename_centroids,shps_tiles,centroids_pts)
+  names(plot_obj) <- c("png_filename_tiles_outlines","png_filename_centroids","shps_tiles","centroids_pts")
   
   return(plot_obj)
 }
 
 
-gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_flag_val,
+
+gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_cores,
+                                     interpolation_method,NA_flag_val,proj_str,file_format,
                                      data_type_str,list_lf_raster_tif_tiles,
                                      infile_mask,countries_shp,moscaic_python_script,
-                                     in_dir_shp,out_dir,out_suffix){
-                                     
+                                     pred_mod_name,metric_name,tmp_files,plotting_figures,
+                                     raster_overlap,in_dir_shp,create_out_dir_param,
+                                     out_dir,out_suffix){
+  
   #
   #This function assesses missing tiles over 31 years of predictions using output from product assessment.
   #It is to be run region by region.
@@ -466,13 +489,23 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #9) countries_shp,
   #10) moscaic_python_script
   #11) in_dir_shp
-  #12) out_dir
-  #13) out_suffix
+  #12) create_out_dir_param
+  #13) out_dir
+  #14) out_suffix
   #OUTPUTS
   #
   #
 
   ###################### Begin script ##########################
+  
+  if(create_out_dir_param==TRUE){
+    out_dir <- create_dir_fun(out_dir,out_suffix)
+    setwd(out_dir)
+  }else{
+    setwd(out_dir) #use previoulsy defined directory
+  }
+  
+  setwd(out_dir)
   
   ## get shps_tiles: default path is found in region dir on NEX
   if(is.null(in_dir_shp)){
@@ -483,8 +516,10 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   shps_tiles_filename <- list.files(in_dir_shp,pattern="*.shp$",full.names=T)
   ### now make plot
   
-  plot_tiles_fun(shps_tiles_filename,countries_shp,region_name=region_name,num_cores=6,out_suffix="",out_dir=out_dir)
-    
+  plot_obj <- plot_tiles_fun(shps_tiles_filename,countries_shp,region_name=region_name,num_cores=6,out_suffix=out_suffix,out_dir=out_dir)
+  
+  shps_tiles <- plot_obj$shps_tiles  
+  centroids_pts <- plot_obj$centroids_pts
   #plot_tiles_fun()
   
   #### This should be the end of the function!!
@@ -547,7 +582,7 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   range(df_missing_tiles_reg$tot_missing)
   #sink()
   missing_val <- table(df_missing_tiles_reg$tot_missing) #save this info!!
-   
+  
   if(nrow(df_missing_tiles_day)>0){
     
     res_pix <- 800
@@ -608,19 +643,46 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   #### add more here
   if(raster_overlap==TRUE){
     
-    ### preparing inputs for raster_overlap production
-    names(as.list(shps_tiles_filename)) <- tiles_names
+    ##Select relevant folder/dir by region given input dir
+    in_dir_list_tmp <- list.files(pattern =paste0(".*.",region_name,".*."),full.names=T,path=in_dir)
+    pattern_str <- "df_files_by_tiles_predicted_tif_.*._predictions_gaps_tiles_assessment_.*.txt"
+    #e.g.
+    #df_files_by_tiles_predicted_tif_reg1_mod1_predictions_gaps_tiles_assessment_reg1_1990.txt
+    
+    ##collect data.frame with missing information from year assessments
+    #Predicted tiles
+    list_lf_df_files_tiles <- unlist(mclapply(in_dir_list_tmp,
+                                                FUN=function(x){list.files(path=x,
+                                                                           pattern=pattern_str,
+                                                                           full.names=T)},
+                                                mc.preschedule=FALSE,mc.cores = num_cores))
+    ## read in data.frame with missing information
+    list_df_predicted_tiles <- mclapply(list_lf_df_files_tiles,
+                                      FUN=function(x){read.table(x,
+                                                                 sep=",",
+                                                                 stringsAsFactors = F,
+                                                                 check.names = F)},
+                                      mc.preschedule=FALSE,
+                                      mc.cores = num_cores)
+    ## Combine all annual data.frame over the years
+    df_predicted_tiles_reg <- do.call(rbind,list_df_predicted_tiles)
+    
+    ##Should select based on the missing...
+    list_lf_raster_tif_tiles <- df_predicted_tiles_reg[1,]
+    
+    #names(as.list(shps_tiles_filename)) <- tiles_names
     #note that we have a mismatch between tiles and shapefiles...
     
     #r_ref <- raster(list_lf_raster_tif_tiles[[15]][1])
     #list_r_ref <- lapply(1:length(in_dir_reg), function(i){raster(list_lf_raster_tif_tiles[[i]][1])})
     
     ####  
-    debug(plot_raster_poly_overlap)
-    plot_raster_poly_overlap(shps_tiles_filename,list_lf_raster_tif_tiles,df_missing,num_cores=num_cores,
-                                       mosaic_python_script,data_type_str,
-                                       region_name=region_name,out_suffix=out_suffix,out_dir=out_dir)
-    
+    #debug(plot_raster_poly_overlap)
+    test <- plot_raster_poly_overlap(shps_tiles,list_lf_raster_tif_tiles,df_missing,
+                                         mosaic_python_script,data_type_str,num_cores=num_cores,
+                                         region_name=region_name,out_suffix=out_suffix,
+                                         out_dir=out_dir)
+
   }else{ #if raster_overalp==FALSE
     out_mosaic_name_overlap_masked <- NULL
     tb_freq_overlap <- NULL
@@ -628,7 +690,10 @@ gap_tiles_assessment_fun <- function(in_dir,y_var_name,region_name,num_cores,NA_
   }
   
   ##### Prepare object to return
-  return()
+  gap_detection_obj <- list(df_missing_tiles_day,df_missing_tiles_reg,df_missing_tiles_reg_sp)
+  names(gap_detection_obj) <- c("df_missing_tiles_day","df_missing_tiles_reg","df_missing_tiles_reg_sp")
+  
+  return(gap_detection_obj)
 }
 
 
