@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/06/2017            
+#MODIFIED ON: 07/09/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -26,7 +26,8 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: testing gap detection function with output dir option
+##COMMIT: debugginh hsp detection function 
+#
 #################################################################################################
 
 ### Loading R library and packages        
@@ -63,7 +64,7 @@ library(lubridate)
 ###### Function used in the script #######
 #Product assessment
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07062017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07092017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -142,12 +143,8 @@ if (var == "TMIN") {
 mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merge_sum.py"
 
 #Product assessment
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07062017.R"
 
-script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
-source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
-
-debug(gap_tiles_assessment_fun)
+#debug(gap_tiles_assessment_fun)
 
 #gap_tiles_assessment_fun(in_dir,y_var_name,region_name,num_cores,NA_flag_val,data_type_str,
 #                                     shps_tiles,list_lf_raster_tif_tiles,infile_mask,countries_shp,
@@ -167,6 +164,10 @@ debug(gap_tiles_assessment_fun)
 #                                                 "num_cores","plotting_figures","item_no","day_to_mosaic_range","countries_shp","plotting_figures",
 #                                                 "scaling", "data_type", "python_bin","tmp_files",
 #                                                 "pred_mod_name","metric_name","raster_overlap","raster_pred")
+
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07092017.R"
+script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
+source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
 
 gap_tiles_obj <- gap_tiles_assessment_fun(in_dir,in_dir1, y_var_name,region_name,num_cores,
                                           interpolation_method,NA_flag_val,proj_str,file_format,
