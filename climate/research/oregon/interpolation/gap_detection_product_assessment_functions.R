@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/06/2017            
+#MODIFIED ON: 07/09/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -23,7 +23,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: debugging plot polygon overlap function
+##COMMIT: fixing bug in gap detection function
 
 #################################################################################################
 
@@ -79,6 +79,7 @@ load_obj <- function(f){
   nm <- load(f, env)[1]
   env[[nm]]
 }
+
 remove_errors_list<-function(list_items){
   
   #This function removes "error" items in a list
@@ -523,6 +524,7 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   #plot_tiles_fun()
   
   #### This should be the end of the function!!
+  #browser()
   
   ######### NOW check for missing tiles 
   
@@ -563,9 +565,10 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   x_val <- as.numeric(coord_xy[,2])
   coordinates(df_missing_tiles_reg_sp) <- as.matrix(cbind(x_val,y_val))
   
+  #browser()
   #This contains in rows date and tiles columns
-  filename_df_missing_tiles_sp <- file.path(out_dir,paste0("df_missing_by_centroids_tiles_and_dates",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
-  write.table(as.data.frame(df_missing_tiles_reg_sp),file=filename_df_missing_tiles_sp,sep=",")
+  filename_df_missing_tiles_reg_sp <- file.path(out_dir,paste0("df_missing_by_centroids_tiles_and_dates",region_name,"_",pred_mod_name,"_",out_suffix,".txt"))
+  write.table(as.data.frame(df_missing_tiles_reg_sp),file=filename_df_missing_tiles_reg_sp,sep=",")
 
   #browser()
   
@@ -583,15 +586,16 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   #sink()
   missing_val <- table(df_missing_tiles_reg$tot_missing) #save this info!!
   
+  browser()
   if(nrow(df_missing_tiles_day)>0){
     
     res_pix <- 800
     #res_pix <- 480
     col_mfrow <- 1
     row_mfrow <- 1
-    png_filename_histogram <-  file.path(out_dir,paste("Figure_barplot_",region_name,"region_missing_tiles","_",out_suffix,".png",sep =""))
+    png_filename_barplot <-  file.path(out_dir,paste("Figure_barplot_",region_name,"_region_missing_tiles","_",out_suffix,".png",sep =""))
     
-    png(filename=png_filename_histogram,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    png(filename=png_filename_barplot,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     barplot(missing_val,
             ylab="frequency of missing",
             xlab="number of missing day predictions",
@@ -600,7 +604,7 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
     #check for this in every output, if not present then there are no missing tiles over the full year for 
     #the specific region
     write.table(df_missing_tiles_day,file=paste0("df_missing_tiles_day_mosaic_",out_suffix,".txt"))
-    
+    browser()
     ### Now output the table:
     out_filename <- paste0("missing_val_table_barplot_day_tiles_",out_suffix,".txt")
     write.table(missing_val,file= file.path(out_dir,out_filename))
@@ -612,7 +616,9 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
     #spplot for reg_layer not working on NEX again
     #p_shp <- spplot(reg_layer,"ISO3" ,col.regions=NA, col="black") #ok problem solved!!
     p_r <-levelplot(r_mask,colorkey=F) #no key legend
-    p <- bubble(df_missing_tiles_reg_sp,"tot_missing",main=paste0("Missing per tile and by ",pred_mod_name,
+    p <- bubble(df_missing_tiles_reg_sp,
+                "tot_missing",
+                main=paste0("Missing per tile and by ",pred_mod_name,
                                                               " for ",y_var_name))
     #p1 <- p+p_shp
     p_c <- p + p_r + p #set the legend first by using p first
@@ -621,7 +627,7 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
     dev.off()
     
   }
-  
+  browser()
   #do spplot after that on tot sum
   res_pix <- 800
   #res_pix <- 480
@@ -633,7 +639,9 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   width=col_mfrow*res_pix,height=row_mfrow*res_pix)
     
   p_r <-levelplot(r_mask,colorkey=F) #no key legend
-  p <- bubble(df_missing_tiles_sp,"tot_pred",main=paste0("Prediction per tile and by ",pred_mod_name,
+  p <- bubble(df_missing_tiles_reg_sp,
+              "tot_pred",
+               main=paste0("Prediction per tile and by ",pred_mod_name,
                                                            " for ", y_var_name))
   p_c <- p + p_r + p #set the legend first by using p first
   #p1 <- p+p_shp
