@@ -78,8 +78,8 @@ source(file.path(script_path,function_product_assessment_gap_detection_functions
 
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2
-region_name <- c("reg5") #PARAM 3, arg 3
-out_suffix <- "mosaic_gaps_tiles_assessment_reg5_combined_07112017" #PARAM 4
+region_name <- c("reg6") #PARAM 3, arg 3
+out_suffix <- "mosaic_gaps_tiles_assessment_reg6_combined_07112017" #PARAM 4
 #out_suffix_str <- region_name #PARAM 4, CONST 3
 out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
 create_out_dir_param <- TRUE #PARAM 12, arg 6
@@ -88,7 +88,7 @@ max_mem <- 1e+07 #PARAM 9
 metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
 #day_start <- "19930101" #PARAM 12, arg 12
 #day_end <- "19931231" #PARAM 13, arg 13
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg5.tif" #PARAM 14, arg 14
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg6.tif" #PARAM 14, arg 14
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
 layers_option <- c("var_pred") #PARAM 16, arg 16
 tmp_files <- FALSE # PARAM 17, if FALSE, temporary files are removed, args[17]
