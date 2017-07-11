@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/09/2017            
+#MODIFIED ON: 07/11/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -64,7 +64,7 @@ library(lubridate)
 ###### Function used in the script #######
 #Product assessment
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07092017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07112017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -78,8 +78,8 @@ source(file.path(script_path,function_product_assessment_gap_detection_functions
 
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2
-region_name <- c("reg1") #PARAM 3, arg 3
-out_suffix <- "mosaic_gaps_tiles_assessment_reg1_combined_07062017" #PARAM 4
+region_name <- c("reg4") #PARAM 3, arg 3
+out_suffix <- "mosaic_gaps_tiles_assessment_reg4_combined_07112017" #PARAM 4
 #out_suffix_str <- region_name #PARAM 4, CONST 3
 out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
 create_out_dir_param <- TRUE #PARAM 12, arg 6
@@ -88,7 +88,7 @@ max_mem <- 1e+07 #PARAM 9
 metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
 #day_start <- "19930101" #PARAM 12, arg 12
 #day_end <- "19931231" #PARAM 13, arg 13
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg1.tif" #PARAM 14, arg 14
+infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif" #PARAM 14, arg 14
 in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
 layers_option <- c("var_pred") #PARAM 16, arg 16
 tmp_files <- FALSE # PARAM 17, if FALSE, temporary files are removed, args[17]
@@ -165,9 +165,9 @@ mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merg
 #                                                 "scaling", "data_type", "python_bin","tmp_files",
 #                                                 "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07092017.R"
-script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
-source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
+#function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07092017.R"
+#script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
+#source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
 
 gap_tiles_obj <- gap_tiles_assessment_fun(in_dir,in_dir1, y_var_name,region_name,num_cores,
                                           interpolation_method,NA_flag_val,proj_str,file_format,
