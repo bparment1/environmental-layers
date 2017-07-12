@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/11/2017            
+#MODIFIED ON: 07/12/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -64,7 +64,7 @@ library(lubridate)
 ###### Function used in the script #######
 #Product assessment
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07112017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_07122017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -73,41 +73,59 @@ source(file.path(script_path,function_product_assessment_gap_detection_functions
 ###############################
 ####### Parameters, constants and arguments ###
 
+#Rscript /nobackupp8/bparmen1/env_layers_scripts/gap_detection_product_assessment_07122017.R TMIN /nobackupp6/aguzman4/climateLayers/tMinOut/testGaps reg4 mosaic_gaps_tiles_assessment_reg4_combined_07122017 /nobackupp8/bparmen1/climateLayers/tMinOut/testGaps TRUE 6 1e+07 rmse /nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif /nobackupp6/aguzman4/climateLayers/tMinOut var_pred FALSE TRUE FALSE NULL
+
 
 #################### Begin Script ##################################
 
-var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
-in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2
-region_name <- c("reg23") #PARAM 3, arg 3
-out_suffix <- "mosaic_gaps_tiles_assessment_reg23_combined_07112017" #PARAM 4
-#out_suffix_str <- region_name #PARAM 4, CONST 3
-out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
-create_out_dir_param <- TRUE #PARAM 12, arg 6
-num_cores <- 6 #number of cores used # PARAM 8, arg 8
-max_mem <- 1e+07 #PARAM 9
-metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 11, arg 11
-#day_start <- "19930101" #PARAM 12, arg 12
-#day_end <- "19931231" #PARAM 13, arg 13
-infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg23.tif" #PARAM 14, arg 14
-in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 15 On NEX
-layers_option <- c("var_pred") #PARAM 16, arg 16
-tmp_files <- FALSE # PARAM 17, if FALSE, temporary files are removed, args[17]
-plotting_figures <- TRUE# PARAM 18, if TRUE, png files are produced for missing tiles and day predicted
-raster_overlap <- FALSE # PARAM 19, if TRUE, raster overlap is generated
+#Adding command line arguments to use mpiexec
+args<-commandArgs(TRUE)
 
-#raster_pred <- FALSE # PARAM 20, if TRUE, raster prediction is generated
-#in_dir_shp <- file.path(in_dir_subset,"shapefiles")
-in_dir_shp <- NULL # if NULL look in a predetermined place (see below) [args 20]
+var <- args[1] #"TMIN" # variable being interpolated #PARAM 1, arg 1
+in_dir <- args[2] #"/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2, arg 2
+region_name <- args[3] #c("reg4") #PARAM 3, arg 3
+out_suffix <- args[4] #"mosaic_gaps_tiles_assessment_reg4_combined_07112017" #PARAM 4, arg 4
+out_dir <- args[5] #"/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
+create_out_dir_param <- args[6] #TRUE #PARAM 6, arg 6
+num_cores <- args[7] #6 #number of cores used # PARAM 7, arg 7
+max_mem <- args[8] #1e+07 #PARAM 8, arg 8
+metric_name <- args[9] #"rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 9, arg 9
+infile_mask <- args[10] #"/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif" #PARAM 10, arg 10
+in_dir1 <- args[11] #"/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 11, arg 11 On NEX
+layers_option <- args[12] #c("var_pred") #PARAM 12, arg 12
+tmp_files <- args[13] #FALSE # PARAM 13, if FALSE, temporary files are removed, args[13]
+plotting_figures <- args[14] #TRUE# PARAM 14, if TRUE, png files are produced for missing tiles and day predicted
+raster_overlap <- args[15] #FALSE # PARAM 15, if TRUE, raster overlap is generated
+in_dir_shp <- args[16] #NULL # PARAM 16, if NULL look in a predetermined place (see below) [args 16]
 #in_dir_shp <- /nobackupp6/aguzman4/climateLayers/tMinOut/reg*/subset/shapefiles/
-  
+
+### Actual values commented out for debugging
+# var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
+# in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/testGaps" #PARAM2, arg 2
+# region_name <- c("reg4") #PARAM 3, arg 3
+# out_suffix <- "mosaic_gaps_tiles_assessment_reg4_combined_07112017" #PARAM 4, arg 4
+# out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
+# create_out_dir_param <- TRUE #PARAM 6, arg 6
+# num_cores <- 6 #number of cores used # PARAM 7, arg 7
+# max_mem <- 1e+07 #PARAM 8, arg 8
+# metric_name <- "rmse" # "mae", "r" for MAE, R etc.; can also be ns or nv? #PARAM 9, arg 9
+# infile_mask <- "/nobackupp8/bparmen1/NEX_data/regions_input_files/r_mask_LST_reg4.tif" #PARAM 10, arg 10
+# in_dir1 <- "/nobackupp6/aguzman4/climateLayers/tMinOut" # PARAM 11, arg 11 On NEX
+# layers_option <- c("var_pred") #PARAM 12, arg 12
+# tmp_files <- FALSE # PARAM 13, if FALSE, temporary files are removed, args[13]
+# plotting_figures <- TRUE# PARAM 14, if TRUE, png files are produced for missing tiles and day predicted
+# raster_overlap <- FALSE # PARAM 15, if TRUE, raster overlap is generated
+# in_dir_shp <- NULL # PARAM 16, if NULL look in a predetermined place (see below) [args 16]
+# #in_dir_shp <- /nobackupp6/aguzman4/climateLayers/tMinOut/reg*/subset/shapefiles/
+
 ### constant
 
-pred_mod_name <- "mod1"
-#pred_mod_name <- "mod1"
-date_start <- day_start
-date_end <- day_end
-NA_value <- -32768 #PARAM 26
-NA_flag_val <- NA_value #PARAM 26
+pred_mod_name <- "mod1" #const 1
+#pred_mod_name <- "mod1" # const 2
+#date_start <- day_start 
+#date_end <- day_end
+NA_value <- -32768 #const 3
+NA_flag_val <- NA_value #const 4
 proj_str <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0"
 interpolation_method<-c("gam_CAI") #PARAM 2
 day_to_mosaic_range <- NULL #PARAM 7
