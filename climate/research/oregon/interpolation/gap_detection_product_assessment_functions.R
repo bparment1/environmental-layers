@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/09/2017            
+#MODIFIED ON: 07/12/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -585,6 +585,8 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   range(df_missing_tiles_reg$tot_missing)
   #sink()
   missing_val <- table(df_missing_tiles_reg$tot_missing) #save this info!!
+  #year(ymd(as.character(gap_tiles_obj$df_missing_tiles_day$date)))
+  #barplot(gap_tiles_obj$df_missing_tiles_reg_sp$tot_missing)
   
   browser()
   if(nrow(df_missing_tiles_day)>0){
@@ -626,7 +628,28 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
     try(print(p_c)) #error raised if number of missing values below a threshold does not exist
     dev.off()
     
+    res_pix <- 800
+    #res_pix <- 480
+    col_mfrow <- 1
+    row_mfrow <- 1
+    png_filename_barplot <-  file.path(out_dir,paste("Figure_barplot_per_tile_missing_overall_",region_name,"_",out_suffix,".png",sep =""))
+    
+    png(filename=png_filename_barplot,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
+    
+    barplot(gap_tiles_obj$df_missing_tiles_reg_sp$tot_missing,
+            ylab="frequency missing",
+            xlab="tiles",
+            main=paste0("Number of missing predictions per tiles over 31 years")
+    )
+    dev.off()
+    #barplot(missing_val,
+    #        ylab="frequency of missing",
+    #        xlab="number of missing day predictions",
+    #        main=paste0("Number of missing predictions over 31 years for ",region_name))
+    #dev.off()
+    
   }
+  
   browser()
   #do spplot after that on tot sum
   res_pix <- 800
