@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 07/12/2017            
+#MODIFIED ON: 09/12/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -332,7 +332,7 @@ plot_tiles_fun <- function(shps_tiles_filename,countries_shp,region_name=NULL,nu
   #fun <- function(i,list_shp_files)
   #coord_names <- c("lon","lat")
   #l_ras#t <- rasterize_df_fun(test,coord_names,proj_str,out_suffix=out_suffix,out_dir=".",file_format,NA_flag_val,tolerance_val=0.000120005)
-  
+  read_shp_and_get_centroids(shps_tiles_filename[25])
   list_shps_tiles_centroids <- mclapply(shps_tiles_filename,
                                         FUN=read_shp_and_get_centroids,
                                         out_dir,
@@ -516,7 +516,8 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
 
   shps_tiles_filename <- list.files(in_dir_shp,pattern="*.shp$",full.names=T)
   ### now make plot
-  
+  browser()
+  #debug(plot_tiles_fun)
   plot_obj <- plot_tiles_fun(shps_tiles_filename,countries_shp,region_name=region_name,num_cores=6,out_suffix=out_suffix,out_dir=out_dir)
   
   shps_tiles <- plot_obj$shps_tiles  
@@ -563,7 +564,9 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   coord_xy <- do.call(rbind,list_xy)
   y_val <- as.numeric(coord_xy[,1]) #lat, long! need to reverse
   x_val <- as.numeric(coord_xy[,2])
-  coordinates(df_missing_tiles_reg_sp) <- as.matrix(cbind(x_val,y_val))
+  if(class(df_missing_tiles_reg_sp)!="SpatialPointsDataFrame"){
+    coordinates(df_missing_tiles_reg_sp) <- as.matrix(cbind(x_val,y_val))
+  }
   
   #browser()
   #This contains in rows date and tiles columns
