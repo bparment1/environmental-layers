@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 09/12/2017            
+#MODIFIED ON: 10/18/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -520,10 +520,53 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   #debug(plot_tiles_fun)
   plot_obj <- plot_tiles_fun(shps_tiles_filename,countries_shp,region_name=region_name,num_cores=6,out_suffix=out_suffix,out_dir=out_dir)
   
+  #copy the shapefiles into the new output dir?
   shps_tiles <- plot_obj$shps_tiles  
   centroids_pts <- plot_obj$centroids_pts
-  #plot_tiles_fun()
   
+  #write out shapefiles in output dir:
+  #lapply()
+  shp_filename <- shps_tiles_filename[1]
+  list_out_tiles_shp <- write_out_shp(6,
+                                      list_spdf_obj=shps_tiles,
+                                      list_shp_filename = shps_tiles_filename)
+  
+  list_lf_df_missing_tiles <- mclapply(1:length(shps_tiles),
+                                       FUN=write_out_shp,
+                                       list_spdf_obj=shps_tiles,
+                                       list_shp_filename=shps_tiles_filename,
+                                       out_prefix=region_name,
+                                       mc.preschedule=FALSE,
+                                       mc.cores = num_cores)
+  
+  write_out_shp <- function(i,list_spdf_obj,list_shp_filename,out_dir=NULL,out_prefix=NULL){
+    if(is.null(out_dir)){
+      out_dir="."
+    }
+    if(is.null(out_suffix)){
+      out_prefix=""
+    }
+    
+    #out_filename <- file.path(out_dir,basename(shp_filename[i]))
+    
+    spdf_obj <- list_spdf_obj[[i]]
+    
+    #outfile<-sub(".shp","",shp_filename)   #Removing extension if it is present
+    
+    outfile<-paste("tile_",out_prefix,"_",
+                   basename(list_shp_filename[i]),sep="")
+    writeOGR(spdf_obj,
+             dsn= out_dir,
+             layer= outfile, 
+             driver="ESRI Shapefile",
+             overwrite_layer=TRUE)
+    return(outfile)
+  }
+  
+  #plot_tiles_fun()
+  rownames(centroids_pts) <- paste0("t_",1:n_tiles)
+  
+  df_missing_by_centroids_tiles_and_dates
   #### This should be the end of the function!!
   #browser()
   
@@ -552,7 +595,15 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
   ### do sum across tiles to find number of missing per tiles and map it
   
   n_tiles <- length(df_missing_tiles_reg) - 3 #number of tiles in this region
-  df_missing_tiles_reg_sp <- t(df_missing_tiles_reg[,1:n_tiles]) #transpose to get df with lines centroids of tiles
+  
+  df_missing_tiles_reg_sp <- t(df_missing_tiles_reg[,1:n_tiles]) 
+  ## Assign names to tiles for later: each names starts with "t_"
+  rownames(df_missing_tiles_reg_sp) <- paste0("t_",1:n_tiles)
+  #transpose to get df with lines centroids of tiles:
+  #this generates a data.frame with one row for each tile in the region and
+  # the number of columns equal to the number of dates predicted plus two
+  # columns (tot_missing, tot_pred)
+  
   df_missing_tiles_reg_sp <- as.data.frame(df_missing_tiles_reg_sp)
   names(df_missing_tiles_reg_sp) <- df_missing_tiles_reg$date
   df_missing_tiles_reg_sp$tot_missing <- rowSums(df_missing_tiles_reg_sp) #total missing over a year by tile
@@ -630,6 +681,7 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
     
     try(print(p_c)) #error raised if number of missing values below a threshold does not exist
     dev.off()
+    browser()
     
     res_pix <- 800
     #res_pix <- 480
@@ -639,8 +691,9 @@ gap_tiles_assessment_fun <- function(in_dir,in_dir1, y_var_name,region_name,num_
     
     png(filename=png_filename_barplot,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     
-    barplot(gap_tiles_obj$df_missing_tiles_reg_sp$tot_missing,
-            ylab="frequency missing",
+    #barplot(gap_tiles_obj$df_missing_tiles_reg_sp$tot_missing,
+    barplot(df_missing_tiles_reg_sp$tot_missing,
+                    ylab="frequency missing",
             xlab="tiles",
             main=paste0("Number of missing predictions per tiles over 31 years")
     )
