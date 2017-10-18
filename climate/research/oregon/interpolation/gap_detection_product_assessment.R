@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 10/12/2017            
+#MODIFIED ON: 10/18/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -65,7 +65,7 @@ library(lubridate)
 ###### Function used in the script #######
 #Product assessment
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_09122017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_10182017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -104,7 +104,7 @@ in_dir_shp <- args[16] #NULL # PARAM 16, if NULL look in a predetermined place (
 var <- "TMIN" # variable being interpolated #PARAM 1, arg 1
 in_dir <- "/nobackupp6/aguzman4/climateLayers/tMinOut/reg6/assessment2" #PARAM2, arg 2
 region_name <- c("reg6") #PARAM 3, arg 3
-out_suffix <- "mosaic_gaps_tiles_assessment_reg4_combined_10132017" #PARAM 4, arg 4
+out_suffix <- "mosaic_gaps_tiles_assessment_reg6_combined_10182017" #PARAM 4, arg 4
 out_dir <- "/nobackupp8/bparmen1/climateLayers/tMinOut/testGaps" #PARAM 5
 create_out_dir_param <- TRUE #PARAM 6, arg 6
 num_cores <- 6 #number of cores used # PARAM 7, arg 7
@@ -184,7 +184,7 @@ mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merg
 #                                                 "scaling", "data_type", "python_bin","tmp_files",
 #                                                 "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_09122017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_10182017.R"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
 
