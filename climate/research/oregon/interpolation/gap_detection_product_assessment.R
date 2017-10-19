@@ -9,7 +9,7 @@
 #
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/31/2016  
-#MODIFIED ON: 10/18/2017            
+#MODIFIED ON: 10/19/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: removing unused functions and clean up for part0 global product assessment part0 
@@ -65,7 +65,7 @@ library(lubridate)
 ###### Function used in the script #######
 #Product assessment
 function_product_assessment_part0_functions <- "global_product_assessment_part0_functions_06072017.R"
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_10182017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_10192017.R"
 
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_part0_functions)) #source all functions used in this script 
@@ -184,7 +184,7 @@ mosaic_python_script <- "/nobackupp6/aguzman4/climateLayers/sharedCode/gdal_merg
 #                                                 "scaling", "data_type", "python_bin","tmp_files",
 #                                                 "pred_mod_name","metric_name","raster_overlap","raster_pred")
 
-function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_10182017.R"
+function_product_assessment_gap_detection_functions <- "gap_detection_product_assessment_functions_10192017.R"
 script_path <- "/nobackupp8/bparmen1/env_layers_scripts"
 source(file.path(script_path,function_product_assessment_gap_detection_functions)) #source all functions used in this script 
 
