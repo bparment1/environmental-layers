@@ -241,61 +241,67 @@ run_assessment_combined_region_plotting_prediction_fun <-function(list_param_run
   #need to fix this !! has all of the files in one list (for a region)
   #list_shp <- list.files(path=file.path(in_dir,file.path(in_dir_list,"shapefiles")),"*.shp",full.names=T)
 
-  ## Step 2: only read what is necessary at this stage...
-  list_tb <- lapply(list_tb_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
-
-  tb <- do.call(rbind,list_tb)
-  list_tb_s <- lapply(list_tb_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
-  tb_s <- do.call(rbind,list_tb_s)
   
   #summary_metrics_v_list <- mclapply(list_raster_obj_files,FUN=function(x){try( x<- load_obj(x)); try(x[["summary_metrics_v"]]$avg)},mc.preschedule=FALSE,mc.cores = num_cores)                         
 
+  #list_df_tile_processed <- lapply(list_df_fname[1:2],function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  
   list_df_tile_processed <- lapply(list_df_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   df_tile_processed <- do.call(rbind,list_df_tile_processed)  
   list_summary_metrics_v <- lapply(list_summary_metrics_v_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
   summary_metrics_v <- do.call(rbind,list_summary_metrics_v)  
 
-  list_tb_month_s <- lapply(list_tb_month_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
-  tb_month_s <- do.call(rbind,list_tb_month_s)  
 
   ##Stop added
   ##Screen for non shapefiles tiles due to dir
   df_tile_processed <- df_tile_processed[!is.na(df_tile_processed$shp_files),] 
-  
-  #add column for tile size later on!!!
-  
-  tb$pred_mod <- as.character(tb$pred_mod)
   summary_metrics_v$pred_mod <- as.character(summary_metrics_v$pred_mod)
   summary_metrics_v$tile_id <- as.character(summary_metrics_v$tile_id)
   df_tile_processed$tile_id <- as.character(df_tile_processed$tile_id)
+  #multiple regions? #this needs to be included in the previous script!!!
+  #if(multiple_region==TRUE){
+  df_tile_processed$reg <- as.character(df_tile_processed$reg)
+  summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
+  #test <- merge(summary_metrics_v,df_tile_processed,by="tile_id",all=F)
+  try(summary_metrics_v$year_predicted <- summary_metrics_v$year_predicted.x)
+  try(summary_metrics_v$reg <- summary_metrics_v$reg.x)  
+  try(summary_metrics_v$lat <- summary_metrics_v$lat.x)
+  try(summary_metrics_v$lon <- summary_metrics_v$lon.x)
+  write.table(summary_metrics_v,paste0("sumary_metrics_v_",region_name,"_",out_suffix,".txt"),sep=",")
   
+  #add column for tile size later on!!!
+  
+  
+  ## Step 2: only read what is necessary at this stage...
+  #list_tb <- lapply(list_tb_fname[1:2],function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  list_tb <- lapply(list_tb_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  
+  tb <- do.call(rbind,list_tb)
+  list_tb_s <- lapply(list_tb_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  tb_s <- do.call(rbind,list_tb_s)
+  list_tb_month_s <- lapply(list_tb_month_s_fname,function(x){read.table(x,stringsAsFactors=F,sep=",")})
+  tb_month_s <- do.call(rbind,list_tb_month_s)  
+  
+  tb$pred_mod <- as.character(tb$pred_mod)
   tb_month_s$pred_mod <- as.character(tb_month_s$pred_mod)
   tb_month_s$tile_id<- as.character(tb_month_s$tile_id)
   tb_s$pred_mod <- as.character(tb_s$pred_mod)
   tb_s$tile_id <- as.character(tb_s$tile_id)
-  
-  #multiple regions? #this needs to be included in the previous script!!!
-  #if(multiple_region==TRUE){
-  df_tile_processed$reg <- as.character(df_tile_processed$reg)
   #1.05pm... very slow
   #17.00pm on July 27, took 20 minutes to merge tb for reg5
   tb <- merge(tb,df_tile_processed,by="tile_id")
   tb_s <- merge(tb_s,df_tile_processed,by="tile_id")
   tb_month_s<- merge(tb_month_s,df_tile_processed,by="tile_id")
-  summary_metrics_v <- merge(summary_metrics_v,df_tile_processed,by="tile_id")
-  #test <- merge(summary_metrics_v,df_tile_processed,by="tile_id",all=F)
   #duplicate columns...need to be cleaned up later
   try(tb$year_predicted <- tb$year_predicted.x)
   try(tb$reg <- tb$reg.x)
-  try(summary_metrics_v$year_predicted <- summary_metrics_v$year_predicted.x)
-  try(summary_metrics_v$reg <- summary_metrics_v$reg.x)  
-  try(summary_metrics_v$lat <- summary_metrics_v$lat.x)
-  try(summary_metrics_v$lon <- summary_metrics_v$lon.x)
+  
+  
   #browser()
+  
   ###Now save tables.
   write.table(tb,paste0("tb_combined_",region_name,"_",out_suffix,".txt"),sep=",")
   write.table(tb_s,paste0("tb_s_combined_",region_name,"_",out_suffix,".txt"),sep=",")
-  write.table(summary_metrics_v,paste0("sumary_metrics_v_",region_name,"_",out_suffix,".txt"),sep=",")
   
   ############ PART 2: PRODUCE FIGURES ################
   
