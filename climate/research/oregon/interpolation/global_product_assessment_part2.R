@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/24/2016            
+#MODIFIED ON: 12/10/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -52,7 +52,7 @@ library(colorRamps)
 library(zoo)
 library(xts)
 library(lubridate)
-library(mosaic)
+#library(mosaic)
 
 ###### Function used in the script #######
   
@@ -63,7 +63,7 @@ script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts" #path t
 #source(file.path(script_path,"NASA2016_conference_temperature_predictions_function_05032016b.R"))
 
 #Mosaic related on NEX
-#script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
+script_path <- "/home/parmentier/Data/IPLANT_project/env_layers_scripts"
 function_mosaicing_functions <- "global_run_scalingup_mosaicing_function_09282016.R" #Functions used to mosaic predicted tiles
 function_mosaicing <-"global_run_scalingup_mosaicing_09282016.R" #main scripts for mosaicing predicted tiles
 
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_10222016.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_12102017.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -94,7 +94,7 @@ source(file.path(script_path,function_product_assessment_part2_functions)) #sour
 
 CRS_locs_WGS84<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0") #constant 1
 
-var<-"TMAX" # variable being interpolated #param 1, arg 1
+var<-"TMIN" # variable being interpolated #param 1, arg 1
 
 ##Add for precip later...
 if (var == "TMAX") {
@@ -127,20 +127,24 @@ metric_name <- "var_pred" #use RMSE if accuracy
 #master directory containing the definition of tile size and tiles predicted
 #in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
-in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
+#in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
 in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
+
+in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/assessment2"
+
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaics/mosaic"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic" #note dropped the s in mosaics
 
 region_name <- c("reg6") #param 6, arg 3
-out_suffix <- "global_assessment_reg6_10232016"
+out_suffix <- "global_assessment_reg6_12102017"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
 
-out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
-
+#out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
+out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/assessment2/"
 #run_figure_by_year <- TRUE # param 10, arg 7
 
 file_format <- ".tif" #format for mosaiced files # param 11
@@ -152,8 +156,10 @@ num_cores <- 11 #number of cores used # param 13, arg 8
 #python_bin <- "/nobackupp6/aguzman4/climateLayers/sharedModules2/bin" #PARAM 30
 python_bin <- "/usr/bin" #PARAM 30
 
-day_start <- "1984101" #PARAM 12 arg 12
-day_end <- "20141231" #PARAM 13 arg 13
+day_start <- "19840101" #PARAM 12 arg 12
+#day_end <- "20141231" #PARAM 13 arg 13
+day_end <- "19841231" #PARAM 13 arg 13
+
 #date_start <- day_start
 #date_end <- day_end
 
@@ -186,7 +192,8 @@ NA_flag_val_mosaic <- -32768
 in_dir_list_filename <- NULL #if NULL, use the in_dir directory to search for info
 countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
 lf_raster <- NULL #list of raster to consider
-item_no <- 13
+#item_no <- 13 #was this value in the previous version in 2016
+item_no <- 12
 
 ##################### START SCRIPT #################
 
@@ -207,8 +214,16 @@ if (create_out_dir_param == TRUE) {
 
 ## using predictions
 #pattern_str <- ".*.tif"
-pattern_str <-"*.tif"
-lf_raster <- list.files(path=in_dir_mosaic,pattern=pattern_str,recursive=F,full.names=T)
+pattern_str <-"r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmin_.*.tif"
+#> lf_raster[c(1,367,733)]
+#[1] "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984/r_m_use_edge_weights_weighted_mean_gam_CAI_dailyTmin_19840101_reg6_1984.tif"       
+#[2] "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984/r_m_use_edge_weights_weighted_mean_masked_gam_CAI_dailyTmin_19840101_reg6_1984.tif"
+#[3] "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmin_19840101_reg6_1984.tif"  
+
+lf_raster <- list.files(path=in_dir_mosaic,
+                        pattern=pattern_str,
+                        recursive=F,
+                        full.names=T)
 r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
 #save(r_mosaic,file="r_mosaic.RData")
 
@@ -223,7 +238,7 @@ r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option
 ## Join file information to centroids of tiles data.frame
 #list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
 #list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)                         
-item_no <- 13
+#item_no <- 13
 date_start <- day_start
 date_end <- day_end
 #day_start <- "1984101" #PARAM 12 arg 12
@@ -244,12 +259,13 @@ date_end <- day_end
 ##Run this on reg4 and reg5 after
 #Add report by year in text file?
 #Using specified values for parameters
+debug(check_missing)
 test_missing <- check_missing(lf=lf_raster, 
                               pattern_str=NULL,
                               in_dir=in_dir_mosaic,
-                              date_start="1984101",
-                              date_end="20141231",
-                              item_no=13,
+                              date_start=date_start,
+                              date_end=date_end,
+                              item_no=item_no,
                               out_suffix=out_suffix,
                               num_cores=num_cores,
                               out_dir=".")
@@ -267,7 +283,7 @@ table(df_time_series$year)
 NAvalue(r_stack)
 plot(r_stack,y=6,zlim=c(-10000,10000)) #this is not rescaled
 #plot(r_stack,zlim=c(-50,50),col=matlab.like(255))
-var_name <- "dailyTmax"
+var_name <- y_var_name
 
 #debug(plot_and_animate_raster_time_series)
 
