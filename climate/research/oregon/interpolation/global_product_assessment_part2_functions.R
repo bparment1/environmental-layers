@@ -5,7 +5,7 @@
 #The file contains functions to genrate figures and animation (movie).
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 10/19/2016            
+#MODIFIED ON: 12/10/2017            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS:
@@ -53,7 +53,7 @@ library(colorRamps)
 library(zoo)
 library(xts)
 library(lubridate)
-library(mosaic)
+#library(mosaic)
 
 ###### Function used in the script #######
   
@@ -132,8 +132,21 @@ pre_process_raster_mosaic_fun <- function(i,list_param){
 }
 
 plot_raster_mosaic <- function(i,list_param){
-  #Function to plot mosaic for poster
+  #Function to plot raster image
   #
+  #INPUTS
+  #1) l_dates
+  #2) r_stack
+  #3) NA_flag_val
+  #4) out_dir,
+  #5) out_suffix_str
+  #6) region_name
+  #7) variable_name
+  #8) zlim_val
+  #
+  
+  ############# Start script #########
+  
   l_dates <- list_param$l_dates
   r_mosaiced_scaled <- list_param$r_mosaiced_scaled
   NA_flag_val <- list_param$NA_flag_val
@@ -365,29 +378,31 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60
 
 
 plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,var_name,metric_name,NA_flag_val,filenames_figures=NULL,frame_speed=60,animation_format=".gif",zlim_val=NULL,plot_figure=T,generate_animation=T,num_cores=2,out_suffix="",out_dir="."){
-  #Function to generate figures and animation for a list of raster
-  #
+  #Function to generate figures and animation for a list of time series raster files.
+  #The list assumes that dates can be extracted from the filename (as in the NEX worklow)
   #
   #INPUTS
   #1) lf_raster
-  #2) filenames_figures
-  #2) NAvalue
-  #3) item_no
-  #4) region_name,
-  #5) var_name
-  #6) metric_name
-  #7) frame_speed
-  #8) animation_format
-  #9) zlim_val
-  #10) plot_figure
-  #11) generate_animation
-  #12) num_cores
-  #13) out_suffix
-  #14) out_dir
+  #2) item_no
+  #3) region_name,
+  #4) var_name
+  #5) metric_name
+  #6) NAvalue
+  #7) filenames_figures
+  #8) frame_speed
+  #9) animation_format
+  #10) zlim_val
+  #11) plot_figure
+  #12) generate_animation
+  #13) num_cores
+  #14) out_suffix
+  #15) out_dir
   #OUTPUTS
-  #
-  #
+  #An object as list called figure_animation_obj with:
+  #1) filenames_figures_mosaic
+  #2) out_filename_figure_animation
   
+  ####### Start script #############
   
   
   #lf_mosaic_list <- lf_raster
@@ -444,6 +459,7 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     
     ##start at 12.29
     ##finished at 15.23 (for reg 6 with 2,991 figures)
+    #debug(plot_raster_mosaic)
     lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
                                    FUN = plot_raster_mosaic,
                                    list_param = list_param_plot_raster_mosaic,
