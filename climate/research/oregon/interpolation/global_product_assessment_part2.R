@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 12/10/2017            
+#MODIFIED ON: 12/11/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_12102017.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_12112017.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -128,7 +128,7 @@ metric_name <- "var_pred" #use RMSE if accuracy
 #in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/assessment"
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg5/mosaic/mosaic"
 #in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
+#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/mosaics/mosaic" #predicted mosaic
 
 in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/assessment2"
 
@@ -138,7 +138,7 @@ in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/re
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic" #note dropped the s in mosaics
 
 region_name <- c("reg6") #param 6, arg 3
-out_suffix <- "global_assessment_reg6_12102017"
+out_suffix <- "global_assessment_reg6_12112017"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
@@ -259,7 +259,7 @@ date_end <- day_end
 ##Run this on reg4 and reg5 after
 #Add report by year in text file?
 #Using specified values for parameters
-debug(check_missing)
+#debug(check_missing)
 test_missing <- check_missing(lf=lf_raster, 
                               pattern_str=NULL,
                               in_dir=in_dir_mosaic,
@@ -273,15 +273,15 @@ test_missing <- check_missing(lf=lf_raster,
 df_time_series <- test_missing$df_time_series
 head(df_time_series)
 
-table(df_time_series$missing)
-table(df_time_series$year)
+table(df_time_series$missing) 
+table(df_time_series$year) #missing by year
 
 #############################
 ##### Creating animation based on prediction
 
 #####
 NAvalue(r_stack)
-plot(r_stack,y=6,zlim=c(-10000,10000)) #this is not rescaled
+#plot(r_stack,y=6,zlim=c(-10000,10000)) #this is not rescaled
 #plot(r_stack,zlim=c(-50,50),col=matlab.like(255))
 var_name <- y_var_name
 
@@ -304,7 +304,10 @@ range_year_str <- paste(range_year, sep = "_", collapse = "_")
 out_suffix_str <- paste(range_year_str,out_suffix,sep="_")
 
 #started on 10/22/2016 at 9.57
-animation_obj <- plot_and_animate_raster_time_series(lf_subset, 
+debug(plot_and_animate_raster_time_series)
+#animation_frame_60_min_max_1984_1985_global_assessment_reg6_12112017.gif
+
+animation_obj <- plot_and_animate_raster_time_series(lf_subset[1:7], 
                                                      item_no,
                                                      region_name,
                                                      var_name,
@@ -321,7 +324,7 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
                                                      out_dir=out_dir)
   
 zlim_val <- c(-2000,5000)
-animation_obj <- plot_and_animate_raster_time_series(lf_subset, 
+animation_obj <- plot_and_animate_raster_time_series(basename(lf_subset), 
                                                      item_no,
                                                      region_name,
                                                      var_name,
@@ -344,6 +347,11 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
 #ffmpeg -f gif -i file.gif -c:v libx264 outfile.mp4
 
 #ffmpeg -i animation_frame_60_-2500_6000_.gif animation_frame_60_-2500_6000_.mp4
+http://user.astro.columbia.edu/~robyn/ffmpeghowto.html
+ffmpeg -f image2 -r 10 -i ./img%d.gif -b 600k ./out.mp4
+/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/assessment2/output_global_assessment_reg6_12112017/animation_frame_60_min_max_1984_1985_global_assessment_reg6_12112017.gif
+
+#r: how many frames per seconds
 
 #ffmpeg -i animation_frame_60_-2500_6000_.gif animation_frame_60_-2500_6000_.mp4
 
@@ -352,8 +360,13 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset,
 
 #ffmpeg -r 10 -i animation_frame_60_-2500_6000_.gif animation.avi
 
+#This shrinks by 25 Mb
 #ffmpeg -f gif -i animation_frame_60_-2500_6000_.gif -vcodec libx264 -x264opts -pix_fmt yuv420p outfile.mp4
 
+#rate of one per second:
+#ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
+#crf: used for compression count rate factor is between 18 to 24, the lowest is the highest quality
+#ffmpeg -f image2 -r 1 -crf 24 -pattern_type glob -i '*.png' out.mp4
 
 
 ############################ END OF SCRIPT ##################################
