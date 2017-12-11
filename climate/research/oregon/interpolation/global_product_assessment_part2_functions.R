@@ -5,7 +5,7 @@
 #The file contains functions to genrate figures and animation (movie).
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 12/10/2017            
+#MODIFIED ON: 12/11/2017            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS:
@@ -155,7 +155,8 @@ plot_raster_mosaic <- function(i,list_param){
   region_name <- list_param$region_name
   variable_name <- list_param$variable_name
   zlim_val <- list_param$zlim_val
-
+  stat_opt <- list_param$stat_opt #if TRUE computer stats for the image
+  
   #for (i in 1:length(nlayers(r_mosaic_scaled))){
   
   date_proc <- l_dates[i]
@@ -191,7 +192,10 @@ plot_raster_mosaic <- function(i,list_param){
       r_pred <- setMinMax(r_pred)
     }
     
-    zlim_val_str <- paste(c(minValue(r_pred),maxValue(r_pred)),sep="_",collapse="_")
+    min_max_val <- c(minValue(r_pred),maxValue(r_pred))
+    min_max_df <- data.frame(min=min_max_val[1],max=min_max_val[2])
+    
+    zlim_val_str <- paste(min_max_val,sep="_",collapse="_")
     #png_filename <-  file.path(out_dir,paste("Figure4_clim_mosaics_day_","_",date_proc,"_",region_name,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
     #raster_name_tmp
     png_filename <-  file.path(out_dir,paste("Figure_",raster_name_tmp,"_zlim_",zlim_val_str,"_",out_suffix,".png",sep =""))
@@ -208,7 +212,7 @@ plot_raster_mosaic <- function(i,list_param){
        #legend.args=list(text='dNBR', side=4, line=2.49, cex=1.6))
     dev.off()
   }else{
-    
+    min_max_val <- NULL
     zlim_val_str <- paste(zlim_val,sep="_",collapse="_")
     #png_filename <-  file.path(out_dir,paste("Figure_mosaics_day_","_",date_proc,"_",region_name,"_",zlim_val_str,"_",out_suffix,".png",sep =""))
     
@@ -226,7 +230,33 @@ plot_raster_mosaic <- function(i,list_param){
     dev.off()
   }
   
-  return(png_filename)
+  ### Option to compute stats for the raster image
+  if(stat_opt==TRUE){
+    if(is.null(min_max_val)){
+      min_val <- cellStats(r_pred,stat="min",na.rm=T)
+      max_val <- cellStats(r_pred,stat="max",na.rm=T)
+    }else{
+      min_val <- min_max_val[1]
+      max_val <- min_max_val[2]
+    }
+    
+    mean_val <- cellStats(r_pred,stat="mean",na.rm=T)
+    sd_val <- cellStats(r_pred,stat="sd",na.rm=T)
+    NA_no <- freq(r_pred,value=NA)
+    stat_df <- data.frame(min=min_val,
+                          max=max_val,
+                          sd=sd_val,
+                          mean=mean_val,
+                          NA_no=NA_no)
+  }else{
+    stat_df <- NULL
+  }
+  
+  fig_obj <- c(png_filename,min_max_df,stat_df)
+  names(fig_obj) <- c("png_filename","min_max_df","stat_df")
+  
+  #return(png_filename)
+  return(fig_obj)
 }
 
 extract_date <- function(i,x,item_no=NULL){
@@ -287,7 +317,7 @@ check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",d
   
   list_dates_produced <- unlist(mclapply(1:length(lf),
                                          FUN = extract_date,
-                                         x = lf,
+                                         x = basename(lf),
                                          item_no = item_no,
                                          mc.preschedule = FALSE,
                                          mc.cores = num_cores))
@@ -370,6 +400,22 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60
   #convert @myimages.txt mymovie.gif
   #save cmd_str in text file!!!
   
+  #if format is .mp4
+  if(file_format==".mp4"){
+    #ffmpeg -f image2 -pattern_type glob -i '*.png' out.mp4
+    #ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
+    
+    #-r1 one second by frame
+    
+    cmd_str <- 
+    cmd_str <- paste("ffmpeg",
+                       paste("-f","image2",sep=" "),
+                       paste("-pattern_type glob -i ",filenames_figures),
+                     paste("-pattern_type glob -i ",filenames_figures),
+                     
+                       out_filename_figure_animation)
+    
+  }
   system(cmd_str)
   
   return(out_filename_figure_animation)
@@ -412,7 +458,7 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     #item_no <- 13
     list_dates_produced <- unlist(mclapply(1:length(lf_raster),
                                            FUN = extract_date,
-                                           x = lf_raster,
+                                           x = basename(lf_raster),
                                            item_no = item_no,
                                            mc.preschedule = FALSE,
                                            mc.cores = num_cores))
@@ -512,6 +558,7 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     
     #started 17.36 Western time on Oct 10 and 18.18
     #        15.58                 oct 11 for 16.38 for reg6 pred (about 2991)
+    #out_filename_figure_animation
     out_filename_figure_animation <- generate_animation_from_figures_fun(filenames_figures = filenames_figures_mosaic,
                                                                          frame_speed = frame_speed,
                                                                          format_file = animation_format,
