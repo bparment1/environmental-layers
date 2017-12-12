@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 12/11/2017            
+#MODIFIED ON: 12/13/2017            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -84,9 +84,9 @@ source(file.path(script_path,function_assessment_part2_functions)) #source all f
 source(file.path(script_path,function_assessment_part3)) #source all functions used in this script 
 
 #Product assessment
-function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
-source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_12112017.R"
+#function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
+#source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_12132017.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -138,7 +138,7 @@ in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/re
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg4/mosaic/mosaic" #note dropped the s in mosaics
 
 region_name <- c("reg6") #param 6, arg 3
-out_suffix <- "global_assessment_reg6_12112017"
+out_suffix <- "global_assessment_reg6_12132017"
 
 create_out_dir_param <- TRUE #param 9, arg 6
 
@@ -157,8 +157,8 @@ num_cores <- 11 #number of cores used # param 13, arg 8
 python_bin <- "/usr/bin" #PARAM 30
 
 day_start <- "19840101" #PARAM 12 arg 12
-#day_end <- "20141231" #PARAM 13 arg 13
-day_end <- "19841231" #PARAM 13 arg 13
+day_end <- "20141231" #PARAM 13 arg 13
+#day_end <- "19841231" #PARAM 13 arg 13
 
 #date_start <- day_start
 #date_end <- day_end
@@ -194,7 +194,10 @@ countries_shp <-"/data/project/layers/commons/NEX_data/countries.shp" #Atlas
 lf_raster <- NULL #list of raster to consider
 #item_no <- 13 #was this value in the previous version in 2016
 item_no <- 12
-
+stat_opt <- TRUE
+frame_speed <- 50
+animation_format <- ".mp4" #options are mp4,avi,gif at this stage 
+  
 ##################### START SCRIPT #################
 
 ####### PART 1: Read in data ########
@@ -220,9 +223,10 @@ pattern_str <-"r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmin_.*.tif"
 #[2] "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984/r_m_use_edge_weights_weighted_mean_masked_gam_CAI_dailyTmin_19840101_reg6_1984.tif"
 #[3] "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984/r_m_use_edge_weights_weighted_mean_mask_gam_CAI_dailyTmin_19840101_reg6_1984.tif"  
 
+in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/"
 lf_raster <- list.files(path=in_dir_mosaic,
                         pattern=pattern_str,
-                        recursive=F,
+                        recursive=T,
                         full.names=T)
 r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option!
 #save(r_mosaic,file="r_mosaic.RData")
@@ -239,8 +243,7 @@ r_stack <- stack(lf_raster,quick=T) #this is very fast now with the quick option
 #list_dates_produced <- unlist(mclapply(1:length(lf_mosaic_list),FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = num_cores))                         
 #list_dates_produced <-  mclapply(1:2,FUN=extract_date,x=lf_mosaic_list,item_no=13,mc.preschedule=FALSE,mc.cores = 2)                         
 #item_no <- 13
-date_start <- day_start
-date_end <- day_end
+
 #day_start <- "1984101" #PARAM 12 arg 12
 #day_end <- "20141231" #PARAM 13 arg 13
 
@@ -260,6 +263,7 @@ date_end <- day_end
 #Add report by year in text file?
 #Using specified values for parameters
 #debug(check_missing)
+#This takes about 6 minutes for full time series (11204)
 test_missing <- check_missing(lf=lf_raster, 
                               pattern_str=NULL,
                               in_dir=in_dir_mosaic,
@@ -294,7 +298,7 @@ var_name <- y_var_name
 #source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 #undebug(plot_and_animate_raster_time_series)
-range_year <- c(1984,1985)
+range_year <- c(1984,2014)
 subset_df_time_series <- subset(df_time_series,year%in% range_year)
 subset_df_time_series <- subset_df_time_series[!is.na(subset_df_time_series$lf),]
 
@@ -314,11 +318,12 @@ animation_obj <- plot_and_animate_raster_time_series(lf_subset[1:7],
                                                      metric_name,
                                                      NA_flag_val,
                                                      filenames_figures=NULL,
-                                                     frame_speed=60,
-                                                     animation_format=".gif",
+                                                     frame_speed=frame_speed,
+                                                     animation_format=animation_format,
                                                      zlim_val=NULL,
                                                      plot_figure=T,
                                                      generate_animation=T,
+                                                     stat_opt=stat_opt,
                                                      num_cores=num_cores,
                                                      out_suffix=out_suffix_str,
                                                      out_dir=out_dir)
@@ -336,6 +341,7 @@ animation_obj <- plot_and_animate_raster_time_series(basename(lf_subset),
                                                      zlim_val=zlim_val,
                                                      plot_figure=T,
                                                      generate_animation=T,
+                                                     stat_opt=stat_opt,
                                                      num_cores=num_cores,
                                                      out_suffix=out_suffix_str,
                                                      out_dir=out_dir)
@@ -366,7 +372,7 @@ ffmpeg -f image2 -r 10 -i ./img%d.gif -b 600k ./out.mp4
 #rate of one per second:
 #ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
 #crf: used for compression count rate factor is between 18 to 24, the lowest is the highest quality
-#ffmpeg -f image2 -r 1 -crf 24 -pattern_type glob -i '*.png' out.mp4
+#ffmpeg -f image2 -r 1 -vcodec libx264 -crf 24 -pattern_type glob -i '*.png' out.mp4
 
 
 ############################ END OF SCRIPT ##################################
