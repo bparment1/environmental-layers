@@ -5,7 +5,7 @@
 #The file contains functions to genrate figures and animation (movie).
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 12/11/2017            
+#MODIFIED ON: 12/13/2017            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS:
@@ -239,15 +239,32 @@ plot_raster_mosaic <- function(i,list_param){
       min_val <- min_max_val[1]
       max_val <- min_max_val[2]
     }
-    
-    mean_val <- cellStats(r_pred,stat="mean",na.rm=T)
-    sd_val <- cellStats(r_pred,stat="sd",na.rm=T)
+
     NA_no <- freq(r_pred,value=NA)
+    n_cell <- ncell(r_pred)
+    perc_NA <- 100*(NA_no/n_cell)
+    if(dataType(r_pred)=="INT2S" | dataType(r_pred)=="INT4S"){
+      #integer overflow for sum
+      #filename(r_pred)
+      #r_pred_tmp <- r_pred
+      raster_name_tmp <- paste(raster_name_tmp,"_tmp",file_format,sep="")
+      writeRaster(r_pred_tmp,raster_name_tmp,datatype="FLT8S",overwrite=T) #this very slow
+      r_pred_tmp <-raster(raster_name_tmp)
+      #dataType(r_pred_tmp)
+      mean_val <- cellStats(r_pred_tmp,stat="mean",na.rm=T)
+      sd_val <- cellStats(r_pred_tmp,stat="sd",na.rm=T)
+      file.remove(raster_name_tmp)
+    }else{
+      mean_val <- cellStats(r_pred,stat="mean",na.rm=T)
+      sd_val <- cellStats(r_pred,stat="sd",na.rm=T)
+    }
     stat_df <- data.frame(min=min_val,
                           max=max_val,
                           sd=sd_val,
                           mean=mean_val,
-                          NA_no=NA_no)
+                          NA_no=NA_no,
+                          n_cell=n_cell,
+                          perc_NA)
   }else{
     stat_df <- NULL
   }
@@ -361,12 +378,13 @@ check_missing <- function(lf, pattern_str=NULL,in_dir=".",date_start="1984101",d
 
 
 #create animation from figures:
-generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60,format_file=".gif",out_suffix="",out_dir=".",out_filename_figure_animation=NULL){
+generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50,format_file=".gif",out_suffix="",out_dir=".",out_filename_figure_animation=NULL){
   #This function generates an animation given a list of files or textfile. The default format is .gif.
   #The function requires ImageMagick to produce animation.
   #INPUTS:
   #1) filenames_figures: list of files as "list" or "character, or file name of a text file containing the list of figures.
-  #2) frame_speed: delay option in constructing the animation, default is 60
+  #2) frame_speed: delay option in constructing the animation, default is 50,
+                  #the unit is 1/100th of second so 50 is 2 frame per second
   #3) format_file=".gif"
   #4) out_suffix=""
   #5) out_dir=".",
@@ -386,19 +404,21 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60
     filenames_figures <- out_filenames_figures
   }
   
-  
   #now generate movie with imageMagick
 
-  #-delay 20
-  #delay_option <- 60
-  delay_option <- frame_speed
-  
-  cmd_str <- paste("convert",
-                   paste("-delay",delay_option),
-                   paste0("@",filenames_figures),
-                   out_filename_figure_animation)
-  #convert @myimages.txt mymovie.gif
-  #save cmd_str in text file!!!
+  if(file_format==".gif"){
+    #-delay 20
+    #delay_option <- 60
+    delay_option <- frame_speed
+    
+    cmd_str <- paste("convert",
+                     paste("-delay",delay_option),
+                     paste0("@",filenames_figures),
+                     out_filename_figure_animation)
+    #convert @myimages.txt mymovie.gif
+    #save cmd_str in text file!!!
+    
+  }
   
   #if format is .mp4
   if(file_format==".mp4"){
@@ -406,14 +426,17 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60
     #ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
     
     #-r1 one second by frame
-    
-    cmd_str <- 
+    #rate of one per second:
+    #ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
+    #crf: used for compression count rate factor is between 18 to 24, the lowest is the highest quality
+    #ffmpeg -f image2 -r 1 -vcodec libx264 -crf 24 -pattern_type glob -i '*.png' out.mp4
+    frame_rate <- delay_option/100 # convert frame rate in second
     cmd_str <- paste("ffmpeg",
                        paste("-f","image2",sep=" "),
-                       paste("-pattern_type glob -i ",filenames_figures),
-                     paste("-pattern_type glob -i ",filenames_figures),
-                     
-                       out_filename_figure_animation)
+                       paste("-r",frame_rate,sep=" "),
+                       paste("-pattern_type glob -i","'*.png'",sep=" "),
+                       #paste("-pattern_type glob -i ",filenames_figures),
+                       out_filename_figure_animation,sep=" ")
     
   }
   system(cmd_str)
@@ -423,7 +446,7 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=60
 }
 
 
-plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,var_name,metric_name,NA_flag_val,filenames_figures=NULL,frame_speed=60,animation_format=".gif",zlim_val=NULL,plot_figure=T,generate_animation=T,num_cores=2,out_suffix="",out_dir="."){
+plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,var_name,metric_name,NA_flag_val,filenames_figures=NULL,frame_speed=60,animation_format=".gif",zlim_val=NULL,plot_figure=T,generate_animation=T,stat_opt,num_cores=2,out_suffix="",out_dir="."){
   #Function to generate figures and animation for a list of time series raster files.
   #The list assumes that dates can be extracted from the filename (as in the NEX worklow)
   #
@@ -440,9 +463,10 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
   #10) zlim_val
   #11) plot_figure
   #12) generate_animation
-  #13) num_cores
-  #14) out_suffix
-  #15) out_dir
+  #13) stat_opt: if TRUE compute general stat for raster (mi, max, mean etc.)
+  #14) num_cores
+  #15) out_suffix
+  #16) out_dir
   #OUTPUTS
   #An object as list called figure_animation_obj with:
   #1) filenames_figures_mosaic
@@ -484,7 +508,7 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     l_dates <- list_dates_produced_date_val #[1:11]
     
     #undebug(plot_raster_mosaic)
-    zlim_val <- zlim_val
+    #zlim_val <- zlim_val
     
     ### Now run for the full time series
     #13.26 Western time: start
@@ -492,20 +516,21 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     #r_stack_subset <- r_stack
     #zlim_val <- NULL
     out_suffix_str <- paste0(var_name,"_",metric_name,"_",out_suffix)
-    list_param_plot_raster_mosaic <- list(l_dates,r_stack,NA_flag_val,out_dir,
-                                          out_suffix_str,region_name,variable_name,zlim_val)
-    names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled","NA_flag_val_mosaic","out_dir",
-                                              "out_suffix", "region_name","variable_name","zlim_val")
-    
-    #lf_mosaic_plot_fig <- mclapply(1:length(l_dates[1:11]),
-    #                               FUN = plot_raster_mosaic,
-    #                               list_param = list_param_plot_raster_mosaic,
-    #                               mc.preschedule = FALSE,
-    #                               mc.cores = num_cores)
+    list_param_plot_raster_mosaic <- list(l_dates,r_stack,
+                                          NA_flag_val,out_dir,
+                                          out_suffix_str,region_name,
+                                          variable_name,zlim_val,stat_opt)
+    names(list_param_plot_raster_mosaic) <- c("l_dates","r_mosaiced_scaled",
+                                              "NA_flag_val_mosaic","out_dir",
+                                              "out_suffix", "region_name",
+                                              "variable_name","zlim_val","stat_opt")
+    #debug(plot_raster_mosaic)
+    browser()
+    lf_mosaic_plot_fig <- plot_raster_mosaic(1,
+                                   list_param = list_param_plot_raster_mosaic)
     
     ##start at 12.29
     ##finished at 15.23 (for reg 6 with 2,991 figures)
-    #debug(plot_raster_mosaic)
     lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
                                    FUN = plot_raster_mosaic,
                                    list_param = list_param_plot_raster_mosaic,
