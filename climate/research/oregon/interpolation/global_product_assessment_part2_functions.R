@@ -188,8 +188,8 @@ plot_raster_mosaic <- function(i,list_param){
   
   if(is.null(zlim_val)){
     
-    if(is.na(minValue(r_pred))){
-      r_pred <- setMinMax(r_pred)
+    if(is.na(minValue(r_pred))){ #if min is NA
+      r_pred <- setMinMax(r_pred) #then set min and max values
     }
     
     min_max_val <- c(minValue(r_pred),maxValue(r_pred))
@@ -222,7 +222,8 @@ plot_raster_mosaic <- function(i,list_param){
     
     png(filename=png_filename,width = col_mfrow * res_pix,height = row_mfrow * res_pix)
     
-    plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),zlim=zlim_val,
+    plot(r_pred,main =title_str,cex.main =1.5,col=matlab.like(255),
+         zlim=zlim_val, #this time we set the range limit for visualization
        legend.shrink=0.8,legend.width=0.8)
        #axis.args = list(cex.axis = 1.6), #control size of legend z
        #legend.args=list(text='dNBR', side=4, line=2.5, cex=2.2))
@@ -246,10 +247,10 @@ plot_raster_mosaic <- function(i,list_param){
     if(dataType(r_pred)=="INT2S" | dataType(r_pred)=="INT4S"){
       #integer overflow for sum
       #filename(r_pred)
-      #r_pred_tmp <- r_pred
+      r_pred_tmp <- r_pred
       raster_name_tmp <- paste(raster_name_tmp,"_tmp",file_format,sep="")
       writeRaster(r_pred_tmp,raster_name_tmp,datatype="FLT8S",overwrite=T) #this very slow
-      r_pred_tmp <-raster(raster_name_tmp)
+      r_pred_tmp <-raster(raster_name_tmp) #read in the converted image
       #dataType(r_pred_tmp)
       mean_val <- cellStats(r_pred_tmp,stat="mean",na.rm=T)
       sd_val <- cellStats(r_pred_tmp,stat="sd",na.rm=T)
@@ -269,7 +270,7 @@ plot_raster_mosaic <- function(i,list_param){
     stat_df <- NULL
   }
   
-  fig_obj <- c(png_filename,min_max_df,stat_df)
+  fig_obj <- list(png_filename,min_max_df,stat_df)
   names(fig_obj) <- c("png_filename","min_max_df","stat_df")
   
   #return(png_filename)
@@ -406,10 +407,10 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50
   
   #now generate movie with imageMagick
 
-  if(file_format==".gif"){
+  if(format_file==".gif"){ #file format for the animation
     #-delay 20
     #delay_option <- 60
-    delay_option <- frame_speed
+    delay_option <- frame_speed #this might change if format is changed
     
     cmd_str <- paste("convert",
                      paste("-delay",delay_option),
@@ -421,7 +422,7 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50
   }
   
   #if format is .mp4
-  if(file_format==".mp4"){
+  if(format_file==".mp4"){
     #ffmpeg -f image2 -pattern_type glob -i '*.png' out.mp4
     #ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
     
@@ -430,7 +431,7 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50
     #ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
     #crf: used for compression count rate factor is between 18 to 24, the lowest is the highest quality
     #ffmpeg -f image2 -r 1 -vcodec libx264 -crf 24 -pattern_type glob -i '*.png' out.mp4
-    frame_rate <- delay_option/100 # convert frame rate in second
+    frame_rate <- frame_speed/100 # convert frame rate in second
     cmd_str <- paste("ffmpeg",
                        paste("-f","image2",sep=" "),
                        paste("-r",frame_rate,sep=" "),
@@ -461,7 +462,7 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
   #8) frame_speed
   #9) animation_format
   #10) zlim_val
-  #11) plot_figure
+  #11) plot_figure: if NULL the read in the files to generate the animation
   #12) generate_animation
   #13) stat_opt: if TRUE compute general stat for raster (mi, max, mean etc.)
   #14) num_cores
@@ -526,18 +527,35 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
                                               "variable_name","zlim_val","stat_opt")
     #debug(plot_raster_mosaic)
     browser()
-    lf_mosaic_plot_fig <- plot_raster_mosaic(1,
-                                   list_param = list_param_plot_raster_mosaic)
-    
+    #mosaic_plot_fig_obj <- plot_raster_mosaic(1,
+    #                               list_param = list_param_plot_raster_mosaic)
+    #lf_mosaic_plot_fig <- mosaic_plot_fig_obj$png_filename
     ##start at 12.29
     ##finished at 15.23 (for reg 6 with 2,991 figures)
-    lf_mosaic_plot_fig <- mclapply(1:length(l_dates),
+    mosaic_plot_fig_obj <- mclapply(1:length(l_dates),
                                    FUN = plot_raster_mosaic,
                                    list_param = list_param_plot_raster_mosaic,
                                    mc.preschedule = FALSE,
                                    mc.cores = num_cores)
+    #mosaic_plot_fig_obj[[1]]$min_max_df
+    #mosaic_plot_fig_obj[[1]]$stat_df
+    #mosaic_plot_fig_obj[[1]]$png_filename
     
-    if (is.null(zlim_val)) {
+    lf_mosaic_plot_fig <- lapply(mosaic_plot_fig_obj,function(x){x$png_filename})
+    if(stat_opt==TRUE){
+      l_stat_df <- lapply(mosaic_plot_fig_obj,function(x){x$stat_df})
+      stat_df <- do.call(rbind,l_stat_df)
+      stat_df$date <- l_dates
+      stat_df$lf$files <- lf_raster
+    }else{
+      stat_df <- NULL
+    }
+    l_min_max_df <- lapply(mosaic_plot_fig_obj,function(x){x$stat_df})
+    min_max_df <- do.call(rbind,l_min_max_df)
+    min_max_df$date <- l_dates
+    min_max_df$files <- lf_raster
+    
+    if(is.null(zlim_val)){
       out_suffix_movie <- paste("min_max_", out_suffix_str, sep = "")
     } else{
       zlim_val_str <- paste(zlim_val, sep = "_", collapse = "_")
@@ -549,13 +567,20 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     
   }
   
+  if(is.null(plot_figure)){
+    stat_df <- NULL
+    min_max_df <- NULL
+    #lf_mosaic_plot_fig <- filenames_figures #this should be provided in the input param
+    filenames_figures_mosaic <- filenames_figures
+  }
+  
   ### Part 2 generate movie
   
   if(generate_animation==TRUE){
     
     out_suffix_str <- paste0(var_name,"_",metric_name,"_",out_suffix)
     
-    if (is.null(zlim_val)) {
+    if(is.null(zlim_val)){
       out_suffix_movie <- paste("min_max_", out_suffix, sep = "")
     } else{
       zlim_val_str <- paste(zlim_val, sep = "_", collapse = "_")
