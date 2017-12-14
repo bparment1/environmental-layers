@@ -5,7 +5,7 @@
 #The file contains functions to genrate figures and animation (movie).
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 12/13/2017            
+#MODIFIED ON: 12/14/2017            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS:
@@ -20,7 +20,7 @@
 #
 #setfacl -Rmd user:aguzman4:rwx /nobackupp8/bparmen1/output_run10_1500x4500_global_analyses_pred_1992_10052015
 
-##COMMIT: modifying function to check missing files and dates for predictions and others
+##COMMIT: remove existing animation before creating it
 
 #################################################################################################
 
@@ -386,13 +386,17 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50
   #1) filenames_figures: list of files as "list" or "character, or file name of a text file containing the list of figures.
   #2) frame_speed: delay option in constructing the animation, default is 50,
                   #the unit is 1/100th of second so 50 is 2 frame per second
-  #3) format_file=".gif"
-  #4) out_suffix=""
-  #5) out_dir=".",
-  #6) out_filename_figure_animation=NUL
+  #3) format_file=".gif", ".mp4" or ".avi
+  #4) out_suffix: ouput string added as suffix, default is ""
+  #5) out_dir: output directory, default is current directory
+  #6) out_filename_figure_animation: output filename if NULL (default)
+  #                                   then generated from input suffix
+  
   #OUTPUTS:
-  #
+  #1) out_filename_figure_animation: file containing the movie
 
+  ######## Beging script #############
+  
   if(is.null(out_filename_figure_animation)){
     #out_filename_figure_movies <- file.path(out_dir,paste("mosaic_movie_",out_suffix_movie,".gif",sep=""))
     out_filename_figure_animation <- file.path(out_dir,paste("animation_frame_",frame_speed,"_",out_suffix,format_file,sep=""))
@@ -408,6 +412,10 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50
   #now generate movie with imageMagick
 
   if(format_file==".gif"){ #file format for the animation
+    if(file.exists(out_filename_figure_animation)){
+      file.remove(out_filename_figure_animation)
+    }
+    
     #-delay 20
     #delay_option <- 60
     delay_option <- frame_speed #this might change if format is changed
@@ -422,7 +430,12 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50
   }
   
   #if format is .mp4
-  if(format_file==".mp4"){
+  if(format_file==".mp4" | format_file==".avi"){
+    
+    if(file.exists(out_filename_figure_animation)){
+      file.remove(out_filename_figure_animation)
+    }
+    
     #ffmpeg -f image2 -pattern_type glob -i '*.png' out.mp4
     #ffmpeg -f image2 -r 1 -pattern_type glob -i '*.png' out.mp4
     
@@ -441,6 +454,8 @@ generate_animation_from_figures_fun <- function(filenames_figures,frame_speed=50
     
   }
   system(cmd_str)
+  
+  #####
   
   return(out_filename_figure_animation)
 
@@ -526,7 +541,7 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
                                               "out_suffix", "region_name",
                                               "variable_name","zlim_val","stat_opt")
     #debug(plot_raster_mosaic)
-    browser()
+    #browser()
     #mosaic_plot_fig_obj <- plot_raster_mosaic(1,
     #                               list_param = list_param_plot_raster_mosaic)
     #lf_mosaic_plot_fig <- mosaic_plot_fig_obj$png_filename
@@ -542,11 +557,18 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     #mosaic_plot_fig_obj[[1]]$png_filename
     
     lf_mosaic_plot_fig <- lapply(mosaic_plot_fig_obj,function(x){x$png_filename})
+    #browser()
+    
     if(stat_opt==TRUE){
       l_stat_df <- lapply(mosaic_plot_fig_obj,function(x){x$stat_df})
       stat_df <- do.call(rbind,l_stat_df)
       stat_df$date <- l_dates
-      stat_df$lf$files <- lf_raster
+      stat_df$files <- lf_raster
+      
+      ### Write out information
+      stat_df_fname <- file.path(out_dir, paste0("stat_df_", out_suffix_str, ".txt"))
+      write.table(stat_df,stat_df_fname,sep=",",row.names = F)
+
     }else{
       stat_df <- NULL
     }
@@ -554,6 +576,9 @@ plot_and_animate_raster_time_series <- function(lf_raster, item_no,region_name,v
     min_max_df <- do.call(rbind,l_min_max_df)
     min_max_df$date <- l_dates
     min_max_df$files <- lf_raster
+    ### Write out information
+    min_max_df_fname <- file.path(out_dir, paste0("min_max_df_", out_suffix_str, ".txt"))
+    write.table(min_max_df,file = min_max_df_fname,sep = ",",row.names = F)
     
     if(is.null(zlim_val)){
       out_suffix_movie <- paste("min_max_", out_suffix_str, sep = "")
