@@ -4,7 +4,7 @@
 #This part 2 of the assessment focuses on graphics to explore the spatial patterns of raster times series as figures and movie
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 12/15/2017            
+#MODIFIED ON: 01/14/2018            
 #Version: 1
 #PROJECT: Environmental Layers project     
 #COMMENTS: Initial commit, script based on part NASA biodiversity conferenc 
@@ -86,7 +86,7 @@ source(file.path(script_path,function_assessment_part3)) #source all functions u
 #Product assessment
 #function_product_assessment_part1_functions <- "global_product_assessment_part1_functions_09192016b.R"
 #source(file.path(script_path,function_product_assessment_part1_functions)) #source all functions used in this script 
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_12142017.R"
+function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_01142018.R"
 source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 
 ###############################
@@ -99,7 +99,7 @@ CRS_interp <- "+proj=longlat +ellps=WGS84 +datum=WGS84 +towgs84=0,0,0" #param 3
 #list_models<-c("y_var ~ s(lat,lon,k=5) + s(elev_s,k=3) + s(LST,k=3)") #param 4
 metric_name <- "var_pred" #use RMSE if accuracy
 in_dir <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/assessment2"
-in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984"
+#in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/output_reg6_1984"
 in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/mosaics/mosaic/"
 
 #in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg1/mosaics/mosaic"
@@ -109,7 +109,7 @@ in_dir_mosaic <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/re
 #reg1 (North Am), reg2(Europe),reg3(Asia), reg4 (South Am), reg5 (Africa), reg6 (Australia-Asia)
 #master directory containing the definition of tile size and tiles predicted
 region_name <- c("reg6") #param 6, arg 3
-out_suffix <- "global_assessment_mosaic_reg6_12152017"
+out_suffix <- "global_assessment_mosaic_reg6_01142018"
 create_out_dir_param <- TRUE #param 9, arg 6
 #out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/out/reg6/assessment"
 out_dir <- "/data/project/layers/commons/NEX_data/climateLayers/tMinOut/reg6/assessment2/"
@@ -226,6 +226,7 @@ head(df_time_series)
 
 table(df_time_series$missing) 
 count_by_year<- t(table(df_time_series$year)) #missing by year
+count_by_year
 #names(count_by_year)
 
 #############################
@@ -239,6 +240,7 @@ var_name <- y_var_name
 
 #df_raster <- read.table("df_raster_global_assessment_reg6_10102016.txt",sep=",",header=T)
 #range_year <- c(1984,2014)
+range_year <- range(as.numeric(as.character(df_time_series$year)),na.rm=T)
 #subset_df_time_series <- subset(df_time_series,year%in% range_year)
 #subset_df_time_series <- subset_df_time_series[!is.na(subset_df_time_series$lf),]
 
@@ -248,8 +250,8 @@ out_suffix_str <- paste(range_year_str,out_suffix,sep="_")
 
 #debug(plot_and_animate_raster_time_series)
 #animation_frame_60_min_max_1984_1985_global_assessment_reg6_12112017.gif
-function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_12152017.R"
-source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
+#function_product_assessment_part2_functions <- "global_product_assessment_part2_functions_01142018.R"
+#source(file.path(script_path,function_product_assessment_part2_functions)) #source all functions used in this script 
 ## 12/13 at 21:01 to 23.42 for 613
 #12/15:9:56
 animation_obj <- plot_and_animate_raster_time_series(lf_raster, 
@@ -269,8 +271,22 @@ animation_obj <- plot_and_animate_raster_time_series(lf_raster,
                                                      out_suffix=out_suffix_str,
                                                      out_dir=out_dir)
   
-stat_df <- read.table(file.path(out_dir,"stat_df_dailyTmin_var_pred_1984_2014_global_assessment_reg6_12132017.txt"),sep=",",header=T)
+stat_df_fname <- animation_obj$filenames_figures_mosaic
+stat_df_fname <- list.files(pattern="stat_df.*.txt",full.names = F)
+
+#stat_df <- read.table(file.path(out_dir,"stat_df_dailyTmin_var_pred_1984_2014_global_assessment_reg6_12132017.txt"),sep=",",header=T)
+stat_df <- read.table(file.path(out_dir,stat_df_fname),sep=",",header=T)
+
+
 View(stat_df)
+plot(stat_df$mean,type="l",main="Mean tmin")
+plot(stat_df$min, type="l",col="blue",main="Min tmin")
+plot(stat_df$max,type="l",col="red",main="Max tmin")
+
+plot(stat_df$mean,type="l",col="black")
+lines(stat_df$min,type="l",col="blue")
+lines(stat_df$max,type="l",col="red")
+
 zlim_val <- c(-2000,5000)
 animation_obj <- plot_and_animate_raster_time_series(basename(lf_subset), 
                                                      item_no,

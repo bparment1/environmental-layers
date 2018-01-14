@@ -5,7 +5,7 @@
 #The file contains functions to genrate figures and animation (movie).
 #AUTHOR: Benoit Parmentier 
 #CREATED ON: 10/03/2016  
-#MODIFIED ON: 12/14/2017            
+#MODIFIED ON: 12/15/2017            
 #Version: 2
 #PROJECT: Environmental Layers project     
 #COMMENTS:
